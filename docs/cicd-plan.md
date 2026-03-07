@@ -49,7 +49,48 @@ Steps:
 
 npm token stored as `NPM_TOKEN` repository secret.
 
-### 3. `integration.yml` — Integration Tests (Optional)
+### 3. `docs.yml` — Documentation (GitHub Pages)
+
+Triggers: push to `main` (changes in `src/` or `docs/`), manual (`workflow_dispatch`).
+
+```
+Steps:
+  1. Checkout
+  2. Setup Node.js 20
+  3. Install dependencies
+  4. Build library (tsup)
+  5. Generate API reference (TypeDoc → HTML)
+  6. Build docs site (VitePress)
+     - Landing page with quickstart
+     - API reference (TypeDoc output)
+     - Guides (auth flow, sessions, invoices, permissions, etc.)
+     - CLI usage
+  7. Deploy to GitHub Pages (actions/deploy-pages)
+```
+
+Site structure:
+```
+site/
+├── index.md                  # Landing page
+├── getting-started.md        # Installation + quickstart
+├── guides/
+│   ├── authentication.md     # Auth flows (token, certificate)
+│   ├── sessions.md           # Online + batch sessions
+│   ├── invoices.md           # Send, query, export
+│   ├── permissions.md        # Grant, revoke, search
+│   └── certificates.md      # Enrollment, management
+├── cli/
+│   └── index.md              # CLI reference
+├── api/                      # Auto-generated TypeDoc
+└── changelog.md              # Release history
+```
+
+Tools:
+- `VitePress` — docs site (markdown → static HTML)
+- `TypeDoc` — API reference from TSDoc comments
+- `typedoc-plugin-markdown` — TypeDoc → markdown (for VitePress integration)
+
+### 4. `integration.yml` — Integration Tests (Optional)
 
 Triggers: manual (`workflow_dispatch`), nightly schedule.
 
