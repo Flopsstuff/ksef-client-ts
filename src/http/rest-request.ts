@@ -43,6 +43,11 @@ export class RestRequest {
     return this;
   }
 
+  accessToken(token: string): this {
+    this._headers['Authorization'] = `Bearer ${token}`;
+    return this;
+  }
+
   query(key: string, value: string): this {
     this._query[key] = value;
     return this;
