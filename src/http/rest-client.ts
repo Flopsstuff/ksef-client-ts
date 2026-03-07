@@ -56,8 +56,8 @@ export class RestClient {
     const url = new URL(`${base}${path}`);
 
     const query = request.getQuery();
-    for (const [key, value] of Object.entries(query)) {
-      url.searchParams.set(key, value);
+    for (const [key, value] of query) {
+      url.searchParams.append(key, value);
     }
 
     return url.toString();

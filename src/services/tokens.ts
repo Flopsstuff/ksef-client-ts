@@ -1,7 +1,7 @@
 import { RestClient } from '../http/rest-client.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
-import type { KsefTokenRequest, KsefTokenResponse, AuthenticationKsefToken, QueryKsefTokensResponse } from '../models/tokens/types.js';
+import type { KsefTokenRequest, KsefTokenResponse, AuthenticationKsefToken, QueryKsefTokensResponse, QueryKsefTokensOptions } from '../models/tokens/types.js';
 
 export class TokenService {
   private readonly restClient: RestClient;
@@ -20,12 +20,20 @@ export class TokenService {
 
   async queryTokens(
     accessToken: string,
-    options?: { pageOffset?: number; pageSize?: number },
+    options?: QueryKsefTokensOptions,
   ): Promise<QueryKsefTokensResponse> {
     const req = RestRequest.get(Routes.Tokens.root)
       .accessToken(accessToken);
     if (options?.pageOffset !== undefined) req.query('pageOffset', String(options.pageOffset));
     if (options?.pageSize !== undefined) req.query('pageSize', String(options.pageSize));
+    if (options?.status) {
+      for (const s of options.status) {
+        req.query('status', s);
+      }
+    }
+    if (options?.description !== undefined) req.query('description', options.description);
+    if (options?.authorIdentifier !== undefined) req.query('authorIdentifier', options.authorIdentifier);
+    if (options?.authorIdentifierType !== undefined) req.query('authorIdentifierType', options.authorIdentifierType);
     const response = await this.restClient.execute<QueryKsefTokensResponse>(req);
     return response.body;
   }

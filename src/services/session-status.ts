@@ -18,13 +18,25 @@ export class SessionStatusService {
     continuationToken?: string,
     filter?: SessionsFilter,
   ): Promise<SessionsListResponse> {
-    const body: Record<string, unknown> = { type };
-    if (pageSize !== undefined) body.pageSize = pageSize;
-    if (continuationToken !== undefined) body.continuationToken = continuationToken;
-    if (filter) body.filter = filter;
-    const req = RestRequest.post(Routes.Sessions.root)
-      .accessToken(accessToken)
-      .body(body);
+    const req = RestRequest.get(Routes.Sessions.root)
+      .accessToken(accessToken);
+    req.query('sessionType', type);
+    if (pageSize !== undefined) req.query('pageSize', String(pageSize));
+    if (continuationToken !== undefined) req.header('x-continuation-token', continuationToken);
+    if (filter) {
+      if (filter.referenceNumber) req.query('referenceNumber', filter.referenceNumber);
+      if (filter.dateCreatedFrom) req.query('dateCreatedFrom', filter.dateCreatedFrom);
+      if (filter.dateCreatedTo) req.query('dateCreatedTo', filter.dateCreatedTo);
+      if (filter.dateClosedFrom) req.query('dateClosedFrom', filter.dateClosedFrom);
+      if (filter.dateClosedTo) req.query('dateClosedTo', filter.dateClosedTo);
+      if (filter.dateModifiedFrom) req.query('dateModifiedFrom', filter.dateModifiedFrom);
+      if (filter.dateModifiedTo) req.query('dateModifiedTo', filter.dateModifiedTo);
+      if (filter.statuses) {
+        for (const status of filter.statuses) {
+          req.query('sessionStatus', status);
+        }
+      }
+    }
     const response = await this.restClient.execute<SessionsListResponse>(req);
     return response.body;
   }

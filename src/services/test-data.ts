@@ -34,7 +34,7 @@ export class TestDataService {
   }
 
   async removeSubject(request: SubjectRemoveRequest): Promise<TestDataStatusResponse> {
-    const req = RestRequest.delete(Routes.TestData.removeSubject).body(request);
+    const req = RestRequest.post(Routes.TestData.removeSubject).body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;
   }
@@ -48,7 +48,7 @@ export class TestDataService {
   }
 
   async removePerson(request: PersonRemoveRequest): Promise<TestDataStatusResponse> {
-    const req = RestRequest.delete(Routes.TestData.removePerson).body(request);
+    const req = RestRequest.post(Routes.TestData.removePerson).body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;
   }
@@ -62,7 +62,7 @@ export class TestDataService {
   }
 
   async revokePermissions(request: TestDataPermissionsRevokeRequest): Promise<TestDataStatusResponse> {
-    const req = RestRequest.delete(Routes.TestData.revokePerms).body(request);
+    const req = RestRequest.post(Routes.TestData.revokePerms).body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;
   }
@@ -76,7 +76,7 @@ export class TestDataService {
   }
 
   async disableAttachment(request: AttachmentPermissionRevokeRequest): Promise<TestDataStatusResponse> {
-    const req = RestRequest.delete(Routes.TestData.disableAttach).body(request);
+    const req = RestRequest.post(Routes.TestData.disableAttach).body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;
   }
@@ -158,7 +158,7 @@ export class TestDataService {
   }
 
   async unblockContext(request: ContextUnblockRequest, accessToken: string): Promise<TestDataStatusResponse> {
-    const req = RestRequest.delete(Routes.TestData.unblockContext)
+    const req = RestRequest.post(Routes.TestData.unblockContext)
       .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);

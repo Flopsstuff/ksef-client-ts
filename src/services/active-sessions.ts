@@ -15,12 +15,10 @@ export class ActiveSessionsService {
     pageSize?: number,
     continuationToken?: string,
   ): Promise<AuthenticationListResponse> {
-    const request = RestRequest.post(Routes.ActiveSessions.session)
+    const request = RestRequest.get(Routes.ActiveSessions.session)
       .accessToken(accessToken);
-    const body: Record<string, unknown> = {};
-    if (pageSize !== undefined) body.pageSize = pageSize;
-    if (continuationToken !== undefined) body.continuationToken = continuationToken;
-    request.body(body);
+    if (pageSize !== undefined) request.query('pageSize', String(pageSize));
+    if (continuationToken !== undefined) request.header('x-continuation-token', continuationToken);
     const response = await this.restClient.execute<AuthenticationListResponse>(request);
     return response.body;
   }

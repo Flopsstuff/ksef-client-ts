@@ -59,7 +59,7 @@ export class CertificateApiService {
   }
 
   async revoke(serialNumber: string, request: CertificateRevokeRequest, accessToken: string): Promise<void> {
-    const req = RestRequest.delete(Routes.Certificates.revoke(serialNumber))
+    const req = RestRequest.post(Routes.Certificates.revoke(serialNumber))
       .accessToken(accessToken)
       .body(request);
     await this.restClient.execute<void>(req);

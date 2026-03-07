@@ -31,6 +31,19 @@ export interface AuthenticationKsefToken {
   revokedAt?: string;
 }
 
+export type TokenStatus = 'Pending' | 'Active' | 'Revoking' | 'Revoked' | 'Failed';
+
+export type TokenAuthorIdentifierType = 'Nip' | 'Pesel' | 'Fingerprint';
+
+export interface QueryKsefTokensOptions {
+  pageOffset?: number;
+  pageSize?: number;
+  status?: TokenStatus[];
+  description?: string;
+  authorIdentifier?: string;
+  authorIdentifierType?: TokenAuthorIdentifierType;
+}
+
 export interface QueryKsefTokensResponse {
   tokens: AuthenticationKsefToken[];
 }

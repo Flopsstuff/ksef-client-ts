@@ -5,7 +5,7 @@ export class RestRequest {
   readonly path: string;
   private _body?: unknown;
   private _headers: Record<string, string> = {};
-  private _query: Record<string, string> = {};
+  private _query: [string, string][] = [];
 
   private constructor(method: HttpMethod, path: string) {
     this.method = method;
@@ -49,7 +49,7 @@ export class RestRequest {
   }
 
   query(key: string, value: string): this {
-    this._query[key] = value;
+    this._query.push([key, value]);
     return this;
   }
 
@@ -61,7 +61,7 @@ export class RestRequest {
     return { ...this._headers };
   }
 
-  getQuery(): Record<string, string> {
-    return { ...this._query };
+  getQuery(): [string, string][] {
+    return [...this._query];
   }
 }

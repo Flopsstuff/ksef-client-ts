@@ -143,6 +143,12 @@ export interface QueryEntitiesRolesRequest {
   pageSize?: number;
 }
 
+export interface QueryEntitiesGrantsRequest {
+  contextIdentifier?: string;
+  pageOffset?: number;
+  pageSize?: number;
+}
+
 export interface QuerySubordinateEntitiesRolesRequest {
   nip?: string;
   pageOffset?: number;

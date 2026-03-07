@@ -310,6 +310,11 @@ queryEntitiesRoles(accessToken: string, options?: QueryEntitiesRolesRequest): Pr
 Query roles assigned to entities.
 
 ```ts
+queryEntitiesGrants(accessToken: string, options?: QueryEntitiesGrantsRequest): Promise<PagedPermissionsResponse<EntityRole>>
+```
+Query permissions granted to entities.
+
+```ts
 querySubordinateEntitiesRoles(accessToken: string, options?: QuerySubordinateEntitiesRolesRequest): Promise<PagedRolesResponse<SubordinateEntityRole>>
 ```
 Query roles assigned to subordinate entities.
@@ -348,7 +353,7 @@ generateToken(request: KsefTokenRequest, accessToken: string): Promise<KsefToken
 Generate a new KSeF authentication token.
 
 ```ts
-queryTokens(accessToken: string, options?: { pageOffset?: number; pageSize?: number }): Promise<QueryKsefTokensResponse>
+queryTokens(accessToken: string, options?: QueryKsefTokensOptions): Promise<QueryKsefTokensResponse>
 ```
 List all tokens for the current subject.
 

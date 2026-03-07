@@ -106,6 +106,7 @@ export const Routes = {
       personsGrants: 'permissions/query/persons/grants',
       subunitsGrants: 'permissions/query/subunits/grants',
       entitiesRoles: 'permissions/query/entities/roles',
+      entitiesGrants: 'permissions/query/entities/grants',
       subordinateEntitiesRoles: 'permissions/query/subordinate-entities/roles',
       authorizationsGrants: 'permissions/query/authorizations/grants',
       euEntitiesGrants: 'permissions/query/eu-entities/grants',

@@ -26,6 +26,7 @@ import type {
   QueryPersonsGrantsRequest,
   QuerySubunitsGrantsRequest,
   QueryEntitiesRolesRequest,
+  QueryEntitiesGrantsRequest,
   QuerySubordinateEntitiesRolesRequest,
   QueryAuthorizationsGrantsRequest,
   QueryEuEntitiesGrantsRequest,
@@ -163,6 +164,19 @@ export class PermissionsService {
     if (options?.pageOffset !== undefined) req.query('pageOffset', String(options.pageOffset));
     if (options?.pageSize !== undefined) req.query('pageSize', String(options.pageSize));
     const response = await this.restClient.execute<PagedRolesResponse<EntityRole>>(req);
+    return response.body;
+  }
+
+  async queryEntitiesGrants(
+    accessToken: string,
+    options?: QueryEntitiesGrantsRequest,
+  ): Promise<PagedPermissionsResponse<EntityRole>> {
+    const req = RestRequest.post(Routes.Permissions.Query.entitiesGrants)
+      .accessToken(accessToken)
+      .body(options ?? {});
+    if (options?.pageOffset !== undefined) req.query('pageOffset', String(options.pageOffset));
+    if (options?.pageSize !== undefined) req.query('pageSize', String(options.pageSize));
+    const response = await this.restClient.execute<PagedPermissionsResponse<EntityRole>>(req);
     return response.body;
   }
 
