@@ -1,1 +1,13 @@
 ref/
+node_modules/
+dist/
+*.tsbuildinfo
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# ignore gitpmoji directory
+.gitpmoji
