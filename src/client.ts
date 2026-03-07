@@ -5,6 +5,14 @@ import { ActiveSessionsService } from './services/active-sessions.js';
 import { OnlineSessionService } from './services/online-session.js';
 import { BatchSessionService } from './services/batch-session.js';
 import { SessionStatusService } from './services/session-status.js';
+import { InvoiceDownloadService } from './services/invoice-download.js';
+import { PermissionsService } from './services/permissions.js';
+import { TokenService } from './services/tokens.js';
+import { CertificateApiService } from './services/certificates.js';
+import { LighthouseService } from './services/lighthouse.js';
+import { LimitsService } from './services/limits.js';
+import { PeppolService } from './services/peppol.js';
+import { TestDataService } from './services/test-data.js';
 
 export class KSeFClient {
   readonly auth: AuthService;
@@ -12,6 +20,14 @@ export class KSeFClient {
   readonly onlineSession: OnlineSessionService;
   readonly batchSession: BatchSessionService;
   readonly sessionStatus: SessionStatusService;
+  readonly invoices: InvoiceDownloadService;
+  readonly permissions: PermissionsService;
+  readonly tokens: TokenService;
+  readonly certificates: CertificateApiService;
+  readonly lighthouse: LighthouseService;
+  readonly limits: LimitsService;
+  readonly peppol: PeppolService;
+  readonly testData: TestDataService;
   readonly options: ResolvedOptions;
 
   constructor(options?: KSeFClientOptions) {
@@ -22,5 +38,13 @@ export class KSeFClient {
     this.onlineSession = new OnlineSessionService(restClient);
     this.batchSession = new BatchSessionService(restClient);
     this.sessionStatus = new SessionStatusService(restClient);
+    this.invoices = new InvoiceDownloadService(restClient);
+    this.permissions = new PermissionsService(restClient);
+    this.tokens = new TokenService(restClient);
+    this.certificates = new CertificateApiService(restClient);
+    this.lighthouse = new LighthouseService(this.options);
+    this.limits = new LimitsService(restClient);
+    this.peppol = new PeppolService(restClient);
+    this.testData = new TestDataService(restClient);
   }
 }

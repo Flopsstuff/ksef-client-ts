@@ -217,7 +217,7 @@ Project setup, HTTP layer, error handling, configuration.
 
 ---
 
-### Phase 2: Authentication & Sessions
+### Phase 2: Authentication & Sessions ✅
 
 Core auth flows, session management, main client class.
 
@@ -270,11 +270,11 @@ Core auth flows, session management, main client class.
 - Composes all service modules
 - Exposes grouped API: `client.auth.getChallenge()`, `client.sessions.openOnline()`, etc.
 
-**Deliverable:** Can authenticate (with pre-signed XML or KSeF token), open/close sessions, send invoices, check status.
+**Deliverable:** Can authenticate (with pre-signed XML or KSeF token), open/close sessions, send invoices, check status. ✅ Done
 
 ---
 
-### Phase 3: Invoices, Permissions, Tokens
+### Phase 3: Invoices, Permissions, Tokens ✅
 
 Full CRUD operations for all resource types.
 
@@ -317,7 +317,7 @@ Full CRUD operations for all resource types.
 - Peppol: `queryPeppolProviders()`
 - Test data: full CRUD for subjects, persons, permissions, limits, rate limits, context blocking
 
-**Deliverable:** Feature-complete API surface matching Java/C# clients.
+**Deliverable:** Feature-complete API surface matching Java/C# clients. ✅ Done
 
 ---
 

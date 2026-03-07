@@ -38,3 +38,7 @@ export interface ContextIdentifier {
 
 export type SessionType = 'Online' | 'Batch';
 export type SessionStatus = 'Succeeded' | 'InProgress' | 'Failed' | 'Cancelled';
+
+export type SortOrder = 'Asc' | 'Desc';
+
+export type PermissionSubjectIdentifierType = 'Nip' | 'Pesel' | 'Fingerprint';
