@@ -10,3 +10,4 @@ export * from './limits/index.js';
 export * from './peppol/index.js';
 export * from './test-data/index.js';
 export * from './crypto/index.js';
+export * from './qrcode/index.js';

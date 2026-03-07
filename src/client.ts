@@ -15,6 +15,7 @@ import { PeppolService } from './services/peppol.js';
 import { TestDataService } from './services/test-data.js';
 import { CertificateFetcher } from './crypto/certificate-fetcher.js';
 import { CryptographyService } from './crypto/cryptography-service.js';
+import { VerificationLinkService } from './qr/verification-link-service.js';
 
 export class KSeFClient {
   readonly auth: AuthService;
@@ -31,6 +32,7 @@ export class KSeFClient {
   readonly peppol: PeppolService;
   readonly testData: TestDataService;
   readonly crypto: CryptographyService;
+  readonly qr: VerificationLinkService;
   readonly options: ResolvedOptions;
 
   constructor(options?: KSeFClientOptions) {
@@ -51,5 +53,6 @@ export class KSeFClient {
     this.limits = new LimitsService(restClient);
     this.peppol = new PeppolService(restClient);
     this.testData = new TestDataService(restClient);
+    this.qr = new VerificationLinkService(this.options.baseQrUrl);
   }
 }

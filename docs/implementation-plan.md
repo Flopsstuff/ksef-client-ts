@@ -353,7 +353,7 @@ Encryption, decryption, signatures, certificate management.
 
 ---
 
-### Phase 5: QR Codes & Utilities
+### Phase 5: QR Codes & Utilities ✅
 
 **5.1 Verification Link Service**
 - Build invoice verification URLs (QR Code I): `https://qr-{env}.ksef.mf.gov.pl/invoice/{NIP}/{date}/{SHA256}`
@@ -364,7 +364,7 @@ Encryption, decryption, signatures, certificate management.
 - Configurable size
 - Optional label (KSeF number or "OFFLINE" / "CERTYFIKAT")
 
-**Deliverable:** Complete feature parity with reference implementations.
+**Deliverable:** Complete feature parity with reference implementations. ✅ Done
 
 ---
 
@@ -380,11 +380,7 @@ Encryption, decryption, signatures, certificate management.
 - Integration test scaffolding (against TEST environment)
 - Mock-based tests for HTTP layer
 
-**6.3 CI/CD**
-- GitHub Actions: lint, test, build
-- npm publish workflow
-
-**6.4 Package**
+**6.3 Package**
 - Dual ESM/CJS output
 - TypeScript declarations
 - Proper `exports` field in package.json
