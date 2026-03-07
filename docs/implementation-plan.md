@@ -370,20 +370,20 @@ Encryption, decryption, signatures, certificate management.
 
 ### Phase 6: Polish & Release
 
-**6.1 Documentation**
+**6.1 Documentation** ✅
 - README with quickstart, examples
-- API reference (generated from TSDoc)
-- Usage examples for common flows
+- Hand-written API reference (docs/api-reference.md)
+- Usage examples for common flows (docs/examples.md)
 
 **6.2 Testing**
 - Unit tests for builders, validators, crypto, URL construction
 - Integration test scaffolding (against TEST environment)
 - Mock-based tests for HTTP layer
 
-**6.3 Package**
-- Dual ESM/CJS output
-- TypeScript declarations
-- Proper `exports` field in package.json
+**6.3 Package** ✅
+- Dual ESM/CJS output (tsup)
+- TypeScript declarations (.d.ts / .d.cts)
+- Proper `exports` field in package.json (conditional import/require)
 - Tree-shakeable
 
 ---
