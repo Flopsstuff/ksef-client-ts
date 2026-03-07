@@ -13,6 +13,8 @@ import { LighthouseService } from './services/lighthouse.js';
 import { LimitsService } from './services/limits.js';
 import { PeppolService } from './services/peppol.js';
 import { TestDataService } from './services/test-data.js';
+import { CertificateFetcher } from './crypto/certificate-fetcher.js';
+import { CryptographyService } from './crypto/cryptography-service.js';
 
 export class KSeFClient {
   readonly auth: AuthService;
@@ -28,11 +30,14 @@ export class KSeFClient {
   readonly limits: LimitsService;
   readonly peppol: PeppolService;
   readonly testData: TestDataService;
+  readonly crypto: CryptographyService;
   readonly options: ResolvedOptions;
 
   constructor(options?: KSeFClientOptions) {
     this.options = resolveOptions(options);
     const restClient = new RestClient(this.options);
+    const fetcher = new CertificateFetcher(restClient);
+    this.crypto = new CryptographyService(fetcher);
     this.auth = new AuthService(restClient);
     this.activeSessions = new ActiveSessionsService(restClient);
     this.onlineSession = new OnlineSessionService(restClient);

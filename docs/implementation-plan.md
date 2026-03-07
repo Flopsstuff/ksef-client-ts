@@ -321,7 +321,7 @@ Full CRUD operations for all resource types.
 
 ---
 
-### Phase 4: Cryptography & Signing
+### Phase 4: Cryptography & Signing ✅
 
 Encryption, decryption, signatures, certificate management.
 
@@ -349,7 +349,7 @@ Encryption, decryption, signatures, certificate management.
 - SHA-256 fingerprint calculation
 - Support RSA and ECDSA key types
 
-**Deliverable:** Full crypto pipeline — can encrypt invoices, sign auth requests, generate CSRs.
+**Deliverable:** Full crypto pipeline — can encrypt invoices, sign auth requests, generate CSRs. ✅ Done
 
 ---
 
