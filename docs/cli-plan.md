@@ -31,8 +31,8 @@ src/
 │   └── commands/
 │       ├── config.ts         # [DONE] ksef config [set|show|reset]
 │       ├── auth.ts           # [DONE] ksef auth [challenge|login|status|logout|refresh|whoami]
-│       ├── session.ts        # ksef session [open|close|status|list]
-│       ├── invoice.ts        # ksef invoice [send|get|query|export|export-status]
+│       ├── session.ts        # [DONE] ksef session [open|close|status|list|invoices|failed|upo]
+│       ├── invoice.ts        # [DONE] ksef invoice [send|get|query|export|export-status]
 │       ├── permission.ts     # ksef permission [grant|revoke|search|status]
 │       ├── token.ts          # ksef token [generate|list|get|revoke]
 │       ├── cert.ts           # ksef cert [enroll|list|revoke|status]
@@ -101,9 +101,9 @@ Login flow (automated):
 
 ---
 
-### Phase 2: Sessions & Invoices
+### Phase 2: Sessions & Invoices — DONE
 
-**2.1 `ksef session`**
+**2.1 `ksef session`** — DONE
 
 ```
 ksef session open                                # Open online session (uses stored config)
@@ -116,7 +116,7 @@ ksef session failed [ref] [--page N]             # List failed invoices
 ksef session upo <ref> [--invoice-ref <iref>]    # Download UPO
 ```
 
-**2.2 `ksef invoice`**
+**2.2 `ksef invoice`** — DONE
 
 ```
 ksef invoice send <file.xml>                     # Send single invoice
@@ -210,12 +210,11 @@ ksef test-data limits [list|set|reset]
 - [x] Error handler (`withErrorHandler`)
 - [x] Client factory (`createClient`, `requireSession`)
 
-### Phase 2: Sessions + Invoices
-- [ ] Session open/close/status
-- [ ] Invoice send (single + batch)
-- [ ] Invoice download/query/export
-- [ ] Progress spinners for long operations
-- [ ] UPO download
+### Phase 2: Sessions + Invoices — DONE
+- [x] Session open/close/status/list/invoices/failed/upo
+- [x] Invoice send (single + batch)
+- [x] Invoice download/query/export
+- [x] UPO download
 
 ### Phase 3: Permissions + Tokens
 - [ ] Permission grant/revoke/search
