@@ -165,11 +165,13 @@ interface KSeFClientOptions {
 }
 ```
 
-| Environment | API URL | QR URL |
-|---|---|---|
-| `TEST` | `https://api-test.ksef.mf.gov.pl` | `https://qr-test.ksef.mf.gov.pl` |
-| `DEMO` | `https://api-demo.ksef.mf.gov.pl` | `https://qr-demo.ksef.mf.gov.pl` |
-| `PRD` | `https://api.ksef.mf.gov.pl` | `https://qr.ksef.mf.gov.pl` |
+| Environment | API URL | QR URL | Web Portal |
+|---|---|---|---|
+| `TEST` | `https://api-test.ksef.mf.gov.pl` | `https://qr-test.ksef.mf.gov.pl` | `https://ap-test.ksef.mf.gov.pl` |
+| `DEMO` | `https://api-demo.ksef.mf.gov.pl` | `https://qr-demo.ksef.mf.gov.pl` | `https://ap-demo.ksef.mf.gov.pl` |
+| `PRD` | `https://api.ksef.mf.gov.pl` | `https://qr.ksef.mf.gov.pl` | `https://ap.ksef.mf.gov.pl` |
+
+See [docs/authentication.md](docs/authentication.md) for the full URL structure including Lighthouse endpoints.
 
 ## Error Handling
 

@@ -53,21 +53,39 @@ When submitted via the API, the token is **never sent in plaintext**. The client
 
 The encryption algorithm is chosen automatically based on the KSeF certificate's key type. The private key never exists on the client side — only KSeF can decrypt the token.
 
-### KSeF portal URLs
+### KSeF 2.0 URL structure
 
-| Environment | Portal URL |
-|---|---|
-| TEST | `https://ksef-test.mf.gov.pl` |
-| DEMO | `https://ksef-demo.mf.gov.pl` |
-| PRODUCTION | `https://ksef.mf.gov.pl` |
+KSeF 2.0 exposes two gateways to the same underlying API:
 
-### KSeF API URLs (KSeF 2.0)
+| Gateway | Purpose | URL pattern |
+|---|---|---|
+| **API** | Programmatic access (CLI, libraries) | `api[-env].ksef.mf.gov.pl/v2/...` |
+| **AP** (Aplikacja Podatnika) | Web portal for taxpayers | `ap[-env].ksef.mf.gov.pl/webs/api/v2/...` |
+
+The API gateway is what this library and CLI use. The AP gateway is the browser-based portal where users log in to manage tokens, view invoices, and perform other operations interactively. Both expose the same endpoints (`/v2/tokens`, `/v2/auth/challenge`, etc.) — AP simply adds a `/webs/api` prefix.
+
+#### API URLs (used by this library)
 
 | Environment | API URL |
 |---|---|
 | TEST | `https://api-test.ksef.mf.gov.pl` |
 | DEMO | `https://api-demo.ksef.mf.gov.pl` |
 | PRODUCTION | `https://api.ksef.mf.gov.pl` |
+
+#### Web portal URLs (for generating tokens in a browser)
+
+| Environment | Portal URL |
+|---|---|
+| TEST | `https://ap-test.ksef.mf.gov.pl` |
+| DEMO | `https://ap-demo.ksef.mf.gov.pl` |
+| PRODUCTION | `https://ap.ksef.mf.gov.pl` |
+
+#### Other services
+
+| Service | TEST | DEMO | PRODUCTION |
+|---|---|---|---|
+| Lighthouse | `https://api-latarnia-test.ksef.mf.gov.pl` | `https://api-latarnia-demo.ksef.mf.gov.pl` | `https://api-latarnia.ksef.mf.gov.pl` |
+| QR verification | `https://qr-test.ksef.mf.gov.pl` | `https://qr-demo.ksef.mf.gov.pl` | `https://qr.ksef.mf.gov.pl` |
 
 ---
 
