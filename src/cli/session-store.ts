@@ -35,3 +35,20 @@ export function isSessionExpired(session: SessionData): boolean {
   if (!session.expiresAt) return false;
   return new Date(session.expiresAt).getTime() <= Date.now();
 }
+
+export function saveOnlineSessionRef(ref: string): void {
+  const session = loadSession();
+  if (!session) {
+    throw new Error('No active session. Run `ksef auth login` first.');
+  }
+  session.onlineSessionRef = ref;
+  saveSession(session);
+}
+
+export function clearOnlineSessionRef(): void {
+  const session = loadSession();
+  if (session) {
+    delete session.onlineSessionRef;
+    saveSession(session);
+  }
+}

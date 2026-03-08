@@ -155,14 +155,18 @@ const refresh = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
-
+      const session = loadSession();
+      if (!session) {
+        throw new Error('No active session. Run `ksef auth login` first.');
+      }
       if (!session.refreshToken) {
         throw new Error('No refresh token available. Re-authenticate with `ksef auth login`.');
       }
 
+      const client = createClient(globalOpts);
       const result = await client.auth.refreshAccessToken(session.refreshToken);
       session.accessToken = result.accessToken.token;
+      session.expiresAt = result.accessToken.validUntil;
       saveSession(session);
       outputSuccess('Token refreshed successfully.');
     });

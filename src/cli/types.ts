@@ -13,6 +13,7 @@ export interface SessionData {
   accessToken: string;
   refreshToken?: string;
   sessionRef?: string;
+  onlineSessionRef?: string;
   expiresAt?: string;
   environment: CliConfig['environment'];
 }

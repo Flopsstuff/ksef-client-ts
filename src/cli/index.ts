@@ -1,6 +1,8 @@
 import { defineCommand, runMain } from 'citty';
 import { configCommand } from './commands/config.js';
 import { authCommand } from './commands/auth.js';
+import { sessionCommand } from './commands/session.js';
+import { invoiceCommand } from './commands/invoice.js';
 
 const main = defineCommand({
   meta: {
@@ -11,6 +13,8 @@ const main = defineCommand({
   subCommands: {
     config: configCommand,
     auth: authCommand,
+    session: sessionCommand,
+    invoice: invoiceCommand,
   },
 });
 

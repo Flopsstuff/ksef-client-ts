@@ -25,5 +25,15 @@ export function requireSession(globalOpts: GlobalOptions): { client: KSeFClient;
   if (isSessionExpired(session)) {
     throw new Error('Session expired. Run `ksef auth login` or `ksef auth refresh`.');
   }
-  return { client: createClient(globalOpts), session };
+  // Use session's environment as fallback (between --env flag and config file)
+  const opts = globalOpts.env ? globalOpts : { ...globalOpts, env: session.environment };
+  return { client: createClient(opts), session };
+}
+
+export function requireOnlineSession(globalOpts: GlobalOptions): { client: KSeFClient; session: SessionData; onlineSessionRef: string } {
+  const { client, session } = requireSession(globalOpts);
+  if (!session.onlineSessionRef) {
+    throw new Error('No active online session. Run `ksef session open` first.');
+  }
+  return { client, session, onlineSessionRef: session.onlineSessionRef };
 }

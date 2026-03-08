@@ -61,6 +61,10 @@ Crypto layer (src/crypto/)
 - `InvoiceFilterInvoicingMode` (not `InvoicingMode`) — avoids collision with session types.
 - `PermissionSubjectIdentifierType` (not `SubjectIdentifierType`) — avoids collision with auth types.
 
+### Environment variables
+
+`KSEF_TOKEN` and `KSEF_NIP` are set in the current shell environment. Use them for CLI login: `ksef auth login --token "$KSEF_TOKEN" --nip "$KSEF_NIP" --env prod`.
+
 ### Reference implementations
 
 `ref/` directory (gitignored) contains Java (`ref/ksef-client-java`), C# (`ref/ksef-client-csharp`), official docs (`ref/ksef-docs`), and translations (`ref/ksef-docs-translated`). Consult these when implementing new features or verifying API behavior.
