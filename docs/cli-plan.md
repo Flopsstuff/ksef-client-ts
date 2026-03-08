@@ -20,15 +20,17 @@ Thin CLI wrapper over `KSeFClient` library. Each command maps directly to a clie
 ```
 src/
 ├── cli/
-│   ├── index.ts              # Entry point, top-level command registration
-│   ├── config.ts             # Config read/write (~/.ksef/config.json)
-│   ├── session-store.ts      # Session/token persistence (~/.ksef/session.json)
-│   ├── output.ts             # Formatting helpers (tables, JSON, pretty)
-│   ├── client-factory.ts     # Create KSeFClient from stored config
+│   ├── index.ts              # [DONE] Entry point, top-level command registration
+│   ├── types.ts              # [DONE] CliConfig, SessionData, GlobalOptions
+│   ├── config-store.ts       # [DONE] Config read/write (~/.ksef/config.json)
+│   ├── session-store.ts      # [DONE] Session/token persistence (~/.ksef/session.json)
+│   ├── output.ts             # [DONE] Formatting helpers (tables, JSON, pretty)
+│   ├── client-factory.ts     # [DONE] Create KSeFClient from stored config
+│   ├── error-handler.ts      # [DONE] withErrorHandler wrapper
 │   │
 │   └── commands/
-│       ├── config.ts         # ksef config [set|show|reset]
-│       ├── auth.ts           # ksef auth [challenge|login|status]
+│       ├── config.ts         # [DONE] ksef config [set|show|reset]
+│       ├── auth.ts           # [DONE] ksef auth [challenge|login|status|logout|refresh|whoami]
 │       ├── session.ts        # ksef session [open|close|status|list]
 │       ├── invoice.ts        # ksef invoice [send|get|query|export|export-status]
 │       ├── permission.ts     # ksef permission [grant|revoke|search|status]
@@ -67,9 +69,9 @@ Auto-refresh token if expired. Clear on `ksef auth logout`.
 
 ## Commands
 
-### Phase 1: Config & Auth
+### Phase 1: Config & Auth — DONE
 
-**1.1 `ksef config`**
+**1.1 `ksef config`** — DONE
 
 ```
 ksef config set --env test|demo|prod    # Set environment
@@ -79,7 +81,7 @@ ksef config show                        # Show current config
 ksef config reset                       # Reset to defaults
 ```
 
-**1.2 `ksef auth`**
+**1.2 `ksef auth`** — DONE
 
 ```
 ksef auth challenge                             # Get auth challenge
@@ -198,38 +200,40 @@ ksef test-data limits [list|set|reset]
 
 ## Implementation Phases
 
-### Phase 1: Scaffold + Config + Auth
-- CLI entry point with `citty`
-- Config management (`~/.ksef/`)
-- Session store (token persistence)
-- `auth` commands (full login flow)
-- `--help` for all commands
-- `--json` global flag for machine-readable output
+### Phase 1: Scaffold + Config + Auth — DONE
+- [x] CLI entry point with `citty`
+- [x] Config management (`~/.ksef/`)
+- [x] Session store (token persistence)
+- [x] `auth` commands (full login flow)
+- [x] `--help` for all commands
+- [x] `--json` global flag for machine-readable output
+- [x] Error handler (`withErrorHandler`)
+- [x] Client factory (`createClient`, `requireSession`)
 
 ### Phase 2: Sessions + Invoices
-- Session open/close/status
-- Invoice send (single + batch)
-- Invoice download/query/export
-- Progress spinners for long operations
-- UPO download
+- [ ] Session open/close/status
+- [ ] Invoice send (single + batch)
+- [ ] Invoice download/query/export
+- [ ] Progress spinners for long operations
+- [ ] UPO download
 
 ### Phase 3: Permissions + Tokens
-- Permission grant/revoke/search
-- Token CRUD
-- Status polling with spinner
+- [ ] Permission grant/revoke/search
+- [ ] Token CRUD
+- [ ] Status polling with spinner
 
 ### Phase 4: Certs + QR + Utilities
-- Certificate commands
-- QR code generation (file output)
-- Lighthouse status
-- Test data commands (gated to test/demo env)
+- [ ] Certificate commands
+- [ ] QR code generation (file output)
+- [ ] Lighthouse status
+- [ ] Test data commands (gated to test/demo env)
 
 ### Phase 5: Polish
-- Tab completion (bash/zsh/fish)
-- Man page generation
-- `--verbose` / `--debug` flags (log HTTP requests)
-- Error messages with hints/suggestions
-- `ksef doctor` — check config, connectivity, cert validity
+- [ ] Tab completion (bash/zsh/fish)
+- [ ] Man page generation
+- [ ] `--verbose` / `--debug` flags (log HTTP requests)
+- [ ] Error messages with hints/suggestions
+- [ ] `ksef doctor` — check config, connectivity, cert validity
 
 ---
 
