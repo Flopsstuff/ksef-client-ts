@@ -204,6 +204,27 @@ Nip.test('1234567890');          // use regex directly
 
 Patterns: `Nip`, `VatUe`, `NipVatUe`, `InternalId`, `PeppolId`, `ReferenceNumber`, `KsefNumber`, `KsefNumberV35`, `KsefNumberV36`, `Pesel`, `CertificateName`, `CertificateFingerprint`, `Base64String`, `Ip4Address`, `Ip4Range`, `Ip4Mask`, `Sha256Base64`.
 
+## CLI
+
+The package includes a `ksef` command-line interface:
+
+```bash
+# Install globally
+yarn global add ksef-client-ts
+# Or link locally for development
+yarn build && yarn link
+
+# Usage
+ksef auth login --token "$KSEF_TOKEN" --nip "$KSEF_NIP" --env prod
+ksef session open
+ksef invoice send <file>
+ksef invoice list
+ksef permission list
+ksef token list
+```
+
+Commands: `config`, `auth`, `session`, `invoice`, `permission`, `token`. Run `ksef --help` or `ksef <command> --help` for details.
+
 ## Development
 
 ```bash

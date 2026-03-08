@@ -1340,6 +1340,8 @@ __metadata:
     typescript: "npm:^5.8.2"
     vitest: "npm:^3.0.8"
     xml-crypto: "npm:^6.0.0"
+  bin:
+    ksef: ./dist/cli.js
   languageName: unknown
   linkType: soft
 

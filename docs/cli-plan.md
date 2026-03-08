@@ -33,8 +33,8 @@ src/
 │       ├── auth.ts           # [DONE] ksef auth [challenge|login|status|logout|refresh|whoami]
 │       ├── session.ts        # [DONE] ksef session [open|close|status|list|invoices|failed|upo]
 │       ├── invoice.ts        # [DONE] ksef invoice [send|get|query|export|export-status]
-│       ├── permission.ts     # ksef permission [grant|revoke|search|status]
-│       ├── token.ts          # ksef token [generate|list|get|revoke]
+│       ├── permission.ts     # [DONE] ksef permission [grant|revoke|search|status]
+│       ├── token.ts          # [DONE] ksef token [generate|list|get|revoke]
 │       ├── cert.ts           # ksef cert [enroll|list|revoke|status]
 │       ├── qr.ts             # ksef qr [invoice|certificate]
 │       ├── lighthouse.ts     # ksef lighthouse [status|messages]
@@ -135,9 +135,9 @@ ksef invoice export-status <ref>                 # Check export status
 
 ---
 
-### Phase 3: Permissions & Tokens
+### Phase 3: Permissions & Tokens — DONE
 
-**3.1 `ksef permission`**
+**3.1 `ksef permission`** — DONE
 
 ```
 ksef permission grant person --nip <nip> --pesel <pesel> [--read] [--write]
@@ -148,7 +148,7 @@ ksef permission search [--type person|entity|subunit|authorization]
 ksef permission status <ref>
 ```
 
-**3.2 `ksef token`**
+**3.2 `ksef token`** — DONE
 
 ```
 ksef token generate [--description <desc>]       # Generate new KSeF token
@@ -216,10 +216,9 @@ ksef test-data limits [list|set|reset]
 - [x] Invoice download/query/export
 - [x] UPO download
 
-### Phase 3: Permissions + Tokens
-- [ ] Permission grant/revoke/search
-- [ ] Token CRUD
-- [ ] Status polling with spinner
+### Phase 3: Permissions + Tokens — DONE
+- [x] Permission grant/revoke/search/status
+- [x] Token generate/list/get/revoke
 
 ### Phase 4: Certs + QR + Utilities
 - [ ] Certificate commands

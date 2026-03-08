@@ -3,6 +3,8 @@ import { configCommand } from './commands/config.js';
 import { authCommand } from './commands/auth.js';
 import { sessionCommand } from './commands/session.js';
 import { invoiceCommand } from './commands/invoice.js';
+import { permissionCommand } from './commands/permission.js';
+import { tokenCommand } from './commands/token.js';
 
 const main = defineCommand({
   meta: {
@@ -15,6 +17,8 @@ const main = defineCommand({
     auth: authCommand,
     session: sessionCommand,
     invoice: invoiceCommand,
+    permission: permissionCommand,
+    token: tokenCommand,
   },
 });
 
