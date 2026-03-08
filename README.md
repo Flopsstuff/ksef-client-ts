@@ -14,17 +14,13 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 - CLI tool (`ksef`) for terminal usage
 - Dual ESM/CJS output, zero HTTP dependencies (native `fetch`, Node.js 18+)
 
-## Installation
+Requires **Node.js 18+**. Package not yet published — clone and build locally:
 
 ```bash
-npm install ksef-client-ts
-# or
-yarn add ksef-client-ts
+git clone https://github.com/Flopsstuff/ksef-client-ts.git
+cd ksef-client-ts
+yarn install && yarn build
 ```
-
-Requires **Node.js 18+**.
-
-## Quick Start
 
 ```ts
 import { KSeFClient } from 'ksef-client-ts';
@@ -36,10 +32,6 @@ const challenge = await client.auth.getChallenge();
 // ... authenticate, open session, send invoices
 ```
 
-See the [examples](https://flopsstuff.github.io/ksef-client-ts/examples) and [API reference](https://flopsstuff.github.io/ksef-client-ts/api-reference) for full usage.
-
-## CLI
-
 ```bash
 ksef auth login --token "$KSEF_TOKEN" --nip "$KSEF_NIP"
 ksef session open
@@ -47,7 +39,7 @@ ksef invoice send invoice.xml
 ksef session close
 ```
 
-See the [CLI reference](https://flopsstuff.github.io/ksef-client-ts/cli) for all commands and options.
+See the [documentation](https://flopsstuff.github.io/ksef-client-ts) for full usage, [API reference](https://flopsstuff.github.io/ksef-client-ts/api-reference), and [CLI reference](https://flopsstuff.github.io/ksef-client-ts/cli).
 
 ## Development
 
