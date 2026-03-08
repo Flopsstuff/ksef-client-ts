@@ -6,6 +6,13 @@ export type { InvoicingMode } from '../common.js';
 // Enums
 // ---------------------------------------------------------------------------
 
+/**
+ * Invoice subject type — defines the taxpayer's role in the invoice.
+ * - `Subject1` — seller (invoices issued by us)
+ * - `Subject2` — buyer (invoices received by us)
+ * - `Subject3` — third party (e.g. intermediary)
+ * - `SubjectAuthorized` — authorized subject acting on behalf of seller/buyer
+ */
 export type InvoiceSubjectType = 'Subject1' | 'Subject2' | 'Subject3' | 'SubjectAuthorized';
 
 export type InvoiceQueryDateType = 'Issue' | 'Invoicing' | 'PermanentStorage';

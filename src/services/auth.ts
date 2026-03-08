@@ -23,7 +23,7 @@ export class AuthService {
   ): Promise<SignatureResponse> {
     const request = RestRequest.post(Routes.Authorization.xadesSignature)
       .body(signedXml)
-      .header('Content-Type', 'application/octet-stream');
+      .header('Content-Type', 'application/xml');
     if (verifyCertificateChain) {
       request.header('X-KSeF-CertificateChainVerification', 'true');
     }

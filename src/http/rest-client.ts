@@ -37,15 +37,20 @@ export class RestClient {
       ...request.getHeaders(),
     };
 
-    const body = request.getBody();
-    if (body !== undefined && !headers['Content-Type']) {
+    const rawBody = request.getBody();
+    if (rawBody !== undefined && !headers['Content-Type']) {
       headers['Content-Type'] = 'application/json';
+    }
+
+    let body: string | undefined;
+    if (rawBody !== undefined) {
+      body = typeof rawBody === 'string' ? rawBody : JSON.stringify(rawBody);
     }
 
     return fetch(url, {
       method: request.method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body,
       signal: AbortSignal.timeout(this.options.timeout),
     });
   }
