@@ -5,11 +5,10 @@ The `ksef` CLI is a thin wrapper over the `ksef-client-ts` library. Each command
 ## Installation
 
 ```bash
-# Global install
-npm install -g ksef-client-ts
-
-# Or link locally during development
-yarn build && yarn link
+# Clone and link locally
+git clone https://github.com/Flopsstuff/ksef-client-ts.git
+cd ksef-client-ts
+yarn install && yarn build && yarn link
 ```
 
 ## Quick Start
