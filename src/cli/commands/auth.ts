@@ -83,7 +83,7 @@ const login = defineCommand({
         };
         saveSession(session);
         if (args.env && args.env !== config.environment) {
-          saveConfig({ ...config, environment: args.env });
+          saveConfig({ ...config, environment: session.environment });
         }
         outputSuccess(`Logged in successfully. Session ref: ${session.sessionRef ?? 'N/A'}`);
       } else if (args.cert && args.key) {
@@ -113,7 +113,7 @@ const login = defineCommand({
         };
         saveSession(session);
         if (args.env && args.env !== config.environment) {
-          saveConfig({ ...config, environment: args.env });
+          saveConfig({ ...config, environment: session.environment });
         }
         outputSuccess(`Logged in successfully. Session ref: ${session.sessionRef ?? 'N/A'}`);
       } else {
