@@ -1,7 +1,7 @@
 import { RestClient } from '../http/rest-client.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
-import type { AuthChallengeResponse, SignatureResponse, AuthKsefTokenRequest, AuthStatus, AuthOperationStatusResponse, RefreshTokenResponse } from '../models/auth/types.js';
+import type { AuthChallengeResponse, AuthenticationInitResponse, AuthKsefTokenRequest, AuthenticationOperationStatusResponse, AuthenticationTokensResponse, RefreshTokenResponse } from '../models/auth/types.js';
 
 export class AuthService {
   private readonly restClient: RestClient;
@@ -19,38 +19,32 @@ export class AuthService {
   async submitXadesAuthRequest(
     signedXml: string,
     verifyCertificateChain = false,
-    enforceXadesCompliance = false,
-  ): Promise<SignatureResponse> {
+  ): Promise<AuthenticationInitResponse> {
     const request = RestRequest.post(Routes.Authorization.xadesSignature)
       .body(signedXml)
-      .header('Content-Type', 'application/xml');
-    if (verifyCertificateChain) {
-      request.header('X-KSeF-CertificateChainVerification', 'true');
-    }
-    if (enforceXadesCompliance) {
-      request.header('X-KSeF-Feature', 'enforce-xades-compliance');
-    }
-    const response = await this.restClient.execute<SignatureResponse>(request);
+      .header('Content-Type', 'application/xml')
+      .query('verifyCertificateChain', String(verifyCertificateChain));
+    const response = await this.restClient.execute<AuthenticationInitResponse>(request);
     return response.body;
   }
 
-  async submitKsefTokenAuthRequest(payload: AuthKsefTokenRequest): Promise<SignatureResponse> {
+  async submitKsefTokenAuthRequest(payload: AuthKsefTokenRequest): Promise<AuthenticationInitResponse> {
     const request = RestRequest.post(Routes.Authorization.ksefToken).body(payload);
-    const response = await this.restClient.execute<SignatureResponse>(request);
+    const response = await this.restClient.execute<AuthenticationInitResponse>(request);
     return response.body;
   }
 
-  async getAuthStatus(referenceNumber: string, authToken: string): Promise<AuthStatus> {
+  async getAuthStatus(referenceNumber: string, authToken: string): Promise<AuthenticationOperationStatusResponse> {
     const request = RestRequest.get(Routes.Authorization.status(referenceNumber))
       .accessToken(authToken);
-    const response = await this.restClient.execute<AuthStatus>(request);
+    const response = await this.restClient.execute<AuthenticationOperationStatusResponse>(request);
     return response.body;
   }
 
-  async getAccessToken(authToken: string): Promise<AuthOperationStatusResponse> {
+  async getAccessToken(authToken: string): Promise<AuthenticationTokensResponse> {
     const request = RestRequest.post(Routes.Authorization.Token.redeem)
       .accessToken(authToken);
-    const response = await this.restClient.execute<AuthOperationStatusResponse>(request);
+    const response = await this.restClient.execute<AuthenticationTokensResponse>(request);
     return response.body;
   }
 

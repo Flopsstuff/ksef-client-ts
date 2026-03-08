@@ -30,9 +30,8 @@ export class ActiveSessionsService {
   }
 
   async revokeSession(sessionRef: string, accessToken: string): Promise<void> {
-    const request = RestRequest.delete(Routes.ActiveSessions.session)
-      .accessToken(accessToken)
-      .body({ referenceNumber: sessionRef });
+    const request = RestRequest.delete(Routes.ActiveSessions.delete(sessionRef))
+      .accessToken(accessToken);
     await this.restClient.execute<void>(request);
   }
 }

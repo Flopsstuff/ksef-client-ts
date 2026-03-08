@@ -7,7 +7,7 @@ export type KsefTokenPermissionType =
   | 'SubunitManage'
   | 'SelfInvoicing';
 
-export type KsefTokenStatus = 'Active' | 'Revoked' | 'Expired';
+export type KsefTokenStatus = 'Pending' | 'Active' | 'Revoking' | 'Revoked' | 'Failed';
 
 export interface KsefTokenRequest {
   description?: string;
@@ -22,18 +22,31 @@ export interface KsefTokenResponse {
 
 export interface AuthenticationKsefToken {
   referenceNumber: string;
-  token: string;
-  description?: string;
-  permissions: KsefTokenPermissionType[];
+  authorIdentifier: TokenAuthorIdentifier;
+  contextIdentifier: TokenContextIdentifier;
+  description: string;
+  requestedPermissions: KsefTokenPermissionType[];
+  dateCreated: string;
+  lastUseDate?: string | null;
   status: KsefTokenStatus;
-  createdAt: string;
-  validTo?: string;
-  revokedAt?: string;
+  statusDetails?: string[] | null;
 }
 
 export type TokenStatus = 'Pending' | 'Active' | 'Revoking' | 'Revoked' | 'Failed';
 
 export type TokenAuthorIdentifierType = 'Nip' | 'Pesel' | 'Fingerprint';
+
+export type TokenContextIdentifierType = 'Nip' | 'InternalId' | 'NipVatUe' | 'PeppolId';
+
+export interface TokenAuthorIdentifier {
+  type: TokenAuthorIdentifierType;
+  value: string;
+}
+
+export interface TokenContextIdentifier {
+  type: TokenContextIdentifierType;
+  value: string;
+}
 
 export interface QueryKsefTokensOptions {
   pageOffset?: number;
@@ -45,5 +58,6 @@ export interface QueryKsefTokensOptions {
 }
 
 export interface QueryKsefTokensResponse {
+  continuationToken?: string | null;
   tokens: AuthenticationKsefToken[];
 }

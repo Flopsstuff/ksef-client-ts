@@ -11,7 +11,7 @@ export interface SessionsFilter {
   statuses?: SessionStatus[];
 }
 
-export interface Session {
+export interface SessionsQueryResponseItem {
   referenceNumber: string;
   status: OperationStatusInfo;
   dateCreated: string;
@@ -22,9 +22,9 @@ export interface Session {
   failedInvoiceCount: number;
 }
 
-export interface SessionsListResponse {
+export interface SessionsQueryResponse {
   continuationToken?: string;
-  sessions: Session[];
+  sessions: SessionsQueryResponseItem[];
 }
 
 export interface UpoPage {
@@ -58,12 +58,12 @@ export interface InvoiceStatusInfo {
   extensions?: Record<string, string>;
 }
 
-export interface SessionInvoice {
+export interface SessionInvoiceStatusResponse {
   ordinalNumber: number;
   invoiceNumber?: string;
   ksefNumber?: string;
-  referenceNumber?: string;
-  invoiceHash?: string;
+  referenceNumber: string;
+  invoiceHash: string;
   invoiceFileName?: string;
   acquisitionDate?: string;
   invoicingDate: string;
@@ -76,5 +76,10 @@ export interface SessionInvoice {
 
 export interface SessionInvoicesResponse {
   continuationToken?: string;
-  invoices: SessionInvoice[];
+  invoices: SessionInvoiceStatusResponse[];
+}
+
+export interface UpoResult {
+  upo: string;
+  hash?: string;
 }

@@ -1,4 +1,4 @@
-import type { EncryptionInfo, FormCode, InvoicingMode } from '../common.js';
+import type { EncryptionInfo, FormCode, InvoicingMode, OperationStatusInfo } from '../common.js';
 
 export type { InvoicingMode } from '../common.js';
 
@@ -141,18 +141,36 @@ export interface PagedInvoiceResponse {
 // ---------------------------------------------------------------------------
 
 export interface InvoiceExportRequest {
-  encryptionInfo: EncryptionInfo;
+  encryption: EncryptionInfo;
   filters: InvoiceQueryFilters;
 }
 
-export interface InvoiceExportPackage {
-  partNumber: number;
-  totalParts: number;
+export interface InvoiceExportPackagePart {
+  ordinalNumber: number;
+  partName: string;
+  method: string;
   url: string;
+  partSize: number;
+  partHash: string;
+  encryptedPartSize: number;
+  encryptedPartHash: string;
+  expirationDate: string;
+}
+
+export interface InvoiceExportPackage {
+  invoiceCount: number;
+  size: number;
+  parts: InvoiceExportPackagePart[];
+  isTruncated: boolean;
+  lastIssueDate?: string;
+  lastInvoicingDate?: string;
+  lastPermanentStorageDate?: string;
+  permanentStorageHwmDate?: string;
 }
 
 export interface InvoiceExportStatusResponse {
-  processingCode: number;
-  processingDescription: string;
-  packages?: InvoiceExportPackage[];
+  status: OperationStatusInfo;
+  completedDate?: string;
+  packageExpirationDate?: string;
+  package?: InvoiceExportPackage;
 }

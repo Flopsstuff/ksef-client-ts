@@ -32,6 +32,7 @@ export const Routes = {
 
   ActiveSessions: {
     session: 'auth/sessions',
+    delete: (ref: string) => `auth/sessions/${ref}` as const,
     currentSession: 'auth/sessions/current',
   },
 

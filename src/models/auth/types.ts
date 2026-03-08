@@ -4,6 +4,7 @@ export interface AuthChallengeResponse {
   challenge: string;
   timestamp: string;
   timestampMs: number;
+  clientIp: string;
 }
 
 export interface OperationToken {
@@ -11,12 +12,12 @@ export interface OperationToken {
   validUntil: string;
 }
 
-export interface SignatureResponse {
+export interface AuthenticationInitResponse {
   referenceNumber: string;
   authenticationToken: OperationToken;
 }
 
-export interface AuthOperationStatusResponse {
+export interface AuthenticationTokensResponse {
   accessToken: TokenInfo;
   refreshToken: TokenInfo;
 }
@@ -33,9 +34,11 @@ export interface AuthenticationMethodInfo {
   displayName: string;
 }
 
-export interface AuthStatus {
+export interface AuthenticationOperationStatusResponse {
   startDate: string;
   authenticationMethodInfo: AuthenticationMethodInfo;
+  /** @deprecated Required by spec but deprecated. */
+  authenticationMethod?: string;
   status: OperationStatusInfo;
   isTokenRedeemed?: boolean;
   lastTokenRefreshDate?: string;

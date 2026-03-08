@@ -1,3 +1,5 @@
+export type SubjectType = 'EnforcementAuthority' | 'VatGroup' | 'JST';
+
 export interface TestDataContextIdentifier {
   type: 'Nip';
   value: string;
@@ -17,25 +19,34 @@ export type TestDataPermission =
   | 'SubunitManage'
   | 'SelfInvoicing';
 
+export interface Subunit {
+  subjectNip: string;
+  description: string;
+}
+
 export interface SubjectCreateRequest {
-  contextIdentifier: TestDataContextIdentifier;
-  name?: string;
+  subjectNip: string;
+  subjectType: SubjectType;
+  description: string;
+  subunits?: Subunit[] | null;
+  createdDate?: string | null;
 }
 
 export interface SubjectRemoveRequest {
-  contextIdentifier: TestDataContextIdentifier;
+  subjectNip: string;
 }
 
 export interface PersonCreateRequest {
-  contextIdentifier: TestDataContextIdentifier;
-  personIdentifier: TestDataAuthorizedIdentifier;
-  firstName?: string;
-  lastName?: string;
+  nip: string;
+  pesel: string;
+  isBailiff: boolean;
+  description: string;
+  isDeceased?: boolean;
+  createdDate?: string | null;
 }
 
 export interface PersonRemoveRequest {
-  contextIdentifier: TestDataContextIdentifier;
-  personIdentifier: TestDataAuthorizedIdentifier;
+  nip: string;
 }
 
 export interface TestDataPermissionsGrantRequest {
@@ -51,11 +62,12 @@ export interface TestDataPermissionsRevokeRequest {
 }
 
 export interface AttachmentPermissionGrantRequest {
-  contextIdentifier: TestDataContextIdentifier;
+  nip: string;
 }
 
 export interface AttachmentPermissionRevokeRequest {
-  contextIdentifier: TestDataContextIdentifier;
+  nip: string;
+  expectedEndDate?: string | null;
 }
 
 export interface ChangeSessionLimitsInCurrentContextRequest {

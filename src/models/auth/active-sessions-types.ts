@@ -4,6 +4,8 @@ import type { AuthenticationMethodInfo } from './types.js';
 export interface AuthSessionInfo {
   startDate: string;
   authenticationMethodInfo: AuthenticationMethodInfo;
+  /** @deprecated Required by spec but deprecated. */
+  authenticationMethod?: string;
   status: OperationStatusInfo;
   isTokenRedeemed?: boolean;
   lastTokenRefreshDate?: string;

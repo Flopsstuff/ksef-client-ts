@@ -2,7 +2,7 @@ import { RestClient } from '../http/rest-client.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
 import type { SessionType } from '../models/common.js';
-import type { SessionsFilter, SessionsListResponse, SessionStatusResponse, SessionInvoice, SessionInvoicesResponse } from '../models/sessions/status-types.js';
+import type { SessionsFilter, SessionsQueryResponse, SessionStatusResponse, SessionInvoiceStatusResponse, SessionInvoicesResponse, UpoResult } from '../models/sessions/status-types.js';
 
 export class SessionStatusService {
   private readonly restClient: RestClient;
@@ -17,7 +17,7 @@ export class SessionStatusService {
     pageSize?: number,
     continuationToken?: string,
     filter?: SessionsFilter,
-  ): Promise<SessionsListResponse> {
+  ): Promise<SessionsQueryResponse> {
     const req = RestRequest.get(Routes.Sessions.root)
       .accessToken(accessToken);
     req.query('sessionType', type);
@@ -37,7 +37,7 @@ export class SessionStatusService {
         }
       }
     }
-    const response = await this.restClient.execute<SessionsListResponse>(req);
+    const response = await this.restClient.execute<SessionsQueryResponse>(req);
     return response.body;
   }
 
@@ -66,10 +66,10 @@ export class SessionStatusService {
     sessionRef: string,
     invoiceRef: string,
     accessToken: string,
-  ): Promise<SessionInvoice> {
+  ): Promise<SessionInvoiceStatusResponse> {
     const req = RestRequest.get(Routes.Sessions.invoice(sessionRef, invoiceRef))
       .accessToken(accessToken);
-    const response = await this.restClient.execute<SessionInvoice>(req);
+    const response = await this.restClient.execute<SessionInvoiceStatusResponse>(req);
     return response.body;
   }
 
@@ -91,32 +91,41 @@ export class SessionStatusService {
     sessionRef: string,
     ksefNumber: string,
     accessToken: string,
-  ): Promise<string> {
+  ): Promise<UpoResult> {
     const req = RestRequest.get(Routes.Sessions.upoByKsefNumber(sessionRef, ksefNumber))
       .accessToken(accessToken);
     const response = await this.restClient.executeRaw(req);
-    return new TextDecoder().decode(response.body);
+    return {
+      upo: new TextDecoder().decode(response.body),
+      hash: response.headers.get('x-ms-meta-hash') ?? undefined,
+    };
   }
 
   async getInvoiceUpoByReference(
     sessionRef: string,
     invoiceRef: string,
     accessToken: string,
-  ): Promise<string> {
+  ): Promise<UpoResult> {
     const req = RestRequest.get(Routes.Sessions.upoByInvoiceReference(sessionRef, invoiceRef))
       .accessToken(accessToken);
     const response = await this.restClient.executeRaw(req);
-    return new TextDecoder().decode(response.body);
+    return {
+      upo: new TextDecoder().decode(response.body),
+      hash: response.headers.get('x-ms-meta-hash') ?? undefined,
+    };
   }
 
   async getSessionUpo(
     sessionRef: string,
     upoRef: string,
     accessToken: string,
-  ): Promise<string> {
+  ): Promise<UpoResult> {
     const req = RestRequest.get(Routes.Sessions.upo(sessionRef, upoRef))
       .accessToken(accessToken);
     const response = await this.restClient.executeRaw(req);
-    return new TextDecoder().decode(response.body);
+    return {
+      upo: new TextDecoder().decode(response.body),
+      hash: response.headers.get('x-ms-meta-hash') ?? undefined,
+    };
   }
 }

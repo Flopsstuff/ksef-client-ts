@@ -2,16 +2,16 @@ import { RestClient } from '../http/rest-client.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
 import type {
-  CertificateLimitResponse,
-  CertificateEnrollmentsInfoResponse,
-  CertificateEnrollmentResponse,
+  CertificateLimitsResponse,
+  CertificateEnrollmentDataResponse,
+  EnrollCertificateRequest,
+  EnrollCertificateResponse,
   CertificateEnrollmentStatusResponse,
-  CertificateListResponse,
-  CertificateMetadataListResponse,
-  SendCertificateEnrollmentRequest,
-  CertificateListRequest,
+  RetrieveCertificatesRequest,
+  RetrieveCertificatesResponse,
+  QueryCertificatesRequest,
+  QueryCertificatesResponse,
   CertificateRevokeRequest,
-  CertificateMetadataListRequest,
 } from '../models/certificates/types.js';
 
 export class CertificateApiService {
@@ -21,25 +21,25 @@ export class CertificateApiService {
     this.restClient = restClient;
   }
 
-  async getLimits(accessToken: string): Promise<CertificateLimitResponse> {
+  async getLimits(accessToken: string): Promise<CertificateLimitsResponse> {
     const req = RestRequest.get(Routes.Certificates.limits)
       .accessToken(accessToken);
-    const response = await this.restClient.execute<CertificateLimitResponse>(req);
+    const response = await this.restClient.execute<CertificateLimitsResponse>(req);
     return response.body;
   }
 
-  async getEnrollmentData(accessToken: string): Promise<CertificateEnrollmentsInfoResponse> {
+  async getEnrollmentData(accessToken: string): Promise<CertificateEnrollmentDataResponse> {
     const req = RestRequest.get(Routes.Certificates.enrollmentData)
       .accessToken(accessToken);
-    const response = await this.restClient.execute<CertificateEnrollmentsInfoResponse>(req);
+    const response = await this.restClient.execute<CertificateEnrollmentDataResponse>(req);
     return response.body;
   }
 
-  async enroll(request: SendCertificateEnrollmentRequest, accessToken: string): Promise<CertificateEnrollmentResponse> {
+  async enroll(request: EnrollCertificateRequest, accessToken: string): Promise<EnrollCertificateResponse> {
     const req = RestRequest.post(Routes.Certificates.enrollments)
       .accessToken(accessToken)
       .body(request);
-    const response = await this.restClient.execute<CertificateEnrollmentResponse>(req);
+    const response = await this.restClient.execute<EnrollCertificateResponse>(req);
     return response.body;
   }
 
@@ -50,11 +50,11 @@ export class CertificateApiService {
     return response.body;
   }
 
-  async retrieve(request: CertificateListRequest, accessToken: string): Promise<CertificateListResponse> {
+  async retrieve(request: RetrieveCertificatesRequest, accessToken: string): Promise<RetrieveCertificatesResponse> {
     const req = RestRequest.post(Routes.Certificates.retrieve)
       .accessToken(accessToken)
       .body(request);
-    const response = await this.restClient.execute<CertificateListResponse>(req);
+    const response = await this.restClient.execute<RetrieveCertificatesResponse>(req);
     return response.body;
   }
 
@@ -65,11 +65,13 @@ export class CertificateApiService {
     await this.restClient.execute<void>(req);
   }
 
-  async query(request: CertificateMetadataListRequest, accessToken: string): Promise<CertificateMetadataListResponse> {
+  async query(request: QueryCertificatesRequest, accessToken: string, pageSize?: number, pageOffset?: number): Promise<QueryCertificatesResponse> {
     const req = RestRequest.post(Routes.Certificates.query)
       .accessToken(accessToken)
       .body(request);
-    const response = await this.restClient.execute<CertificateMetadataListResponse>(req);
+    if (pageSize !== undefined) req.query('pageSize', String(pageSize));
+    if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
+    const response = await this.restClient.execute<QueryCertificatesResponse>(req);
     return response.body;
   }
 }

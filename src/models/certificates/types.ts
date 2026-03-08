@@ -1,66 +1,113 @@
-export type CertificateType = 'Authentication' | 'Signing';
-export type CertificateStatus = 'Active' | 'Revoked' | 'Expired';
+export type CertificateType = 'Authentication' | 'Offline';
+export type CertificateStatus = 'Active' | 'Blocked' | 'Revoked' | 'Expired';
+export type CertificateSubjectIdentifierType = 'Nip' | 'Pesel' | 'Fingerprint';
 
-export interface SendCertificateEnrollmentRequest {
-  certificateData: string;
-  certificateType: CertificateType;
-  description?: string;
-}
+// --- Limits ---
 
-export interface CertificateListRequest {
-  certificateType?: CertificateType;
-  certificateStatus?: CertificateStatus;
-  pageOffset?: number;
-  pageSize?: number;
-}
-
-export interface CertificateRevokeRequest {
-  reason?: string;
-}
-
-export interface CertificateMetadataListRequest {
-  pageOffset?: number;
-  pageSize?: number;
-}
-
-export interface CertificateLimitResponse {
+export interface CertificateLimit {
   limit: number;
-  used: number;
-  available: number;
+  remaining: number;
 }
 
-export interface CertificateEnrollmentInfo {
-  referenceNumber: string;
-  serialNumber: string;
+export interface CertificateLimitsResponse {
+  canRequest: boolean;
+  enrollment: CertificateLimit;
+  certificate: CertificateLimit;
+}
+
+// --- Enrollment Data ---
+
+export interface CertificateEnrollmentDataResponse {
+  commonName: string;
+  countryName: string;
+  givenName?: string;
+  surname?: string;
+  serialNumber?: string;
+  uniqueIdentifier?: string;
+  organizationName?: string;
+  organizationIdentifier?: string;
+}
+
+// --- Enroll ---
+
+export interface EnrollCertificateRequest {
+  certificateName: string;
   certificateType: CertificateType;
-  status: CertificateStatus;
-  description?: string;
-  createdAt: string;
-  validFrom: string;
-  validTo: string;
-  revokedAt?: string;
+  csr: string;
+  validFrom?: string;
 }
 
-export interface CertificateEnrollmentsInfoResponse {
-  enrollmentData: string;
-}
-
-export interface CertificateEnrollmentResponse {
+export interface EnrollCertificateResponse {
   referenceNumber: string;
+  timestamp: string;
+}
+
+// --- Enrollment Status ---
+
+export interface StatusInfo {
+  code: number;
+  description: string;
+  details?: string[];
 }
 
 export interface CertificateEnrollmentStatusResponse {
-  processingCode: number;
-  processingDescription: string;
-  serialNumber?: string;
+  requestDate: string;
+  status: StatusInfo;
+  certificateSerialNumber?: string;
 }
 
-export interface CertificateListResponse {
-  certificates: CertificateEnrollmentInfo[];
+// --- Retrieve ---
+
+export interface RetrieveCertificatesRequest {
+  certificateSerialNumbers: string[];
+}
+
+export interface RetrieveCertificatesListItem {
+  certificate: string;
+  certificateName: string;
+  certificateSerialNumber: string;
+  certificateType: CertificateType;
+}
+
+export interface RetrieveCertificatesResponse {
+  certificates: RetrieveCertificatesListItem[];
+}
+
+// --- Query ---
+
+export interface QueryCertificatesRequest {
+  certificateSerialNumber?: string;
+  name?: string;
+  type?: CertificateType;
+  status?: CertificateStatus;
+  expiresAfter?: string;
+}
+
+export interface CertificateSubjectIdentifier {
+  type: CertificateSubjectIdentifierType;
+  value: string;
+}
+
+export interface CertificateListItem {
+  certificateSerialNumber: string;
+  name: string;
+  type: CertificateType;
+  commonName: string;
+  status: CertificateStatus;
+  subjectIdentifier: CertificateSubjectIdentifier;
+  validFrom: string;
+  validTo: string;
+  lastUseDate?: string;
+  requestDate: string;
+}
+
+export interface QueryCertificatesResponse {
+  certificates: CertificateListItem[];
   hasMore: boolean;
 }
 
-export interface CertificateMetadataListResponse {
-  metadata: CertificateEnrollmentInfo[];
-  hasMore: boolean;
+// --- Revoke ---
+
+export interface CertificateRevokeRequest {
+  reason?: string;
 }

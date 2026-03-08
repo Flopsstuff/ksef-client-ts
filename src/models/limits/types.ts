@@ -1,34 +1,44 @@
 export interface EffectiveApiRateLimitValues {
-  maxCallsPerInterval: number;
-  intervalMs: number;
+  perSecond: number;
+  perMinute: number;
+  perHour: number;
 }
 
 export interface EffectiveApiRateLimits {
-  authChallenge: EffectiveApiRateLimitValues;
-  authToken: EffectiveApiRateLimitValues;
-  sessionOpen: EffectiveApiRateLimitValues;
-  sessionClose: EffectiveApiRateLimitValues;
+  onlineSession: EffectiveApiRateLimitValues;
+  batchSession: EffectiveApiRateLimitValues;
   invoiceSend: EffectiveApiRateLimitValues;
-  invoiceQuery: EffectiveApiRateLimitValues;
+  invoiceStatus: EffectiveApiRateLimitValues;
+  sessionList: EffectiveApiRateLimitValues;
+  sessionInvoiceList: EffectiveApiRateLimitValues;
+  sessionMisc: EffectiveApiRateLimitValues;
+  invoiceMetadata: EffectiveApiRateLimitValues;
   invoiceExport: EffectiveApiRateLimitValues;
-  permissionsGrant: EffectiveApiRateLimitValues;
-  permissionsQuery: EffectiveApiRateLimitValues;
-  tokensGenerate: EffectiveApiRateLimitValues;
-  certificatesEnroll: EffectiveApiRateLimitValues;
+  invoiceExportStatus: EffectiveApiRateLimitValues;
+  invoiceDownload: EffectiveApiRateLimitValues;
   other: EffectiveApiRateLimitValues;
 }
 
-export interface SessionLimits {
-  maxInvoicesPerSession: number;
-  maxSessionDurationMinutes: number;
+export interface SessionEffectiveContextLimits {
+  maxInvoiceSizeInMB: number;
+  maxInvoiceWithAttachmentSizeInMB: number;
+  maxInvoices: number;
 }
 
-export interface SessionLimitsInCurrentContextResponse {
-  sessionLimits: SessionLimits;
+export interface EffectiveContextLimits {
+  onlineSession: SessionEffectiveContextLimits;
+  batchSession: SessionEffectiveContextLimits;
 }
 
-export interface CertificatesLimitInCurrentSubjectResponse {
-  limit: number;
-  used: number;
-  available: number;
+export interface EnrollmentEffectiveSubjectLimits {
+  maxEnrollments?: number;
+}
+
+export interface CertificateEffectiveSubjectLimits {
+  maxCertificates?: number;
+}
+
+export interface EffectiveSubjectLimits {
+  enrollment?: EnrollmentEffectiveSubjectLimits | null;
+  certificate?: CertificateEffectiveSubjectLimits | null;
 }
