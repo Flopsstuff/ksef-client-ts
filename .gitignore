@@ -11,3 +11,7 @@ dist/
 
 # ignore gitpmoji directory
 .gitpmoji
+
+# VitePress
+docs/.vitepress/cache
+docs/.vitepress/dist
