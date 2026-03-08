@@ -1,17 +1,27 @@
-import type { InvoiceQueryFilters, InvoiceSubjectType, InvoiceFilterInvoicingMode, FormType, InvoiceType } from '../models/invoices/types.js';
+import type {
+  InvoiceQueryFilters,
+  InvoiceSubjectType,
+  InvoiceQueryDateRange,
+  InvoiceQueryDateType,
+  InvoiceQueryAmount,
+  AmountType,
+  InvoiceQueryBuyerIdentifier,
+  BuyerIdentifierType,
+  InvoicingMode,
+  FormType,
+  InvoiceType,
+} from '../models/invoices/types.js';
 
 export class InvoiceQueryFilterBuilder {
   private subjectType?: InvoiceSubjectType;
-  private dateFrom?: string;
-  private dateTo?: string;
+  private dateRange?: InvoiceQueryDateRange;
   private ksefNumber?: string;
   private invoiceNumber?: string;
-  private amountFrom?: number;
-  private amountTo?: number;
+  private amount?: InvoiceQueryAmount;
   private sellerNip?: string;
-  private buyerIdentifier?: string;
+  private buyerIdentifier?: InvoiceQueryBuyerIdentifier;
   private currencyCodes?: string[];
-  private invoicingMode?: InvoiceFilterInvoicingMode;
+  private invoicingMode?: InvoicingMode;
   private isSelfInvoicing?: boolean;
   private formType?: FormType;
   private invoiceTypes?: InvoiceType[];
@@ -22,9 +32,13 @@ export class InvoiceQueryFilterBuilder {
     return this;
   }
 
-  withDateRange(from: string, to: string): this {
-    this.dateFrom = from;
-    this.dateTo = to;
+  withDateRange(dateType: InvoiceQueryDateType, from: string, to?: string): this {
+    this.dateRange = { dateType, from, ...(to !== undefined && { to }) };
+    return this;
+  }
+
+  withDateRangeRestricted(dateType: InvoiceQueryDateType, from: string, to?: string): this {
+    this.dateRange = { dateType, from, ...(to !== undefined && { to }), restrictToPermanentStorageHwmDate: true };
     return this;
   }
 
@@ -38,9 +52,8 @@ export class InvoiceQueryFilterBuilder {
     return this;
   }
 
-  withAmountRange(from: number, to: number): this {
-    this.amountFrom = from;
-    this.amountTo = to;
+  withAmount(type: AmountType, from?: number, to?: number): this {
+    this.amount = { type, ...(from !== undefined && { from }), ...(to !== undefined && { to }) };
     return this;
   }
 
@@ -49,8 +62,8 @@ export class InvoiceQueryFilterBuilder {
     return this;
   }
 
-  withBuyerIdentifier(identifier: string): this {
-    this.buyerIdentifier = identifier;
+  withBuyerIdentifier(type: BuyerIdentifierType, value?: string): this {
+    this.buyerIdentifier = { type, ...(value !== undefined && { value }) };
     return this;
   }
 
@@ -59,7 +72,7 @@ export class InvoiceQueryFilterBuilder {
     return this;
   }
 
-  withInvoiceFilterInvoicingMode(mode: InvoiceFilterInvoicingMode): this {
+  withInvoicingMode(mode: InvoicingMode): this {
     this.invoicingMode = mode;
     return this;
   }
@@ -88,18 +101,16 @@ export class InvoiceQueryFilterBuilder {
     if (!this.subjectType) {
       throw new Error('Subject type is required');
     }
-    if (!this.dateFrom || !this.dateTo) {
+    if (!this.dateRange) {
       throw new Error('Date range is required');
     }
 
     return {
       subjectType: this.subjectType,
-      dateFrom: this.dateFrom,
-      dateTo: this.dateTo,
+      dateRange: this.dateRange,
       ...(this.ksefNumber !== undefined && { ksefNumber: this.ksefNumber }),
       ...(this.invoiceNumber !== undefined && { invoiceNumber: this.invoiceNumber }),
-      ...(this.amountFrom !== undefined && { amountFrom: this.amountFrom }),
-      ...(this.amountTo !== undefined && { amountTo: this.amountTo }),
+      ...(this.amount !== undefined && { amount: this.amount }),
       ...(this.sellerNip !== undefined && { sellerNip: this.sellerNip }),
       ...(this.buyerIdentifier !== undefined && { buyerIdentifier: this.buyerIdentifier }),
       ...(this.currencyCodes !== undefined && { currencyCodes: this.currencyCodes }),

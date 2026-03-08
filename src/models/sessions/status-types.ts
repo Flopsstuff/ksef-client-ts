@@ -48,7 +48,8 @@ export interface SessionStatusResponse {
   dateUpdated: string;
 }
 
-export type InvoicingMode = 'Online' | 'Offline';
+export type { InvoicingMode } from '../common.js';
+import type { InvoicingMode } from '../common.js';
 
 export interface InvoiceStatusInfo {
   code: number;

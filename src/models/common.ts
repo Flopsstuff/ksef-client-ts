@@ -41,4 +41,6 @@ export type SessionStatus = 'Succeeded' | 'InProgress' | 'Failed' | 'Cancelled';
 
 export type SortOrder = 'Asc' | 'Desc';
 
+export type InvoicingMode = 'Online' | 'Offline';
+
 export type PermissionSubjectIdentifierType = 'Nip' | 'Pesel' | 'Fingerprint';
