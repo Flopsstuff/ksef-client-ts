@@ -6,19 +6,19 @@ export interface EnvironmentConfig {
 
 export const Environment = {
   TEST: {
-    apiUrl: 'https://ksef-test.mf.gov.pl/api',
+    apiUrl: 'https://api-test.ksef.mf.gov.pl',
     qrUrl: 'https://qr-test.ksef.mf.gov.pl',
-    lighthouseUrl: 'https://ksef-test.mf.gov.pl/api',
+    lighthouseUrl: 'https://api-latarnia-test.ksef.mf.gov.pl',
   },
   DEMO: {
-    apiUrl: 'https://ksef-demo.mf.gov.pl/api',
+    apiUrl: 'https://api-demo.ksef.mf.gov.pl',
     qrUrl: 'https://qr-demo.ksef.mf.gov.pl',
-    lighthouseUrl: 'https://ksef-demo.mf.gov.pl/api',
+    lighthouseUrl: 'https://api-latarnia-demo.ksef.mf.gov.pl',
   },
   PRD: {
-    apiUrl: 'https://ksef.mf.gov.pl/api',
+    apiUrl: 'https://api.ksef.mf.gov.pl',
     qrUrl: 'https://qr.ksef.mf.gov.pl',
-    lighthouseUrl: 'https://ksef.mf.gov.pl/api',
+    lighthouseUrl: 'https://api-latarnia.ksef.mf.gov.pl',
   },
 } as const satisfies Record<string, EnvironmentConfig>;
 

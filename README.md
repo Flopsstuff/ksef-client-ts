@@ -167,9 +167,9 @@ interface KSeFClientOptions {
 
 | Environment | API URL | QR URL |
 |---|---|---|
-| `TEST` | `https://ksef-test.mf.gov.pl/api` | `https://qr-test.ksef.mf.gov.pl` |
-| `DEMO` | `https://ksef-demo.mf.gov.pl/api` | `https://qr-demo.ksef.mf.gov.pl` |
-| `PRD` | `https://ksef.mf.gov.pl/api` | `https://qr.ksef.mf.gov.pl` |
+| `TEST` | `https://api-test.ksef.mf.gov.pl` | `https://qr-test.ksef.mf.gov.pl` |
+| `DEMO` | `https://api-demo.ksef.mf.gov.pl` | `https://qr-demo.ksef.mf.gov.pl` |
+| `PRD` | `https://api.ksef.mf.gov.pl` | `https://qr.ksef.mf.gov.pl` |
 
 ## Error Handling
 
