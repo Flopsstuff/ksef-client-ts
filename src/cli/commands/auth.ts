@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import { defineCommand } from 'citty';
 import { createClient, requireSession } from '../client-factory.js';
 import { saveSession, clearSession, loadSession, isSessionExpired } from '../session-store.js';
-import { loadConfig } from '../config-store.js';
+import { loadConfig, saveConfig } from '../config-store.js';
 import { outputResult, outputKeyValue, outputSuccess, outputWarning } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions, SessionData } from '../types.js';
@@ -82,6 +82,9 @@ const login = defineCommand({
           environment: (args.env ?? config.environment) as SessionData['environment'],
         };
         saveSession(session);
+        if (args.env && args.env !== config.environment) {
+          saveConfig({ ...config, environment: args.env });
+        }
         outputSuccess(`Logged in successfully. Session ref: ${session.sessionRef ?? 'N/A'}`);
       } else if (args.cert && args.key) {
         // XAdES cert auth flow
@@ -109,6 +112,9 @@ const login = defineCommand({
           environment: (args.env ?? config.environment) as SessionData['environment'],
         };
         saveSession(session);
+        if (args.env && args.env !== config.environment) {
+          saveConfig({ ...config, environment: args.env });
+        }
         outputSuccess(`Logged in successfully. Session ref: ${session.sessionRef ?? 'N/A'}`);
       } else {
         throw new Error('Provide --token or both --cert and --key for authentication.');
