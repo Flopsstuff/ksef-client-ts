@@ -5,6 +5,10 @@ import { sessionCommand } from './commands/session.js';
 import { invoiceCommand } from './commands/invoice.js';
 import { permissionCommand } from './commands/permission.js';
 import { tokenCommand } from './commands/token.js';
+import { certCommand } from './commands/cert.js';
+import { qrCommand } from './commands/qr.js';
+import { lighthouseCommand } from './commands/lighthouse.js';
+import { testDataCommand } from './commands/test-data.js';
 
 const main = defineCommand({
   meta: {
@@ -19,6 +23,10 @@ const main = defineCommand({
     invoice: invoiceCommand,
     permission: permissionCommand,
     token: tokenCommand,
+    cert: certCommand,
+    qr: qrCommand,
+    lighthouse: lighthouseCommand,
+    'test-data': testDataCommand,
   },
 });
 
