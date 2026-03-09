@@ -38,7 +38,9 @@ src/
 │       ├── cert.ts           # [DONE] ksef cert [generate|enroll|status|list|revoke|limits]
 │       ├── qr.ts             # [DONE] ksef qr [invoice|certificate|url]
 │       ├── lighthouse.ts     # [DONE] ksef lighthouse [status|messages]
-│       └── test-data.ts      # [DONE] ksef test-data [18 subcommands]
+│       ├── test-data.ts      # [DONE] ksef test-data [18 subcommands]
+│       ├── doctor.ts         # [DONE] ksef doctor (config, connectivity, session checks)
+│       └── completion.ts     # [DONE] ksef completion [bash|zsh|fish]
 ```
 
 ## Config File (`~/.ksef/config.json`)
@@ -198,6 +200,33 @@ ksef test-data limits [list|set|reset]
 
 ---
 
+### Phase 5: Polish — DONE
+
+**5.1 `ksef doctor`** — DONE
+
+```
+ksef doctor                              # Run all health checks (config, connectivity, session)
+ksef doctor --json                       # Output check results as JSON
+```
+
+**5.2 `ksef completion`** — DONE
+
+```
+ksef completion bash                     # Generate bash completion script
+ksef completion zsh                      # Generate zsh completion script
+ksef completion fish                     # Generate fish completion script
+```
+
+**5.3 `--verbose` flag** — DONE
+
+All commands accept `--verbose` to log HTTP request/response details (method, URL, status, timing) to stderr via `consola.debug`.
+
+**5.4 Error hints** — DONE
+
+Contextual hints after errors: 401/403 → auth hint, 404 → reference hint, network → doctor hint, rate-limit → retry delay.
+
+---
+
 ## Implementation Phases
 
 ### Phase 1: Scaffold + Config + Auth — DONE
@@ -226,12 +255,11 @@ ksef test-data limits [list|set|reset]
 - [x] Lighthouse status and messages (no auth required)
 - [x] Test data commands (18 subcommands, gated to test/demo env)
 
-### Phase 5: Polish
-- [ ] Tab completion (bash/zsh/fish)
-- [ ] Man page generation
-- [ ] `--verbose` / `--debug` flags (log HTTP requests)
-- [ ] Error messages with hints/suggestions
-- [ ] `ksef doctor` — check config, connectivity, cert validity
+### Phase 5: Polish — DONE
+- [x] Tab completion (bash/zsh/fish) — `ksef completion bash|zsh|fish`
+- [x] `--verbose` flag (log HTTP method, URL, status, timing via consola.debug)
+- [x] Error messages with contextual hints (auth, 404, network, rate-limit)
+- [x] `ksef doctor` — check config, connectivity, session validity
 
 ---
 

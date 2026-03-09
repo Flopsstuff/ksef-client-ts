@@ -1,3 +1,4 @@
+import { KSeFValidationError } from '../errors/ksef-validation-error.js';
 import type {
   InvoiceQueryFilters,
   InvoiceSubjectType,
@@ -99,10 +100,10 @@ export class InvoiceQueryFilterBuilder {
 
   build(): InvoiceQueryFilters {
     if (!this.subjectType) {
-      throw new Error('Subject type is required');
+      throw KSeFValidationError.fromField('subjectType', 'Subject type is required');
     }
     if (!this.dateRange) {
-      throw new Error('Date range is required');
+      throw KSeFValidationError.fromField('dateRange', 'Date range is required');
     }
 
     return {

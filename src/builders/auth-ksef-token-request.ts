@@ -1,3 +1,4 @@
+import { KSeFValidationError } from '../errors/ksef-validation-error.js';
 import type {
   AuthKsefTokenRequest,
   AuthorizationPolicy,
@@ -43,13 +44,13 @@ export class AuthKsefTokenRequestBuilder {
 
   build(): AuthKsefTokenRequest {
     if (!this.challenge) {
-      throw new Error('Challenge is required');
+      throw KSeFValidationError.fromField('challenge', 'Challenge is required');
     }
     if (!this.contextIdentifier) {
-      throw new Error('Context identifier is required');
+      throw KSeFValidationError.fromField('contextIdentifier', 'Context identifier is required');
     }
     if (!this.encryptedToken) {
-      throw new Error('Encrypted token is required');
+      throw KSeFValidationError.fromField('encryptedToken', 'Encrypted token is required');
     }
 
     return {

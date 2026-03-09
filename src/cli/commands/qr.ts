@@ -10,6 +10,7 @@ function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
     env: args.env as string | undefined,
     json: args.json as boolean | undefined,
+    verbose: args.verbose as boolean | undefined,
     timeout: args.timeout as string | undefined,
     nip: args.nip as string | undefined,
   };
@@ -27,6 +28,7 @@ const invoice = defineCommand({
     o: { type: 'string', description: 'Output file path' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
   },
   run({ args }) {
@@ -84,6 +86,7 @@ const certificate = defineCommand({
     o: { type: 'string', description: 'Output file path' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
     nip: { type: 'string', description: 'NIP number' },
   },
@@ -144,6 +147,7 @@ const url = defineCommand({
     hash: { type: 'string', description: 'Invoice hash (base64)', required: true },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
   },
   run({ args }) {

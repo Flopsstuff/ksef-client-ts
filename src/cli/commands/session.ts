@@ -13,6 +13,7 @@ function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
     env: args.env as string | undefined,
     json: args.json as boolean | undefined,
+    verbose: args.verbose as boolean | undefined,
     timeout: args.timeout as string | undefined,
     nip: args.nip as string | undefined,
   };
@@ -24,6 +25,7 @@ const open = defineCommand({
     batch: { type: 'boolean', description: 'Open a batch session instead of online' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
     nip: { type: 'string', description: 'NIP number' },
   },
@@ -75,6 +77,7 @@ const close = defineCommand({
     ref: { type: 'positional', description: 'Session reference (uses stored ref if omitted)', required: false },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
   },
   run({ args }) {
@@ -101,6 +104,7 @@ const status = defineCommand({
     ref: { type: 'positional', description: 'Session reference (uses stored ref if omitted)', required: false },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
   },
   run({ args }) {
@@ -139,6 +143,7 @@ const list = defineCommand({
     pageSize: { type: 'string', description: 'Number of results per page' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
   },
   run({ args }) {
@@ -194,6 +199,7 @@ const invoices = defineCommand({
     pageSize: { type: 'string', description: 'Number of results per page' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
   },
   run({ args }) {
@@ -251,6 +257,7 @@ const failed = defineCommand({
     pageSize: { type: 'string', description: 'Number of results per page' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
   },
   run({ args }) {
@@ -311,6 +318,7 @@ const upo = defineCommand({
     o: { type: 'string', description: 'Output file path' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
   },
   run({ args }) {

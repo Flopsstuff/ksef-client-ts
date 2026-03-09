@@ -8,6 +8,7 @@ function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
     env: args.env as string | undefined,
     json: args.json as boolean | undefined,
+    verbose: args.verbose as boolean | undefined,
     timeout: args.timeout as string | undefined,
     nip: args.nip as string | undefined,
   };
@@ -18,6 +19,7 @@ const status = defineCommand({
   args: {
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
     nip: { type: 'string', description: 'NIP number' },
   },
@@ -48,6 +50,7 @@ const messages = defineCommand({
   args: {
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
     nip: { type: 'string', description: 'NIP number' },
   },

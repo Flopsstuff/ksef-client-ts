@@ -27,7 +27,9 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "vitest run",
+    "test": "vitest run tests/unit",
+    "test:integration": "vitest run tests/unit tests/integration",
+    "test:e2e": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
     "link": "npm link",

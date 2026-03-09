@@ -1,3 +1,4 @@
+import { consola } from 'consola';
 import { KSeFApiError } from '../errors/ksef-api-error.js';
 import { KSeFRateLimitError } from '../errors/ksef-rate-limit-error.js';
 import type { ApiErrorResponse } from '../errors/types.js';
@@ -47,12 +48,16 @@ export class RestClient {
       body = typeof rawBody === 'string' ? rawBody : JSON.stringify(rawBody);
     }
 
-    return fetch(url, {
+    const start = performance.now();
+    const response = await fetch(url, {
       method: request.method,
       headers,
       body,
       signal: AbortSignal.timeout(this.options.timeout),
     });
+    const elapsed = Math.round(performance.now() - start);
+    consola.debug(`${request.method} ${url} → ${response.status} (${elapsed}ms)`);
+    return response;
   }
 
   private buildUrl(request: RestRequest): string {

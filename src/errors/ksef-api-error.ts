@@ -1,6 +1,7 @@
+import { KSeFError } from './ksef-error.js';
 import type { ApiErrorResponse } from './types.js';
 
-export class KSeFApiError extends Error {
+export class KSeFApiError extends KSeFError {
   readonly statusCode: number;
   readonly errorResponse?: ApiErrorResponse;
 

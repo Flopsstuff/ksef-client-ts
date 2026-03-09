@@ -1,3 +1,4 @@
+import { consola } from 'consola';
 import { KSeFClient } from '../client.js';
 import type { KSeFClientOptions } from '../config/options.js';
 import { loadConfig } from './config-store.js';
@@ -5,6 +6,9 @@ import { loadSession, isSessionExpired } from './session-store.js';
 import { toEnvironmentName, type GlobalOptions, type SessionData } from './types.js';
 
 export function createClient(globalOpts: GlobalOptions): KSeFClient {
+  if (globalOpts.verbose) {
+    consola.level = 4;
+  }
   const config = loadConfig();
   const env = globalOpts.env ?? config.environment;
   const timeout = globalOpts.timeout ? parseInt(globalOpts.timeout, 10) : config.timeout;
@@ -18,6 +22,9 @@ export function createClient(globalOpts: GlobalOptions): KSeFClient {
 }
 
 export function requireSession(globalOpts: GlobalOptions): { client: KSeFClient; session: SessionData } {
+  if (globalOpts.verbose) {
+    consola.level = 4;
+  }
   const session = loadSession();
   if (!session) {
     throw new Error('No active session. Run `ksef auth login` first.');

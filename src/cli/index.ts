@@ -9,6 +9,8 @@ import { certCommand } from './commands/cert.js';
 import { qrCommand } from './commands/qr.js';
 import { lighthouseCommand } from './commands/lighthouse.js';
 import { testDataCommand } from './commands/test-data.js';
+import { doctorCommand } from './commands/doctor.js';
+import { completionCommand } from './commands/completion.js';
 
 const main = defineCommand({
   meta: {
@@ -27,6 +29,8 @@ const main = defineCommand({
     qr: qrCommand,
     lighthouse: lighthouseCommand,
     'test-data': testDataCommand,
+    doctor: doctorCommand,
+    completion: completionCommand,
   },
 });
 

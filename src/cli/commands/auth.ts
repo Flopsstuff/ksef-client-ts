@@ -11,6 +11,7 @@ function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
     env: args.env as string | undefined,
     json: args.json as boolean | undefined,
+    verbose: args.verbose as boolean | undefined,
     timeout: args.timeout as string | undefined,
     nip: args.nip as string | undefined,
   };
@@ -21,6 +22,7 @@ const challenge = defineCommand({
   args: {
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
   },
   run({ args }) {
@@ -41,6 +43,7 @@ const login = defineCommand({
     key: { type: 'string', description: 'Path to PEM private key file (XAdES auth)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
     nip: { type: 'string', description: 'NIP number' },
   },
@@ -129,6 +132,7 @@ const status = defineCommand({
     ref: { type: 'positional', description: 'Reference number', required: true },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
   },
   run({ args }) {
@@ -156,6 +160,7 @@ const refresh = defineCommand({
   args: {
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
   },
   run({ args }) {
@@ -183,6 +188,7 @@ const whoami = defineCommand({
   meta: { name: 'whoami', description: 'Show current session info' },
   args: {
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
   },
   run({ args }) {
     return withErrorHandler(async () => {

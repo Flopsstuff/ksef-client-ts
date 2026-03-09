@@ -7,7 +7,8 @@ export async function withErrorHandler(fn: () => Promise<void>): Promise<void> {
     await fn();
   } catch (error) {
     if (error instanceof KSeFRateLimitError) {
-      consola.error(`Rate limited. Retry after ${error.recommendedDelay}s.`);
+      consola.error('Rate limited by KSeF API.');
+      consola.info(`Hint: Retry after ${error.recommendedDelay}s.`);
       process.exit(1);
     }
 
@@ -18,15 +19,22 @@ export async function withErrorHandler(fn: () => Promise<void>): Promise<void> {
           consola.error(`  - [${detail.exceptionDetailCode}] ${detail.exceptionDescription}`);
         }
       }
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        consola.info('Hint: Run `ksef auth login` to authenticate.');
+      } else if (error.statusCode === 404) {
+        consola.info('Hint: Check if the resource reference is correct.');
+      }
       process.exit(1);
     }
 
     if (error instanceof Error) {
-      if (error.message.includes('fetch failed') || error.message.includes('ECONNREFUSED')) {
+      const msg = error.message;
+      if (msg.includes('fetch failed') || msg.includes('ECONNREFUSED') || msg.includes('ETIMEDOUT') || msg.includes('ENOTFOUND')) {
         consola.error('Cannot reach KSeF API. Check your network connection and environment.');
+        consola.info('Hint: Run `ksef doctor` to diagnose connectivity issues.');
         process.exit(1);
       }
-      consola.error(error.message);
+      consola.error(msg);
       process.exit(1);
     }
 

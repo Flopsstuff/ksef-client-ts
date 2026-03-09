@@ -1,3 +1,4 @@
+import { KSeFValidationError } from '../../errors/ksef-validation-error.js';
 import type { PermissionSubjectIdentifierType } from '../../models/common.js';
 import type {
   GrantPermissionsPersonRequest,
@@ -39,16 +40,16 @@ export class PersonPermissionGrantBuilder {
 
   build(): GrantPermissionsPersonRequest {
     if (!this.subjectIdentifier) {
-      throw new Error('Subject identifier is required');
+      throw KSeFValidationError.fromField('subjectIdentifier', 'Subject identifier is required');
     }
     if (this.permissions.length === 0) {
-      throw new Error('At least one permission is required');
+      throw KSeFValidationError.fromField('permissions', 'At least one permission is required');
     }
     if (!this._description) {
-      throw new Error('Description is required');
+      throw KSeFValidationError.fromField('description', 'Description is required');
     }
     if (!this._subjectDetails) {
-      throw new Error('Subject details are required');
+      throw KSeFValidationError.fromField('subjectDetails', 'Subject details are required');
     }
 
     return {

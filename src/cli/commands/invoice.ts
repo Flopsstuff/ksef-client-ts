@@ -14,6 +14,7 @@ function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
     env: args.env as string | undefined,
     json: args.json as boolean | undefined,
+    verbose: args.verbose as boolean | undefined,
     timeout: args.timeout as string | undefined,
     nip: args.nip as string | undefined,
   };
@@ -74,6 +75,7 @@ const send = defineCommand({
     sessionRef: { type: 'string', description: 'Override online session reference' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
     nip: { type: 'string', description: 'NIP number' },
   },
@@ -191,6 +193,7 @@ const get = defineCommand({
     o: { type: 'string', description: 'Output file path' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
   },
   run({ args }) {
@@ -223,6 +226,7 @@ const query = defineCommand({
     size: { type: 'string', description: 'Page size' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
     nip: { type: 'string', description: 'NIP number' },
   },
@@ -285,6 +289,7 @@ const exportCmd = defineCommand({
     ...QUERY_FILTER_ARGS,
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
     nip: { type: 'string', description: 'NIP number' },
   },
@@ -319,6 +324,7 @@ const exportStatus = defineCommand({
     ref: { type: 'positional', description: 'Export reference number', required: true },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
   },
   run({ args }) {
