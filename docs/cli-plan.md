@@ -35,10 +35,10 @@ src/
 │       ├── invoice.ts        # [DONE] ksef invoice [send|get|query|export|export-status]
 │       ├── permission.ts     # [DONE] ksef permission [grant|revoke|search|status]
 │       ├── token.ts          # [DONE] ksef token [generate|list|get|revoke]
-│       ├── cert.ts           # ksef cert [enroll|list|revoke|status]
-│       ├── qr.ts             # ksef qr [invoice|certificate]
-│       ├── lighthouse.ts     # ksef lighthouse [status|messages]
-│       └── test-data.ts      # ksef test-data [...]
+│       ├── cert.ts           # [DONE] ksef cert [generate|enroll|status|list|revoke|limits]
+│       ├── qr.ts             # [DONE] ksef qr [invoice|certificate|url]
+│       ├── lighthouse.ts     # [DONE] ksef lighthouse [status|messages]
+│       └── test-data.ts      # [DONE] ksef test-data [18 subcommands]
 ```
 
 ## Config File (`~/.ksef/config.json`)
@@ -159,9 +159,9 @@ ksef token revoke <ref>                          # Revoke token
 
 ---
 
-### Phase 4: Certificates, QR, Utilities
+### Phase 4: Certificates, QR, Utilities — DONE
 
-**4.1 `ksef cert`**
+**4.1 `ksef cert`** — DONE
 
 ```
 ksef cert generate --out <dir>                   # Generate self-signed cert + key (for test)
@@ -172,7 +172,7 @@ ksef cert revoke <serial>                        # Revoke certificate
 ksef cert limits                                 # Show certificate limits
 ```
 
-**4.2 `ksef qr`**
+**4.2 `ksef qr`** — DONE
 
 ```
 ksef qr invoice <ksef-number> [-o qr.png] [--size 300]     # Generate invoice QR
@@ -180,14 +180,14 @@ ksef qr certificate <params...> [-o qr.png]                 # Generate certifica
 ksef qr url <ksef-number>                                    # Print verification URL only
 ```
 
-**4.3 `ksef lighthouse`**
+**4.3 `ksef lighthouse`** — DONE
 
 ```
 ksef lighthouse status                           # System availability status
 ksef lighthouse messages                         # System messages
 ```
 
-**4.4 `ksef test-data`** (only for test/demo environments)
+**4.4 `ksef test-data`** (only for test/demo environments) — DONE
 
 ```
 ksef test-data subjects [list|create|delete]
@@ -220,11 +220,11 @@ ksef test-data limits [list|set|reset]
 - [x] Permission grant/revoke/search/status
 - [x] Token generate/list/get/revoke
 
-### Phase 4: Certs + QR + Utilities
-- [ ] Certificate commands
-- [ ] QR code generation (file output)
-- [ ] Lighthouse status
-- [ ] Test data commands (gated to test/demo env)
+### Phase 4: Certs + QR + Utilities — DONE
+- [x] Certificate commands (generate, enroll, status, list, revoke, limits)
+- [x] QR code generation (invoice, certificate, url — PNG/SVG/base64)
+- [x] Lighthouse status and messages (no auth required)
+- [x] Test data commands (18 subcommands, gated to test/demo env)
 
 ### Phase 5: Polish
 - [ ] Tab completion (bash/zsh/fish)
