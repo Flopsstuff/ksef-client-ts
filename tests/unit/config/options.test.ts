@@ -25,6 +25,7 @@ describe('resolveOptions', () => {
     const opts = resolveOptions({ environment: 'DEMO' });
 
     expect(opts.baseUrl).toBe(Environment.DEMO.apiUrl);
+    expect(opts.lighthouseUrl).toBe('');
   });
 
   it('custom baseUrl overrides environment apiUrl', () => {

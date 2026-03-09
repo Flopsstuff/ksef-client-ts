@@ -147,7 +147,7 @@ export const Routes = {
   },
 
   Lighthouse: {
-    status: 'lighthouse/status',
-    messages: 'lighthouse/messages',
+    status: 'status',
+    messages: 'messages',
   },
 } as const;

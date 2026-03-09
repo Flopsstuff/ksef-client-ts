@@ -6,7 +6,7 @@ import type { GlobalOptions } from '../types.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
-    env: args.env as string | undefined,
+    env: (args.env as string | undefined) ?? 'prod',
     json: args.json as boolean | undefined,
     verbose: args.verbose as boolean | undefined,
     timeout: args.timeout as string | undefined,
@@ -17,7 +17,7 @@ function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
 const status = defineCommand({
   meta: { name: 'status', description: 'Check KSeF system status' },
   args: {
-    env: { type: 'string', description: 'Environment (test/demo/prod)' },
+    env: { type: 'string', description: 'Environment (test/prod, default: prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },
@@ -48,7 +48,7 @@ const status = defineCommand({
 const messages = defineCommand({
   meta: { name: 'messages', description: 'View KSeF system messages' },
   args: {
-    env: { type: 'string', description: 'Environment (test/demo/prod)' },
+    env: { type: 'string', description: 'Environment (test/prod, default: prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
     timeout: { type: 'string', description: 'Request timeout (ms)' },

@@ -13,7 +13,7 @@ export const Environment = {
   DEMO: {
     apiUrl: 'https://api-demo.ksef.mf.gov.pl',
     qrUrl: 'https://qr-demo.ksef.mf.gov.pl',
-    lighthouseUrl: 'https://api-latarnia-demo.ksef.mf.gov.pl',
+    lighthouseUrl: '',
   },
   PRD: {
     apiUrl: 'https://api.ksef.mf.gov.pl',

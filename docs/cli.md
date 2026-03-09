@@ -257,10 +257,11 @@ ksef qr url --nip 1234567890 --date 2025-06-15 --hash "abc...=="
 
 ## Lighthouse (System Status)
 
-No authentication required.
+No authentication required. Available only in `test` and `prod` environments (DEMO does not have a lighthouse endpoint). Defaults to `prod`.
 
 ```bash
-ksef lighthouse status                           # Check KSeF system availability
+ksef lighthouse status                           # Check prod (default)
+ksef lighthouse status --env test                # Check test environment
 ksef lighthouse messages                         # View system messages
 ```
 

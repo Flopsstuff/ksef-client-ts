@@ -12,7 +12,13 @@ export class LighthouseService {
   }
 
   private async fetchJson<T>(path: string): Promise<T> {
+    if (!this.lighthouseUrl) {
+      throw new KSeFError(
+        'Lighthouse API is not available for the DEMO environment. Use TEST or PROD instead.',
+      );
+    }
     const response = await fetch(`${this.lighthouseUrl}${path}`, {
+      headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(this.timeout),
     });
     if (!response.ok) {
@@ -25,11 +31,11 @@ export class LighthouseService {
   }
 
   async getStatus(): Promise<KsefStatusResponse> {
-    return this.fetchJson<KsefStatusResponse>('/lighthouse/status');
+    return this.fetchJson<KsefStatusResponse>('/status');
   }
 
   async getMessages(): Promise<LighthouseMessage[]> {
-    const data = await this.fetchJson<KsefMessagesResponse>('/lighthouse/messages');
+    const data = await this.fetchJson<KsefMessagesResponse>('/messages');
     return data.messages ?? [];
   }
 }

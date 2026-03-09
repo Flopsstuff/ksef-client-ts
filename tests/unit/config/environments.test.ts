@@ -20,9 +20,9 @@ describe('Environment configs', () => {
     expect(Environment.PRD.qrUrl).toBeTruthy();
   });
 
-  it('all environments have lighthouseUrl', () => {
+  it('TEST and PRD have lighthouseUrl, DEMO does not', () => {
     expect(Environment.TEST.lighthouseUrl).toBeTruthy();
-    expect(Environment.DEMO.lighthouseUrl).toBeTruthy();
+    expect(Environment.DEMO.lighthouseUrl).toBe('');
     expect(Environment.PRD.lighthouseUrl).toBeTruthy();
   });
 
@@ -30,8 +30,14 @@ describe('Environment configs', () => {
     for (const env of Object.values(Environment)) {
       expect(env.apiUrl).toMatch(/^https:\/\//);
       expect(env.qrUrl).toMatch(/^https:\/\//);
-      expect(env.lighthouseUrl).toMatch(/^https:\/\//);
+      if (env.lighthouseUrl) {
+        expect(env.lighthouseUrl).toMatch(/^https:\/\//);
+      }
     }
+  });
+
+  it('DEMO has empty lighthouseUrl (not available)', () => {
+    expect(Environment.DEMO.lighthouseUrl).toBe('');
   });
 
   it('has exactly 3 environments', () => {
