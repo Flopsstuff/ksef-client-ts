@@ -34,6 +34,7 @@ These flags are available on most subcommands:
 |------|-------------|
 | `--env test\|demo\|prod` | Override environment (ignores config) |
 | `--json` | Output raw JSON (for scripting) |
+| `--verbose` | Show HTTP request/response details (method, URL, status, timing) |
 | `--timeout <ms>` | Override request timeout |
 | `--nip <nip>` | Override NIP (ignores config) |
 
@@ -202,6 +203,145 @@ ksef token revoke <ref>                                       # Revoke a token
 ::: warning
 The token value is displayed only once during generation. It cannot be retrieved later.
 :::
+
+## Certificates
+
+### Generate a Self-Signed Certificate
+
+For testing — generates a certificate and private key locally:
+
+```bash
+ksef cert generate --type personal \
+  --cn "Jan Kowalski" --given-name Jan --surname Kowalski \
+  --serial-number PNOPL-12345678901 --out ./certs
+
+ksef cert generate --type company-seal \
+  --cn "Firma Seal" --org "Firma Sp. z o.o." \
+  --org-identifier VATPL-1234567890 --method ECDSA --out ./certs
+```
+
+### Certificate Management (requires session)
+
+```bash
+ksef cert enroll --cert cert.pem --name "My Cert" --type Authentication
+ksef cert status <ref>                           # Check enrollment status
+ksef cert list [--type Authentication|Offline]   # List certificates
+ksef cert revoke <serial> [--reason "text"]      # Revoke certificate
+ksef cert limits                                 # Show enrollment limits
+```
+
+## QR Codes
+
+### Generate Invoice QR Code
+
+```bash
+ksef qr invoice --nip 1234567890 --date 2025-06-15 --hash "abc...==" -o qr.png
+ksef qr invoice --nip 1234567890 --date 2025-06-15 --hash "abc...==" --format svg -o qr.svg
+ksef qr invoice --nip 1234567890 --date 2025-06-15 --hash "abc...==" --format svg --label "Invoice #1"
+```
+
+### Generate Certificate QR Code
+
+```bash
+ksef qr certificate \
+  --context-type onip --context-id 1234567890 \
+  --seller-nip 1234567890 --cert-serial ABC123 \
+  --hash "abc...==" --key key.pem -o cert-qr.png
+```
+
+### Print Verification URL Only
+
+```bash
+ksef qr url --nip 1234567890 --date 2025-06-15 --hash "abc...=="
+```
+
+## Lighthouse (System Status)
+
+No authentication required.
+
+```bash
+ksef lighthouse status                           # Check KSeF system availability
+ksef lighthouse messages                         # View system messages
+```
+
+## Test Data
+
+Available only in `test` and `demo` environments. Most commands do not require authentication.
+
+```bash
+# Subjects and persons
+ksef test-data create-subject --nip 1234567890
+ksef test-data remove-subject --nip 1234567890
+ksef test-data create-person --nip 1234567890 --pesel 12345678901 --first-name Jan --last-name Kowalski
+ksef test-data remove-person --nip 1234567890 --pesel 12345678901
+
+# Permissions (test-only bypass)
+ksef test-data grant-permissions --nip 1234567890 --target-nip 9876543210
+ksef test-data revoke-permissions --nip 1234567890 --target-nip 9876543210
+
+# Attachments
+ksef test-data enable-attachment --nip 1234567890
+ksef test-data disable-attachment --nip 1234567890
+
+# Limits (requires session)
+ksef test-data change-session-limits --max-invoices 1000
+ksef test-data restore-session-limits
+ksef test-data change-cert-limits --enrollment-limit 10 --certificate-limit 20
+ksef test-data restore-cert-limits
+
+# Rate limits (requires session)
+ksef test-data set-rate-limits --rate 100 --burst 200
+ksef test-data restore-rate-limits
+ksef test-data set-production-rate-limits --rate 50 --burst 100
+ksef test-data restore-production-rate-limits
+
+# Context blocking (requires session)
+ksef test-data block-context --reason "maintenance"
+ksef test-data unblock-context
+```
+
+## Doctor (Health Check)
+
+Diagnose configuration and connectivity issues:
+
+```bash
+ksef doctor                                      # Run all checks
+ksef doctor --json                               # Structured JSON output
+ksef doctor --env prod                           # Check specific environment
+```
+
+Checks performed:
+1. **Config** — `~/.ksef/config.json` exists and is valid
+2. **Connectivity** — KSeF API reachable (lighthouse endpoint, 5s timeout)
+3. **Session** — stored session exists and is not expired
+
+## Shell Completion
+
+Generate completion scripts for your shell:
+
+```bash
+# Bash
+eval "$(ksef completion bash)"
+
+# Zsh
+eval "$(ksef completion zsh)"
+
+# Fish
+ksef completion fish | source
+```
+
+To persist, add the `eval` line to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.).
+
+## Error Hints
+
+The CLI provides contextual hints after common errors:
+
+| Error | Hint |
+|-------|------|
+| HTTP 401/403 | Run `ksef auth login` to authenticate. |
+| HTTP 404 | Check if the resource reference is correct. |
+| Network error | Run `ksef doctor` to diagnose connectivity issues. |
+| Rate limited | Retry after N seconds. |
 
 ## Storage
 

@@ -818,9 +818,21 @@ new AuthorizationPermissionGrantBuilder()
 
 ## Error Types
 
+### KSeFError
+
+Base error class for all KSeF-related errors. Extends `Error`.
+
+```ts
+class KSeFError extends Error {
+  constructor(message: string)
+}
+```
+
+All other error classes extend `KSeFError`, so you can catch all library errors with a single `instanceof KSeFError` check.
+
 ### KSeFApiError
 
-Thrown on non-2xx responses from the KSeF API.
+Extends `KSeFError`. Thrown on non-2xx responses from the KSeF API.
 
 | Field           | Type                | Description                           |
 | --------------- | ------------------- | ------------------------------------- |
@@ -834,7 +846,7 @@ static fromResponse(statusCode: number, body?: ApiErrorResponse): KSeFApiError
 
 ### KSeFRateLimitError
 
-Extends `KSeFApiError`. Thrown on HTTP 429 responses.
+Extends `KSeFApiError`. Thrown on HTTP 429 responses (too many requests).
 
 | Field               | Type      | Description                                    |
 | ------------------- | --------- | ---------------------------------------------- |
@@ -864,6 +876,61 @@ interface ExceptionDetail {
   exceptionDetailCode: number;
   exceptionDescription: string;
 }
+```
+
+### KSeFAuthStatusError
+
+Extends `KSeFError`. Thrown when an authentication operation fails or times out.
+
+| Field               | Type      | Description                          |
+| ------------------- | --------- | ------------------------------------ |
+| `referenceNumber`   | `string?` | Auth operation reference number      |
+| `statusDescription` | `string?` | Status description from the API      |
+
+```ts
+constructor(message: string, referenceNumber?: string, statusDescription?: string)
+```
+
+### KSeFSessionExpiredError
+
+Extends `KSeFError`. Thrown when a stored session has expired.
+
+```ts
+constructor(message?: string)  // default: 'KSeF session has expired'
+```
+
+### KSeFValidationError
+
+Extends `KSeFError`. Thrown when client-side validation fails (e.g., invalid NIP, missing required fields).
+
+| Field     | Type                | Description                    |
+| --------- | ------------------- | ------------------------------ |
+| `details` | `ValidationDetail[]` | List of validation issues     |
+
+```ts
+constructor(message: string, details?: ValidationDetail[])
+
+static fromField(field: string, message: string): KSeFValidationError
+static fromMessages(messages: string[]): KSeFValidationError
+```
+
+```ts
+interface ValidationDetail {
+  field?: string;
+  message: string;
+}
+```
+
+### Error Hierarchy
+
+```
+Error
+  └── KSeFError                    // base class for all library errors
+        ├── KSeFApiError           // HTTP API errors (non-2xx)
+        │     └── KSeFRateLimitError   // HTTP 429 (too many requests)
+        ├── KSeFAuthStatusError    // auth operation failed/timed out
+        ├── KSeFSessionExpiredError // stored session expired
+        └── KSeFValidationError    // client-side validation failed
 ```
 
 ---

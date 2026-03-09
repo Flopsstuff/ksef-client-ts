@@ -1,5 +1,6 @@
 import type { ResolvedOptions } from '../config/options.js';
 import type { KsefStatusResponse, LighthouseMessage, KsefMessagesResponse } from '../models/lighthouse/types.js';
+import { KSeFError } from '../errors/index.js';
 
 export class LighthouseService {
   private readonly lighthouseUrl: string;
@@ -10,18 +11,25 @@ export class LighthouseService {
     this.timeout = options.timeout;
   }
 
-  async getStatus(): Promise<KsefStatusResponse> {
-    const response = await fetch(`${this.lighthouseUrl}/lighthouse/status`, {
+  private async fetchJson<T>(path: string): Promise<T> {
+    const response = await fetch(`${this.lighthouseUrl}${path}`, {
       signal: AbortSignal.timeout(this.timeout),
     });
-    return (await response.json()) as KsefStatusResponse;
+    if (!response.ok) {
+      const body = await response.text();
+      throw new KSeFError(
+        `Lighthouse ${path} failed: HTTP ${response.status} — ${body}`,
+      );
+    }
+    return (await response.json()) as T;
+  }
+
+  async getStatus(): Promise<KsefStatusResponse> {
+    return this.fetchJson<KsefStatusResponse>('/lighthouse/status');
   }
 
   async getMessages(): Promise<LighthouseMessage[]> {
-    const response = await fetch(`${this.lighthouseUrl}/lighthouse/messages`, {
-      signal: AbortSignal.timeout(this.timeout),
-    });
-    const data = (await response.json()) as KsefMessagesResponse;
-    return data.messages;
+    const data = await this.fetchJson<KsefMessagesResponse>('/lighthouse/messages');
+    return data.messages ?? [];
   }
 }
