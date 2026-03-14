@@ -44,7 +44,7 @@ async function authenticateWithXades() {
   const tokenRequest = new AuthTokenRequestBuilder()
     .withChallenge(challenge.challenge)
     .withContextNip('1234567890')
-    .withSubjectType('certificateSubject')
+    .withSubjectType('Nip')
     .build();
 
   // The token request must be serialized to XML before signing.
@@ -336,7 +336,7 @@ async function managePermissions(accessToken: string) {
     .withSubjectIdentifier('Nip', '1234567890')
     .addPermission('InvoiceRead')
     .addPermission('InvoiceWrite')
-    .addPermission('CredentialRead')
+    .addPermission('CredentialsRead')
     .build();
 
   const grantResult = await client.permissions.grantPersonPermissions(
@@ -391,7 +391,7 @@ async function managePermissions(accessToken: string) {
 
 **Notes:**
 - `PersonPermissionGrantBuilder.withSubjectIdentifier()` accepts a `PermissionSubjectIdentifierType` (`'Nip'`, `'Pesel'`, or `'Fingerprint'`) and a value.
-- Available `PersonPermissionType` values: `'InvoiceRead'`, `'InvoiceWrite'`, `'CredentialRead'`, `'CredentialManage'`, `'EnforcementOperations'`, `'SubunitManage'`, `'SelfInvoicing'`.
+- Available `PersonPermissionType` values: `'InvoiceRead'`, `'InvoiceWrite'`, `'CredentialsRead'`, `'CredentialsManage'`, `'EnforcementOperations'`, `'SubunitManage'`, `'Introspection'`.
 - Use `revokeCommonGrant()` for person/entity/subunit grants, and `revokeAuthorizationGrant()` for authorization grants.
 - The `EntityPermissionGrantBuilder` and `AuthorizationPermissionGrantBuilder` follow the same pattern for entity and authorization permissions respectively.
 

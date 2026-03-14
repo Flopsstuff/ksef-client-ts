@@ -13,11 +13,11 @@ export interface TestDataAuthorizedIdentifier {
 export type TestDataPermission =
   | 'InvoiceRead'
   | 'InvoiceWrite'
-  | 'CredentialRead'
-  | 'CredentialManage'
+  | 'CredentialsRead'
+  | 'CredentialsManage'
   | 'EnforcementOperations'
   | 'SubunitManage'
-  | 'SelfInvoicing';
+  | 'Introspection';
 
 export interface Subunit {
   subjectNip: string;

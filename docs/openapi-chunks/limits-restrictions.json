@@ -1,0 +1,1706 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "KSeF API TE",
+    "version": "v2"
+  },
+  "paths": {
+    "/limits/context": {
+      "get": {
+        "tags": [
+          "Limity i ograniczenia"
+        ],
+        "summary": "Pobranie limitów dla bieżącego kontekstu",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EffectiveContextLimits"
+                },
+                "example": {
+                  "onlineSession": {
+                    "maxInvoiceSizeInMB": 1,
+                    "maxInvoiceWithAttachmentSizeInMB": 3,
+                    "maxInvoices": 10000
+                  },
+                  "batchSession": {
+                    "maxInvoiceSizeInMB": 1,
+                    "maxInvoiceWithAttachmentSizeInMB": 3,
+                    "maxInvoices": 10000
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      }
+    },
+    "/limits/subject": {
+      "get": {
+        "tags": [
+          "Limity i ograniczenia"
+        ],
+        "summary": "Pobranie limitów dla bieżącego podmiotu",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EffectiveSubjectLimits"
+                },
+                "example": {
+                  "enrollment": {
+                    "maxEnrollments": 6
+                  },
+                  "certificate": {
+                    "maxCertificates": 2
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      }
+    },
+    "/rate-limits": {
+      "get": {
+        "tags": [
+          "Limity i ograniczenia"
+        ],
+        "summary": "Pobranie aktualnie obowiązujących limitów API",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EffectiveApiRateLimits"
+                },
+                "example": {
+                  "onlineSession": {
+                    "perSecond": 100,
+                    "perMinute": 300,
+                    "perHour": 1200
+                  },
+                  "batchSession": {
+                    "perSecond": 100,
+                    "perMinute": 200,
+                    "perHour": 600
+                  },
+                  "invoiceSend": {
+                    "perSecond": 100,
+                    "perMinute": 300,
+                    "perHour": 1800
+                  },
+                  "invoiceStatus": {
+                    "perSecond": 300,
+                    "perMinute": 1200,
+                    "perHour": 12000
+                  },
+                  "sessionList": {
+                    "perSecond": 50,
+                    "perMinute": 100,
+                    "perHour": 600
+                  },
+                  "sessionInvoiceList": {
+                    "perSecond": 100,
+                    "perMinute": 200,
+                    "perHour": 2000
+                  },
+                  "sessionMisc": {
+                    "perSecond": 100,
+                    "perMinute": 1200,
+                    "perHour": 12000
+                  },
+                  "invoiceMetadata": {
+                    "perSecond": 80,
+                    "perMinute": 160,
+                    "perHour": 200
+                  },
+                  "invoiceExport": {
+                    "perSecond": 40,
+                    "perMinute": 80,
+                    "perHour": 200
+                  },
+                  "invoiceExportStatus": {
+                    "perSecond": 100,
+                    "perMinute": 600,
+                    "perHour": 6000
+                  },
+                  "invoiceDownload": {
+                    "perSecond": 80,
+                    "perMinute": 160,
+                    "perHour": 640
+                  },
+                  "other": {
+                    "perSecond": 100,
+                    "perMinute": 300,
+                    "perHour": 1200
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      }
+    },
+    "/testdata/limits/context/session": {
+      "post": {
+        "tags": [
+          "Limity i ograniczenia"
+        ],
+        "summary": "Zmiana limitów sesji dla bieżącego kontekstu",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "onlineSession",
+                  "batchSession"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SetSessionLimitsRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      },
+      "delete": {
+        "tags": [
+          "Limity i ograniczenia"
+        ],
+        "summary": "Przywrócenie domyślnych wartości limitów sesji dla bieżącego kontekstu",
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      }
+    },
+    "/testdata/limits/subject/certificate": {
+      "post": {
+        "tags": [
+          "Limity i ograniczenia"
+        ],
+        "summary": "Zmiana limitów certyfikatów dla bieżącego podmiotu",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SetSubjectLimitsRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      },
+      "delete": {
+        "tags": [
+          "Limity i ograniczenia"
+        ],
+        "summary": "Przywrócenie domyślnych wartości limitów certyfikatów dla bieżącego podmiotu",
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      }
+    },
+    "/testdata/rate-limits": {
+      "post": {
+        "tags": [
+          "Limity i ograniczenia"
+        ],
+        "summary": "Zmiana limitów API dla bieżącego kontekstu",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "rateLimits"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SetRateLimitsRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      },
+      "delete": {
+        "tags": [
+          "Limity i ograniczenia"
+        ],
+        "summary": "Przywrócenie domyślnych wartości limitów API dla bieżącego kontekstu",
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      }
+    },
+    "/testdata/rate-limits/production": {
+      "post": {
+        "tags": [
+          "Limity i ograniczenia"
+        ],
+        "summary": "Zmiana limitów API dla bieżącego kontekstu na wartości produkcyjne",
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiRateLimitValuesOverride": {
+        "required": [
+          "perHour",
+          "perMinute",
+          "perSecond"
+        ],
+        "type": "object",
+        "properties": {
+          "perSecond": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "perMinute": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "perHour": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiRateLimitsOverride": {
+        "required": [
+          "batchSession",
+          "invoiceDownload",
+          "invoiceExport",
+          "invoiceExportStatus",
+          "invoiceMetadata",
+          "invoiceSend",
+          "invoiceStatus",
+          "onlineSession",
+          "other",
+          "sessionInvoiceList",
+          "sessionList",
+          "sessionMisc"
+        ],
+        "type": "object",
+        "properties": {
+          "onlineSession": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApiRateLimitValuesOverride"
+              }
+            ]
+          },
+          "batchSession": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApiRateLimitValuesOverride"
+              }
+            ]
+          },
+          "invoiceSend": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApiRateLimitValuesOverride"
+              }
+            ]
+          },
+          "invoiceStatus": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApiRateLimitValuesOverride"
+              }
+            ]
+          },
+          "sessionList": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApiRateLimitValuesOverride"
+              }
+            ]
+          },
+          "sessionInvoiceList": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApiRateLimitValuesOverride"
+              }
+            ]
+          },
+          "sessionMisc": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApiRateLimitValuesOverride"
+              }
+            ]
+          },
+          "invoiceMetadata": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApiRateLimitValuesOverride"
+              }
+            ]
+          },
+          "invoiceExport": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApiRateLimitValuesOverride"
+              }
+            ]
+          },
+          "invoiceExportStatus": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApiRateLimitValuesOverride"
+              }
+            ]
+          },
+          "invoiceDownload": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApiRateLimitValuesOverride"
+              }
+            ]
+          },
+          "other": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApiRateLimitValuesOverride"
+              }
+            ]
+          }
+        }
+      },
+      "BatchSessionContextLimitsOverride": {
+        "required": [
+          "maxInvoices",
+          "maxInvoiceSizeInMB",
+          "maxInvoiceWithAttachmentSizeInMB"
+        ],
+        "type": "object",
+        "properties": {
+          "maxInvoiceSizeInMB": {
+            "maximum": 5,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxInvoiceWithAttachmentSizeInMB": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxInvoices": {
+            "maximum": 100000,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "BatchSessionEffectiveContextLimits": {
+        "required": [
+          "maxInvoices",
+          "maxInvoiceSizeInMB",
+          "maxInvoiceWithAttachmentSizeInMB"
+        ],
+        "type": "object",
+        "properties": {
+          "maxInvoiceSizeInMB": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxInvoiceWithAttachmentSizeInMB": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxInvoices": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CertificateEffectiveSubjectLimits": {
+        "type": "object",
+        "properties": {
+          "maxCertificates": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CertificateSubjectLimitsOverride": {
+        "type": "object",
+        "properties": {
+          "maxCertificates": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "EffectiveApiRateLimitValues": {
+        "required": [
+          "perHour",
+          "perMinute",
+          "perSecond"
+        ],
+        "type": "object",
+        "properties": {
+          "perSecond": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "perMinute": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "perHour": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "EffectiveApiRateLimits": {
+        "required": [
+          "batchSession",
+          "invoiceDownload",
+          "invoiceExport",
+          "invoiceExportStatus",
+          "invoiceMetadata",
+          "invoiceSend",
+          "invoiceStatus",
+          "onlineSession",
+          "other",
+          "sessionInvoiceList",
+          "sessionList",
+          "sessionMisc"
+        ],
+        "type": "object",
+        "properties": {
+          "onlineSession": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
+          "batchSession": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
+          "invoiceSend": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
+          "invoiceStatus": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
+          "sessionList": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
+          "sessionInvoiceList": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
+          "sessionMisc": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
+          "invoiceMetadata": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
+          "invoiceExport": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
+          "invoiceExportStatus": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
+          "invoiceDownload": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
+          "other": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          }
+        }
+      },
+      "EffectiveContextLimits": {
+        "required": [
+          "batchSession",
+          "onlineSession"
+        ],
+        "type": "object",
+        "properties": {
+          "onlineSession": {
+            "required": [
+              "maxInvoiceSizeInMB",
+              "maxInvoiceWithAttachmentSizeInMB",
+              "maxInvoices"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OnlineSessionEffectiveContextLimits"
+              }
+            ]
+          },
+          "batchSession": {
+            "required": [
+              "maxInvoiceSizeInMB",
+              "maxInvoiceWithAttachmentSizeInMB",
+              "maxInvoices"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BatchSessionEffectiveContextLimits"
+              }
+            ]
+          }
+        }
+      },
+      "EffectiveSubjectLimits": {
+        "type": "object",
+        "properties": {
+          "enrollment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EnrollmentEffectiveSubjectLimits"
+              }
+            ],
+            "nullable": true
+          },
+          "certificate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CertificateEffectiveSubjectLimits"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "EnrollmentEffectiveSubjectLimits": {
+        "type": "object",
+        "properties": {
+          "maxEnrollments": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "EnrollmentSubjectLimitsOverride": {
+        "type": "object",
+        "properties": {
+          "maxEnrollments": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "ExceptionDetails": {
+        "type": "object",
+        "properties": {
+          "exceptionCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "exceptionDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "ExceptionInfo": {
+        "type": "object",
+        "properties": {
+          "exceptionDetailList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExceptionDetails"
+            },
+            "nullable": true
+          },
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ],
+            "nullable": true
+          },
+          "serviceCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceCtx": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ExceptionResponse": {
+        "type": "object",
+        "properties": {
+          "exception": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExceptionInfo"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "example": {
+          "exception": {
+            "exceptionDetailList": [
+              {
+                "exceptionCode": 12345,
+                "exceptionDescription": "Opis błędu.",
+                "details": [
+                  "Opcjonalne dodatkowe szczegóły błędu."
+                ]
+              }
+            ],
+            "referenceNumber": "a1b2c3d4-e5f6-4789-ab12-cd34ef567890",
+            "serviceCode": "00-c02cc3747020c605be02159bf3324f0e-eee7647dc67aa74a-00",
+            "serviceCtx": "srvABCDA",
+            "serviceName": "Undefined",
+            "timestamp": "2025-10-11T12:23:56.0154302"
+          }
+        }
+      },
+      "ForbiddenProblemDetails": {
+        "required": [
+          "detail",
+          "reasonCode",
+          "status",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "reasonCode": {
+            "type": "string"
+          },
+          "security": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "title": "Forbidden",
+          "status": 403,
+          "detail": "Brak wymaganych uprawnień do wykonania operacji w bieżącym kontekście.",
+          "reasonCode": "missing-permissions",
+          "security": {
+            "requiredAnyOfPermissions": [
+              "InvoiceRead",
+              "InvoiceWrite"
+            ],
+            "presentPermissions": [
+              "CredentialsManage"
+            ]
+          }
+        }
+      },
+      "OnlineSessionContextLimitsOverride": {
+        "required": [
+          "maxInvoices",
+          "maxInvoiceSizeInMB",
+          "maxInvoiceWithAttachmentSizeInMB"
+        ],
+        "type": "object",
+        "properties": {
+          "maxInvoiceSizeInMB": {
+            "maximum": 5,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxInvoiceWithAttachmentSizeInMB": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxInvoices": {
+            "maximum": 100000,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "OnlineSessionEffectiveContextLimits": {
+        "required": [
+          "maxInvoices",
+          "maxInvoiceSizeInMB",
+          "maxInvoiceWithAttachmentSizeInMB"
+        ],
+        "type": "object",
+        "properties": {
+          "maxInvoiceSizeInMB": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxInvoiceWithAttachmentSizeInMB": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxInvoices": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ReferenceNumber": {
+        "maxLength": 36,
+        "minLength": 36,
+        "type": "string"
+      },
+      "RetryAfter": {
+        "type": "integer",
+        "format": "int32",
+        "example": 30
+      },
+      "SetRateLimitsRequest": {
+        "required": [
+          "rateLimits"
+        ],
+        "type": "object",
+        "properties": {
+          "rateLimits": {
+            "required": [
+              "onlineSession",
+              "batchSession",
+              "invoiceSend",
+              "invoiceStatus",
+              "sessionList",
+              "sessionInvoiceList",
+              "sessionMisc",
+              "invoiceMetadata",
+              "invoiceExport",
+              "invoiceExportStatus",
+              "invoiceDownload",
+              "other"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApiRateLimitsOverride"
+              }
+            ]
+          }
+        }
+      },
+      "SetSessionLimitsRequest": {
+        "required": [
+          "batchSession",
+          "onlineSession"
+        ],
+        "type": "object",
+        "properties": {
+          "onlineSession": {
+            "required": [
+              "maxInvoiceSizeInMB",
+              "maxInvoiceWithAttachmentSizeInMB",
+              "maxInvoices"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OnlineSessionContextLimitsOverride"
+              }
+            ]
+          },
+          "batchSession": {
+            "required": [
+              "maxInvoiceSizeInMB",
+              "maxInvoiceWithAttachmentSizeInMB",
+              "maxInvoices"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BatchSessionContextLimitsOverride"
+              }
+            ]
+          }
+        }
+      },
+      "SetSubjectLimitsRequest": {
+        "type": "object",
+        "properties": {
+          "subjectIdentifierType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubjectIdentifierType"
+              }
+            ]
+          },
+          "enrollment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EnrollmentSubjectLimitsOverride"
+              }
+            ],
+            "nullable": true
+          },
+          "certificate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CertificateSubjectLimitsOverride"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "SubjectIdentifierType": {
+        "enum": [
+          "Nip",
+          "Pesel",
+          "Fingerprint"
+        ],
+        "type": "string"
+      },
+      "TooManyRequestsResponse": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "required": [
+              "code",
+              "description",
+              "details"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "integer"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "status": {
+            "code": 429,
+            "details": [
+              "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
+            ]
+          }
+        }
+      },
+      "UnauthorizedProblemDetails": {
+        "required": [
+          "detail",
+          "status",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "title": "Unauthorized",
+          "status": 401,
+          "detail": "Wymagane jest uwierzytelnienie."
+        }
+      }
+    }
+  }
+}

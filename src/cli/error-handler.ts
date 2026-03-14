@@ -1,5 +1,7 @@
 import { consola } from 'consola';
 import { KSeFRateLimitError } from '../errors/ksef-rate-limit-error.js';
+import { KSeFUnauthorizedError } from '../errors/ksef-unauthorized-error.js';
+import { KSeFForbiddenError } from '../errors/ksef-forbidden-error.js';
 import { KSeFApiError } from '../errors/ksef-api-error.js';
 
 export async function withErrorHandler(fn: () => Promise<void>): Promise<void> {
@@ -12,11 +14,26 @@ export async function withErrorHandler(fn: () => Promise<void>): Promise<void> {
       process.exit(1);
     }
 
+    if (error instanceof KSeFUnauthorizedError) {
+      consola.error(`KSeF API error (HTTP 401): ${error.detail}`);
+      if (error.traceId) consola.error(`  Trace ID: ${error.traceId}`);
+      consola.info('Hint: Your session may have expired. Run `ksef auth login` to re-authenticate.');
+      process.exit(1);
+    }
+
+    if (error instanceof KSeFForbiddenError) {
+      consola.error(`KSeF API error (HTTP 403): ${error.detail}`);
+      consola.error(`  Reason: ${error.reasonCode}`);
+      if (error.traceId) consola.error(`  Trace ID: ${error.traceId}`);
+      consola.info('Hint: Check your permissions for this operation.');
+      process.exit(1);
+    }
+
     if (error instanceof KSeFApiError) {
       consola.error(`KSeF API error (HTTP ${error.statusCode}): ${error.message}`);
       if (error.errorResponse?.exception?.exceptionDetailList) {
         for (const detail of error.errorResponse.exception.exceptionDetailList) {
-          consola.error(`  - [${detail.exceptionDetailCode}] ${detail.exceptionDescription}`);
+          consola.error(`  - [${detail.exceptionCode}] ${detail.exceptionDescription}`);
         }
       }
       if (error.statusCode === 401 || error.statusCode === 403) {

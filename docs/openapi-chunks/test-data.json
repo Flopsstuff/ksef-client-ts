@@ -1,0 +1,1126 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "KSeF API TE",
+    "version": "v2"
+  },
+  "paths": {
+    "/testdata/subject": {
+      "post": {
+        "tags": [
+          "Dane testowe"
+        ],
+        "summary": "Utworzenie podmiotu",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "subjectNip",
+                  "subjectType",
+                  "description"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SubjectCreateRequest"
+                  }
+                ]
+              },
+              "example": {
+                "subjectNip": "7762811692",
+                "subjectType": "EnforcementAuthority",
+                "createdDate": "2025-08-25T14:15:22+00:00"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "x-rate-limits": {
+          "perSecond": 60
+        }
+      }
+    },
+    "/testdata/subject/remove": {
+      "post": {
+        "tags": [
+          "Dane testowe"
+        ],
+        "summary": "Usunięcie podmiotu",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "subjectNip"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SubjectRemoveRequest"
+                  }
+                ]
+              },
+              "example": {
+                "subjectNip": "7762811692"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "x-rate-limits": {
+          "perSecond": 60
+        }
+      }
+    },
+    "/testdata/person": {
+      "post": {
+        "tags": [
+          "Dane testowe"
+        ],
+        "summary": "Utworzenie osoby fizycznej",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "nip",
+                  "pesel",
+                  "isBailiff",
+                  "description"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/PersonCreateRequest"
+                  }
+                ]
+              },
+              "example": {
+                "nip": "7762811692",
+                "pesel": "15062788702",
+                "isBailiff": true,
+                "isDeceased": false,
+                "createdDate": "2025-08-25T14:15:22+00:00"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "x-rate-limits": {
+          "perSecond": 60
+        }
+      }
+    },
+    "/testdata/person/remove": {
+      "post": {
+        "tags": [
+          "Dane testowe"
+        ],
+        "summary": "Usunięcie osoby fizycznej",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "nip"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/PersonRemoveRequest"
+                  }
+                ]
+              },
+              "example": {
+                "nip": "7762811692"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "x-rate-limits": {
+          "perSecond": 60
+        }
+      }
+    },
+    "/testdata/permissions": {
+      "post": {
+        "tags": [
+          "Dane testowe"
+        ],
+        "summary": "Nadanie uprawnień testowemu podmiotowi/osobie fizycznej",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "contextIdentifier",
+                  "authorizedIdentifier",
+                  "permissions"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/TestDataPermissionsGrantRequest"
+                  }
+                ]
+              },
+              "example": {
+                "contextIdentifier": {
+                  "type": "Nip",
+                  "value": "7762811692"
+                },
+                "authorizedIdentifier": {
+                  "type": "Nip",
+                  "value": "7762811692"
+                },
+                "permissions": [
+                  {
+                    "permissionType": "InvoiceRead"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "x-rate-limits": {
+          "perSecond": 60
+        }
+      }
+    },
+    "/testdata/permissions/revoke": {
+      "post": {
+        "tags": [
+          "Dane testowe"
+        ],
+        "summary": "Odebranie uprawnień testowemu podmiotowi/osobie fizycznej",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "contextIdentifier",
+                  "authorizedIdentifier"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/TestDataPermissionsRevokeRequest"
+                  }
+                ]
+              },
+              "example": {
+                "contextIdentifier": {
+                  "type": "Nip",
+                  "value": "5265877635"
+                },
+                "authorizedIdentifier": {
+                  "type": "Nip",
+                  "value": "7762811692"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "x-rate-limits": {
+          "perSecond": 60
+        }
+      }
+    },
+    "/testdata/attachment": {
+      "post": {
+        "tags": [
+          "Dane testowe"
+        ],
+        "summary": "Umożliwienie wysyłania faktur z załącznikiem",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "nip"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AttachmentPermissionGrantRequest"
+                  }
+                ]
+              },
+              "example": {
+                "nip": "7762811692"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "x-rate-limits": {
+          "perSecond": 60
+        }
+      }
+    },
+    "/testdata/attachment/revoke": {
+      "post": {
+        "tags": [
+          "Dane testowe"
+        ],
+        "summary": "Odebranie możliwości wysyłania faktur z załącznikiem",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "nip"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AttachmentPermissionRevokeRequest"
+                  }
+                ]
+              },
+              "example": {
+                "nip": "7762811692"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "x-rate-limits": {
+          "perSecond": 60
+        }
+      }
+    },
+    "/testdata/context/block": {
+      "post": {
+        "tags": [
+          "Dane testowe"
+        ],
+        "summary": "Zablokowanie kontekstu",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/BlockContextAuthenticationRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      }
+    },
+    "/testdata/context/unblock": {
+      "post": {
+        "tags": [
+          "Dane testowe"
+        ],
+        "summary": "Odblokowanie kontekstu",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/UnblockContextAuthenticationRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AttachmentPermissionGrantRequest": {
+        "required": [
+          "nip"
+        ],
+        "type": "object",
+        "properties": {
+          "nip": {
+            "$ref": "#/components/schemas/Nip"
+          }
+        }
+      },
+      "AttachmentPermissionRevokeRequest": {
+        "required": [
+          "nip"
+        ],
+        "type": "object",
+        "properties": {
+          "nip": {
+            "$ref": "#/components/schemas/Nip"
+          },
+          "expectedEndDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "BlockContextAuthenticationRequest": {
+        "type": "object",
+        "properties": {
+          "contextIdentifier": {
+            "required": [
+              "value",
+              "type"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestDataAuthenticationContextIdentifier"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "ExceptionDetails": {
+        "type": "object",
+        "properties": {
+          "exceptionCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "exceptionDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "ExceptionInfo": {
+        "type": "object",
+        "properties": {
+          "exceptionDetailList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExceptionDetails"
+            },
+            "nullable": true
+          },
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ],
+            "nullable": true
+          },
+          "serviceCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceCtx": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ExceptionResponse": {
+        "type": "object",
+        "properties": {
+          "exception": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExceptionInfo"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "example": {
+          "exception": {
+            "exceptionDetailList": [
+              {
+                "exceptionCode": 12345,
+                "exceptionDescription": "Opis błędu.",
+                "details": [
+                  "Opcjonalne dodatkowe szczegóły błędu."
+                ]
+              }
+            ],
+            "referenceNumber": "a1b2c3d4-e5f6-4789-ab12-cd34ef567890",
+            "serviceCode": "00-c02cc3747020c605be02159bf3324f0e-eee7647dc67aa74a-00",
+            "serviceCtx": "srvABCDA",
+            "serviceName": "Undefined",
+            "timestamp": "2025-10-11T12:23:56.0154302"
+          }
+        }
+      },
+      "Nip": {
+        "maxLength": 10,
+        "minLength": 10,
+        "pattern": "^[1-9]((\\d[1-9])|([1-9]\\d))\\d{7}$",
+        "type": "string"
+      },
+      "PersonCreateRequest": {
+        "required": [
+          "description",
+          "isBailiff",
+          "nip",
+          "pesel"
+        ],
+        "type": "object",
+        "properties": {
+          "nip": {
+            "$ref": "#/components/schemas/Nip"
+          },
+          "pesel": {
+            "$ref": "#/components/schemas/Pesel"
+          },
+          "isBailiff": {
+            "type": "boolean"
+          },
+          "isDeceased": {
+            "type": "boolean"
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "PersonRemoveRequest": {
+        "required": [
+          "nip"
+        ],
+        "type": "object",
+        "properties": {
+          "nip": {
+            "$ref": "#/components/schemas/Nip"
+          }
+        }
+      },
+      "Pesel": {
+        "maxLength": 11,
+        "minLength": 11,
+        "pattern": "^\\d{2}(?:0[1-9]|1[0-2]|2[1-9]|3[0-2]|4[1-9]|5[0-2]|6[1-9]|7[0-2]|8[1-9]|9[0-2])\\d{7}$",
+        "type": "string"
+      },
+      "ReferenceNumber": {
+        "maxLength": 36,
+        "minLength": 36,
+        "type": "string"
+      },
+      "RetryAfter": {
+        "type": "integer",
+        "format": "int32",
+        "example": 30
+      },
+      "SubjectCreateRequest": {
+        "required": [
+          "description",
+          "subjectNip",
+          "subjectType"
+        ],
+        "type": "object",
+        "properties": {
+          "subjectNip": {
+            "$ref": "#/components/schemas/Nip"
+          },
+          "subjectType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubjectType"
+              }
+            ]
+          },
+          "subunits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Subunit"
+            },
+            "nullable": true
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "SubjectRemoveRequest": {
+        "required": [
+          "subjectNip"
+        ],
+        "type": "object",
+        "properties": {
+          "subjectNip": {
+            "$ref": "#/components/schemas/Nip"
+          }
+        }
+      },
+      "SubjectType": {
+        "enum": [
+          "EnforcementAuthority",
+          "VatGroup",
+          "JST"
+        ],
+        "type": "string"
+      },
+      "Subunit": {
+        "required": [
+          "description",
+          "subjectNip"
+        ],
+        "type": "object",
+        "properties": {
+          "subjectNip": {
+            "$ref": "#/components/schemas/Nip"
+          }
+        }
+      },
+      "TestDataAuthenticationContextIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestDataAuthenticationContextIdentifierType"
+              }
+            ]
+          }
+        }
+      },
+      "TestDataAuthenticationContextIdentifierType": {
+        "enum": [
+          "Nip",
+          "InternalId",
+          "NipVatUe",
+          "PeppolId"
+        ],
+        "type": "string"
+      },
+      "TestDataAuthorizedIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestDataAuthorizedIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 64,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "TestDataAuthorizedIdentifierType": {
+        "enum": [
+          "Nip",
+          "Pesel",
+          "Fingerprint"
+        ],
+        "type": "string"
+      },
+      "TestDataContextIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestDataContextIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 10,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "TestDataContextIdentifierType": {
+        "enum": [
+          "Nip"
+        ],
+        "type": "string"
+      },
+      "TestDataPermission": {
+        "required": [
+          "description",
+          "permissionType"
+        ],
+        "type": "object",
+        "properties": {
+          "permissionType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestDataPermissionType"
+              }
+            ]
+          }
+        }
+      },
+      "TestDataPermissionType": {
+        "enum": [
+          "InvoiceRead",
+          "InvoiceWrite",
+          "Introspection",
+          "CredentialsRead",
+          "CredentialsManage",
+          "EnforcementOperations",
+          "SubunitManage"
+        ],
+        "type": "string"
+      },
+      "TestDataPermissionsGrantRequest": {
+        "required": [
+          "authorizedIdentifier",
+          "contextIdentifier",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "contextIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestDataContextIdentifier"
+              }
+            ]
+          },
+          "authorizedIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestDataAuthorizedIdentifier"
+              }
+            ]
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestDataPermission"
+            }
+          }
+        }
+      },
+      "TestDataPermissionsRevokeRequest": {
+        "required": [
+          "authorizedIdentifier",
+          "contextIdentifier"
+        ],
+        "type": "object",
+        "properties": {
+          "contextIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestDataContextIdentifier"
+              }
+            ]
+          },
+          "authorizedIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestDataAuthorizedIdentifier"
+              }
+            ]
+          }
+        }
+      },
+      "TooManyRequestsResponse": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "required": [
+              "code",
+              "description",
+              "details"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "integer"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "status": {
+            "code": 429,
+            "details": [
+              "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
+            ]
+          }
+        }
+      },
+      "UnblockContextAuthenticationRequest": {
+        "type": "object",
+        "properties": {
+          "contextIdentifier": {
+            "required": [
+              "value",
+              "type"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestDataAuthenticationContextIdentifier"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      }
+    }
+  }
+}

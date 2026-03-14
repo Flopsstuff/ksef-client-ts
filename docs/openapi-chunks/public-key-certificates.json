@@ -1,0 +1,244 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "KSeF API TE",
+    "version": "v2"
+  },
+  "paths": {
+    "/security/public-key-certificates": {
+      "get": {
+        "tags": [
+          "Certyfikaty klucza publicznego"
+        ],
+        "summary": "Pobranie certyfikatów",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicKeyCertificate"
+                  }
+                },
+                "example": [
+                  {
+                    "certificate": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwocTwdNgt2+PXJ2fcB7k1kn5eFUTXBeep9pH...",
+                    "validFrom": "2024-07-11T12:23:56.0154302+00:00",
+                    "validTo": "2028-07-11T12:23:56.0154302+00:00",
+                    "usage": [
+                      "KsefTokenEncryption",
+                      "SymmetricKeyEncryption"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "x-rate-limits": {
+          "perSecond": 60
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ExceptionDetails": {
+        "type": "object",
+        "properties": {
+          "exceptionCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "exceptionDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "ExceptionInfo": {
+        "type": "object",
+        "properties": {
+          "exceptionDetailList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExceptionDetails"
+            },
+            "nullable": true
+          },
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ],
+            "nullable": true
+          },
+          "serviceCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceCtx": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ExceptionResponse": {
+        "type": "object",
+        "properties": {
+          "exception": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExceptionInfo"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "example": {
+          "exception": {
+            "exceptionDetailList": [
+              {
+                "exceptionCode": 12345,
+                "exceptionDescription": "Opis błędu.",
+                "details": [
+                  "Opcjonalne dodatkowe szczegóły błędu."
+                ]
+              }
+            ],
+            "referenceNumber": "a1b2c3d4-e5f6-4789-ab12-cd34ef567890",
+            "serviceCode": "00-c02cc3747020c605be02159bf3324f0e-eee7647dc67aa74a-00",
+            "serviceCtx": "srvABCDA",
+            "serviceName": "Undefined",
+            "timestamp": "2025-10-11T12:23:56.0154302"
+          }
+        }
+      },
+      "PublicKeyCertificate": {
+        "required": [
+          "certificate",
+          "usage",
+          "validFrom",
+          "validTo"
+        ],
+        "type": "object",
+        "properties": {
+          "certificate": {
+            "type": "string",
+            "format": "byte"
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usage": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicKeyCertificateUsage"
+            }
+          }
+        }
+      },
+      "PublicKeyCertificateUsage": {
+        "enum": [
+          "KsefTokenEncryption",
+          "SymmetricKeyEncryption"
+        ],
+        "type": "string"
+      },
+      "ReferenceNumber": {
+        "maxLength": 36,
+        "minLength": 36,
+        "type": "string"
+      },
+      "RetryAfter": {
+        "type": "integer",
+        "format": "int32",
+        "example": 30
+      },
+      "TooManyRequestsResponse": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "required": [
+              "code",
+              "description",
+              "details"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "integer"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "status": {
+            "code": 429,
+            "details": [
+              "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,3301 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "KSeF API TE",
+    "version": "v2"
+  },
+  "paths": {
+    "/permissions/query/personal/grants": {
+      "post": {
+        "tags": [
+          "Wyszukiwanie nadanych uprawnień"
+        ],
+        "summary": "Pobranie listy własnych uprawnień",
+        "parameters": [
+          {
+            "name": "pageOffset",
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/PersonalPermissionsQueryRequest"
+                  }
+                ]
+              },
+              "example": {
+                "contextIdentifier": {
+                  "type": "Nip",
+                  "value": "3568707925"
+                },
+                "permissionTypes": [
+                  "InvoiceWrite"
+                ],
+                "permissionState": "Active"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryPersonalPermissionsResponse"
+                },
+                "example": {
+                  "permissions": [
+                    {
+                      "id": "0c9a72e8-f344-457f-9c16-7c640eb60242",
+                      "contextIdentifier": {
+                        "type": "Nip",
+                        "value": "3568707925"
+                      },
+                      "authorizedIdentifier": {
+                        "type": "Nip",
+                        "value": "5247677742"
+                      },
+                      "permissionScope": "InvoiceWrite",
+                      "permissionState": "Active",
+                      "startDate": "2025-06-22T10:41:11+00:00",
+                      "canDelegate": false
+                    }
+                  ],
+                  "hasMore": false
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        },
+        "x-sort": [
+          {
+            "field": "startDate",
+            "direction": "Desc"
+          },
+          {
+            "field": "id",
+            "direction": "Asc"
+          }
+        ]
+      }
+    },
+    "/permissions/query/persons/grants": {
+      "post": {
+        "tags": [
+          "Wyszukiwanie nadanych uprawnień"
+        ],
+        "summary": "Pobranie listy uprawnień do pracy w KSeF nadanych osobom fizycznym lub podmiotom",
+        "parameters": [
+          {
+            "name": "pageOffset",
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "queryType"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/PersonPermissionsQueryRequest"
+                  }
+                ]
+              },
+              "example": {
+                "authorIdentifier": {
+                  "type": "Nip",
+                  "value": "7762811692"
+                },
+                "permissionTypes": [
+                  "CredentialsManage",
+                  "CredentialsRead",
+                  "InvoiceWrite"
+                ],
+                "permissionState": "Active",
+                "queryType": "PermissionsInCurrentContext"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryPersonPermissionsResponse"
+                },
+                "example": {
+                  "permissions": [
+                    {
+                      "id": "0c9a72e8-f344-457f-9c16-7c640eb60242",
+                      "authorizedIdentifier": {
+                        "type": "Nip",
+                        "value": "7762811692"
+                      },
+                      "targetIdentifier": {
+                        "type": "Nip",
+                        "value": "9786214922"
+                      },
+                      "authorIdentifier": {
+                        "type": "Pesel",
+                        "value": "15062788702"
+                      },
+                      "permissionScope": "InvoiceWrite",
+                      "permissionState": "Active",
+                      "startDate": "2025-06-22T10:41:11+00:00",
+                      "canDelegate": false
+                    }
+                  ],
+                  "hasMore": false
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        },
+        "x-sort": [
+          {
+            "field": "startDate",
+            "direction": "Desc"
+          },
+          {
+            "field": "id",
+            "direction": "Asc"
+          }
+        ],
+        "x-required-permissions": [
+          "CredentialsManage",
+          "CredentialsRead",
+          "SubunitManage"
+        ]
+      }
+    },
+    "/permissions/query/subunits/grants": {
+      "post": {
+        "tags": [
+          "Wyszukiwanie nadanych uprawnień"
+        ],
+        "summary": "Pobranie listy uprawnień administratorów jednostek i podmiotów podrzędnych",
+        "parameters": [
+          {
+            "name": "pageOffset",
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SubunitPermissionsQueryRequest"
+                  }
+                ]
+              },
+              "example": {
+                "subunitIdentifier": {
+                  "type": "InternalId",
+                  "value": "7762811692-12345"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuerySubunitPermissionsResponse"
+                },
+                "example": {
+                  "permissions": [
+                    {
+                      "id": "0c9a72e8-f344-457f-9c16-7c640eb60242",
+                      "authorizedIdentifier": {
+                        "type": "Fingerprint",
+                        "value": "CEB3643BAC2C111ADDE971BDA5A80163441867D65389FC0BC0DFF8B4C1CD4E59"
+                      },
+                      "subunitIdentifier": {
+                        "type": "InternalId",
+                        "value": "7762811692-12345"
+                      },
+                      "authorIdentifier": {
+                        "type": "Pesel",
+                        "value": "15062788702"
+                      },
+                      "permissionScope": "CredentialsManage",
+                      "startDate": "2025-06-22T10:41:11+00:00"
+                    }
+                  ],
+                  "hasMore": false
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        },
+        "x-sort": [
+          {
+            "field": "startDate",
+            "direction": "Desc"
+          },
+          {
+            "field": "id",
+            "direction": "Asc"
+          }
+        ],
+        "x-required-permissions": [
+          "CredentialsManage",
+          "CredentialsRead",
+          "SubunitManage"
+        ]
+      }
+    },
+    "/permissions/query/entities/grants": {
+      "post": {
+        "tags": [
+          "Wyszukiwanie nadanych uprawnień"
+        ],
+        "summary": "Pobranie listy uprawnień do obsługi faktur w bieżącym kontekście",
+        "parameters": [
+          {
+            "name": "pageOffset",
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EntityPermissionsQueryRequest"
+                  }
+                ]
+              },
+              "example": {
+                "contextIdentifier": {
+                  "type": "Nip",
+                  "value": "3568707925"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryEntityPermissionsResponse"
+                },
+                "example": {
+                  "permissions": [
+                    {
+                      "id": "0c9a72e8-f344-457f-9c16-7c640eb60242",
+                      "contextIdentifier": {
+                        "type": "Nip",
+                        "value": "3568707925"
+                      },
+                      "permissionScope": "InvoiceWrite",
+                      "startDate": "2025-06-22T10:41:11+00:00",
+                      "canDelegate": false
+                    }
+                  ],
+                  "hasMore": false
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        },
+        "x-sort": [
+          {
+            "field": "startDate",
+            "direction": "Desc"
+          },
+          {
+            "field": "id",
+            "direction": "Asc"
+          }
+        ],
+        "x-required-permissions": [
+          "CredentialsManage",
+          "CredentialsRead"
+        ]
+      }
+    },
+    "/permissions/query/entities/roles": {
+      "get": {
+        "tags": [
+          "Wyszukiwanie nadanych uprawnień"
+        ],
+        "summary": "Pobranie listy ról podmiotu",
+        "parameters": [
+          {
+            "name": "pageOffset",
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryEntityRolesResponse"
+                },
+                "example": {
+                  "roles": [
+                    {
+                      "role": "EnforcementAuthority",
+                      "startDate": "2025-06-22T10:41:11+00:00"
+                    }
+                  ],
+                  "hasMore": false
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        },
+        "x-sort": [
+          {
+            "field": "startDate",
+            "direction": "Desc"
+          },
+          {
+            "field": "id",
+            "direction": "Asc"
+          }
+        ],
+        "x-required-permissions": [
+          "CredentialsManage",
+          "CredentialsRead"
+        ]
+      }
+    },
+    "/permissions/query/subordinate-entities/roles": {
+      "post": {
+        "tags": [
+          "Wyszukiwanie nadanych uprawnień"
+        ],
+        "summary": "Pobranie listy podmiotów podrzędnych",
+        "parameters": [
+          {
+            "name": "pageOffset",
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SubordinateEntityRolesQueryRequest"
+                  }
+                ]
+              },
+              "example": {
+                "subordinateEntityIdentifier": {
+                  "type": "Nip",
+                  "value": "7762811692"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuerySubordinateEntityRolesResponse"
+                },
+                "example": {
+                  "roles": [
+                    {
+                      "subordinateEntityIdentifier": {
+                        "type": "Nip",
+                        "value": "7762811692"
+                      },
+                      "role": "VatGroupSubUnit",
+                      "startDate": "2025-06-22T10:41:11+00:00"
+                    }
+                  ],
+                  "hasMore": false
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        },
+        "x-sort": [
+          {
+            "field": "startDate",
+            "direction": "Desc"
+          },
+          {
+            "field": "id",
+            "direction": "Asc"
+          }
+        ],
+        "x-required-permissions": [
+          "CredentialsManage",
+          "CredentialsRead",
+          "SubunitManage"
+        ]
+      }
+    },
+    "/permissions/query/authorizations/grants": {
+      "post": {
+        "tags": [
+          "Wyszukiwanie nadanych uprawnień"
+        ],
+        "summary": "Pobranie listy uprawnień podmiotowych do obsługi faktur",
+        "parameters": [
+          {
+            "name": "pageOffset",
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "queryType"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EntityAuthorizationPermissionsQueryRequest"
+                  }
+                ]
+              },
+              "example": {
+                "authorizedIdentifier": {
+                  "type": "Nip",
+                  "value": "7762811692"
+                },
+                "queryType": "Granted",
+                "permissionTypes": [
+                  "SelfInvoicing",
+                  "TaxRepresentative",
+                  "RRInvoicing"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryEntityAuthorizationPermissionsResponse"
+                },
+                "example": {
+                  "authorizationGrants": [
+                    {
+                      "id": "0c9a72e8-f344-457f-9c16-7c640eb60242",
+                      "authorIdentifier": {
+                        "type": "Pesel",
+                        "value": "15062788702"
+                      },
+                      "authorizedEntityIdentifier": {
+                        "type": "Nip",
+                        "value": "7762811692"
+                      },
+                      "authorizingEntityIdentifier": {
+                        "type": "Nip",
+                        "value": "1134256681"
+                      },
+                      "authorizationScope": "SelfInvoicing",
+                      "startDate": "2025-06-22T10:41:11+00:00"
+                    }
+                  ],
+                  "hasMore": false
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        },
+        "x-sort": [
+          {
+            "field": "startDate",
+            "direction": "Desc"
+          },
+          {
+            "field": "id",
+            "direction": "Asc"
+          }
+        ],
+        "x-required-permissions": [
+          "CredentialsManage",
+          "CredentialsRead",
+          "PefInvoiceWrite"
+        ]
+      }
+    },
+    "/permissions/query/eu-entities/grants": {
+      "post": {
+        "tags": [
+          "Wyszukiwanie nadanych uprawnień"
+        ],
+        "summary": "Pobranie listy uprawnień administratorów lub reprezentantów podmiotów unijnych uprawnionych do samofakturowania",
+        "parameters": [
+          {
+            "name": "pageOffset",
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EuEntityPermissionsQueryRequest"
+                  }
+                ]
+              },
+              "example": {
+                "vatUeIdentifier": "DE123456789012",
+                "permissionTypes": [
+                  "VatUeManage",
+                  "Introspection"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryEuEntityPermissionsResponse"
+                },
+                "example": {
+                  "permissions": [
+                    {
+                      "id": "0c9a72e8-f344-457f-9c16-7c640eb60242",
+                      "authorIdentifier": {
+                        "type": "Pesel",
+                        "value": "15062788702"
+                      },
+                      "vatUeIdentifier": "DE123456789012",
+                      "euEntityName": "Podmiot unijny",
+                      "authorizedFingerprintIdentifier": "CEB3643BAC2C111ADDE971BDA5A80163441867D65389FC0BC0DFF8B4C1CD4E59",
+                      "permissionScope": "VatUeManage",
+                      "startDate": "2025-06-22T10:41:11+00:00"
+                    }
+                  ],
+                  "hasMore": false
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        },
+        "x-sort": [
+          {
+            "field": "startDate",
+            "direction": "Desc"
+          },
+          {
+            "field": "id",
+            "direction": "Asc"
+          }
+        ],
+        "x-required-permissions": [
+          "CredentialsManage",
+          "CredentialsRead",
+          "VatUeManage"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "EntityAuthorizationGrant": {
+        "required": [
+          "authorizationScope",
+          "authorizedEntityIdentifier",
+          "authorizingEntityIdentifier",
+          "description",
+          "id",
+          "startDate"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionId"
+              }
+            ]
+          },
+          "authorIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityAuthorizationsAuthorIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "authorizedEntityIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityAuthorizationsAuthorizedEntityIdentifier"
+              }
+            ]
+          },
+          "authorizingEntityIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityAuthorizationsAuthorizingEntityIdentifier"
+              }
+            ]
+          },
+          "authorizationScope": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoicePermissionType"
+              }
+            ]
+          },
+          "subjectEntityDetails": {
+            "required": [
+              "subjectDetailsType",
+              "fullName"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionsSubjectEntityByIdentifierDetails"
+              }
+            ],
+            "nullable": true
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "EntityAuthorizationPermissionsQueryRequest": {
+        "required": [
+          "queryType"
+        ],
+        "type": "object",
+        "properties": {
+          "authorizingIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityAuthorizationsAuthorizingEntityIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "authorizedIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityAuthorizationsAuthorizedEntityIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "queryType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryType"
+              }
+            ]
+          },
+          "permissionTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvoicePermissionType"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "EntityAuthorizationsAuthorIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityAuthorizationsAuthorIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 64,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "EntityAuthorizationsAuthorIdentifierType": {
+        "enum": [
+          "Nip",
+          "Pesel",
+          "Fingerprint"
+        ],
+        "type": "string"
+      },
+      "EntityAuthorizationsAuthorizedEntityIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityAuthorizationsAuthorizedEntityIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 10,
+            "minLength": 9,
+            "type": "string"
+          }
+        }
+      },
+      "EntityAuthorizationsAuthorizedEntityIdentifierType": {
+        "enum": [
+          "Nip",
+          "PeppolId"
+        ],
+        "type": "string"
+      },
+      "EntityAuthorizationsAuthorizingEntityIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityAuthorizationsAuthorizingEntityIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 10,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "EntityAuthorizationsAuthorizingEntityIdentifierType": {
+        "enum": [
+          "Nip"
+        ],
+        "type": "string"
+      },
+      "EntityPermissionItem": {
+        "required": [
+          "canDelegate",
+          "contextIdentifier",
+          "description",
+          "id",
+          "permissionScope",
+          "startDate"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionId"
+              }
+            ]
+          },
+          "contextIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityPermissionsContextIdentifier"
+              }
+            ]
+          },
+          "permissionScope": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityPermissionItemScope"
+              }
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "canDelegate": {
+            "type": "boolean"
+          }
+        }
+      },
+      "EntityPermissionItemScope": {
+        "enum": [
+          "InvoiceWrite",
+          "InvoiceRead"
+        ],
+        "type": "string"
+      },
+      "EntityPermissionsContextIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityPermissionsContextIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 16,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "EntityPermissionsContextIdentifierType": {
+        "enum": [
+          "Nip",
+          "InternalId"
+        ],
+        "type": "string"
+      },
+      "EntityPermissionsQueryRequest": {
+        "type": "object",
+        "properties": {
+          "contextIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityPermissionsContextIdentifier"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "EntityPermissionsSubordinateEntityIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityPermissionsSubordinateEntityIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 10,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "EntityPermissionsSubordinateEntityIdentifierType": {
+        "enum": [
+          "Nip"
+        ],
+        "type": "string"
+      },
+      "EntityRole": {
+        "required": [
+          "description",
+          "role",
+          "startDate"
+        ],
+        "type": "object",
+        "properties": {
+          "parentEntityIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityRolesParentEntityIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityRoleType"
+              }
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "EntityRoleType": {
+        "enum": [
+          "CourtBailiff",
+          "EnforcementAuthority",
+          "LocalGovernmentUnit",
+          "LocalGovernmentSubUnit",
+          "VatGroupUnit",
+          "VatGroupSubUnit"
+        ],
+        "type": "string"
+      },
+      "EntityRolesParentEntityIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityRolesParentEntityIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 10,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "EntityRolesParentEntityIdentifierType": {
+        "enum": [
+          "Nip"
+        ],
+        "type": "string"
+      },
+      "EntitySubjectByFingerprintDetailsType": {
+        "enum": [
+          "EntityByFingerprint"
+        ],
+        "type": "string"
+      },
+      "EntitySubjectByIdentifierDetailsType": {
+        "enum": [
+          "EntityByIdentifier"
+        ],
+        "type": "string"
+      },
+      "EntitySubjectDetailsType": {
+        "enum": [
+          "EntityByIdentifier",
+          "EntityByFingerprint"
+        ],
+        "type": "string"
+      },
+      "EuEntityPermission": {
+        "required": [
+          "authorIdentifier",
+          "authorizedFingerprintIdentifier",
+          "description",
+          "euEntityName",
+          "id",
+          "permissionScope",
+          "startDate",
+          "vatUeIdentifier"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionId"
+              }
+            ]
+          },
+          "authorIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EuEntityPermissionsAuthorIdentifier"
+              }
+            ]
+          },
+          "vatUeIdentifier": {
+            "type": "string"
+          },
+          "euEntityName": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
+          },
+          "authorizedFingerprintIdentifier": {
+            "maxLength": 64,
+            "minLength": 64,
+            "type": "string"
+          },
+          "permissionScope": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EuEntityPermissionsQueryPermissionType"
+              }
+            ]
+          },
+          "subjectPersonDetails": {
+            "required": [
+              "subjectDetailsType",
+              "firstName",
+              "lastName"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionsSubjectPersonByFingerprintDetails"
+              }
+            ],
+            "nullable": true
+          },
+          "subjectEntityDetails": {
+            "required": [
+              "subjectDetailsType",
+              "fullName"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionsSubjectEntityByFingerprintDetails"
+              }
+            ],
+            "nullable": true
+          },
+          "euEntityDetails": {
+            "required": [
+              "fullName",
+              "address"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionsEuEntityDetails"
+              }
+            ],
+            "nullable": true
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "EuEntityPermissionsAuthorIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EuEntityPermissionsAuthorIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 64,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "EuEntityPermissionsAuthorIdentifierType": {
+        "enum": [
+          "Nip",
+          "Pesel",
+          "Fingerprint"
+        ],
+        "type": "string"
+      },
+      "EuEntityPermissionsQueryPermissionType": {
+        "enum": [
+          "VatUeManage",
+          "InvoiceWrite",
+          "InvoiceRead",
+          "Introspection"
+        ],
+        "type": "string"
+      },
+      "EuEntityPermissionsQueryRequest": {
+        "type": "object",
+        "properties": {
+          "vatUeIdentifier": {
+            "pattern": "^(ATU\\d{8}|BE[01]{1}\\d{9}|BG\\d{9,10}|CY\\d{8}[A-Z]|CZ\\d{8,10}|DE\\d{9}|DK\\d{8}|EE\\d{9}|EL\\d{9}|ES([A-Z]\\d{8}|\\d{8}[A-Z]|[A-Z]\\d{7}[A-Z])|FI\\d{8}|FR[A-Z0-9]{2}\\d{9}|HR\\d{11}|HU\\d{8}|IE(\\d{7}[A-Z]{2}|\\d[A-Z0-9+*]\\d{5}[A-Z])|IT\\d{11}|LT(\\d{9}|\\d{12})|LU\\d{8}|LV\\d{11}|MT\\d{8}|NL[A-Z0-9+*]{12}|PT\\d{9}|RO\\d{2,10}|SE\\d{12}|SI\\d{8}|SK\\d{10}|XI((\\d{9}|\\d{12})|(GD|HA)\\d{3}))$",
+            "type": "string",
+            "nullable": true
+          },
+          "authorizedFingerprintIdentifier": {
+            "type": "string",
+            "nullable": true
+          },
+          "permissionTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EuEntityPermissionsQueryPermissionType"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "ExceptionDetails": {
+        "type": "object",
+        "properties": {
+          "exceptionCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "exceptionDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "ExceptionInfo": {
+        "type": "object",
+        "properties": {
+          "exceptionDetailList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExceptionDetails"
+            },
+            "nullable": true
+          },
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ],
+            "nullable": true
+          },
+          "serviceCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceCtx": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ExceptionResponse": {
+        "type": "object",
+        "properties": {
+          "exception": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExceptionInfo"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "example": {
+          "exception": {
+            "exceptionDetailList": [
+              {
+                "exceptionCode": 12345,
+                "exceptionDescription": "Opis błędu.",
+                "details": [
+                  "Opcjonalne dodatkowe szczegóły błędu."
+                ]
+              }
+            ],
+            "referenceNumber": "a1b2c3d4-e5f6-4789-ab12-cd34ef567890",
+            "serviceCode": "00-c02cc3747020c605be02159bf3324f0e-eee7647dc67aa74a-00",
+            "serviceCtx": "srvABCDA",
+            "serviceName": "Undefined",
+            "timestamp": "2025-10-11T12:23:56.0154302"
+          }
+        }
+      },
+      "ForbiddenProblemDetails": {
+        "required": [
+          "detail",
+          "reasonCode",
+          "status",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "reasonCode": {
+            "type": "string"
+          },
+          "security": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "title": "Forbidden",
+          "status": 403,
+          "detail": "Brak wymaganych uprawnień do wykonania operacji w bieżącym kontekście.",
+          "reasonCode": "missing-permissions",
+          "security": {
+            "requiredAnyOfPermissions": [
+              "InvoiceRead",
+              "InvoiceWrite"
+            ],
+            "presentPermissions": [
+              "CredentialsManage"
+            ]
+          }
+        }
+      },
+      "IdDocument": {
+        "required": [
+          "country",
+          "number",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "maxLength": 20,
+            "type": "string"
+          },
+          "number": {
+            "maxLength": 20,
+            "type": "string"
+          },
+          "country": {
+            "maxLength": 2,
+            "minLength": 2,
+            "type": "string"
+          }
+        }
+      },
+      "InvoicePermissionType": {
+        "enum": [
+          "SelfInvoicing",
+          "TaxRepresentative",
+          "RRInvoicing",
+          "PefInvoicing"
+        ],
+        "type": "string"
+      },
+      "PermissionId": {
+        "maxLength": 36,
+        "minLength": 36,
+        "type": "string"
+      },
+      "PermissionState": {
+        "enum": [
+          "Active",
+          "Inactive"
+        ],
+        "type": "string"
+      },
+      "PermissionsEuEntityDetails": {
+        "required": [
+          "address",
+          "fullName"
+        ],
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "address": {
+            "maxLength": 512,
+            "type": "string"
+          }
+        }
+      },
+      "PermissionsSubjectEntityByFingerprintDetails": {
+        "required": [
+          "fullName",
+          "subjectDetailsType"
+        ],
+        "type": "object",
+        "properties": {
+          "subjectDetailsType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntitySubjectByFingerprintDetailsType"
+              }
+            ]
+          },
+          "fullName": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "address": {
+            "maxLength": 512,
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PermissionsSubjectEntityByIdentifierDetails": {
+        "required": [
+          "fullName",
+          "subjectDetailsType"
+        ],
+        "type": "object",
+        "properties": {
+          "subjectDetailsType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntitySubjectByIdentifierDetailsType"
+              }
+            ]
+          },
+          "fullName": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        }
+      },
+      "PermissionsSubjectEntityDetails": {
+        "required": [
+          "fullName",
+          "subjectDetailsType"
+        ],
+        "type": "object",
+        "properties": {
+          "subjectDetailsType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntitySubjectDetailsType"
+              }
+            ]
+          },
+          "fullName": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "address": {
+            "maxLength": 512,
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PermissionsSubjectPersonByFingerprintDetails": {
+        "required": [
+          "firstName",
+          "lastName",
+          "subjectDetailsType"
+        ],
+        "type": "object",
+        "properties": {
+          "subjectDetailsType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonSubjectByFingerprintDetailsType"
+              }
+            ]
+          },
+          "firstName": {
+            "maxLength": 30,
+            "minLength": 2,
+            "type": "string"
+          },
+          "lastName": {
+            "maxLength": 81,
+            "minLength": 2,
+            "type": "string"
+          },
+          "personIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "idDocument": {
+            "required": [
+              "type",
+              "number",
+              "country"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IdDocument"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "PermissionsSubjectPersonDetails": {
+        "required": [
+          "firstName",
+          "lastName",
+          "subjectDetailsType"
+        ],
+        "type": "object",
+        "properties": {
+          "subjectDetailsType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonSubjectDetailsType"
+              }
+            ]
+          },
+          "firstName": {
+            "maxLength": 30,
+            "minLength": 2,
+            "type": "string"
+          },
+          "lastName": {
+            "maxLength": 81,
+            "minLength": 2,
+            "type": "string"
+          },
+          "personIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "idDocument": {
+            "required": [
+              "type",
+              "number",
+              "country"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IdDocument"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "PersonIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 11,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "PersonIdentifierType": {
+        "enum": [
+          "Pesel",
+          "Nip"
+        ],
+        "type": "string"
+      },
+      "PersonPermission": {
+        "required": [
+          "authorIdentifier",
+          "authorizedIdentifier",
+          "canDelegate",
+          "description",
+          "id",
+          "permissionScope",
+          "permissionState",
+          "startDate"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionId"
+              }
+            ]
+          },
+          "authorizedIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonPermissionsAuthorizedIdentifier"
+              }
+            ]
+          },
+          "contextIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonPermissionsContextIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "targetIdentifier": {
+            "required": [
+              "type"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonPermissionsTargetIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "authorIdentifier": {
+            "required": [
+              "type"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonPermissionsAuthorIdentifier"
+              }
+            ]
+          },
+          "permissionScope": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonPermissionScope"
+              }
+            ]
+          },
+          "subjectPersonDetails": {
+            "required": [
+              "subjectDetailsType",
+              "firstName",
+              "lastName"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionsSubjectPersonDetails"
+              }
+            ],
+            "nullable": true
+          },
+          "subjectEntityDetails": {
+            "required": [
+              "subjectDetailsType",
+              "fullName"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionsSubjectEntityDetails"
+              }
+            ],
+            "nullable": true
+          },
+          "permissionState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionState"
+              }
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "canDelegate": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PersonPermissionScope": {
+        "enum": [
+          "CredentialsManage",
+          "CredentialsRead",
+          "InvoiceWrite",
+          "InvoiceRead",
+          "Introspection",
+          "SubunitManage",
+          "EnforcementOperations"
+        ],
+        "type": "string"
+      },
+      "PersonPermissionType": {
+        "enum": [
+          "CredentialsManage",
+          "CredentialsRead",
+          "InvoiceWrite",
+          "InvoiceRead",
+          "Introspection",
+          "SubunitManage",
+          "EnforcementOperations"
+        ],
+        "type": "string"
+      },
+      "PersonPermissionsAuthorIdentifier": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonPermissionsAuthorIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 64,
+            "minLength": 10,
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PersonPermissionsAuthorIdentifierType": {
+        "enum": [
+          "Nip",
+          "Pesel",
+          "Fingerprint",
+          "System"
+        ],
+        "type": "string"
+      },
+      "PersonPermissionsAuthorizedIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonPermissionsAuthorizedIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 64,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "PersonPermissionsAuthorizedIdentifierType": {
+        "enum": [
+          "Nip",
+          "Pesel",
+          "Fingerprint"
+        ],
+        "type": "string"
+      },
+      "PersonPermissionsContextIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonPermissionsContextIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 16,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "PersonPermissionsContextIdentifierType": {
+        "enum": [
+          "Nip",
+          "InternalId"
+        ],
+        "type": "string"
+      },
+      "PersonPermissionsQueryRequest": {
+        "required": [
+          "queryType"
+        ],
+        "type": "object",
+        "properties": {
+          "authorIdentifier": {
+            "required": [
+              "type"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonPermissionsAuthorIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "authorizedIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonPermissionsAuthorizedIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "contextIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonPermissionsContextIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "targetIdentifier": {
+            "required": [
+              "type"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonPermissionsTargetIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "permissionTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonPermissionType"
+            },
+            "nullable": true
+          },
+          "permissionState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionState"
+              }
+            ],
+            "nullable": true
+          },
+          "queryType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonPermissionsQueryType"
+              }
+            ]
+          }
+        }
+      },
+      "PersonPermissionsQueryType": {
+        "enum": [
+          "PermissionsInCurrentContext",
+          "PermissionsGrantedInCurrentContext"
+        ],
+        "type": "string"
+      },
+      "PersonPermissionsTargetIdentifier": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonPermissionsTargetIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 16,
+            "minLength": 10,
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PersonPermissionsTargetIdentifierType": {
+        "enum": [
+          "Nip",
+          "AllPartners",
+          "InternalId"
+        ],
+        "type": "string"
+      },
+      "PersonSubjectByFingerprintDetailsType": {
+        "enum": [
+          "PersonByFingerprintWithIdentifier",
+          "PersonByFingerprintWithoutIdentifier"
+        ],
+        "type": "string"
+      },
+      "PersonSubjectDetailsType": {
+        "enum": [
+          "PersonByIdentifier",
+          "PersonByFingerprintWithIdentifier",
+          "PersonByFingerprintWithoutIdentifier"
+        ],
+        "type": "string"
+      },
+      "PersonalPermission": {
+        "required": [
+          "canDelegate",
+          "description",
+          "id",
+          "permissionScope",
+          "permissionState",
+          "startDate"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionId"
+              }
+            ]
+          },
+          "contextIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonalPermissionsContextIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "authorizedIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonalPermissionsAuthorizedIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "targetIdentifier": {
+            "required": [
+              "type"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonalPermissionsTargetIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "permissionScope": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonalPermissionScope"
+              }
+            ]
+          },
+          "subjectPersonDetails": {
+            "required": [
+              "subjectDetailsType",
+              "firstName",
+              "lastName"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionsSubjectPersonDetails"
+              }
+            ],
+            "nullable": true
+          },
+          "subjectEntityDetails": {
+            "required": [
+              "subjectDetailsType",
+              "fullName"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionsSubjectEntityDetails"
+              }
+            ],
+            "nullable": true
+          },
+          "permissionState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionState"
+              }
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "canDelegate": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PersonalPermissionScope": {
+        "enum": [
+          "CredentialsManage",
+          "CredentialsRead",
+          "InvoiceWrite",
+          "InvoiceRead",
+          "Introspection",
+          "SubunitManage",
+          "EnforcementOperations",
+          "VatUeManage"
+        ],
+        "type": "string"
+      },
+      "PersonalPermissionType": {
+        "enum": [
+          "CredentialsManage",
+          "CredentialsRead",
+          "InvoiceWrite",
+          "InvoiceRead",
+          "Introspection",
+          "SubunitManage",
+          "EnforcementOperations",
+          "VatUeManage"
+        ],
+        "type": "string"
+      },
+      "PersonalPermissionsAuthorizedIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonalPermissionsAuthorizedIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 64,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "PersonalPermissionsAuthorizedIdentifierType": {
+        "enum": [
+          "Nip",
+          "Pesel",
+          "Fingerprint"
+        ],
+        "type": "string"
+      },
+      "PersonalPermissionsContextIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonalPermissionsContextIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 16,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "PersonalPermissionsContextIdentifierType": {
+        "enum": [
+          "Nip",
+          "InternalId"
+        ],
+        "type": "string"
+      },
+      "PersonalPermissionsQueryRequest": {
+        "type": "object",
+        "properties": {
+          "contextIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonalPermissionsContextIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "targetIdentifier": {
+            "required": [
+              "type"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonalPermissionsTargetIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "permissionTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonalPermissionType"
+            },
+            "nullable": true
+          },
+          "permissionState": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionState"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "PersonalPermissionsTargetIdentifier": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonalPermissionsTargetIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 16,
+            "minLength": 10,
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PersonalPermissionsTargetIdentifierType": {
+        "enum": [
+          "Nip",
+          "AllPartners",
+          "InternalId"
+        ],
+        "type": "string"
+      },
+      "QueryEntityAuthorizationPermissionsResponse": {
+        "required": [
+          "authorizationGrants",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "authorizationGrants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityAuthorizationGrant"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "QueryEntityPermissionsResponse": {
+        "required": [
+          "hasMore",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityPermissionItem"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "QueryEntityRolesResponse": {
+        "required": [
+          "hasMore",
+          "roles"
+        ],
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityRole"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "QueryEuEntityPermissionsResponse": {
+        "required": [
+          "hasMore",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EuEntityPermission"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "QueryPersonPermissionsResponse": {
+        "required": [
+          "hasMore",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonPermission"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "QueryPersonalPermissionsResponse": {
+        "required": [
+          "hasMore",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonalPermission"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "QuerySubordinateEntityRolesResponse": {
+        "required": [
+          "hasMore",
+          "roles"
+        ],
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubordinateEntityRole"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "QuerySubunitPermissionsResponse": {
+        "required": [
+          "hasMore",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubunitPermission"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "QueryType": {
+        "enum": [
+          "Granted",
+          "Received"
+        ],
+        "type": "string"
+      },
+      "ReferenceNumber": {
+        "maxLength": 36,
+        "minLength": 36,
+        "type": "string"
+      },
+      "RetryAfter": {
+        "type": "integer",
+        "format": "int32",
+        "example": 30
+      },
+      "SubordinateEntityRole": {
+        "required": [
+          "description",
+          "role",
+          "startDate",
+          "subordinateEntityIdentifier"
+        ],
+        "type": "object",
+        "properties": {
+          "subordinateEntityIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubordinateRoleSubordinateEntityIdentifier"
+              }
+            ]
+          },
+          "role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubordinateEntityRoleType"
+              }
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SubordinateEntityRoleType": {
+        "enum": [
+          "LocalGovernmentSubUnit",
+          "VatGroupSubUnit"
+        ],
+        "type": "string"
+      },
+      "SubordinateEntityRolesQueryRequest": {
+        "type": "object",
+        "properties": {
+          "subordinateEntityIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityPermissionsSubordinateEntityIdentifier"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "SubordinateRoleSubordinateEntityIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubordinateRoleSubordinateEntityIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 10,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "SubordinateRoleSubordinateEntityIdentifierType": {
+        "enum": [
+          "Nip"
+        ],
+        "type": "string"
+      },
+      "SubunitPermission": {
+        "required": [
+          "authorIdentifier",
+          "authorizedIdentifier",
+          "description",
+          "id",
+          "permissionScope",
+          "startDate",
+          "subunitIdentifier"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionId"
+              }
+            ]
+          },
+          "authorizedIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubunitPermissionsAuthorizedIdentifier"
+              }
+            ]
+          },
+          "subunitIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubunitPermissionsSubunitIdentifier"
+              }
+            ]
+          },
+          "authorIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubunitPermissionsAuthorIdentifier"
+              }
+            ]
+          },
+          "permissionScope": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubunitPermissionScope"
+              }
+            ]
+          },
+          "subjectPersonDetails": {
+            "required": [
+              "subjectDetailsType",
+              "firstName",
+              "lastName"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PermissionsSubjectPersonDetails"
+              }
+            ],
+            "nullable": true
+          },
+          "subunitName": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string",
+            "nullable": true
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SubunitPermissionScope": {
+        "enum": [
+          "CredentialsManage"
+        ],
+        "type": "string"
+      },
+      "SubunitPermissionsAuthorIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubunitPermissionsAuthorIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 64,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "SubunitPermissionsAuthorIdentifierType": {
+        "enum": [
+          "Nip",
+          "Pesel",
+          "Fingerprint"
+        ],
+        "type": "string"
+      },
+      "SubunitPermissionsAuthorizedIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubunitPermissionsSubjectIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 64,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "SubunitPermissionsQueryRequest": {
+        "type": "object",
+        "properties": {
+          "subunitIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubunitPermissionsSubunitIdentifier"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "SubunitPermissionsSubjectIdentifierType": {
+        "enum": [
+          "Nip",
+          "Pesel",
+          "Fingerprint"
+        ],
+        "type": "string"
+      },
+      "SubunitPermissionsSubunitIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubunitPermissionsSubunitIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 16,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "SubunitPermissionsSubunitIdentifierType": {
+        "enum": [
+          "InternalId",
+          "Nip"
+        ],
+        "type": "string"
+      },
+      "TooManyRequestsResponse": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "required": [
+              "code",
+              "description",
+              "details"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "integer"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "status": {
+            "code": 429,
+            "details": [
+              "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
+            ]
+          }
+        }
+      },
+      "UnauthorizedProblemDetails": {
+        "required": [
+          "detail",
+          "status",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "title": "Unauthorized",
+          "status": 401,
+          "detail": "Wymagane jest uwierzytelnienie."
+        }
+      }
+    }
+  }
+}

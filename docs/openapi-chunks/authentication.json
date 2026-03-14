@@ -1,0 +1,1130 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "KSeF API TE",
+    "version": "v2"
+  },
+  "paths": {
+    "/auth/challenge": {
+      "post": {
+        "tags": [
+          "Uzyskiwanie dostępu"
+        ],
+        "summary": "Inicjalizacja uwierzytelnienia",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticationChallengeResponse"
+                },
+                "example": {
+                  "challenge": "20250514-CR-226FB7B000-3ACF9BE4C0-10",
+                  "timestamp": "2025-07-11T12:23:56.0154302+00:00",
+                  "timestampMs": 1752236636015
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "x-rate-limits": {
+          "perSecond": 60
+        }
+      }
+    },
+    "/auth/xades-signature": {
+      "post": {
+        "tags": [
+          "Uzyskiwanie dostępu"
+        ],
+        "summary": "Uwierzytelnienie z wykorzystaniem podpisu XAdES",
+        "parameters": [
+          {
+            "name": "verifyCertificateChain",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/xml": {
+              "schema": {
+                "type": "string"
+              },
+              "example": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<AuthTokenRequest xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns=\"http://ksef.mf.gov.pl/auth/token/2.0\">\n    <Challenge>20250625-CR-20F5EE4000-DA48AE4124-46</Challenge>\n    <ContextIdentifier>\n        <Nip>5265877635</Nip>\n    </ContextIdentifier>\n    <SubjectIdentifierType>certificateSubject</SubjectIdentifierType>\n    <ds:Signature xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" Id=\"Signature-9707709\">\n        <!-- Tu powinien być podpis XAdES -->\n    </ds:Signature>\n</AuthTokenRequest>"
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticationInitResponse"
+                },
+                "example": {
+                  "referenceNumber": "20250514-AU-2DFC46C000-3AC6D5877F-D4",
+                  "authenticationToken": {
+                    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbi10eXBlIjoiT3BlcmF0aW9uVG9rZW4iLCJvcGVyYXRpb24tcmVmZXJlbmNlLW51bWJlciI6IjIwMjUwNTE0LUFVLTJERkM0NkMwMDAtM0FDNkQ1ODc3Ri1ENCIsImV4cCI6MTc0NzIzMTcxOSwiaWF0IjoxNzQ3MjI5MDE5LCJpc3MiOiJrc2VmLWFwaS10aSIsImF1ZCI6ImtzZWYtYXBpLXRpIn0.rtRcV2mR9SiuJwpQaQHsbAXvvVsdNKG4DJsdiJctIeU",
+                    "validUntil": "2025-07-11T12:23:56.0154302+00:00"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "x-rate-limits": {
+          "perSecond": 60
+        }
+      }
+    },
+    "/auth/ksef-token": {
+      "post": {
+        "tags": [
+          "Uzyskiwanie dostępu"
+        ],
+        "summary": "Uwierzytelnienie z wykorzystaniem tokena KSeF",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "challenge",
+                  "contextIdentifier",
+                  "encryptedToken"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/InitTokenAuthenticationRequest"
+                  }
+                ]
+              },
+              "example": {
+                "challenge": "20250625-CR-2FDC223000-C2BFC98A9C-4E",
+                "contextIdentifier": {
+                  "type": "Nip",
+                  "value": "5265877635"
+                },
+                "encryptedToken": "..."
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticationInitResponse"
+                },
+                "example": {
+                  "referenceNumber": "20250514-AU-2DFC46C000-3AC6D5877F-D4",
+                  "authenticationToken": {
+                    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbi10eXBlIjoiT3BlcmF0aW9uVG9rZW4iLCJvcGVyYXRpb24tcmVmZXJlbmNlLW51bWJlciI6IjIwMjUwNTE0LUFVLTJERkM0NkMwMDAtM0FDNkQ1ODc3Ri1ENCIsImV4cCI6MTc0NzIzMTcxOSwiaWF0IjoxNzQ3MjI5MDE5LCJpc3MiOiJrc2VmLWFwaS10aSIsImF1ZCI6ImtzZWYtYXBpLXRpIn0.rtRcV2mR9SiuJwpQaQHsbAXvvVsdNKG4DJsdiJctIeU",
+                    "validUntil": "2025-07-11T12:23:56.0154302+00:00"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "x-rate-limits": {
+          "perSecond": 60
+        }
+      }
+    },
+    "/auth/{referenceNumber}": {
+      "get": {
+        "tags": [
+          "Uzyskiwanie dostępu"
+        ],
+        "summary": "Pobranie statusu uwierzytelniania",
+        "parameters": [
+          {
+            "name": "referenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticationOperationStatusResponse"
+                },
+                "examples": {
+                  "Kod 100 | Uwierzytelnianie w toku": {
+                    "value": {
+                      "startDate": "0001-01-01T00:00:00+00:00",
+                      "authenticationMethod": "Token",
+                      "status": {
+                        "code": 100
+                      }
+                    }
+                  },
+                  "Kod 200 | Uwierzytelnianie zakończone sukcesem": {
+                    "value": {
+                      "startDate": "0001-01-01T00:00:00+00:00",
+                      "authenticationMethod": "Token",
+                      "status": {
+                        "code": 200
+                      }
+                    }
+                  },
+                  "Kod 400 | Uwierzytelnianie zakończone niepowodzeniem | Nieważny certyfikat": {
+                    "value": {
+                      "startDate": "0001-01-01T00:00:00+00:00",
+                      "authenticationMethod": "Token",
+                      "status": {
+                        "code": 400,
+                        "details": [
+                          "Nieważny certyfikat."
+                        ]
+                      }
+                    }
+                  },
+                  "Kod 400 | Uwierzytelnianie zakończone niepowodzeniem | Błąd weryfikacji łańcucha certyfikatów": {
+                    "value": {
+                      "startDate": "0001-01-01T00:00:00+00:00",
+                      "authenticationMethod": "Token",
+                      "status": {
+                        "code": 400,
+                        "details": [
+                          "Błąd weryfikacji łańcucha certyfikatów."
+                        ]
+                      }
+                    }
+                  },
+                  "Kod 400 | Uwierzytelnianie zakończone niepowodzeniem | Niezaufany łańcuch certyfikatów": {
+                    "value": {
+                      "startDate": "0001-01-01T00:00:00+00:00",
+                      "authenticationMethod": "Token",
+                      "status": {
+                        "code": 400,
+                        "details": [
+                          "Niezaufany łańcuch certyfikatów."
+                        ]
+                      }
+                    }
+                  },
+                  "Kod 400 | Uwierzytelnianie zakończone niepowodzeniem | Certyfikat odwołany": {
+                    "value": {
+                      "startDate": "0001-01-01T00:00:00+00:00",
+                      "authenticationMethod": "Token",
+                      "status": {
+                        "code": 400,
+                        "details": [
+                          "Certyfikat odwołany."
+                        ]
+                      }
+                    }
+                  },
+                  "Kod 400 | Uwierzytelnianie zakończone niepowodzeniem | Niepoprawny certyfikat": {
+                    "value": {
+                      "startDate": "0001-01-01T00:00:00+00:00",
+                      "authenticationMethod": "Token",
+                      "status": {
+                        "code": 400,
+                        "details": [
+                          "Niepoprawny certyfikat."
+                        ]
+                      }
+                    }
+                  },
+                  "Kod 500 | Nieznany błąd": {
+                    "value": {
+                      "startDate": "0001-01-01T00:00:00+00:00",
+                      "authenticationMethod": "Token",
+                      "status": {
+                        "code": 500
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 60
+        }
+      }
+    },
+    "/auth/token/redeem": {
+      "post": {
+        "tags": [
+          "Uzyskiwanie dostępu"
+        ],
+        "summary": "Pobranie tokenów dostępowych",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticationTokensResponse"
+                },
+                "example": {
+                  "accessToken": {
+                    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbi10eXBlIjoiQ29udGV4dFRva2VuIiwiY29udGV4dC1pZGVudGlmaWVyLXR5cGUiOiJOaXAiLCJjb250ZXh0LWlkZW50aWZpZXItdmFsdWUiOiIzNzU2OTc3MDQ5IiwiYXV0aGVudGljYXRpb24tbWV0aG9kIjoiUXVhbGlmaWVkU2VhbCIsInN1YmplY3QtZGV0YWlscyI6IntcIlN1YmplY3RJZGVudGlmaWVyXCI6e1wiVHlwZVwiOlwiTmlwXCIsXCJWYWx1ZVwiOlwiMzc1Njk3NzA0OVwifX0iLCJleHAiOjE3NDcyMjAxNDksImlhdCI6MTc0NzIxOTI0OSwiaXNzIjoia3NlZi1hcGktdGkiLCJhdWQiOiJrc2VmLWFwaS10aSJ9.R_3_R2PbdCk8T4WP_0XGOO1iVNu2ugNxmkDvsD0soIE",
+                    "validUntil": "2025-07-11T12:23:56.0154302+00:00"
+                  },
+                  "refreshToken": {
+                    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbi10eXBlIjoiQ29udGV4dFRva2VuIiwiY29udGV4dC1pZGVudGlmaWVyLXR5cGUiOiJOaXAiLCJjb250ZXh0LWlkZW50aWZpZXItdmFsdWUiOiIzNzU2OTc3MDQ5IiwiYXV0aGVudGljYXRpb24tbWV0aG9kIjoiUXVhbGlmaWVkU2VhbCIsInN1YmplY3QtZGV0YWlscyI6IntcIlN1YmplY3RJZGVudGlmaWVyXCI6e1wiVHlwZVwiOlwiTmlwXCIsXCJWYWx1ZVwiOlwiMzc1Njk3NzA0OVwifX0iLCJleHAiOjE3NDcyMjAxNDksImlhdCI6MTc0NzIxOTI0OSwiaXNzIjoia3NlZi1hcGktdGkiLCJhdWQiOiJrc2VmLWFwaS10aSJ9.R_3_R2PbdCk8T4WP_0XGOO1iVNu2ugNxmkDvsD0soIE",
+                    "validUntil": "2025-07-11T12:23:56.0154302+00:00"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 60
+        }
+      }
+    },
+    "/auth/token/refresh": {
+      "post": {
+        "tags": [
+          "Uzyskiwanie dostępu"
+        ],
+        "summary": "Odświeżenie tokena dostępowego",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticationTokenRefreshResponse"
+                },
+                "example": {
+                  "accessToken": {
+                    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbi10eXBlIjoiQ29udGV4dFRva2VuIiwiY29udGV4dC1pZGVudGlmaWVyLXR5cGUiOiJOaXAiLCJjb250ZXh0LWlkZW50aWZpZXItdmFsdWUiOiIzNzU2OTc3MDQ5IiwiYXV0aGVudGljYXRpb24tbWV0aG9kIjoiUXVhbGlmaWVkU2VhbCIsInN1YmplY3QtZGV0YWlscyI6IntcIlN1YmplY3RJZGVudGlmaWVyXCI6e1wiVHlwZVwiOlwiTmlwXCIsXCJWYWx1ZVwiOlwiMzc1Njk3NzA0OVwifX0iLCJleHAiOjE3NDcyMjAxNDksImlhdCI6MTc0NzIxOTI0OSwiaXNzIjoia3NlZi1hcGktdGkiLCJhdWQiOiJrc2VmLWFwaS10aSJ9.R_3_R2PbdCk8T4WP_0XGOO1iVNu2ugNxmkDvsD0soIE",
+                    "validUntil": "2025-07-11T12:23:56.0154302+00:00"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 60
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AllowedIps": {
+        "type": "object",
+        "properties": {
+          "ip4Addresses": {
+            "type": "array",
+            "items": {
+              "pattern": "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$",
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "ip4Ranges": {
+            "type": "array",
+            "items": {
+              "pattern": "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}-((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$",
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "ip4Masks": {
+            "type": "array",
+            "items": {
+              "pattern": "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}\\/(0|[1-9]|1[0-9]|2[0-9]|3[0-2])$",
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "AuthenticationChallengeResponse": {
+        "required": [
+          "challenge",
+          "clientIp",
+          "timestamp",
+          "timestampMs"
+        ],
+        "type": "object",
+        "properties": {
+          "challenge": {
+            "$ref": "#/components/schemas/Challenge"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timestampMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "clientIp": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthenticationContextIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthenticationContextIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthenticationContextIdentifierType": {
+        "enum": [
+          "Nip",
+          "InternalId",
+          "NipVatUe",
+          "PeppolId"
+        ],
+        "type": "string"
+      },
+      "AuthenticationInitResponse": {
+        "required": [
+          "authenticationToken",
+          "referenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ]
+          },
+          "authenticationToken": {
+            "required": [
+              "token",
+              "validUntil"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TokenInfo"
+              }
+            ]
+          }
+        }
+      },
+      "AuthenticationMethod": {
+        "enum": [
+          "Token",
+          "TrustedProfile",
+          "InternalCertificate",
+          "QualifiedSignature",
+          "QualifiedSeal",
+          "PersonalSignature",
+          "PeppolSignature"
+        ],
+        "type": "string"
+      },
+      "AuthenticationMethodCategory": {
+        "enum": [
+          "XadesSignature",
+          "NationalNode",
+          "Token",
+          "Other"
+        ],
+        "type": "string"
+      },
+      "AuthenticationMethodInfo": {
+        "required": [
+          "category",
+          "code",
+          "displayName"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthenticationMethodCategory"
+              }
+            ]
+          },
+          "code": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "readOnly": true
+          }
+        }
+      },
+      "AuthenticationOperationStatusResponse": {
+        "required": [
+          "authenticationMethod",
+          "authenticationMethodInfo",
+          "startDate",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "authenticationMethod": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthenticationMethod"
+              }
+            ],
+            "deprecated": true,
+            "x-removal-date": "2026-11-16"
+          },
+          "authenticationMethodInfo": {
+            "required": [
+              "category",
+              "code",
+              "displayName"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthenticationMethodInfo"
+              }
+            ]
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusInfo"
+              }
+            ]
+          },
+          "isTokenRedeemed": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "lastTokenRefreshDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "refreshTokenValidUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "AuthenticationTokenRefreshResponse": {
+        "required": [
+          "accessToken"
+        ],
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "required": [
+              "token",
+              "validUntil"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TokenInfo"
+              }
+            ]
+          }
+        }
+      },
+      "AuthenticationTokensResponse": {
+        "required": [
+          "accessToken",
+          "refreshToken"
+        ],
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "required": [
+              "token",
+              "validUntil"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TokenInfo"
+              }
+            ]
+          },
+          "refreshToken": {
+            "required": [
+              "token",
+              "validUntil"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TokenInfo"
+              }
+            ]
+          }
+        }
+      },
+      "AuthorizationPolicy": {
+        "type": "object",
+        "properties": {
+          "allowedIps": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AllowedIps"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "Challenge": {
+        "maxLength": 36,
+        "minLength": 36,
+        "type": "string"
+      },
+      "ExceptionDetails": {
+        "type": "object",
+        "properties": {
+          "exceptionCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "exceptionDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "ExceptionInfo": {
+        "type": "object",
+        "properties": {
+          "exceptionDetailList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExceptionDetails"
+            },
+            "nullable": true
+          },
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ],
+            "nullable": true
+          },
+          "serviceCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceCtx": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ExceptionResponse": {
+        "type": "object",
+        "properties": {
+          "exception": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExceptionInfo"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "example": {
+          "exception": {
+            "exceptionDetailList": [
+              {
+                "exceptionCode": 12345,
+                "exceptionDescription": "Opis błędu.",
+                "details": [
+                  "Opcjonalne dodatkowe szczegóły błędu."
+                ]
+              }
+            ],
+            "referenceNumber": "a1b2c3d4-e5f6-4789-ab12-cd34ef567890",
+            "serviceCode": "00-c02cc3747020c605be02159bf3324f0e-eee7647dc67aa74a-00",
+            "serviceCtx": "srvABCDA",
+            "serviceName": "Undefined",
+            "timestamp": "2025-10-11T12:23:56.0154302"
+          }
+        }
+      },
+      "ForbiddenProblemDetails": {
+        "required": [
+          "detail",
+          "reasonCode",
+          "status",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "reasonCode": {
+            "type": "string"
+          },
+          "security": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "title": "Forbidden",
+          "status": 403,
+          "detail": "Brak wymaganych uprawnień do wykonania operacji w bieżącym kontekście.",
+          "reasonCode": "missing-permissions",
+          "security": {
+            "requiredAnyOfPermissions": [
+              "InvoiceRead",
+              "InvoiceWrite"
+            ],
+            "presentPermissions": [
+              "CredentialsManage"
+            ]
+          }
+        }
+      },
+      "InitTokenAuthenticationRequest": {
+        "required": [
+          "challenge",
+          "contextIdentifier",
+          "encryptedToken"
+        ],
+        "type": "object",
+        "properties": {
+          "challenge": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Challenge"
+              }
+            ]
+          },
+          "contextIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthenticationContextIdentifier"
+              }
+            ]
+          },
+          "encryptedToken": {
+            "type": "string",
+            "format": "byte"
+          },
+          "authorizationPolicy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthorizationPolicy"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "ReferenceNumber": {
+        "maxLength": 36,
+        "minLength": 36,
+        "type": "string"
+      },
+      "RetryAfter": {
+        "type": "integer",
+        "format": "int32",
+        "example": 30
+      },
+      "StatusInfo": {
+        "required": [
+          "code",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "TokenInfo": {
+        "required": [
+          "token",
+          "validUntil"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TooManyRequestsResponse": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "required": [
+              "code",
+              "description",
+              "details"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "integer"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "status": {
+            "code": 429,
+            "details": [
+              "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
+            ]
+          }
+        }
+      },
+      "UnauthorizedProblemDetails": {
+        "required": [
+          "detail",
+          "status",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "title": "Unauthorized",
+          "status": 401,
+          "detail": "Wymagane jest uwierzytelnienie."
+        }
+      }
+    }
+  }
+}

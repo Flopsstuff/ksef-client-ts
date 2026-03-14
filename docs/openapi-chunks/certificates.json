@@ -1,0 +1,1347 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "KSeF API TE",
+    "version": "v2"
+  },
+  "paths": {
+    "/certificates/limits": {
+      "get": {
+        "tags": [
+          "Certyfikaty"
+        ],
+        "summary": "Pobranie danych o limitach certyfikatów",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateLimitsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      }
+    },
+    "/certificates/enrollments/data": {
+      "get": {
+        "tags": [
+          "Certyfikaty"
+        ],
+        "summary": "Pobranie danych do wniosku certyfikacyjnego",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateEnrollmentDataResponse"
+                },
+                "example": {
+                  "commonName": "Firma Kowalski Certyfikat",
+                  "countryName": "PL",
+                  "serialNumber": "ABC123456789",
+                  "uniqueIdentifier": "d9d22724-4696-460c-9e5e-b9e3aafb0af3",
+                  "organizationName": "Firma Kowalski Sp. z o.o.",
+                  "organizationIdentifier": "7762811692"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      }
+    },
+    "/certificates/enrollments": {
+      "post": {
+        "tags": [
+          "Certyfikaty"
+        ],
+        "summary": "Wysyłka wniosku certyfikacyjnego",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "certificateName",
+                  "certificateType",
+                  "csr"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EnrollCertificateRequest"
+                  }
+                ]
+              },
+              "example": {
+                "certificateName": "Certyfikat-Auth-004",
+                "certificateType": "Authentication",
+                "csr": "MIIDJjCCAd4CAQAwgbAxIjAgBgNVBAMMGUZpcm1hIEtvd2Fsc2tpIENlcnR5ZmlrYXQxIjAgBgNVBAoMGUZpcm1hIEtvd2Fsc2tpIFNwLiB6IG8uby4xEzARBgNVBGEMCjc3NjI4MTE2OTIxCzAJBgNVBAYTAlBMMRUwEwYDVQQFEwxBQkMxMjM0NTY3ODkxLTArBgNVBC0MJGQ5ZDIyNzI0LTQ2OTYtNDYwYy05ZTVlLWI5ZTNhYWZiMGFmMzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBANZC1hJiB4ZBsxGy/a4yvtOUP0HQxDt7EUZrfKO78+cmI7KCO9aW96yr6O0R928/Y9vmymbgh6KvMUTzZZj24uyxar849O1laor5t8Wv63RDx/I4+9Rt7w+QPPofmpenOokJH+Fm+FDQwo2l07o8SppGfaZpvMak+cDSrh+73wfM37fvPImr9p4ckzzxA9q6f4uoqGqcGSDlSwRjfLQKzWZaEklpZBpY4jeCh54uN3+YLsMQYKdcIbW0Jart1UbwMd/wbHfzFhVmPGOAMMpwVEBw6E4A0CTWIiAX3Alqbx4+IkuqC+gEs3ETTec7eOqhxe9V9cywi7WR+Mz6JO6DJcUCAwEAAaAAMD0GCSqGSIb3DQEBCjAwoA0wCwYJYIZIAWUDBAIBoRowGAYJKoZIhvcNAQEIMAsGCWCGSAFlAwQCAaIDAgEgA4IBAQCJhtF2/2E+JmkWitE/BGbm3NU4fIxr1Z+w0UnHsP+F8n9UDwAnuncG1GH5wZFervldEMooegzEDnYaqxnEUnbZ4wxeAHqpbTZjOOfqrk7o0r66+mXUs5NnyD4M3j3ig98GcvhEdbcNH+RsIwi7FaLNXnOE4SLYL9KvW0geriywWjS+5MmA0Gcn1e4vCD6FeEls8EHzkhrWE+rUsoM5zT2a0OPNXG3fScyOqOZe+OdjT4Y7ScRGy711u3v2X9RoTqQUDfCJ3cob/KRcrzvs1TQVazGZPfcIa6an6SigUvZ7XAMHlUTyOeM4AwKqiEqQ0qfe/HhlDylgZSwulb9u0utT",
+                "validFrom": "2025-08-28T09:22:13.388+00:00"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollCertificateResponse"
+                },
+                "example": {
+                  "referenceNumber": "20251010-EH-1B6C9EB000-4B15D3AEB9-89",
+                  "timestamp": "2025-10-11T12:23:56.0154302+00:00"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      }
+    },
+    "/certificates/enrollments/{referenceNumber}": {
+      "get": {
+        "tags": [
+          "Certyfikaty"
+        ],
+        "summary": "Pobranie statusu przetwarzania wniosku certyfikacyjnego",
+        "parameters": [
+          {
+            "name": "referenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateEnrollmentStatusResponse"
+                },
+                "example": {
+                  "requestDate": "2025-10-11T12:23:56.0154302+00:00",
+                  "status": {
+                    "code": 100
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      }
+    },
+    "/certificates/retrieve": {
+      "post": {
+        "tags": [
+          "Certyfikaty"
+        ],
+        "summary": "Pobranie certyfikatu lub listy certyfikatów",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "certificateSerialNumbers"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RetrieveCertificatesRequest"
+                  }
+                ]
+              },
+              "example": {
+                "certificateSerialNumbers": [
+                  "0321C82DA41B4362",
+                  "0321F21DA462A362"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetrieveCertificatesResponse"
+                },
+                "example": {
+                  "certificates": [
+                    {
+                      "certificate": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/wABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4fICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj9AQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVpbXF1eX2BhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ent8fX5/gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp+goaKjpKWmp6ipqqusra6vsLGys7S1tre4ubq7vL2+v8DBwsPExcbHyMnKy8zNzs/Q0dLT1NXW19jZ2tvc3d7f4OHi4+Tl5ufo6err7O3u7/Dx8vP09fb3+Pn6+/z9/v8AAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl9gYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXp7fH1+f4CBgoOEhYaHiImKi4yNjo+QkZKTlJWWl5iZmpucnZ6foKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr/AwcLDxMXGx8jJysvMzc7P0NHS09TV1tfY2drb3N3e3+Dh4uPk5ebn6Onq6+zt7u/w8fLz9PX29/j5+vv8/f7/AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==",
+                      "certificateName": "Cert 00023",
+                      "certificateSerialNumber": "0321C82DA41B4362",
+                      "certificateType": "Authentication"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      }
+    },
+    "/certificates/{certificateSerialNumber}/revoke": {
+      "post": {
+        "tags": [
+          "Certyfikaty"
+        ],
+        "summary": "Unieważnienie certyfikatu",
+        "parameters": [
+          {
+            "name": "certificateSerialNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RevokeCertificateRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        }
+      }
+    },
+    "/certificates/query": {
+      "post": {
+        "tags": [
+          "Certyfikaty"
+        ],
+        "summary": "Pobranie listy metadanych certyfikatów",
+        "parameters": [
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 50,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "pageOffset",
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/QueryCertificatesRequest"
+                  }
+                ]
+              },
+              "example": {
+                "type": "Offline",
+                "status": "Active"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryCertificatesResponse"
+                },
+                "example": {
+                  "certificates": [
+                    {
+                      "certificateSerialNumber": "018209160C631F1E",
+                      "name": "Certyfikat 1",
+                      "type": "Authentication",
+                      "commonName": "Jan Kowalski",
+                      "status": "Active",
+                      "subjectIdentifier": {
+                        "type": "Nip",
+                        "value": "1234445678"
+                      },
+                      "validFrom": "2025-08-24T14:15:22+00:00",
+                      "validTo": "2027-08-24T14:15:22+00:00",
+                      "lastUseDate": "2025-08-25T14:15:22+00:00",
+                      "requestDate": "2025-08-24T14:15:22+00:00"
+                    }
+                  ],
+                  "hasMore": false
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        },
+        "x-sort": [
+          {
+            "field": "requestDate",
+            "direction": "Desc"
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CertificateEnrollmentDataResponse": {
+        "required": [
+          "commonName",
+          "countryName"
+        ],
+        "type": "object",
+        "properties": {
+          "commonName": {
+            "type": "string"
+          },
+          "countryName": {
+            "type": "string"
+          },
+          "givenName": {
+            "type": "string",
+            "nullable": true
+          },
+          "surname": {
+            "type": "string",
+            "nullable": true
+          },
+          "serialNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "uniqueIdentifier": {
+            "type": "string",
+            "nullable": true
+          },
+          "organizationName": {
+            "type": "string",
+            "nullable": true
+          },
+          "organizationIdentifier": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CertificateEnrollmentStatusResponse": {
+        "required": [
+          "requestDate",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "requestDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusInfo"
+              }
+            ]
+          },
+          "certificateSerialNumber": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CertificateLimit": {
+        "required": [
+          "limit",
+          "remaining"
+        ],
+        "type": "object",
+        "properties": {
+          "remaining": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CertificateLimitsResponse": {
+        "required": [
+          "canRequest",
+          "certificate",
+          "enrollment"
+        ],
+        "type": "object",
+        "properties": {
+          "canRequest": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "enrollment": {
+            "required": [
+              "remaining",
+              "limit"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CertificateLimit"
+              }
+            ]
+          },
+          "certificate": {
+            "required": [
+              "remaining",
+              "limit"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CertificateLimit"
+              }
+            ]
+          }
+        }
+      },
+      "CertificateListItem": {
+        "required": [
+          "certificateSerialNumber",
+          "commonName",
+          "name",
+          "requestDate",
+          "status",
+          "subjectIdentifier",
+          "type",
+          "validFrom",
+          "validTo"
+        ],
+        "type": "object",
+        "properties": {
+          "certificateSerialNumber": {
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/KsefCertificateType"
+              }
+            ]
+          },
+          "commonName": {
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CertificateListItemStatus"
+              }
+            ]
+          },
+          "subjectIdentifier": {
+            "required": [
+              "type",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CertificateSubjectIdentifier"
+              }
+            ]
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUseDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "requestDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CertificateListItemStatus": {
+        "enum": [
+          "Active",
+          "Blocked",
+          "Revoked",
+          "Expired"
+        ],
+        "type": "string"
+      },
+      "CertificateRevocationReason": {
+        "enum": [
+          "Unspecified",
+          "Superseded",
+          "KeyCompromise"
+        ],
+        "type": "string"
+      },
+      "CertificateSubjectIdentifier": {
+        "required": [
+          "type",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CertificateSubjectIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 64,
+            "minLength": 10,
+            "type": "string"
+          }
+        }
+      },
+      "CertificateSubjectIdentifierType": {
+        "enum": [
+          "Nip",
+          "Pesel",
+          "Fingerprint"
+        ],
+        "type": "string"
+      },
+      "EnrollCertificateRequest": {
+        "required": [
+          "certificateName",
+          "certificateType",
+          "csr"
+        ],
+        "type": "object",
+        "properties": {
+          "certificateName": {
+            "maxLength": 100,
+            "minLength": 5,
+            "pattern": "^[a-zA-Z0-9_\\-\\ ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]+$",
+            "type": "string"
+          },
+          "certificateType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/KsefCertificateType"
+              }
+            ]
+          },
+          "csr": {
+            "type": "string",
+            "format": "byte"
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "EnrollCertificateResponse": {
+        "required": [
+          "referenceNumber",
+          "timestamp"
+        ],
+        "type": "object",
+        "properties": {
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ]
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ExceptionDetails": {
+        "type": "object",
+        "properties": {
+          "exceptionCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "exceptionDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "ExceptionInfo": {
+        "type": "object",
+        "properties": {
+          "exceptionDetailList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExceptionDetails"
+            },
+            "nullable": true
+          },
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ],
+            "nullable": true
+          },
+          "serviceCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceCtx": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ExceptionResponse": {
+        "type": "object",
+        "properties": {
+          "exception": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExceptionInfo"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "example": {
+          "exception": {
+            "exceptionDetailList": [
+              {
+                "exceptionCode": 12345,
+                "exceptionDescription": "Opis błędu.",
+                "details": [
+                  "Opcjonalne dodatkowe szczegóły błędu."
+                ]
+              }
+            ],
+            "referenceNumber": "a1b2c3d4-e5f6-4789-ab12-cd34ef567890",
+            "serviceCode": "00-c02cc3747020c605be02159bf3324f0e-eee7647dc67aa74a-00",
+            "serviceCtx": "srvABCDA",
+            "serviceName": "Undefined",
+            "timestamp": "2025-10-11T12:23:56.0154302"
+          }
+        }
+      },
+      "ForbiddenProblemDetails": {
+        "required": [
+          "detail",
+          "reasonCode",
+          "status",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "reasonCode": {
+            "type": "string"
+          },
+          "security": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "title": "Forbidden",
+          "status": 403,
+          "detail": "Brak wymaganych uprawnień do wykonania operacji w bieżącym kontekście.",
+          "reasonCode": "missing-permissions",
+          "security": {
+            "requiredAnyOfPermissions": [
+              "InvoiceRead",
+              "InvoiceWrite"
+            ],
+            "presentPermissions": [
+              "CredentialsManage"
+            ]
+          }
+        }
+      },
+      "KsefCertificateType": {
+        "enum": [
+          "Authentication",
+          "Offline"
+        ],
+        "type": "string"
+      },
+      "QueryCertificatesRequest": {
+        "type": "object",
+        "properties": {
+          "certificateSerialNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/KsefCertificateType"
+              }
+            ],
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CertificateListItemStatus"
+              }
+            ],
+            "nullable": true
+          },
+          "expiresAfter": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "QueryCertificatesResponse": {
+        "required": [
+          "certificates",
+          "hasMore"
+        ],
+        "type": "object",
+        "properties": {
+          "certificates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CertificateListItem"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ReferenceNumber": {
+        "maxLength": 36,
+        "minLength": 36,
+        "type": "string"
+      },
+      "RetrieveCertificatesListItem": {
+        "required": [
+          "certificate",
+          "certificateName",
+          "certificateSerialNumber",
+          "certificateType"
+        ],
+        "type": "object",
+        "properties": {
+          "certificate": {
+            "type": "string",
+            "format": "byte"
+          },
+          "certificateName": {
+            "type": "string"
+          },
+          "certificateSerialNumber": {
+            "type": "string"
+          },
+          "certificateType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/KsefCertificateType"
+              }
+            ]
+          }
+        }
+      },
+      "RetrieveCertificatesRequest": {
+        "required": [
+          "certificateSerialNumbers"
+        ],
+        "type": "object",
+        "properties": {
+          "certificateSerialNumbers": {
+            "maxItems": 10,
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "RetrieveCertificatesResponse": {
+        "required": [
+          "certificates"
+        ],
+        "type": "object",
+        "properties": {
+          "certificates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RetrieveCertificatesListItem"
+            }
+          }
+        }
+      },
+      "RetryAfter": {
+        "type": "integer",
+        "format": "int32",
+        "example": 30
+      },
+      "RevokeCertificateRequest": {
+        "type": "object",
+        "properties": {
+          "revocationReason": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CertificateRevocationReason"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "StatusInfo": {
+        "required": [
+          "code",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "TooManyRequestsResponse": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "required": [
+              "code",
+              "description",
+              "details"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "integer"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "status": {
+            "code": 429,
+            "details": [
+              "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
+            ]
+          }
+        }
+      },
+      "UnauthorizedProblemDetails": {
+        "required": [
+          "detail",
+          "status",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "title": "Unauthorized",
+          "status": 401,
+          "detail": "Wymagane jest uwierzytelnienie."
+        }
+      }
+    }
+  }
+}

@@ -19,7 +19,7 @@ describe('KSeFApiError', () => {
     const body: ApiErrorResponse = {
       exception: {
         exceptionDetailList: [
-          { exceptionDetailCode: 1, exceptionDescription: 'First error' },
+          { exceptionCode: 1, exceptionDescription: 'First error' },
         ],
       },
     };
@@ -33,8 +33,8 @@ describe('KSeFApiError', () => {
     const body: ApiErrorResponse = {
       exception: {
         exceptionDetailList: [
-          { exceptionDetailCode: 1, exceptionDescription: 'Error A' },
-          { exceptionDetailCode: 2, exceptionDescription: 'Error B' },
+          { exceptionCode: 1, exceptionDescription: 'Error A' },
+          { exceptionCode: 2, exceptionDescription: 'Error B' },
         ],
       },
     };

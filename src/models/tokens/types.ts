@@ -1,11 +1,11 @@
 export type KsefTokenPermissionType =
   | 'InvoiceRead'
   | 'InvoiceWrite'
-  | 'CredentialRead'
-  | 'CredentialManage'
+  | 'CredentialsRead'
+  | 'CredentialsManage'
   | 'EnforcementOperations'
   | 'SubunitManage'
-  | 'SelfInvoicing';
+  | 'Introspection';
 
 export type KsefTokenStatus = 'Pending' | 'Active' | 'Revoking' | 'Revoked' | 'Failed';
 

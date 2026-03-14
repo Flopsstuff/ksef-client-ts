@@ -62,7 +62,7 @@ describe('Certificate auth e2e', { timeout: 60_000 }, () => {
     const authRequest = new AuthTokenRequestBuilder()
       .withChallenge(challenge.challenge)
       .withContextNip(NIP)
-      .withSubjectType('certificateFingerprint')
+      .withSubjectType('Fingerprint')
       .build();
 
     const xml = serializeAuthTokenRequest(authRequest);

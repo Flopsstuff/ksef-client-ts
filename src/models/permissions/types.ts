@@ -4,56 +4,17 @@ import type { OperationStatusInfo, PermissionSubjectIdentifierType } from '../co
 export type PersonPermissionType =
   | 'InvoiceRead'
   | 'InvoiceWrite'
-  | 'CredentialRead'
-  | 'CredentialManage'
+  | 'CredentialsRead'
+  | 'CredentialsManage'
   | 'EnforcementOperations'
   | 'SubunitManage'
-  | 'SelfInvoicing';
+  | 'Introspection';
 
-export type EntityStandardPermissionType =
-  | 'InvoiceRead'
-  | 'InvoiceWrite'
-  | 'CredentialRead'
-  | 'CredentialManage'
-  | 'EnforcementOperations'
-  | 'SubunitManage'
-  | 'SelfInvoicing';
-
-export type AuthorizationPermissionType =
-  | 'InvoiceRead'
-  | 'InvoiceWrite'
-  | 'CredentialRead'
-  | 'CredentialManage';
-
-export type IndirectEntityStandardPermissionType =
-  | 'InvoiceRead'
-  | 'InvoiceWrite'
-  | 'CredentialRead'
-  | 'CredentialManage'
-  | 'EnforcementOperations'
-  | 'SubunitManage'
-  | 'SelfInvoicing';
-
-export type SubunitPermissionType =
-  | 'InvoiceRead'
-  | 'InvoiceWrite'
-  | 'CredentialRead'
-  | 'CredentialManage'
-  | 'EnforcementOperations'
-  | 'SubunitManage'
-  | 'SelfInvoicing';
+export type SubunitPermissionScope = 'CredentialsManage';
 
 export type EuEntityPermissionType =
   | 'InvoiceRead'
-  | 'InvoiceWrite'
-  | 'CredentialRead'
-  | 'CredentialManage';
-
-export type EuEntityRepresentativePermissionType =
-  | 'InvoiceRead'
-  | 'InvoiceWrite'
-  | 'CredentialRead'
-  | 'CredentialManage';
+  | 'InvoiceWrite';
 
 export type EntityPermissionItemType =
   | 'InvoiceRead'
@@ -80,14 +41,26 @@ export type EuEntityPermissionsQueryPermissionType =
   | 'Introspection';
 
 export type InvoicePermissionType =
-  | 'InvoiceRead'
-  | 'InvoiceWrite';
+  | 'SelfInvoicing'
+  | 'TaxRepresentative'
+  | 'RRInvoicing'
+  | 'PefInvoicing';
 
 export type EntityAuthorizationPermissionType =
   | 'SelfInvoicing'
   | 'TaxRepresentative'
   | 'RRInvoicing'
   | 'PefInvoicing';
+
+export type EntityRoleType =
+  | 'CourtBailiff'
+  | 'EnforcementAuthority'
+  | 'LocalGovernmentUnit'
+  | 'LocalGovernmentSubUnit'
+  | 'VatGroupUnit'
+  | 'VatGroupSubUnit';
+
+export type SubordinateEntityRoleType = 'LocalGovernmentSubUnit' | 'VatGroupSubUnit';
 
 export type PermissionState = 'Active' | 'Inactive';
 
@@ -382,14 +355,14 @@ export interface PersonPermission {
 export interface SubunitPermission {
   permissionId: string;
   subunitCode: string;
-  permission: SubunitPermissionType;
+  permissionScope: SubunitPermissionScope;
   grantDate: string;
 }
 
 export interface EntityRole {
   permissionId: string;
   nip: string;
-  permission: EntityStandardPermissionType;
+  role: EntityRoleType;
   canDelegate: boolean;
   grantDate: string;
 }
@@ -397,14 +370,14 @@ export interface EntityRole {
 export interface SubordinateEntityRole {
   permissionId: string;
   nip: string;
-  permission: IndirectEntityStandardPermissionType;
+  role: SubordinateEntityRoleType;
   canDelegate: boolean;
   grantDate: string;
 }
 
 export interface AuthorizationGrant {
   permissionId: string;
-  permission: AuthorizationPermissionType;
+  authorizationScope: InvoicePermissionType;
   grantDate: string;
 }
 

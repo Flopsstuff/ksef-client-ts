@@ -1,0 +1,645 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "KSeF API TE",
+    "version": "v2"
+  },
+  "paths": {
+    "/sessions/batch": {
+      "post": {
+        "tags": [
+          "Wysyłka wsadowa"
+        ],
+        "summary": "Otwarcie sesji wsadowej",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "formCode",
+                  "batchFile",
+                  "encryption"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/OpenBatchSessionRequest"
+                  }
+                ]
+              },
+              "example": {
+                "formCode": {
+                  "systemCode": "FA (2)",
+                  "schemaVersion": "1-0E",
+                  "value": "FA"
+                },
+                "batchFile": {
+                  "fileSize": 16037,
+                  "fileHash": "WO86CC+1Lef11wEosItld/NPwxGN8tobOMLqk9PQjgs=",
+                  "fileParts": [
+                    {
+                      "ordinalNumber": 1,
+                      "fileSize": 16048,
+                      "fileHash": "23ZyDAN0H/+yhC/En2xbNfF0tajAWSfejDaXD7fc2AE="
+                    }
+                  ]
+                },
+                "encryption": {
+                  "encryptedSymmetricKey": "bYqmPAglF01AxZim4oNa+1NerhZYfFgLMnvksBprUur1aesQ0Y5jsmOIfCrozfMkF2tjdO+uOsBg4FPlDgjChwN2/tz2Hqwtxq3RkTr1SjY4x8jxJFpPedcS7EI+XO8C+i9mLj7TFx9p/bg07yM9vHtMAk5b88Ay9Qc3+T5Ch1DM2ClR3sVu2DqdlKzmbINY+rhfGtXn58Qo0XRyESGgc6M0iTZVBRPuPXLnD8a1KpOneCpNzLwxgT6Ei3ivLOpPWT53PxkRTaQ8puj6CIiCKo4FHQzHuI/NmrAhYU7TkNm2kymP/OxBgWdg3XB74tqNFfT8RZN1bZXuPhBidDOqa+xsqY3E871FSDmQwZf58HmoNl31XNvpnryiRGfnAISt+m+ELqgksAresVu6E9poUL1yiff+IOHSZABoYpNiqwnbT8qyW1uk8lKLyFVFu+kOsbzBk1OWWHqSkNFDaznDa2MKjHonOXI0uyKaKWvoBFC4dWN1PVumfpSSFAeYgNpAyVrZdcVOuiliEWepTDjGzJoOafTvwr5za2S6B5bPECDpX7JXazV7Olkq7ezG0w8y3olx+0C+NHoCk8B5/cm4gtVHTgKjiLSGpKJVOJABLXFkOyIOjbQsVe4ryX0Qy+SfL7JIQvTWvM5xkCoOMbzLdMo9tNo5qE34sguFI+lIevY=",
+                  "initializationVector": "jWpJLNBHJ5pQEGCBglmIAw=="
+                },
+                "offlineMode": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenBatchSessionResponse"
+                },
+                "example": {
+                  "referenceNumber": "20250626-SB-213D593000-4DE10D80A5-E9",
+                  "partUploadRequests": [
+                    {
+                      "ordinalNumber": 1,
+                      "method": "PUT",
+                      "url": "https://ksef-api-storage/storage/00/20250626-sb-213d593000-4de10d80a5-e9/batch-parts/1?skoid=1ad7cfe8-2cb2-406b-b96c-6eefb55794db&sktid=647754c7-3974-4442-a425-c61341b61c69&skt=2025-06-26T09%3A40%3A54Z&ske=2025-06-26T10%3A10%3A54Z&sks=b&skv=2025-01-05&sv=2025-01-05&se=2025-06-26T10%3A10%3A54Z&sr=b&sp=w&sig=8mKZEU8Reuz%2Fn7wHi4T%2FY8BzLeD5l8bR2xJsBxIgDEY%3D",
+                      "headers": {
+                        "x-ms-blob-type": "BlockBlob"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 200,
+          "perHour": 600
+        },
+        "x-required-permissions": [
+          "InvoiceWrite",
+          "EnforcementOperations"
+        ]
+      }
+    },
+    "/sessions/batch/{referenceNumber}/close": {
+      "post": {
+        "tags": [
+          "Wysyłka wsadowa"
+        ],
+        "summary": "Zamknięcie sesji wsadowej",
+        "parameters": [
+          {
+            "name": "referenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 200,
+          "perHour": 600
+        },
+        "x-required-permissions": [
+          "InvoiceWrite",
+          "EnforcementOperations"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BatchFileInfo": {
+        "required": [
+          "fileHash",
+          "fileParts",
+          "fileSize"
+        ],
+        "type": "object",
+        "properties": {
+          "fileSize": {
+            "maximum": 5000000000,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int64"
+          },
+          "fileHash": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Sha256HashBase64"
+              }
+            ]
+          },
+          "fileParts": {
+            "maxItems": 50,
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BatchFilePartInfo"
+            }
+          }
+        }
+      },
+      "BatchFilePartInfo": {
+        "required": [
+          "fileHash",
+          "fileSize",
+          "ordinalNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "ordinalNumber": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "fileSize": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int64"
+          },
+          "fileHash": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Sha256HashBase64"
+              }
+            ]
+          }
+        }
+      },
+      "EncryptionInfo": {
+        "required": [
+          "encryptedSymmetricKey",
+          "initializationVector"
+        ],
+        "type": "object",
+        "properties": {
+          "encryptedSymmetricKey": {
+            "type": "string",
+            "format": "byte"
+          },
+          "initializationVector": {
+            "type": "string",
+            "format": "byte"
+          }
+        }
+      },
+      "ExceptionDetails": {
+        "type": "object",
+        "properties": {
+          "exceptionCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "exceptionDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "ExceptionInfo": {
+        "type": "object",
+        "properties": {
+          "exceptionDetailList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExceptionDetails"
+            },
+            "nullable": true
+          },
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ],
+            "nullable": true
+          },
+          "serviceCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceCtx": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ExceptionResponse": {
+        "type": "object",
+        "properties": {
+          "exception": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExceptionInfo"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "example": {
+          "exception": {
+            "exceptionDetailList": [
+              {
+                "exceptionCode": 12345,
+                "exceptionDescription": "Opis błędu.",
+                "details": [
+                  "Opcjonalne dodatkowe szczegóły błędu."
+                ]
+              }
+            ],
+            "referenceNumber": "a1b2c3d4-e5f6-4789-ab12-cd34ef567890",
+            "serviceCode": "00-c02cc3747020c605be02159bf3324f0e-eee7647dc67aa74a-00",
+            "serviceCtx": "srvABCDA",
+            "serviceName": "Undefined",
+            "timestamp": "2025-10-11T12:23:56.0154302"
+          }
+        }
+      },
+      "ForbiddenProblemDetails": {
+        "required": [
+          "detail",
+          "reasonCode",
+          "status",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "reasonCode": {
+            "type": "string"
+          },
+          "security": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "title": "Forbidden",
+          "status": 403,
+          "detail": "Brak wymaganych uprawnień do wykonania operacji w bieżącym kontekście.",
+          "reasonCode": "missing-permissions",
+          "security": {
+            "requiredAnyOfPermissions": [
+              "InvoiceRead",
+              "InvoiceWrite"
+            ],
+            "presentPermissions": [
+              "CredentialsManage"
+            ]
+          }
+        }
+      },
+      "FormCode": {
+        "required": [
+          "schemaVersion",
+          "systemCode",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "systemCode": {
+            "type": "string"
+          },
+          "schemaVersion": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "OpenBatchSessionRequest": {
+        "required": [
+          "batchFile",
+          "encryption",
+          "formCode"
+        ],
+        "type": "object",
+        "properties": {
+          "formCode": {
+            "required": [
+              "systemCode",
+              "schemaVersion",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FormCode"
+              }
+            ]
+          },
+          "batchFile": {
+            "required": [
+              "fileSize",
+              "fileHash",
+              "fileParts"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BatchFileInfo"
+              }
+            ]
+          },
+          "encryption": {
+            "required": [
+              "encryptedSymmetricKey",
+              "initializationVector"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EncryptionInfo"
+              }
+            ]
+          },
+          "offlineMode": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "OpenBatchSessionResponse": {
+        "required": [
+          "partUploadRequests",
+          "referenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ]
+          },
+          "partUploadRequests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartUploadRequest"
+            }
+          }
+        }
+      },
+      "PartUploadRequest": {
+        "required": [
+          "headers",
+          "method",
+          "ordinalNumber",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "ordinalNumber": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "method": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        }
+      },
+      "ReferenceNumber": {
+        "maxLength": 36,
+        "minLength": 36,
+        "type": "string"
+      },
+      "RetryAfter": {
+        "type": "integer",
+        "format": "int32",
+        "example": 30
+      },
+      "Sha256HashBase64": {
+        "maxLength": 44,
+        "minLength": 44,
+        "type": "string",
+        "format": "byte"
+      },
+      "TooManyRequestsResponse": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "required": [
+              "code",
+              "description",
+              "details"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "integer"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "status": {
+            "code": 429,
+            "details": [
+              "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
+            ]
+          }
+        }
+      },
+      "UnauthorizedProblemDetails": {
+        "required": [
+          "detail",
+          "status",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "title": "Unauthorized",
+          "status": 401,
+          "detail": "Wymagane jest uwierzytelnienie."
+        }
+      }
+    }
+  }
+}

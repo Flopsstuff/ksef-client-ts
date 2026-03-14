@@ -1,7 +1,9 @@
 import { consola } from 'consola';
 import { KSeFApiError } from '../errors/ksef-api-error.js';
 import { KSeFRateLimitError } from '../errors/ksef-rate-limit-error.js';
-import type { ApiErrorResponse } from '../errors/types.js';
+import { KSeFUnauthorizedError } from '../errors/ksef-unauthorized-error.js';
+import { KSeFForbiddenError } from '../errors/ksef-forbidden-error.js';
+import type { ApiErrorResponse, UnauthorizedProblemDetails, ForbiddenProblemDetails } from '../errors/types.js';
 import type { ResolvedOptions } from '../config/options.js';
 import { RouteBuilder } from './route-builder.js';
 import { type RestRequest } from './rest-request.js';
@@ -76,21 +78,34 @@ export class RestClient {
   private async ensureSuccess(response: Response): Promise<void> {
     if (response.ok) return;
 
-    let errorBody: ApiErrorResponse | undefined;
-    try {
-      errorBody = (await response.json()) as ApiErrorResponse;
-    } catch {
-      // body not parseable as JSON — leave undefined
-    }
+    const text = await response.text().catch(() => '');
+
+    const parseJson = <T>(): T | undefined => {
+      try { return JSON.parse(text) as T; } catch { return undefined; }
+    };
 
     if (response.status === 429) {
       throw KSeFRateLimitError.fromRetryAfterHeader(
         response.status,
         response.headers.get('Retry-After'),
-        errorBody,
+        parseJson<ApiErrorResponse>(),
       );
     }
 
-    throw KSeFApiError.fromResponse(response.status, errorBody);
+    if (response.status === 401) {
+      const body = parseJson<UnauthorizedProblemDetails>();
+      if (body?.detail) {
+        throw new KSeFUnauthorizedError(body);
+      }
+    }
+
+    if (response.status === 403) {
+      const body = parseJson<ForbiddenProblemDetails>();
+      if (body?.reasonCode) {
+        throw new KSeFForbiddenError(body);
+      }
+    }
+
+    throw KSeFApiError.fromResponse(response.status, parseJson<ApiErrorResponse>());
   }
 }

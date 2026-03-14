@@ -45,7 +45,7 @@ export interface AuthenticationOperationStatusResponse {
   refreshTokenValidUntil?: string;
 }
 
-export type SubjectIdentifierType = 'certificateSubject' | 'certificateFingerprint';
+export type SubjectIdentifierType = 'Nip' | 'Pesel' | 'Fingerprint';
 
 export interface AllowedIps {
   ip4Addresses?: string[];
@@ -70,3 +70,12 @@ export interface AuthKsefTokenRequest {
   encryptedToken: string;
   authorizationPolicy?: AuthorizationPolicy;
 }
+
+export type AuthenticationMethod =
+  | 'Token'
+  | 'TrustedProfile'
+  | 'InternalCertificate'
+  | 'QualifiedSignature'
+  | 'QualifiedSeal'
+  | 'PersonalSignature'
+  | 'PeppolSignature';

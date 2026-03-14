@@ -111,3 +111,5 @@ export interface QueryCertificatesResponse {
 export interface CertificateRevokeRequest {
   reason?: string;
 }
+
+export type CertificateRevocationReason = 'Unspecified' | 'Superseded' | 'KeyCompromise';

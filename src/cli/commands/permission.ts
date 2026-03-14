@@ -368,13 +368,13 @@ const search = defineCommand({
             response.permissions.map((p) => ({
               id: p.permissionId,
               subunitCode: p.subunitCode,
-              permission: p.permission,
+              permissionScope: p.permissionScope,
               grantDate: p.grantDate,
             })),
             [
               { key: 'id', label: 'ID' },
               { key: 'subunitCode', label: 'Subunit Code' },
-              { key: 'permission', label: 'Permission' },
+              { key: 'permissionScope', label: 'Permission' },
               { key: 'grantDate', label: 'Grant Date' },
             ],
             { json: false },
@@ -399,14 +399,14 @@ const search = defineCommand({
             response.roles.map((r) => ({
               id: r.permissionId,
               nip: r.nip,
-              permission: r.permission,
+              role: r.role,
               canDelegate: String(r.canDelegate),
               grantDate: r.grantDate,
             })),
             [
               { key: 'id', label: 'ID' },
               { key: 'nip', label: 'NIP' },
-              { key: 'permission', label: 'Permission' },
+              { key: 'role', label: 'Role' },
               { key: 'canDelegate', label: 'Can Delegate' },
               { key: 'grantDate', label: 'Grant Date' },
             ],
@@ -432,13 +432,13 @@ const search = defineCommand({
             response.permissions.map((p) => ({
               id: p.permissionId,
               nip: p.nip,
-              permission: p.permission,
+              role: p.role,
               grantDate: p.grantDate,
             })),
             [
               { key: 'id', label: 'ID' },
               { key: 'nip', label: 'NIP' },
-              { key: 'permission', label: 'Permission' },
+              { key: 'role', label: 'Role' },
               { key: 'grantDate', label: 'Grant Date' },
             ],
             { json: false },
@@ -463,13 +463,13 @@ const search = defineCommand({
             response.roles.map((r) => ({
               id: r.permissionId,
               nip: r.nip,
-              permission: r.permission,
+              role: r.role,
               grantDate: r.grantDate,
             })),
             [
               { key: 'id', label: 'ID' },
               { key: 'nip', label: 'NIP' },
-              { key: 'permission', label: 'Permission' },
+              { key: 'role', label: 'Role' },
               { key: 'grantDate', label: 'Grant Date' },
             ],
             { json: false },
@@ -494,12 +494,12 @@ const search = defineCommand({
           outputTable(
             response.authorizations.map((a) => ({
               id: a.permissionId,
-              permission: a.permission,
+              authorizationScope: a.authorizationScope,
               grantDate: a.grantDate,
             })),
             [
               { key: 'id', label: 'ID' },
-              { key: 'permission', label: 'Permission' },
+              { key: 'authorizationScope', label: 'Permission' },
               { key: 'grantDate', label: 'Grant Date' },
             ],
             { json: false },
