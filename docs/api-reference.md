@@ -799,8 +799,10 @@ Builds a `GrantPermissionsEntityRequest`.
 ```ts
 new EntityPermissionGrantBuilder()
   .withNip(nip: string)
-  .addPermission(permission: EntityStandardPermissionType, canDelegate?: boolean) // repeatable
-  .withPermissions(permissions: PermissionWithDelegate<EntityStandardPermissionType>[]) // or set all
+  .addPermission(type: EntityPermissionItemType, canDelegate?: boolean) // repeatable
+  .withPermissions(permissions: EntityPermission[])                     // or set all
+  .withDescription(description: string)
+  .withSubjectDetails(details: EntityDetails)
   .build(): GrantPermissionsEntityRequest
 ```
 
@@ -810,7 +812,7 @@ Builds a `GrantPermissionsAuthorizationRequest`.
 
 ```ts
 new AuthorizationPermissionGrantBuilder()
-  .withPermission(permission: AuthorizationPermissionType)
+  .withPermission(permission: EntityAuthorizationPermissionType)
   .build(): GrantPermissionsAuthorizationRequest
 ```
 
@@ -858,6 +860,30 @@ Extends `KSeFApiError`. Thrown on HTTP 429 responses (too many requests).
 static fromRetryAfterHeader(statusCode: number, retryAfterHeader?: string | null, body?: ApiErrorResponse): KSeFRateLimitError
 ```
 
+### KSeFUnauthorizedError
+
+Extends `KSeFError`. Thrown on HTTP 401 responses when the body matches `UnauthorizedProblemDetails`.
+
+| Field      | Type      | Description                      |
+| ---------- | --------- | -------------------------------- |
+| `statusCode` | `401`  | Always 401                       |
+| `detail`   | `string`  | Error detail from the API        |
+| `traceId`  | `string?` | Trace ID for debugging           |
+| `instance` | `string?` | Request instance identifier      |
+
+### KSeFForbiddenError
+
+Extends `KSeFError`. Thrown on HTTP 403 responses when the body matches `ForbiddenProblemDetails`.
+
+| Field        | Type                  | Description                          |
+| ------------ | --------------------- | ------------------------------------ |
+| `statusCode` | `403`                 | Always 403                           |
+| `detail`     | `string`              | Error detail from the API            |
+| `reasonCode` | `ForbiddenReasonCode` | One of: `missing-permissions`, `ip-not-allowed`, `insufficient-resource-access`, `auth-method-not-allowed`, `security-service-blocked` |
+| `instance`   | `string?`             | Request instance identifier          |
+| `security`   | `Record<string, unknown>?` | Additional security context    |
+| `traceId`    | `string?`             | Trace ID for debugging               |
+
 ### ApiErrorResponse
 
 ```ts
@@ -868,13 +894,14 @@ interface ApiErrorResponse {
     serviceName?: string;
     timestamp?: string;
     referenceNumber?: string;
-    exceptionDetailList?: ExceptionDetail[];
+    exceptionDetailList?: ExceptionDetails[];
   };
 }
 
-interface ExceptionDetail {
-  exceptionDetailCode: number;
+interface ExceptionDetails {
+  exceptionCode: number;
   exceptionDescription: string;
+  details?: string[];
 }
 ```
 
@@ -925,13 +952,17 @@ interface ValidationDetail {
 
 ```
 Error
-  └── KSeFError                    // base class for all library errors
-        ├── KSeFApiError           // HTTP API errors (non-2xx)
-        │     └── KSeFRateLimitError   // HTTP 429 (too many requests)
-        ├── KSeFAuthStatusError    // auth operation failed/timed out
-        ├── KSeFSessionExpiredError // stored session expired
-        └── KSeFValidationError    // client-side validation failed
+  └── KSeFError                       // base class for all library errors
+        ├── KSeFApiError              // HTTP API errors (non-2xx, generic)
+        │     └── KSeFRateLimitError  // HTTP 429 (too many requests)
+        ├── KSeFUnauthorizedError     // HTTP 401 (unauthorized)
+        ├── KSeFForbiddenError        // HTTP 403 (forbidden)
+        ├── KSeFAuthStatusError       // auth operation failed/timed out
+        ├── KSeFSessionExpiredError   // stored session expired
+        └── KSeFValidationError       // client-side validation failed
 ```
+
+`RestClient.ensureSuccess` dispatches errors in order: 429 → 401 → 403 → generic `KSeFApiError`.
 
 ---
 

@@ -35,7 +35,7 @@ Services (src/services/*.ts)
   └── use RestClient.execute<T>() with RestRequest builders + Routes constants
 
 HTTP layer (src/http/)
-  ├── RestClient — wraps native fetch, handles errors, JSON, auth headers
+  ├── RestClient — wraps native fetch, handles errors (429/401/403), JSON, auth headers
   ├── RestRequest — fluent builder (method, path, body, headers, query)
   ├── RouteBuilder — prepends /v2/ version prefix
   └── Routes — all API endpoint paths as const object
@@ -59,15 +59,25 @@ Crypto layer (src/crypto/)
 
 - `CertificateApiService` (src/services/) — API CRUD for certificate enrollment. Named with "Api" suffix to avoid collision with `CertificateService` (src/crypto/) which handles self-signed cert generation.
 - `InvoiceFilterInvoicingMode` (not `InvoicingMode`) — avoids collision with session types.
-- `PermissionSubjectIdentifierType` (not `SubjectIdentifierType`) — avoids collision with auth types.
+- `PermissionSubjectIdentifierType` (not `SubjectIdentifierType`) — avoids collision with auth types. Note: both now use `'Nip' | 'Pesel' | 'Fingerprint'` values (aligned with OpenAPI spec).
 
 ### Environment variables
 
 `KSEF_TOKEN` and `KSEF_NIP` are set in the current shell environment. Use them for CLI login: `ksef auth login --token "$KSEF_TOKEN" --nip "$KSEF_NIP" --env prod`.
 
+### OpenAPI spec
+
+`docs/open-api.json` is the KSeF API OpenAPI specification (source of truth). Per-domain chunks in `docs/openapi-chunks/` (16 files). Regenerate with `node scripts/split-openapi.mjs`.
+
+### Error hierarchy
+
+`KSeFError` (base) → `KSeFApiError` (generic HTTP), `KSeFUnauthorizedError` (401), `KSeFForbiddenError` (403), `KSeFRateLimitError` (429), `KSeFAuthStatusError`, `KSeFSessionExpiredError`, `KSeFValidationError` (builder validation).
+
+`RestClient.ensureSuccess` reads body text once, then parses per status code (429→401→403→generic).
+
 ### Reference implementations
 
-`ref/` directory (gitignored) contains Java (`ref/ksef-client-java`), C# (`ref/ksef-client-csharp`), official docs (`ref/ksef-docs`), and translations (`ref/ksef-docs-translated`). Consult these when implementing new features or verifying API behavior.
+`ref/` directory (gitignored) contains Java (`ref/ksef-client-java`), C# (`ref/ksef-client-csharp`), TS refs (`ref/ksef-client-typescript`, `ref/ksef-client-ts`), official docs (`ref/ksef-docs`), and translations (`ref/ksef-docs-translated`). See `ref/ref-index.md` for full index.
 
 ### WebCrypto typing quirk
 
