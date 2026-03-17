@@ -6,6 +6,7 @@ export class RestRequest {
   private _body?: unknown;
   private _headers: Record<string, string> = {};
   private _query: [string, string][] = [];
+  private _presigned = false;
 
   private constructor(method: HttpMethod, path: string) {
     this.method = method;
@@ -51,6 +52,15 @@ export class RestRequest {
   query(key: string, value: string): this {
     this._query.push([key, value]);
     return this;
+  }
+
+  presigned(flag = true): this {
+    this._presigned = flag;
+    return this;
+  }
+
+  isPresigned(): boolean {
+    return this._presigned;
   }
 
   getBody(): unknown | undefined {

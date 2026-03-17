@@ -1,4 +1,7 @@
 import { Environment, type EnvironmentConfig, type EnvironmentName } from './environments.js';
+import type { TransportFn } from '../http/transport.js';
+import type { RetryPolicy } from '../http/retry-policy.js';
+import type { RateLimitConfig } from '../http/rate-limit-policy.js';
 
 export interface KSeFClientOptions {
   environment?: EnvironmentName;
@@ -8,6 +11,10 @@ export interface KSeFClientOptions {
   apiVersion?: string;
   timeout?: number;
   customHeaders?: Record<string, string>;
+  transport?: TransportFn;
+  retry?: Partial<RetryPolicy>;
+  rateLimit?: Partial<RateLimitConfig> | null;
+  presignedUrlHosts?: string[];
 }
 
 export interface ResolvedOptions {
