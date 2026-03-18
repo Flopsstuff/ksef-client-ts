@@ -52,3 +52,14 @@ jobs:
           ];
           require('fs').appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n'));
           "
+
+      - name: Update coverage badge
+        if: matrix.node-version == 20 && github.ref == 'refs/heads/main' && success()
+        run: |
+          COVERAGE=$(node -e "console.log(require('./coverage/coverage-summary.json').total.lines.pct)")
+          COLOR=$([[ $(echo "$COVERAGE >= 80" | bc) == 1 ]] && echo "brightgreen" || ([[ $(echo "$COVERAGE >= 60" | bc) == 1 ]] && echo "yellow" || echo "red"))
+          curl -s -X PATCH \
+            -H "Authorization: token ${{ secrets.GIST_SECRET }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/gists/${{ secrets.GIST_ID }} \
+            -d "{\"files\":{\"ksef-client-ts-coverage.json\":{\"content\":\"{\\\"schemaVersion\\\":1,\\\"label\\\":\\\"coverage\\\",\\\"message\\\":\\\"${COVERAGE}%\\\",\\\"color\\\":\\\"${COLOR}\\\"}\"}}}"
