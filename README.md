@@ -60,7 +60,7 @@ yarn test         # Run all tests (vitest)
 ## Status
 
 [![Unit Tests](https://github.com/Flopsstuff/ksef-client-ts/actions/workflows/test.yml/badge.svg)](https://github.com/Flopsstuff/ksef-client-ts/actions/workflows/test.yml)
-![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Fl0p/1558034ac67a11548c7f8f0c05e8d4c0/raw/ksef-client-ts-coverage.json)
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Fl0p/1558034ac67a11548c7f8f0c05e8d4c0/raw/ksef-client-ts-coverage.json&cacheSeconds=300)
 
 ## License
 
