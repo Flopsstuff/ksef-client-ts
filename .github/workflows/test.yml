@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Type check
+        run: yarn lint
+
+      - name: Build
+        run: yarn build
+
+      - name: Run tests with coverage
+        run: yarn test --coverage
+
+      - name: Coverage summary
+        if: matrix.node-version == 20 && always()
+        run: |
+          node -e "
+          const r = require('./coverage/coverage-summary.json').total;
+          const fmt = (m) => m.pct + '%';
+          const lines = [
+            '## Coverage Summary',
+            '',
+            '| Metric | Coverage |',
+            '|--------|----------|',
+            '| Statements | ' + fmt(r.statements) + ' |',
+            '| Branches | ' + fmt(r.branches) + ' |',
+            '| Functions | ' + fmt(r.functions) + ' |',
+            '| Lines | ' + fmt(r.lines) + ' |',
+          ];
+          require('fs').appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n'));
+          "

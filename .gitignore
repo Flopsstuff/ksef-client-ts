@@ -1,6 +1,7 @@
 ref/
 node_modules/
 dist/
+coverage/
 *.tsbuildinfo
 .yarn/*
 !.yarn/patches

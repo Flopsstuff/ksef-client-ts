@@ -2,32 +2,33 @@
 
 ## Overview
 
-Current state: 19 unit tests (QR) + 2 e2e tests (cert-auth). Target: comprehensive coverage across all modules.
+Current state: **301 tests** (299 unit + 2 e2e), all passing. Target: comprehensive coverage across all modules.
 
 Tests live in `tests/` with vitest (globals enabled). Run with `yarn test`.
 
 ```
 tests/
 ├── unit/
-│   ├── validation/          # Pure regex/function tests
-│   ├── errors/              # Error classes & factories
-│   ├── config/              # Environment URLs, option resolver
-│   ├── http/                # RestClient, RestRequest, RouteBuilder
-│   ├── builders/            # Fluent builder validation
-│   ├── crypto/              # AES, RSA, XAdES, certificates
-│   ├── services/            # All 13 services (mocked RestClient)
-│   └── qr/                  # (already done — 19 tests)
+│   ├── validation/          # ✅ DONE — 77 tests (patterns + constraints)
+│   ├── errors/              # ✅ DONE — 43 tests (all 7 error classes)
+│   ├── config/              # ✅ DONE — 16 tests (environments + options)
+│   ├── http/                # ✅ DONE — 105 tests (rest-client, rest-request, transport, retry, rate-limit, presigned-url, auth-manager)
+│   ├── builders/            # ✅ DONE — 37 tests (auth-token, auth-ksef-token, invoice-query, permissions)
+│   ├── crypto/              # Not started
+│   ├── services/            # Not started
+│   ├── qr/                  # ✅ DONE — 19 tests
+│   └── client.test.ts       # Partial — 4 tests (missing login/logout flows)
 └── e2e/
-    └── cert-auth.test.ts    # (already done — 2 tests)
+    └── cert-auth.test.ts    # ✅ DONE — 2 tests
 ```
 
 ---
 
 ## Unit Tests
 
-### 1. Validation (`tests/unit/validation/`)
+### 1. Validation (`tests/unit/validation/`) — ✅ DONE (77 tests)
 
-**File:** `patterns.test.ts`
+**File:** `patterns.test.ts` (70 tests)
 **Complexity:** Simple | **Mocking:** None
 
 | Test | What to verify |
@@ -45,18 +46,16 @@ tests/
 | Base64String | Valid/invalid base64 |
 | IPv4 patterns | Address, range, mask formats |
 
-**File:** `validators.test.ts`
+**File:** `constraints.test.ts` (7 tests)
 **Complexity:** Simple | **Mocking:** None
 
-All `isValid*()` functions: true for valid input, false for invalid, false for empty/null.
-
-**Estimate:** ~50 tests
+All constraint constants verified (REQUIRED_CHALLENGE_LENGTH, CERTIFICATE_NAME_*, SUBUNIT_NAME_*, PERMISSION_DESCRIPTION_*).
 
 ---
 
-### 2. Errors (`tests/unit/errors/`)
+### 2. Errors (`tests/unit/errors/`) — ✅ DONE (43 tests)
 
-**File:** `ksef-api-error.test.ts`
+**File:** `ksef-api-error.test.ts` (6 tests)
 **Complexity:** Simple | **Mocking:** None
 
 | Test | What to verify |
@@ -67,7 +66,7 @@ All `isValid*()` functions: true for valid input, false for invalid, false for e
 | `fromResponse()` with empty details | Handles gracefully |
 | instanceof Error | Proper prototype chain |
 
-**File:** `ksef-rate-limit-error.test.ts`
+**File:** `ksef-rate-limit-error.test.ts` (8 tests)
 **Complexity:** Simple | **Mocking:** None
 
 | Test | What to verify |
@@ -78,13 +77,17 @@ All `isValid*()` functions: true for valid input, false for invalid, false for e
 | `recommendedDelay` getter | Computed from seconds or date |
 | extends KSeFApiError | Proper inheritance |
 
-**Estimate:** ~12 tests
+**File:** `ksef-error.test.ts` (14 tests) — hierarchy, KSeFValidationError, KSeFAuthStatusError, KSeFSessionExpiredError
+
+**File:** `ksef-unauthorized-error.test.ts` (5 tests) — construction, fields, fallback, inheritance
+
+**File:** `ksef-forbidden-error.test.ts` (10 tests) — construction, fields, all 5 reason codes, inheritance
 
 ---
 
-### 3. Config (`tests/unit/config/`)
+### 3. Config (`tests/unit/config/`) — ✅ DONE (16 tests)
 
-**File:** `environments.test.ts`
+**File:** `environments.test.ts` (8 tests)
 **Complexity:** Simple | **Mocking:** None
 
 | Test | What to verify |
@@ -94,7 +97,7 @@ All `isValid*()` functions: true for valid input, false for invalid, false for e
 | PRD env URLs | api (no suffix), qr, latarnia domains |
 | All use HTTPS | No HTTP URLs |
 
-**File:** `options.test.ts`
+**File:** `options.test.ts` (8 tests)
 **Complexity:** Simple | **Mocking:** None
 
 | Test | What to verify |
@@ -106,13 +109,11 @@ All `isValid*()` functions: true for valid input, false for invalid, false for e
 | Custom headers | Merged into result |
 | apiVersion override | Changes version prefix |
 
-**Estimate:** ~12 tests
-
 ---
 
-### 4. HTTP Layer (`tests/unit/http/`)
+### 4. HTTP Layer (`tests/unit/http/`) — ✅ DONE (105 tests)
 
-**File:** `rest-request.test.ts`
+**File:** `rest-request.test.ts` (4 tests)
 **Complexity:** Simple | **Mocking:** None
 
 | Test | What to verify |
@@ -138,7 +139,7 @@ All `isValid*()` functions: true for valid input, false for invalid, false for e
 | Custom version `v3` | Returns `/v3/...` |
 | Version override per-call | Per-call takes precedence |
 
-**File:** `rest-client.test.ts`
+**File:** `rest-client.test.ts` (21 tests)
 **Complexity:** Medium | **Mocking:** `global.fetch`
 
 | Test | What to verify |
@@ -156,22 +157,23 @@ All `isValid*()` functions: true for valid input, false for invalid, false for e
 | Timeout | AbortSignal fires, throws error |
 | Non-JSON error body | Still throws KSeFApiError |
 
-**File:** `routes.test.ts`
-**Complexity:** Simple | **Mocking:** None
+**File:** `transport.test.ts` (2 tests) — TransportFn wrapping
 
-| Test | What to verify |
-|------|----------------|
-| Static routes are strings | `Routes.Auth.challenge === "auth/challenge"` |
-| Dynamic routes are functions | `Routes.Auth.status("ref123")` returns `"auth/ref123"` |
-| All route groups exist | Auth, Sessions, Invoices, Permissions, etc. |
+**File:** `retry-policy.test.ts` (31 tests) — retry logic, backoff, max retries
 
-**Estimate:** ~35 tests
+**File:** `rate-limit-policy.test.ts` (8 tests) — token bucket, per-endpoint limits, concurrency
+
+**File:** `presigned-url-policy.test.ts` (26 tests) — presigned URL detection and bypass
+
+**File:** `auth-manager.test.ts` (13 tests) — token storage, 401 refresh, header injection
+
+Note: `route-builder.test.ts` and `routes.test.ts` from original plan not yet created (low priority — routes are tested indirectly via rest-client and service tests).
 
 ---
 
-### 5. Builders (`tests/unit/builders/`)
+### 5. Builders (`tests/unit/builders/`) — ✅ DONE (37 tests)
 
-**File:** `auth-token-request.test.ts`
+**File:** `auth-token-request.test.ts` (7 tests)
 **Complexity:** Simple | **Mocking:** None
 
 | Test | What to verify |
@@ -185,7 +187,7 @@ All `isValid*()` functions: true for valid input, false for invalid, false for e
 | `build()` without context | Throws |
 | `build()` without subjectType | Throws |
 
-**File:** `auth-ksef-token-request.test.ts`
+**File:** `auth-ksef-token-request.test.ts` (5 tests)
 **Complexity:** Simple | **Mocking:** None
 
 | Test | What to verify |
@@ -194,7 +196,7 @@ All `isValid*()` functions: true for valid input, false for invalid, false for e
 | `build()` without encryptedToken | Throws |
 | `build()` without challenge | Throws |
 
-**File:** `invoice-query-filter.test.ts`
+**File:** `invoice-query-filter.test.ts` (6 tests)
 **Complexity:** Simple | **Mocking:** None
 
 | Test | What to verify |
@@ -205,7 +207,7 @@ All `isValid*()` functions: true for valid input, false for invalid, false for e
 | `build()` without dateRange | Throws |
 | Date range types | PermanentStorage, InvoicingDate |
 
-**File:** `permission-builders.test.ts`
+**File:** `permissions.test.ts` (19 tests)
 **Complexity:** Simple | **Mocking:** None
 
 | Test | What to verify |
@@ -217,8 +219,6 @@ All `isValid*()` functions: true for valid input, false for invalid, false for e
 | EntityPermissionGrantBuilder missing NIP | Throws |
 | AuthorizationPermissionGrantBuilder valid | Full build |
 | AuthorizationPermissionGrantBuilder missing fields | Throws |
-
-**Estimate:** ~25 tests
 
 ---
 
@@ -350,23 +350,22 @@ E2e tests run against KSeF TEST environment. They require network access and are
 
 ## Summary
 
-| Category | Files | Est. Tests | Priority |
-|----------|-------|------------|----------|
-| Validation | 2 | ~50 | High (pure, easy) |
-| Errors | 2 | ~12 | High (pure, easy) |
-| Config | 2 | ~12 | High (pure, easy) |
-| HTTP | 4 | ~35 | High (core infra) |
-| Builders | 4 | ~25 | Medium |
-| Crypto | 4 | ~30 | Medium (complex) |
-| Services | 13 | ~80 | Low (boilerplate) |
-| KSeFClient | 1 | ~7 | High (login/logout) |
-| **Total** | **32** | **~251** | |
+| Category | Files | Tests | Status |
+|----------|-------|-------|--------|
+| Validation | 2 | 77 | ✅ Done |
+| Errors | 5 | 43 | ✅ Done |
+| Config | 2 | 16 | ✅ Done |
+| HTTP | 7 | 105 | ✅ Done |
+| Builders | 4 | 37 | ✅ Done |
+| QR | 3 | 19 | ✅ Done |
+| KSeFClient | 1 | 4 | Partial (missing login/logout) |
+| Crypto | 0 | 0 | Not started |
+| Services | 0 | 0 | Not started |
+| E2E | 1 | 2 | ✅ Done (cert-auth) |
+| **Total** | **25** | **301** | |
 
-### Recommended order
+### Remaining work
 
-1. **Validation + Errors + Config** — pure functions, no mocking, fast to write
-2. **HTTP layer** — core infrastructure, needs fetch mock
-3. **Builders** — pure validation logic
-4. **Crypto** — complex but critical, real crypto (no mocks except CertificateFetcher)
-5. **KSeFClient** — login/logout flows, mocked services
-6. **Services** — highest volume, repetitive pattern (mocked RestClient)
+1. **Crypto** — complex but critical, real crypto (no mocks except CertificateFetcher). ~30 tests.
+2. **KSeFClient** — login/logout flows, mocked services. ~7 tests.
+3. **Services** — highest volume, repetitive pattern (mocked RestClient). ~80 tests.
