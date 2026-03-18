@@ -384,7 +384,7 @@ const active = defineCommand({
         result.items.map((s) => ({
           reference: s.referenceNumber,
           startDate: s.startDate,
-          authMethod: s.authenticationMethodInfo?.method ?? s.authenticationMethod ?? 'N/A',
+          authMethod: s.authenticationMethodInfo?.category ?? 'N/A',
           status: `${s.status.code} — ${s.status.description}`,
           isCurrent: s.isCurrent ? 'Yes' : 'No',
         })),
