@@ -2,7 +2,7 @@
 
 ## Overview
 
-Current state: **321 tests** (319 unit + 2 e2e), all passing. Target: comprehensive coverage across all modules.
+Current state: **323 tests** (321 unit + 2 e2e), all passing. Target: comprehensive coverage across all modules.
 
 Tests live in `tests/` with vitest (globals enabled). Run with `yarn test`.
 
@@ -16,6 +16,7 @@ tests/
 │   ├── builders/            # ✅ DONE — 37 tests (auth-token, auth-ksef-token, invoice-query, permissions)
 │   ├── crypto/              # Not started
 │   ├── services/            # Not started
+│   ├── cli/                 # Not started — 6 files (~45 tests)
 │   ├── qr/                  # ✅ DONE — 19 tests
 │   └── client.test.ts       # ✅ DONE — 24 tests (construction, login/logout flows)
 └── e2e/
@@ -315,7 +316,149 @@ All services follow the same pattern: construct with RestClient, call methods th
 
 ---
 
-### 8. KSeFClient (`tests/unit/client.test.ts`) — ✅ DONE (24 tests)
+### 8. CLI Utilities (`tests/unit/cli/`) — Not started
+
+CLI commands (~3600 lines) are integration-heavy and out of scope. But five small utility modules (~250 lines total, 0% coverage) are easily unit-testable.
+
+**File:** `error-handler.test.ts`
+**Complexity:** Medium | **Mocking:** console/process.exit, error constructors
+
+| Test | What to verify |
+|------|----------------|
+| KSeFRateLimitError | Logs rate-limit message with retryAfter hint, exits 1 |
+| KSeFUnauthorizedError | Logs 401 message, suggests `ksef auth login` |
+| KSeFForbiddenError | Logs 403 with reason code |
+| KSeFApiError (generic) | Logs status + message |
+| Network errors (ECONNREFUSED) | Suggests `ksef doctor` |
+| Network errors (ETIMEDOUT) | Suggests `ksef doctor` |
+| Unknown Error | Logs generic fallback message |
+
+**File:** `output.test.ts`
+**Complexity:** Simple | **Mocking:** console
+
+| Test | What to verify |
+|------|----------------|
+| `outputResult()` JSON mode | Valid JSON to stdout |
+| `outputResult()` pretty mode | consola log called |
+| `outputTable()` JSON mode | JSON array output |
+| `outputTable()` pretty mode | cli-table3 rendered |
+| `outputTable()` empty rows | No crash, empty table |
+| `outputKeyValue()` | 2-column table or JSON |
+| `outputSuccess()` / `outputWarning()` | Correct log level |
+
+**File:** `client-factory.test.ts`
+**Complexity:** Medium | **Mocking:** config-store, session-store
+
+| Test | What to verify |
+|------|----------------|
+| `createClient()` default env | TEST environment |
+| `createClient()` explicit env flag | Flag takes precedence |
+| `createClient()` custom timeout | Timeout forwarded |
+| `requireSession()` valid session | Returns client + session, tokens hydrated |
+| `requireSession()` no session file | Throws with helpful message |
+| `requireSession()` expired session | Throws |
+| `requireOnlineSession()` no ref | Throws |
+| Verbose flag | Sets consola level |
+
+**File:** `session-store.test.ts`
+**Complexity:** Medium | **Mocking:** fs (or use tmp dir)
+
+| Test | What to verify |
+|------|----------------|
+| `saveSession()` + `loadSession()` roundtrip | Data preserved |
+| `saveSession()` file permissions | 0o600 |
+| `loadSession()` missing file | Returns null |
+| `loadSession()` invalid JSON | Returns null |
+| `clearSession()` | File removed |
+| `clearSession()` missing file | No throw |
+| `isSessionExpired()` future date | false |
+| `isSessionExpired()` past date | true |
+| `isSessionExpired()` no expiresAt | false |
+| `saveOnlineSessionRef()` | Ref appended to session |
+| `clearOnlineSessionRef()` | Ref removed, rest preserved |
+| `saveOnlineSessionRef()` no session | Throws |
+
+**File:** `config-store.test.ts`
+**Complexity:** Simple | **Mocking:** fs (or use tmp dir)
+
+| Test | What to verify |
+|------|----------------|
+| `saveConfig()` + `loadConfig()` roundtrip | Data preserved |
+| `loadConfig()` missing file | Returns defaults |
+| `loadConfig()` invalid JSON | Returns defaults |
+| `loadConfig()` partial config | Merged with defaults |
+| `resetConfig()` | Overwrites with DEFAULT_CONFIG |
+
+**File:** `types.test.ts`
+**Complexity:** Simple | **Mocking:** None
+
+| Test | What to verify |
+|------|----------------|
+| `toEnvironmentName('test')` | Returns 'TEST' |
+| `toEnvironmentName('demo')` | Returns 'DEMO' |
+| `toEnvironmentName('prod')` | Returns 'PRD' |
+| `DEFAULT_CONFIG` | Expected shape and values |
+| `CLI_ENV_CHOICES` | Contains test, demo, prod |
+
+**Estimate:** ~45 tests
+
+---
+
+### 9. Coverage Gaps (`tests/unit/`) — Not started
+
+Specific files with partial coverage not addressed by other sections.
+
+**File:** `http/rest-request.test.ts` (extend existing)
+**Current coverage:** 92.6% | Lines 26-27, 44-46 uncovered
+
+| Test | What to verify |
+|------|----------------|
+| `.contentType(type)` | Sets Content-Type header |
+| `.query(key, undefined)` | Skips undefined values |
+
+**File:** `http/rest-client.test.ts` (extend existing)
+**Current coverage:** 86% | Lines 187-192, 202-206 uncovered
+
+| Test | What to verify |
+|------|----------------|
+| `executeRaw()` error response | Throws KSeFApiError |
+| `ensureSuccess()` non-JSON body on error | Falls back to text message |
+| `ensureSuccess()` empty body on error | Generic error message |
+
+**File:** `http/routes.test.ts` (new)
+**Current coverage:** 89% | Parameterized route functions uncovered
+
+| Test | What to verify |
+|------|----------------|
+| `Routes.ActiveSessions.delete(ref)` | Correct interpolation |
+| `Routes.Authorization.status(ref)` | Correct interpolation |
+| `Routes.Sessions.byReference(ref)` | Correct interpolation |
+| `Routes.Sessions.invoices(ref)` | Correct interpolation |
+| `Routes.Sessions.upoByKsefNumber(ref, num)` | Correct interpolation |
+| `Routes.Permissions.Common.grantById(id)` | Correct interpolation |
+| `Routes.Certificates.enrollmentStatus(ref)` | Correct interpolation |
+| `Routes.Certificates.revoke(sn)` | Correct interpolation |
+
+**File:** `qr/qrcode-service.test.ts` (extend existing)
+**Current coverage:** 92.75% | Lines 42-46 uncovered
+
+| Test | What to verify |
+|------|----------------|
+| `generateQrCode()` with invalid input | Error handling branch |
+
+**File:** `builders/auth-ksef-token-request.test.ts` (extend existing)
+**Current coverage:** 88.5% | Validation throw branches
+
+| Test | What to verify |
+|------|----------------|
+| `build()` without context | Throws KSeFValidationError |
+| `build()` without subjectType | Throws KSeFValidationError |
+
+**Estimate:** ~18 tests
+
+---
+
+### 10. KSeFClient (`tests/unit/client.test.ts`) — ✅ DONE (24 tests)
 
 **Complexity:** Medium | **Mocking:** AuthService, CryptographyService, SignatureService (vi.mock + vi.spyOn)
 
@@ -354,10 +497,18 @@ E2e tests run against KSeF TEST environment. They require network access and are
 | KSeFClient | 1 | 24 | ✅ Done |
 | Crypto | 0 | 0 | Not started |
 | Services | 0 | 0 | Not started |
+| CLI Utilities | 0 | 0 | Not started |
+| Coverage Gaps | 0 | 0 | Not started |
 | E2E | 1 | 2 | ✅ Done (cert-auth) |
-| **Total** | **25** | **321** | |
+| **Total** | **25** | **323** | |
+
+### Coverage exclusions
+
+Barrel re-export files (`**/index.ts`), `src/http/rest-response.ts` (interface-only), and `src/errors/types.ts` (type-only) are excluded from coverage in `vitest.config.ts`. These contain no runtime logic and inflate uncovered line counts.
 
 ### Remaining work
 
 1. **Crypto** — complex but critical, real crypto (no mocks except CertificateFetcher). ~30 tests.
 2. **Services** — highest volume, repetitive pattern (mocked RestClient). ~80 tests.
+3. **CLI Utilities** — 5 small utility modules (~250 lines, 0% coverage), easy to unit-test. ~45 tests.
+4. **Coverage Gaps** — extend existing test files + new routes test to close partial coverage. ~18 tests.
