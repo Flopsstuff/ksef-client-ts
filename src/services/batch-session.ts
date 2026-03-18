@@ -12,11 +12,9 @@ export class BatchSessionService {
 
   async openSession(
     request: OpenBatchSessionRequest,
-    accessToken: string,
     upoVersion?: string,
   ): Promise<OpenBatchSessionResponse> {
     const req = RestRequest.post(Routes.Sessions.Batch.open)
-      .accessToken(accessToken)
       .body(request);
     if (upoVersion) {
       req.header('X-KSeF-Feature', upoVersion);
@@ -46,9 +44,8 @@ export class BatchSessionService {
     await Promise.all(tasks);
   }
 
-  async closeSession(batchRef: string, accessToken: string): Promise<void> {
-    const req = RestRequest.post(Routes.Sessions.Batch.close(batchRef))
-      .accessToken(accessToken);
+  async closeSession(batchRef: string): Promise<void> {
+    const req = RestRequest.post(Routes.Sessions.Batch.close(batchRef));
     await this.restClient.execute<void>(req);
   }
 }

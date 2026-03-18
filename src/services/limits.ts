@@ -10,23 +10,20 @@ export class LimitsService {
     this.restClient = restClient;
   }
 
-  async getContextLimits(accessToken: string): Promise<EffectiveContextLimits> {
-    const req = RestRequest.get(Routes.Limits.currentContext)
-      .accessToken(accessToken);
+  async getContextLimits(): Promise<EffectiveContextLimits> {
+    const req = RestRequest.get(Routes.Limits.currentContext);
     const response = await this.restClient.execute<EffectiveContextLimits>(req);
     return response.body;
   }
 
-  async getSubjectLimits(accessToken: string): Promise<EffectiveSubjectLimits> {
-    const req = RestRequest.get(Routes.Limits.currentSubject)
-      .accessToken(accessToken);
+  async getSubjectLimits(): Promise<EffectiveSubjectLimits> {
+    const req = RestRequest.get(Routes.Limits.currentSubject);
     const response = await this.restClient.execute<EffectiveSubjectLimits>(req);
     return response.body;
   }
 
-  async getRateLimits(accessToken: string): Promise<EffectiveApiRateLimits> {
-    const req = RestRequest.get(Routes.Limits.rateLimits)
-      .accessToken(accessToken);
+  async getRateLimits(): Promise<EffectiveApiRateLimits> {
+    const req = RestRequest.get(Routes.Limits.rateLimits);
     const response = await this.restClient.execute<EffectiveApiRateLimits>(req);
     return response.body;
   }

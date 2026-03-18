@@ -7,6 +7,7 @@ export class RestRequest {
   private _headers: Record<string, string> = {};
   private _query: [string, string][] = [];
   private _presigned = false;
+  private _skipAuthRetry = false;
 
   private constructor(method: HttpMethod, path: string) {
     this.method = method;
@@ -61,6 +62,15 @@ export class RestRequest {
 
   isPresigned(): boolean {
     return this._presigned;
+  }
+
+  skipAuthRetry(flag = true): this {
+    this._skipAuthRetry = flag;
+    return this;
+  }
+
+  isSkipAuthRetry(): boolean {
+    return this._skipAuthRetry;
   }
 
   getBody(): unknown | undefined {

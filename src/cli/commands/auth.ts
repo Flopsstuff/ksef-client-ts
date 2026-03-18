@@ -1,4 +1,3 @@
-import * as fs from 'node:fs';
 import { defineCommand } from 'citty';
 import { createClient, requireSession } from '../client-factory.js';
 import { saveSession, clearSession, loadSession, isSessionExpired } from '../session-store.js';
@@ -59,69 +58,27 @@ const login = defineCommand({
       }
 
       if (args.token) {
-        // Token auth flow: challenge -> encrypt -> submit -> get access token
-        const challengeResult = await client.auth.getChallenge();
-        await client.crypto.init();
-
-        const encryptedToken = client.crypto.encryptKsefToken(
-          args.token,
-          challengeResult.timestamp,
-        );
-
-        const submitResult = await client.auth.submitKsefTokenAuthRequest({
-          challenge: challengeResult.challenge,
-          contextIdentifier: { type: 'Nip', value: nip },
-          encryptedToken: Buffer.from(encryptedToken).toString('base64'),
-        });
-
-        const authToken = submitResult.authenticationToken.token;
-        const accessResult = await client.auth.getAccessToken(authToken);
-
-        const session: SessionData = {
-          accessToken: accessResult.accessToken.token,
-          refreshToken: accessResult.refreshToken?.token,
-          sessionRef: submitResult.referenceNumber,
-          expiresAt: accessResult.accessToken.validUntil,
-          environment: (args.env ?? config.environment) as SessionData['environment'],
-        };
-        saveSession(session);
-        if (args.env && args.env !== config.environment) {
-          saveConfig({ ...config, environment: session.environment });
-        }
-        outputSuccess(`Logged in successfully. Session ref: ${session.sessionRef ?? 'N/A'}`);
+        await client.loginWithToken(args.token, nip);
       } else if (args.cert && args.key) {
-        // XAdES cert auth flow
+        const fs = await import('node:fs');
         const certPem = fs.readFileSync(args.cert, 'utf-8');
         const keyPem = fs.readFileSync(args.key, 'utf-8');
-
-        const challengeResult = await client.auth.getChallenge();
-
-        const { SignatureService } = await import('../../crypto/signature-service.js');
-        const signedXml = SignatureService.sign(
-          challengeResult.challenge,
-          certPem,
-          keyPem,
-        );
-
-        const submitResult = await client.auth.submitXadesAuthRequest(signedXml);
-        const authToken = submitResult.authenticationToken.token;
-        const accessResult = await client.auth.getAccessToken(authToken);
-
-        const session: SessionData = {
-          accessToken: accessResult.accessToken.token,
-          refreshToken: accessResult.refreshToken?.token,
-          sessionRef: submitResult.referenceNumber,
-          expiresAt: accessResult.accessToken.validUntil,
-          environment: (args.env ?? config.environment) as SessionData['environment'],
-        };
-        saveSession(session);
-        if (args.env && args.env !== config.environment) {
-          saveConfig({ ...config, environment: session.environment });
-        }
-        outputSuccess(`Logged in successfully. Session ref: ${session.sessionRef ?? 'N/A'}`);
+        await client.loginWithCertificate(certPem, keyPem, nip);
       } else {
         throw new Error('Provide --token or both --cert and --key for authentication.');
       }
+
+      const session: SessionData = {
+        accessToken: client.authManager.getAccessToken()!,
+        refreshToken: client.authManager.getRefreshToken(),
+        expiresAt: undefined, // TODO: track from token response if needed
+        environment: (args.env ?? config.environment) as SessionData['environment'],
+      };
+      saveSession(session);
+      if (args.env && args.env !== config.environment) {
+        saveConfig({ ...config, environment: session.environment });
+      }
+      outputSuccess('Logged in successfully.');
     });
   },
 });

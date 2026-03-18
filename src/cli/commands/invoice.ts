@@ -138,12 +138,11 @@ const send = defineCommand({
 
         const openResult = await client.batchSession.openSession(
           { formCode, batchFile: batchFileInfo, encryption: encryptionData.encryptionInfo },
-          session.accessToken,
         );
 
         saveOnlineSessionRef(openResult.referenceNumber);
         await client.batchSession.sendParts(openResult, parts);
-        await client.batchSession.closeSession(openResult.referenceNumber, session.accessToken);
+        await client.batchSession.closeSession(openResult.referenceNumber);
         clearOnlineSessionRef();
 
         if (args.json) {
@@ -174,7 +173,7 @@ const send = defineCommand({
           encryptedInvoiceHash: encryptedMetadata.hashSHA,
           encryptedInvoiceSize: encryptedMetadata.fileSize,
           encryptedInvoiceContent: Buffer.from(encrypted).toString('base64'),
-        }, session.accessToken);
+        });
 
         if (args.json) {
           outputResult(result, { json: true });
@@ -199,9 +198,9 @@ const get = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
 
-      const xml = await client.invoices.getInvoice(args.ksefNumber, session.accessToken);
+      const xml = await client.invoices.getInvoice(args.ksefNumber);
 
       if (args.json) {
         outputResult({ ksefNumber: args.ksefNumber, xml }, { json: true });
@@ -233,7 +232,7 @@ const query = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
 
       const filters = buildQueryFilters(args);
       const pageOffset = args.page ? parseInt(args.page as string, 10) : undefined;
@@ -241,7 +240,6 @@ const query = defineCommand({
 
       const result = await client.invoices.queryInvoiceMetadata(
         filters,
-        session.accessToken,
         pageOffset,
         pageSize,
       );
@@ -296,7 +294,7 @@ const exportCmd = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
 
       if (!args.json) consola.start('Starting invoice export...');
       await client.crypto.init();
@@ -305,7 +303,6 @@ const exportCmd = defineCommand({
 
       const result = await client.invoices.exportInvoices(
         { encryption: encryptionData.encryptionInfo, filters },
-        session.accessToken,
       );
 
       if (args.json) {
@@ -330,9 +327,9 @@ const exportStatus = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
 
-      const result = await client.invoices.getInvoiceExportStatus(args.ref, session.accessToken);
+      const result = await client.invoices.getInvoiceExportStatus(args.ref);
 
       if (args.json) {
         outputResult(result, { json: true });

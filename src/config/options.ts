@@ -2,6 +2,7 @@ import { Environment, type EnvironmentConfig, type EnvironmentName } from './env
 import type { TransportFn } from '../http/transport.js';
 import type { RetryPolicy } from '../http/retry-policy.js';
 import type { RateLimitConfig } from '../http/rate-limit-policy.js';
+import type { AuthManager } from '../http/auth-manager.js';
 
 export interface KSeFClientOptions {
   environment?: EnvironmentName;
@@ -15,6 +16,7 @@ export interface KSeFClientOptions {
   retry?: Partial<RetryPolicy>;
   rateLimit?: Partial<RateLimitConfig> | null;
   presignedUrlHosts?: string[];
+  authManager?: AuthManager;
 }
 
 export interface ResolvedOptions {

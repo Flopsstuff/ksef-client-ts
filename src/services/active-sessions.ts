@@ -11,27 +11,23 @@ export class ActiveSessionsService {
   }
 
   async getActiveSessions(
-    accessToken: string,
     pageSize?: number,
     continuationToken?: string,
   ): Promise<AuthenticationListResponse> {
-    const request = RestRequest.get(Routes.ActiveSessions.session)
-      .accessToken(accessToken);
+    const request = RestRequest.get(Routes.ActiveSessions.session);
     if (pageSize !== undefined) request.query('pageSize', String(pageSize));
     if (continuationToken !== undefined) request.header('x-continuation-token', continuationToken);
     const response = await this.restClient.execute<AuthenticationListResponse>(request);
     return response.body;
   }
 
-  async revokeCurrentSession(token: string): Promise<void> {
-    const request = RestRequest.delete(Routes.ActiveSessions.currentSession)
-      .accessToken(token);
+  async revokeCurrentSession(): Promise<void> {
+    const request = RestRequest.delete(Routes.ActiveSessions.currentSession);
     await this.restClient.execute<void>(request);
   }
 
-  async revokeSession(sessionRef: string, accessToken: string): Promise<void> {
-    const request = RestRequest.delete(Routes.ActiveSessions.delete(sessionRef))
-      .accessToken(accessToken);
+  async revokeSession(sessionRef: string): Promise<void> {
+    const request = RestRequest.delete(Routes.ActiveSessions.delete(sessionRef));
     await this.restClient.execute<void>(request);
   }
 }

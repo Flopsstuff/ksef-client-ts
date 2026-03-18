@@ -291,14 +291,14 @@ const changeSessionLimits = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
 
       const request: ChangeSessionLimitsInCurrentContextRequest = {
         maxInvoicesPerSession: parseInt(args['max-invoices'] as string, 10),
         maxSessionDurationMinutes: parseInt(args['max-duration'] as string, 10),
       };
 
-      const result = await client.testData.changeSessionLimits(request, session.accessToken);
+      const result = await client.testData.changeSessionLimits(request);
       outputStatus(result, args.json);
     });
   },
@@ -318,8 +318,8 @@ const restoreSessionLimits = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client, session } = requireSession(globalOpts);
-      const result = await client.testData.restoreDefaultSessionLimits(session.accessToken);
+      const { client } = requireSession(globalOpts);
+      const result = await client.testData.restoreDefaultSessionLimits();
       outputStatus(result, args.json);
     });
   },
@@ -340,13 +340,13 @@ const changeCertLimits = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
 
       const request: ChangeCertificatesLimitInCurrentSubjectRequest = {
         limit: parseInt(args.limit as string, 10),
       };
 
-      const result = await client.testData.changeCertificatesLimit(request, session.accessToken);
+      const result = await client.testData.changeCertificatesLimit(request);
       outputStatus(result, args.json);
     });
   },
@@ -366,8 +366,8 @@ const restoreCertLimits = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client, session } = requireSession(globalOpts);
-      const result = await client.testData.restoreDefaultCertificatesLimit(session.accessToken);
+      const { client } = requireSession(globalOpts);
+      const result = await client.testData.restoreDefaultCertificatesLimit();
       outputStatus(result, args.json);
     });
   },
@@ -389,7 +389,7 @@ const setRateLimits = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
 
       const rateLimits = JSON.parse(args.limits as string);
       const request: EffectiveApiRateLimitsRequest = {
@@ -397,7 +397,7 @@ const setRateLimits = defineCommand({
         rateLimits,
       };
 
-      const result = await client.testData.setRateLimits(request, session.accessToken);
+      const result = await client.testData.setRateLimits(request);
       outputStatus(result, args.json);
     });
   },
@@ -417,8 +417,8 @@ const restoreRateLimits = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client, session } = requireSession(globalOpts);
-      const result = await client.testData.restoreDefaultRateLimits(session.accessToken);
+      const { client } = requireSession(globalOpts);
+      const result = await client.testData.restoreDefaultRateLimits();
       outputStatus(result, args.json);
     });
   },
@@ -440,7 +440,7 @@ const setProductionRateLimits = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
 
       const rateLimits = JSON.parse(args.limits as string);
       const request: EffectiveApiRateLimitsRequest = {
@@ -448,7 +448,7 @@ const setProductionRateLimits = defineCommand({
         rateLimits,
       };
 
-      const result = await client.testData.setProductionRateLimits(request, session.accessToken);
+      const result = await client.testData.setProductionRateLimits(request);
       outputStatus(result, args.json);
     });
   },
@@ -468,8 +468,8 @@ const restoreProductionRateLimits = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client, session } = requireSession(globalOpts);
-      const result = await client.testData.restoreDefaultProductionRateLimits(session.accessToken);
+      const { client } = requireSession(globalOpts);
+      const result = await client.testData.restoreDefaultProductionRateLimits();
       outputStatus(result, args.json);
     });
   },
@@ -490,13 +490,13 @@ const blockContext = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
 
       const request: ContextBlockRequest = {
         contextIdentifier: { type: 'Nip', value: args['context-nip'] as string },
       };
 
-      const result = await client.testData.blockContext(request, session.accessToken);
+      const result = await client.testData.blockContext(request);
       outputStatus(result, args.json);
     });
   },
@@ -517,13 +517,13 @@ const unblockContext = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
 
       const request: ContextUnblockRequest = {
         contextIdentifier: { type: 'Nip', value: args['context-nip'] as string },
       };
 
-      const result = await client.testData.unblockContext(request, session.accessToken);
+      const result = await client.testData.unblockContext(request);
       outputStatus(result, args.json);
     });
   },

@@ -34,7 +34,15 @@ export function requireSession(globalOpts: GlobalOptions): { client: KSeFClient;
   }
   // Use session's environment as fallback (between --env flag and config file)
   const opts = globalOpts.env ? globalOpts : { ...globalOpts, env: session.environment };
-  return { client: createClient(opts), session };
+  const client = createClient(opts);
+
+  // Hydrate AuthManager from stored session
+  client.authManager.setAccessToken(session.accessToken);
+  if (session.refreshToken) {
+    client.authManager.setRefreshToken(session.refreshToken);
+  }
+
+  return { client, session };
 }
 
 export function requireOnlineSession(globalOpts: GlobalOptions): { client: KSeFClient; session: SessionData; onlineSessionRef: string } {

@@ -11,22 +11,19 @@ export class InvoiceDownloadService {
     this.restClient = restClient;
   }
 
-  async getInvoice(ksefNumber: string, accessToken: string): Promise<string> {
-    const req = RestRequest.get(Routes.Invoices.byKsefNumber(ksefNumber))
-      .accessToken(accessToken);
+  async getInvoice(ksefNumber: string): Promise<string> {
+    const req = RestRequest.get(Routes.Invoices.byKsefNumber(ksefNumber));
     const response = await this.restClient.executeRaw(req);
     return new TextDecoder().decode(response.body);
   }
 
   async queryInvoiceMetadata(
     filters: InvoiceQueryFilters,
-    accessToken: string,
     pageOffset?: number,
     pageSize?: number,
     sortOrder?: SortOrder,
   ): Promise<PagedInvoiceResponse> {
     const req = RestRequest.post(Routes.Invoices.queryMetadata)
-      .accessToken(accessToken)
       .body(filters);
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
@@ -35,17 +32,15 @@ export class InvoiceDownloadService {
     return response.body;
   }
 
-  async exportInvoices(request: InvoiceExportRequest, accessToken: string): Promise<OperationResponse> {
+  async exportInvoices(request: InvoiceExportRequest): Promise<OperationResponse> {
     const req = RestRequest.post(Routes.Invoices.exports)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<OperationResponse>(req);
     return response.body;
   }
 
-  async getInvoiceExportStatus(ref: string, accessToken: string): Promise<InvoiceExportStatusResponse> {
-    const req = RestRequest.get(Routes.Invoices.exportByReference(ref))
-      .accessToken(accessToken);
+  async getInvoiceExportStatus(ref: string): Promise<InvoiceExportStatusResponse> {
+    const req = RestRequest.get(Routes.Invoices.exportByReference(ref));
     const response = await this.restClient.execute<InvoiceExportStatusResponse>(req);
     return response.body;
   }

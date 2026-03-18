@@ -21,53 +21,46 @@ export class CertificateApiService {
     this.restClient = restClient;
   }
 
-  async getLimits(accessToken: string): Promise<CertificateLimitsResponse> {
-    const req = RestRequest.get(Routes.Certificates.limits)
-      .accessToken(accessToken);
+  async getLimits(): Promise<CertificateLimitsResponse> {
+    const req = RestRequest.get(Routes.Certificates.limits);
     const response = await this.restClient.execute<CertificateLimitsResponse>(req);
     return response.body;
   }
 
-  async getEnrollmentData(accessToken: string): Promise<CertificateEnrollmentDataResponse> {
-    const req = RestRequest.get(Routes.Certificates.enrollmentData)
-      .accessToken(accessToken);
+  async getEnrollmentData(): Promise<CertificateEnrollmentDataResponse> {
+    const req = RestRequest.get(Routes.Certificates.enrollmentData);
     const response = await this.restClient.execute<CertificateEnrollmentDataResponse>(req);
     return response.body;
   }
 
-  async enroll(request: EnrollCertificateRequest, accessToken: string): Promise<EnrollCertificateResponse> {
+  async enroll(request: EnrollCertificateRequest): Promise<EnrollCertificateResponse> {
     const req = RestRequest.post(Routes.Certificates.enrollments)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<EnrollCertificateResponse>(req);
     return response.body;
   }
 
-  async getEnrollmentStatus(ref: string, accessToken: string): Promise<CertificateEnrollmentStatusResponse> {
-    const req = RestRequest.get(Routes.Certificates.enrollmentStatus(ref))
-      .accessToken(accessToken);
+  async getEnrollmentStatus(ref: string): Promise<CertificateEnrollmentStatusResponse> {
+    const req = RestRequest.get(Routes.Certificates.enrollmentStatus(ref));
     const response = await this.restClient.execute<CertificateEnrollmentStatusResponse>(req);
     return response.body;
   }
 
-  async retrieve(request: RetrieveCertificatesRequest, accessToken: string): Promise<RetrieveCertificatesResponse> {
+  async retrieve(request: RetrieveCertificatesRequest): Promise<RetrieveCertificatesResponse> {
     const req = RestRequest.post(Routes.Certificates.retrieve)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<RetrieveCertificatesResponse>(req);
     return response.body;
   }
 
-  async revoke(serialNumber: string, request: CertificateRevokeRequest, accessToken: string): Promise<void> {
+  async revoke(serialNumber: string, request: CertificateRevokeRequest): Promise<void> {
     const req = RestRequest.post(Routes.Certificates.revoke(serialNumber))
-      .accessToken(accessToken)
       .body(request);
     await this.restClient.execute<void>(req);
   }
 
-  async query(request: QueryCertificatesRequest, accessToken: string, pageSize?: number, pageOffset?: number): Promise<QueryCertificatesResponse> {
+  async query(request: QueryCertificatesRequest, pageSize?: number, pageOffset?: number): Promise<QueryCertificatesResponse> {
     const req = RestRequest.post(Routes.Certificates.query)
-      .accessToken(accessToken)
       .body(request);
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));

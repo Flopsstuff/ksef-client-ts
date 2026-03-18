@@ -41,62 +41,55 @@ export class PermissionsService {
 
   // Grant methods
 
-  async grantPersonPermissions(request: GrantPermissionsPersonRequest, accessToken: string): Promise<OperationResponse> {
+  async grantPersonPermissions(request: GrantPermissionsPersonRequest): Promise<OperationResponse> {
     const req = RestRequest.post(Routes.Permissions.Grants.persons)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<OperationResponse>(req);
     return response.body;
   }
 
-  async grantEntityPermissions(request: GrantPermissionsEntityRequest, accessToken: string): Promise<OperationResponse> {
+  async grantEntityPermissions(request: GrantPermissionsEntityRequest): Promise<OperationResponse> {
     const req = RestRequest.post(Routes.Permissions.Grants.entities)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<OperationResponse>(req);
     return response.body;
   }
 
-  async grantAuthorizationPermissions(request: GrantPermissionsAuthorizationRequest, accessToken: string): Promise<OperationResponse> {
+  async grantAuthorizationPermissions(request: GrantPermissionsAuthorizationRequest): Promise<OperationResponse> {
     const req = RestRequest.post(Routes.Permissions.Grants.authorizations)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<OperationResponse>(req);
     return response.body;
   }
 
-  async grantIndirectPermissions(request: GrantPermissionsIndirectRequest, accessToken: string): Promise<OperationResponse> {
+  async grantIndirectPermissions(request: GrantPermissionsIndirectRequest): Promise<OperationResponse> {
     const req = RestRequest.post(Routes.Permissions.Grants.indirect)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<OperationResponse>(req);
     return response.body;
   }
 
-  async grantSubunitPermissions(request: GrantPermissionsSubunitRequest, accessToken: string): Promise<OperationResponse> {
+  async grantSubunitPermissions(request: GrantPermissionsSubunitRequest): Promise<OperationResponse> {
     const req = RestRequest.post(Routes.Permissions.Grants.subunits)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<OperationResponse>(req);
     return response.body;
   }
 
-  async grantEuEntityAdminPermissions(request: GrantPermissionsEuEntityAdminRequest, accessToken: string): Promise<OperationResponse> {
+  async grantEuEntityAdminPermissions(request: GrantPermissionsEuEntityAdminRequest): Promise<OperationResponse> {
     const req = RestRequest.post(Routes.Permissions.Grants.euEntities)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<OperationResponse>(req);
     return response.body;
   }
 
   /** @deprecated Use grantEuEntityAdminPermissions instead */
-  async grantEuEntityPermissions(request: GrantPermissionsEuEntityAdminRequest, accessToken: string): Promise<OperationResponse> {
-    return this.grantEuEntityAdminPermissions(request, accessToken);
+  async grantEuEntityPermissions(request: GrantPermissionsEuEntityAdminRequest): Promise<OperationResponse> {
+    return this.grantEuEntityAdminPermissions(request);
   }
 
-  async grantEuEntityRepresentativePermissions(request: GrantPermissionsEuEntityRepresentativeRequest, accessToken: string): Promise<OperationResponse> {
+  async grantEuEntityRepresentativePermissions(request: GrantPermissionsEuEntityRepresentativeRequest): Promise<OperationResponse> {
     const req = RestRequest.post(Routes.Permissions.Grants.euEntitiesRepresentatives)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<OperationResponse>(req);
     return response.body;
@@ -104,16 +97,14 @@ export class PermissionsService {
 
   // Revoke methods
 
-  async revokeCommonGrant(grantId: string, accessToken: string): Promise<OperationResponse> {
-    const req = RestRequest.delete(Routes.Permissions.Common.grantById(grantId))
-      .accessToken(accessToken);
+  async revokeCommonGrant(grantId: string): Promise<OperationResponse> {
+    const req = RestRequest.delete(Routes.Permissions.Common.grantById(grantId));
     const response = await this.restClient.execute<OperationResponse>(req);
     return response.body;
   }
 
-  async revokeAuthorizationGrant(grantId: string, accessToken: string): Promise<OperationResponse> {
-    const req = RestRequest.delete(Routes.Permissions.Authorizations.grantById(grantId))
-      .accessToken(accessToken);
+  async revokeAuthorizationGrant(grantId: string): Promise<OperationResponse> {
+    const req = RestRequest.delete(Routes.Permissions.Authorizations.grantById(grantId));
     const response = await this.restClient.execute<OperationResponse>(req);
     return response.body;
   }
@@ -121,13 +112,11 @@ export class PermissionsService {
   // Search methods
 
   async queryPersonalGrants(
-    accessToken: string,
     options?: QueryPersonalGrantsRequest,
     pageOffset?: number,
     pageSize?: number,
   ): Promise<PagedPermissionsResponse<PersonalPermission>> {
     const req = RestRequest.post(Routes.Permissions.Query.personalGrants)
-      .accessToken(accessToken)
       .body(options ?? {});
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
@@ -136,13 +125,11 @@ export class PermissionsService {
   }
 
   async queryPersonsGrants(
-    accessToken: string,
     options: QueryPersonsGrantsRequest,
     pageOffset?: number,
     pageSize?: number,
   ): Promise<PagedPermissionsResponse<PersonPermission>> {
     const req = RestRequest.post(Routes.Permissions.Query.personsGrants)
-      .accessToken(accessToken)
       .body(options);
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
@@ -151,13 +138,11 @@ export class PermissionsService {
   }
 
   async querySubunitsGrants(
-    accessToken: string,
     options?: QuerySubunitsGrantsRequest,
     pageOffset?: number,
     pageSize?: number,
   ): Promise<PagedPermissionsResponse<SubunitPermission>> {
     const req = RestRequest.post(Routes.Permissions.Query.subunitsGrants)
-      .accessToken(accessToken)
       .body(options ?? {});
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
@@ -166,11 +151,9 @@ export class PermissionsService {
   }
 
   async queryEntitiesRoles(
-    accessToken: string,
     options?: QueryEntitiesRolesRequest,
   ): Promise<PagedRolesResponse<EntityRole>> {
-    const req = RestRequest.get(Routes.Permissions.Query.entitiesRoles)
-      .accessToken(accessToken);
+    const req = RestRequest.get(Routes.Permissions.Query.entitiesRoles);
     if (options?.pageOffset !== undefined) req.query('pageOffset', String(options.pageOffset));
     if (options?.pageSize !== undefined) req.query('pageSize', String(options.pageSize));
     const response = await this.restClient.execute<PagedRolesResponse<EntityRole>>(req);
@@ -178,13 +161,11 @@ export class PermissionsService {
   }
 
   async queryEntitiesGrants(
-    accessToken: string,
     options?: QueryEntitiesGrantsRequest,
     pageOffset?: number,
     pageSize?: number,
   ): Promise<PagedPermissionsResponse<EntityRole>> {
     const req = RestRequest.post(Routes.Permissions.Query.entitiesGrants)
-      .accessToken(accessToken)
       .body(options ?? {});
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
@@ -193,13 +174,11 @@ export class PermissionsService {
   }
 
   async querySubordinateEntitiesRoles(
-    accessToken: string,
     options?: QuerySubordinateEntitiesRolesRequest,
     pageOffset?: number,
     pageSize?: number,
   ): Promise<PagedRolesResponse<SubordinateEntityRole>> {
     const req = RestRequest.post(Routes.Permissions.Query.subordinateEntitiesRoles)
-      .accessToken(accessToken)
       .body(options ?? {});
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
@@ -208,13 +187,11 @@ export class PermissionsService {
   }
 
   async queryAuthorizationsGrants(
-    accessToken: string,
     options: QueryAuthorizationsGrantsRequest,
     pageOffset?: number,
     pageSize?: number,
   ): Promise<PagedAuthorizationsResponse<AuthorizationGrant>> {
     const req = RestRequest.post(Routes.Permissions.Query.authorizationsGrants)
-      .accessToken(accessToken)
       .body(options);
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
@@ -223,13 +200,11 @@ export class PermissionsService {
   }
 
   async queryEuEntitiesGrants(
-    accessToken: string,
     options?: QueryEuEntitiesGrantsRequest,
     pageOffset?: number,
     pageSize?: number,
   ): Promise<PagedPermissionsResponse<EuEntityPermission>> {
     const req = RestRequest.post(Routes.Permissions.Query.euEntitiesGrants)
-      .accessToken(accessToken)
       .body(options ?? {});
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
@@ -239,16 +214,14 @@ export class PermissionsService {
 
   // Operation status methods
 
-  async getOperationStatus(ref: string, accessToken: string): Promise<PermissionsOperationStatusResponse> {
-    const req = RestRequest.get(Routes.Permissions.Operations.byReference(ref))
-      .accessToken(accessToken);
+  async getOperationStatus(ref: string): Promise<PermissionsOperationStatusResponse> {
+    const req = RestRequest.get(Routes.Permissions.Operations.byReference(ref));
     const response = await this.restClient.execute<PermissionsOperationStatusResponse>(req);
     return response.body;
   }
 
-  async getAttachmentStatus(accessToken: string): Promise<PermissionsAttachmentAllowedResponse> {
-    const req = RestRequest.get(Routes.Permissions.Attachments.status)
-      .accessToken(accessToken);
+  async getAttachmentStatus(): Promise<PermissionsAttachmentAllowedResponse> {
+    const req = RestRequest.get(Routes.Permissions.Attachments.status);
     const response = await this.restClient.execute<PermissionsAttachmentAllowedResponse>(req);
     return response.body;
   }

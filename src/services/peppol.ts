@@ -11,12 +11,10 @@ export class PeppolService {
   }
 
   async queryProviders(
-    accessToken: string,
     pageOffset?: number,
     pageSize?: number,
   ): Promise<QueryPeppolProvidersResponse> {
-    const req = RestRequest.get(Routes.Peppol.query)
-      .accessToken(accessToken);
+    const req = RestRequest.get(Routes.Peppol.query);
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
     const response = await this.restClient.execute<QueryPeppolProvidersResponse>(req);

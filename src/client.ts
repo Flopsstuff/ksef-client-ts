@@ -3,6 +3,7 @@ import { RestClient, type RestClientConfig } from './http/rest-client.js';
 import { defaultRetryPolicy, type RetryPolicy } from './http/retry-policy.js';
 import { RateLimitPolicy } from './http/rate-limit-policy.js';
 import { defaultPresignedUrlPolicy, type PresignedUrlPolicy } from './http/presigned-url-policy.js';
+import { DefaultAuthManager, type AuthManager } from './http/auth-manager.js';
 import { AuthService } from './services/auth.js';
 import { ActiveSessionsService } from './services/active-sessions.js';
 import { OnlineSessionService } from './services/online-session.js';
@@ -37,11 +38,20 @@ export class KSeFClient {
   readonly crypto: CryptographyService;
   readonly qr: VerificationLinkService;
   readonly options: ResolvedOptions;
+  readonly authManager: AuthManager;
 
   constructor(options?: KSeFClientOptions) {
     this.options = resolveOptions(options);
 
-    const restClientConfig = buildRestClientConfig(options);
+    const authManager = options?.authManager ?? new DefaultAuthManager(async () => {
+      const rt = this.authManager.getRefreshToken();
+      if (!rt) return null;
+      const res = await this.auth.refreshAccessToken(rt);
+      return res.accessToken.token;
+    });
+    this.authManager = authManager;
+
+    const restClientConfig = buildRestClientConfig(options, authManager);
     const restClient = new RestClient(this.options, restClientConfig);
 
     const fetcher = new CertificateFetcher(restClient);
@@ -61,10 +71,76 @@ export class KSeFClient {
     this.testData = new TestDataService(restClient);
     this.qr = new VerificationLinkService(this.options.baseQrUrl);
   }
+
+  async loginWithToken(token: string, nip: string): Promise<void> {
+    const challenge = await this.auth.getChallenge();
+    await this.crypto.init();
+    const encryptedToken = this.crypto.encryptKsefToken(token, challenge.timestamp);
+
+    const submitResult = await this.auth.submitKsefTokenAuthRequest({
+      challenge: challenge.challenge,
+      contextIdentifier: { type: 'Nip', value: nip },
+      encryptedToken: Buffer.from(encryptedToken).toString('base64'),
+    });
+
+    const authToken = submitResult.authenticationToken.token;
+    const tokens = await this.auth.getAccessToken(authToken);
+
+    this.authManager.setAccessToken(tokens.accessToken.token);
+    this.authManager.setRefreshToken(tokens.refreshToken.token);
+  }
+
+  async loginWithCertificate(certPem: string, keyPem: string, nip: string): Promise<void> {
+    const challenge = await this.auth.getChallenge();
+    const authRequestXml = buildAuthTokenRequestXml(challenge.challenge, nip);
+
+    const { SignatureService } = await import('./crypto/signature-service.js');
+    const signedXml = SignatureService.sign(authRequestXml, certPem, keyPem);
+
+    const submitResult = await this.auth.submitXadesAuthRequest(signedXml);
+    const authToken = submitResult.authenticationToken.token;
+    const tokens = await this.auth.getAccessToken(authToken);
+
+    this.authManager.setAccessToken(tokens.accessToken.token);
+    this.authManager.setRefreshToken(tokens.refreshToken.token);
+  }
+
+  async logout(): Promise<void> {
+    this.authManager.setAccessToken(undefined);
+    this.authManager.setRefreshToken(undefined);
+  }
 }
 
-function buildRestClientConfig(options?: KSeFClientOptions): RestClientConfig {
-  const config: RestClientConfig = {};
+const AUTH_TOKEN_REQUEST_NS = 'http://ksef.mf.gov.pl/auth/token/2.0';
+
+function buildAuthTokenRequestXml(
+  challenge: string,
+  nip: string,
+  subjectIdentifierType = 'certificateSubject',
+): string {
+  return [
+    '<?xml version="1.0" encoding="utf-8"?>',
+    `<AuthTokenRequest xmlns="${AUTH_TOKEN_REQUEST_NS}">`,
+    `<Challenge>${xmlEscape(challenge)}</Challenge>`,
+    `<ContextIdentifier>`,
+    `<Nip>${xmlEscape(nip)}</Nip>`,
+    `</ContextIdentifier>`,
+    `<SubjectIdentifierType>${xmlEscape(subjectIdentifierType)}</SubjectIdentifierType>`,
+    `</AuthTokenRequest>`,
+  ].join('');
+}
+
+function xmlEscape(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function buildRestClientConfig(options: KSeFClientOptions | undefined, authManager: AuthManager): RestClientConfig {
+  const config: RestClientConfig = { authManager };
 
   if (options?.transport) {
     config.transport = options.transport;

@@ -127,7 +127,7 @@ const enroll = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
 
       const certPem = fs.readFileSync(args.cert as string, 'utf-8');
 
@@ -140,7 +140,7 @@ const enroll = defineCommand({
         validFrom: args['valid-from'] as string | undefined,
       };
 
-      const result = await client.certificates.enroll(request, session.accessToken);
+      const result = await client.certificates.enroll(request);
 
       if (args.json) {
         outputResult(result, { json: true });
@@ -168,10 +168,10 @@ const status = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
       const ref = args.ref as string;
 
-      const result = await client.certificates.getEnrollmentStatus(ref, session.accessToken);
+      const result = await client.certificates.getEnrollmentStatus(ref);
 
       if (args.json) {
         outputResult(result, { json: true });
@@ -209,7 +209,7 @@ const list = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
 
       const request: QueryCertificatesRequest = {
         certificateSerialNumber: args.serial as string | undefined,
@@ -222,7 +222,7 @@ const list = defineCommand({
       const pageSize = args['page-size'] ? parseInt(args['page-size'] as string, 10) : undefined;
       const pageOffset = args.page ? parseInt(args.page as string, 10) : undefined;
 
-      const result = await client.certificates.query(request, session.accessToken, pageSize, pageOffset);
+      const result = await client.certificates.query(request, pageSize, pageOffset);
 
       if (args.json) {
         outputResult(result, { json: true });
@@ -275,10 +275,10 @@ const revoke = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
       const serial = args.serial as string;
 
-      await client.certificates.revoke(serial, { reason: args.reason as string | undefined }, session.accessToken);
+      await client.certificates.revoke(serial, { reason: args.reason as string | undefined });
 
       if (args.json) {
         outputResult({ status: 'revoked', serialNumber: serial }, { json: true });
@@ -301,9 +301,9 @@ const limits = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
 
-      const result = await client.certificates.getLimits(session.accessToken);
+      const result = await client.certificates.getLimits();
 
       if (args.json) {
         outputResult(result, { json: true });

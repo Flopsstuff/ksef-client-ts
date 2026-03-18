@@ -83,7 +83,7 @@ export class RestClient {
         const response = await this.doRequest(request, url);
 
         // Auth refresh on 401
-        if (response.status === 401 && this.authManager && attempt === 0) {
+        if (response.status === 401 && this.authManager && attempt === 0 && !request.isSkipAuthRetry()) {
           const newToken = await this.authManager.onUnauthorized();
           if (newToken) {
             consola.debug('Auth token refreshed, retrying request');

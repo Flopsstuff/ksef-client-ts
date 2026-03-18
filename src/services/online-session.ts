@@ -12,11 +12,9 @@ export class OnlineSessionService {
 
   async openSession(
     request: OpenOnlineSessionRequest,
-    accessToken: string,
     upoVersion?: string,
   ): Promise<OpenOnlineSessionResponse> {
     const req = RestRequest.post(Routes.Sessions.Online.open)
-      .accessToken(accessToken)
       .body(request);
     if (upoVersion) {
       req.header('X-KSeF-Feature', upoVersion);
@@ -28,18 +26,15 @@ export class OnlineSessionService {
   async sendInvoice(
     sessionRef: string,
     request: SendInvoiceRequest,
-    accessToken: string,
   ): Promise<SendInvoiceResponse> {
     const req = RestRequest.post(Routes.Sessions.Online.invoices(sessionRef))
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<SendInvoiceResponse>(req);
     return response.body;
   }
 
-  async closeSession(sessionRef: string, accessToken: string): Promise<void> {
-    const req = RestRequest.post(Routes.Sessions.Online.close(sessionRef))
-      .accessToken(accessToken);
+  async closeSession(sessionRef: string): Promise<void> {
+    const req = RestRequest.post(Routes.Sessions.Online.close(sessionRef));
     await this.restClient.execute<void>(req);
   }
 }

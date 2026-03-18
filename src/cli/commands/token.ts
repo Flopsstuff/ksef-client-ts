@@ -31,7 +31,7 @@ const generate = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
 
       if (!args.permissions) {
         throw new Error('--permissions is required. Provide comma-separated values (e.g. InvoiceRead,InvoiceWrite).');
@@ -45,7 +45,7 @@ const generate = defineCommand({
         validTo: args.validTo,
       };
 
-      const result = await client.tokens.generateToken(request, session.accessToken);
+      const result = await client.tokens.generateToken(request);
 
       if (args.json) {
         outputResult(result, { json: true });
@@ -78,7 +78,7 @@ const list = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
 
       const options: QueryKsefTokensOptions = {
         pageOffset: args.page ? parseInt(args.page, 10) : undefined,
@@ -89,7 +89,7 @@ const list = defineCommand({
         authorIdentifierType: args.authorType as QueryKsefTokensOptions['authorIdentifierType'],
       };
 
-      const result = await client.tokens.queryTokens(session.accessToken, options);
+      const result = await client.tokens.queryTokens(options);
 
       if (args.json) {
         outputResult(result, { json: true });
@@ -139,10 +139,10 @@ const get = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
       const ref = args.ref as string;
 
-      const result = await client.tokens.getToken(ref, session.accessToken);
+      const result = await client.tokens.getToken(ref);
 
       if (args.json) {
         outputResult(result, { json: true });
@@ -175,10 +175,10 @@ const revoke = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
       const ref = args.ref as string;
 
-      await client.tokens.revokeToken(ref, session.accessToken);
+      await client.tokens.revokeToken(ref);
 
       if (args.json) {
         outputResult({ status: 'revoked', referenceNumber: ref }, { json: true });

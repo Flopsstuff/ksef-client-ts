@@ -55,8 +55,7 @@ const grant = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
-      const accessToken = session.accessToken;
+      const { client } = requireSession(globalOpts);
 
       let result;
 
@@ -83,7 +82,7 @@ const grant = defineCommand({
               },
             },
           };
-          result = await client.permissions.grantPersonPermissions(request, accessToken);
+          result = await client.permissions.grantPersonPermissions(request);
           break;
         }
 
@@ -101,7 +100,7 @@ const grant = defineCommand({
             description: args.description,
             subjectDetails: { fullName: args.fullName },
           };
-          result = await client.permissions.grantEntityPermissions(request, accessToken);
+          result = await client.permissions.grantEntityPermissions(request);
           break;
         }
 
@@ -117,7 +116,7 @@ const grant = defineCommand({
             description: args.description,
             subjectDetails: { fullName: args.fullName },
           };
-          result = await client.permissions.grantAuthorizationPermissions(request, accessToken);
+          result = await client.permissions.grantAuthorizationPermissions(request);
           break;
         }
 
@@ -144,7 +143,7 @@ const grant = defineCommand({
               },
             },
           };
-          result = await client.permissions.grantIndirectPermissions(request, accessToken);
+          result = await client.permissions.grantIndirectPermissions(request);
           break;
         }
 
@@ -171,7 +170,7 @@ const grant = defineCommand({
               },
             },
           };
-          result = await client.permissions.grantSubunitPermissions(request, accessToken);
+          result = await client.permissions.grantSubunitPermissions(request);
           break;
         }
 
@@ -193,7 +192,7 @@ const grant = defineCommand({
             },
             euEntityDetails: { fullName: args.euEntityName, address: args.address },
           };
-          result = await client.permissions.grantEuEntityAdminPermissions(request, accessToken);
+          result = await client.permissions.grantEuEntityAdminPermissions(request);
           break;
         }
 
@@ -212,7 +211,7 @@ const grant = defineCommand({
               entityByFp: { fullName: args.fullName, address: args.address },
             },
           };
-          result = await client.permissions.grantEuEntityRepresentativePermissions(request, accessToken);
+          result = await client.permissions.grantEuEntityRepresentativePermissions(request);
           break;
         }
 
@@ -243,15 +242,14 @@ const revoke = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
-      const accessToken = session.accessToken;
+      const { client } = requireSession(globalOpts);
 
       let result;
 
       if (args.authorization) {
-        result = await client.permissions.revokeAuthorizationGrant(args.grantId, accessToken);
+        result = await client.permissions.revokeAuthorizationGrant(args.grantId);
       } else {
-        result = await client.permissions.revokeCommonGrant(args.grantId, accessToken);
+        result = await client.permissions.revokeCommonGrant(args.grantId);
       }
 
       if (args.json) {
@@ -281,14 +279,13 @@ const search = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
-      const accessToken = session.accessToken;
+      const { client } = requireSession(globalOpts);
       const page = args.page ? parseInt(args.page, 10) : undefined;
       const pageSize = args.pageSize ? parseInt(args.pageSize, 10) : undefined;
 
       switch (args.type) {
         case 'personal': {
-          const response = await client.permissions.queryPersonalGrants(accessToken, {}, page, pageSize);
+          const response = await client.permissions.queryPersonalGrants({}, page, pageSize);
 
           if (args.json) {
             outputResult(response, { json: true });
@@ -321,7 +318,7 @@ const search = defineCommand({
           const authorIdentifier = args.identifier && args.identifierType
             ? { type: args.identifierType as PermissionSubjectIdentifierType, value: args.identifier }
             : undefined;
-          const response = await client.permissions.queryPersonsGrants(accessToken, { queryType, authorIdentifier }, page, pageSize);
+          const response = await client.permissions.queryPersonsGrants({ queryType, authorIdentifier }, page, pageSize);
 
           if (args.json) {
             outputResult(response, { json: true });
@@ -352,7 +349,7 @@ const search = defineCommand({
         }
 
         case 'subunits': {
-          const response = await client.permissions.querySubunitsGrants(accessToken, {}, page, pageSize);
+          const response = await client.permissions.querySubunitsGrants({}, page, pageSize);
 
           if (args.json) {
             outputResult(response, { json: true });
@@ -383,7 +380,7 @@ const search = defineCommand({
         }
 
         case 'entities': {
-          const response = await client.permissions.queryEntitiesRoles(accessToken, { pageOffset: page, pageSize });
+          const response = await client.permissions.queryEntitiesRoles({ pageOffset: page, pageSize });
 
           if (args.json) {
             outputResult(response, { json: true });
@@ -416,7 +413,7 @@ const search = defineCommand({
         }
 
         case 'entities-grants': {
-          const response = await client.permissions.queryEntitiesGrants(accessToken, {}, page, pageSize);
+          const response = await client.permissions.queryEntitiesGrants({}, page, pageSize);
 
           if (args.json) {
             outputResult(response, { json: true });
@@ -447,7 +444,7 @@ const search = defineCommand({
         }
 
         case 'subordinate-entities': {
-          const response = await client.permissions.querySubordinateEntitiesRoles(accessToken, {}, page, pageSize);
+          const response = await client.permissions.querySubordinateEntitiesRoles({}, page, pageSize);
 
           if (args.json) {
             outputResult(response, { json: true });
@@ -479,7 +476,7 @@ const search = defineCommand({
 
         case 'authorizations': {
           const queryType = (args.queryType as 'Granted' | 'Received') || 'Granted';
-          const response = await client.permissions.queryAuthorizationsGrants(accessToken, { queryType }, page, pageSize);
+          const response = await client.permissions.queryAuthorizationsGrants({ queryType }, page, pageSize);
 
           if (args.json) {
             outputResult(response, { json: true });
@@ -508,7 +505,7 @@ const search = defineCommand({
         }
 
         case 'eu-entities': {
-          const response = await client.permissions.queryEuEntitiesGrants(accessToken, {}, page, pageSize);
+          const response = await client.permissions.queryEuEntitiesGrants({}, page, pageSize);
 
           if (args.json) {
             outputResult(response, { json: true });
@@ -558,10 +555,9 @@ const status = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
-      const accessToken = session.accessToken;
+      const { client } = requireSession(globalOpts);
 
-      const result = await client.permissions.getOperationStatus(args.ref, accessToken);
+      const result = await client.permissions.getOperationStatus(args.ref);
 
       if (args.json) {
         outputResult(result, { json: true });

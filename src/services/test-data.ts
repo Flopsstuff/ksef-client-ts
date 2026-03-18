@@ -83,83 +83,73 @@ export class TestDataService {
 
   // Session limits
 
-  async changeSessionLimits(request: ChangeSessionLimitsInCurrentContextRequest, accessToken: string): Promise<TestDataStatusResponse> {
+  async changeSessionLimits(request: ChangeSessionLimitsInCurrentContextRequest): Promise<TestDataStatusResponse> {
     const req = RestRequest.post(Routes.TestData.changeSessionLimitsInCurrentContext)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;
   }
 
-  async restoreDefaultSessionLimits(accessToken: string): Promise<TestDataStatusResponse> {
-    const req = RestRequest.delete(Routes.TestData.restoreDefaultSessionLimitsInCurrentContext)
-      .accessToken(accessToken);
+  async restoreDefaultSessionLimits(): Promise<TestDataStatusResponse> {
+    const req = RestRequest.delete(Routes.TestData.restoreDefaultSessionLimitsInCurrentContext);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;
   }
 
   // Certificate limits
 
-  async changeCertificatesLimit(request: ChangeCertificatesLimitInCurrentSubjectRequest, accessToken: string): Promise<TestDataStatusResponse> {
+  async changeCertificatesLimit(request: ChangeCertificatesLimitInCurrentSubjectRequest): Promise<TestDataStatusResponse> {
     const req = RestRequest.post(Routes.TestData.changeCertificatesLimitInCurrentSubject)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;
   }
 
-  async restoreDefaultCertificatesLimit(accessToken: string): Promise<TestDataStatusResponse> {
-    const req = RestRequest.delete(Routes.TestData.restoreDefaultCertificatesLimitInCurrentSubject)
-      .accessToken(accessToken);
+  async restoreDefaultCertificatesLimit(): Promise<TestDataStatusResponse> {
+    const req = RestRequest.delete(Routes.TestData.restoreDefaultCertificatesLimitInCurrentSubject);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;
   }
 
   // Rate limits
 
-  async setRateLimits(request: EffectiveApiRateLimitsRequest, accessToken: string): Promise<TestDataStatusResponse> {
+  async setRateLimits(request: EffectiveApiRateLimitsRequest): Promise<TestDataStatusResponse> {
     const req = RestRequest.post(Routes.TestData.rateLimits)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;
   }
 
-  async restoreDefaultRateLimits(accessToken: string): Promise<TestDataStatusResponse> {
-    const req = RestRequest.delete(Routes.TestData.rateLimits)
-      .accessToken(accessToken);
+  async restoreDefaultRateLimits(): Promise<TestDataStatusResponse> {
+    const req = RestRequest.delete(Routes.TestData.rateLimits);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;
   }
 
-  async setProductionRateLimits(request: EffectiveApiRateLimitsRequest, accessToken: string): Promise<TestDataStatusResponse> {
+  async setProductionRateLimits(request: EffectiveApiRateLimitsRequest): Promise<TestDataStatusResponse> {
     const req = RestRequest.post(Routes.TestData.productionRateLimits)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;
   }
 
-  async restoreDefaultProductionRateLimits(accessToken: string): Promise<TestDataStatusResponse> {
-    const req = RestRequest.delete(Routes.TestData.productionRateLimits)
-      .accessToken(accessToken);
+  async restoreDefaultProductionRateLimits(): Promise<TestDataStatusResponse> {
+    const req = RestRequest.delete(Routes.TestData.productionRateLimits);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;
   }
 
   // Context blocking
 
-  async blockContext(request: ContextBlockRequest, accessToken: string): Promise<TestDataStatusResponse> {
+  async blockContext(request: ContextBlockRequest): Promise<TestDataStatusResponse> {
     const req = RestRequest.post(Routes.TestData.blockContext)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;
   }
 
-  async unblockContext(request: ContextUnblockRequest, accessToken: string): Promise<TestDataStatusResponse> {
+  async unblockContext(request: ContextUnblockRequest): Promise<TestDataStatusResponse> {
     const req = RestRequest.post(Routes.TestData.unblockContext)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;

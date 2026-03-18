@@ -10,20 +10,17 @@ export class TokenService {
     this.restClient = restClient;
   }
 
-  async generateToken(request: KsefTokenRequest, accessToken: string): Promise<KsefTokenResponse> {
+  async generateToken(request: KsefTokenRequest): Promise<KsefTokenResponse> {
     const req = RestRequest.post(Routes.Tokens.root)
-      .accessToken(accessToken)
       .body(request);
     const response = await this.restClient.execute<KsefTokenResponse>(req);
     return response.body;
   }
 
   async queryTokens(
-    accessToken: string,
     options?: QueryKsefTokensOptions,
   ): Promise<QueryKsefTokensResponse> {
-    const req = RestRequest.get(Routes.Tokens.root)
-      .accessToken(accessToken);
+    const req = RestRequest.get(Routes.Tokens.root);
     if (options?.pageOffset !== undefined) req.query('pageOffset', String(options.pageOffset));
     if (options?.pageSize !== undefined) req.query('pageSize', String(options.pageSize));
     if (options?.status) {
@@ -38,16 +35,14 @@ export class TokenService {
     return response.body;
   }
 
-  async getToken(ref: string, accessToken: string): Promise<AuthenticationKsefToken> {
-    const req = RestRequest.get(Routes.Tokens.byReference(ref))
-      .accessToken(accessToken);
+  async getToken(ref: string): Promise<AuthenticationKsefToken> {
+    const req = RestRequest.get(Routes.Tokens.byReference(ref));
     const response = await this.restClient.execute<AuthenticationKsefToken>(req);
     return response.body;
   }
 
-  async revokeToken(ref: string, accessToken: string): Promise<void> {
-    const req = RestRequest.delete(Routes.Tokens.byReference(ref))
-      .accessToken(accessToken);
+  async revokeToken(ref: string): Promise<void> {
+    const req = RestRequest.delete(Routes.Tokens.byReference(ref));
     await this.restClient.execute<void>(req);
   }
 }

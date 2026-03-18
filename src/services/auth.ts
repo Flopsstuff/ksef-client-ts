@@ -50,7 +50,8 @@ export class AuthService {
 
   async refreshAccessToken(refreshToken: string): Promise<RefreshTokenResponse> {
     const request = RestRequest.post(Routes.Authorization.Token.refresh)
-      .accessToken(refreshToken);
+      .accessToken(refreshToken)
+      .skipAuthRetry();
     const response = await this.restClient.execute<RefreshTokenResponse>(request);
     return response.body;
   }

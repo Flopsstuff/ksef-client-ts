@@ -150,6 +150,9 @@ describe('RestClient', () => {
     it('injects auth header from authManager', async () => {
       const authManager: AuthManager = {
         getAccessToken: () => 'my-token',
+        setAccessToken: vi.fn(),
+        getRefreshToken: () => undefined,
+        setRefreshToken: vi.fn(),
         onUnauthorized: vi.fn(),
       };
       const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, {}));
@@ -164,6 +167,9 @@ describe('RestClient', () => {
     it('explicit accessToken on request takes precedence', async () => {
       const authManager: AuthManager = {
         getAccessToken: () => 'manager-token',
+        setAccessToken: vi.fn(),
+        getRefreshToken: () => undefined,
+        setRefreshToken: vi.fn(),
         onUnauthorized: vi.fn(),
       };
       const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, {}));
@@ -178,6 +184,9 @@ describe('RestClient', () => {
     it('refreshes token on 401 and retries', async () => {
       const authManager: AuthManager = {
         getAccessToken: () => 'old-token',
+        setAccessToken: vi.fn(),
+        getRefreshToken: () => undefined,
+        setRefreshToken: vi.fn(),
         onUnauthorized: vi.fn().mockResolvedValue('new-token'),
       };
       const transport = vi.fn<TransportFn>()
@@ -199,6 +208,9 @@ describe('RestClient', () => {
     it('throws on failed refresh (null)', async () => {
       const authManager: AuthManager = {
         getAccessToken: () => 'old-token',
+        setAccessToken: vi.fn(),
+        getRefreshToken: () => undefined,
+        setRefreshToken: vi.fn(),
         onUnauthorized: vi.fn().mockResolvedValue(null),
       };
       const transport = vi.fn<TransportFn>()
@@ -223,6 +235,9 @@ describe('RestClient', () => {
     it('does not attempt second refresh if retried request also returns 401', async () => {
       const authManager: AuthManager = {
         getAccessToken: () => 'old-token',
+        setAccessToken: vi.fn(),
+        getRefreshToken: () => undefined,
+        setRefreshToken: vi.fn(),
         onUnauthorized: vi.fn().mockResolvedValue('new-token'),
       };
       const transport = vi.fn<TransportFn>()
@@ -236,9 +251,30 @@ describe('RestClient', () => {
       expect(transport).toHaveBeenCalledTimes(2);
     });
 
+    it('skipAuthRetry bypasses 401 refresh', async () => {
+      const authManager: AuthManager = {
+        getAccessToken: () => 'old-token',
+        setAccessToken: vi.fn(),
+        getRefreshToken: () => 'rt',
+        setRefreshToken: vi.fn(),
+        onUnauthorized: vi.fn().mockResolvedValue('new-token'),
+      };
+      const transport = vi.fn<TransportFn>()
+        .mockResolvedValue(mockResponse(401, { detail: 'expired' }));
+
+      const client = createClient(transport, { authManager });
+      await expect(client.execute(RestRequest.get('/test').skipAuthRetry())).rejects.toThrow();
+
+      expect(authManager.onUnauthorized).not.toHaveBeenCalled();
+      expect(transport).toHaveBeenCalledTimes(1);
+    });
+
     it('does not inject auth header when getAccessToken returns undefined', async () => {
       const authManager: AuthManager = {
         getAccessToken: () => undefined,
+        setAccessToken: vi.fn(),
+        getRefreshToken: () => undefined,
+        setRefreshToken: vi.fn(),
         onUnauthorized: vi.fn(),
       };
       const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, {}));
@@ -314,6 +350,9 @@ describe('RestClient', () => {
       const rateLimitPolicy = { acquire: acquireFn } as unknown as RateLimitPolicy;
       const authManager: AuthManager = {
         getAccessToken: () => 'token',
+        setAccessToken: vi.fn(),
+        getRefreshToken: () => undefined,
+        setRefreshToken: vi.fn(),
         onUnauthorized: vi.fn(),
       };
       const transport = vi.fn<TransportFn>()

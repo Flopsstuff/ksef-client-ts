@@ -32,7 +32,7 @@ const open = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
       const config = loadConfig();
       const nip = args.nip ?? config.nip;
 
@@ -53,7 +53,6 @@ const open = defineCommand({
       if (!args.json) consola.start('Opening online session...');
       const result = await client.onlineSession.openSession(
         { formCode, encryption: encryptionData.encryptionInfo },
-        session.accessToken,
       );
 
       saveOnlineSessionRef(result.referenceNumber);
@@ -91,7 +90,7 @@ const close = defineCommand({
       }
 
       if (!args.json) consola.start('Closing session...');
-      await client.onlineSession.closeSession(ref, session.accessToken);
+      await client.onlineSession.closeSession(ref);
       clearOnlineSessionRef();
       outputSuccess(`Session ${ref} closed.`);
     });
@@ -117,7 +116,7 @@ const status = defineCommand({
         throw new Error('No session reference. Provide a ref or run `ksef session open` first.');
       }
 
-      const result = await client.sessionStatus.getSessionStatus(ref, session.accessToken);
+      const result = await client.sessionStatus.getSessionStatus(ref);
 
       if (args.json) {
         outputResult(result, { json: true });
@@ -149,11 +148,11 @@ const list = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
       const sessionType: SessionType = args.type === 'batch' ? 'Batch' : 'Online';
       const pageSize = args.pageSize ? parseInt(args.pageSize, 10) : undefined;
 
-      const result = await client.sessionStatus.getSessions(sessionType, session.accessToken, pageSize);
+      const result = await client.sessionStatus.getSessions(sessionType, pageSize);
 
       if (args.json) {
         outputResult(result, { json: true });
@@ -213,7 +212,7 @@ const invoices = defineCommand({
       }
 
       const pageSize = args.pageSize ? parseInt(args.pageSize, 10) : undefined;
-      const result = await client.sessionStatus.getSessionInvoices(ref, session.accessToken, pageSize);
+      const result = await client.sessionStatus.getSessionInvoices(ref, pageSize);
 
       if (args.json) {
         outputResult(result, { json: true });
@@ -271,7 +270,7 @@ const failed = defineCommand({
       }
 
       const pageSize = args.pageSize ? parseInt(args.pageSize, 10) : undefined;
-      const result = await client.sessionStatus.getSessionFailedInvoices(ref, session.accessToken, pageSize);
+      const result = await client.sessionStatus.getSessionFailedInvoices(ref, pageSize);
 
       if (args.json) {
         outputResult(result, { json: true });
@@ -324,17 +323,17 @@ const upo = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client } = requireSession(globalOpts);
       const sessionRef = args.sessionRef;
 
       let result: { upo: string; hash?: string };
 
       if (args.upoRef) {
-        result = await client.sessionStatus.getSessionUpo(sessionRef, args.upoRef, session.accessToken);
+        result = await client.sessionStatus.getSessionUpo(sessionRef, args.upoRef);
       } else if (args.ksefNumber) {
-        result = await client.sessionStatus.getInvoiceUpoByKsefNumber(sessionRef, args.ksefNumber, session.accessToken);
+        result = await client.sessionStatus.getInvoiceUpoByKsefNumber(sessionRef, args.ksefNumber);
       } else if (args.invoiceRef) {
-        result = await client.sessionStatus.getInvoiceUpoByReference(sessionRef, args.invoiceRef, session.accessToken);
+        result = await client.sessionStatus.getInvoiceUpoByReference(sessionRef, args.invoiceRef);
       } else {
         throw new Error('Provide one of: --upo-ref, --ksef-number, or --invoice-ref');
       }

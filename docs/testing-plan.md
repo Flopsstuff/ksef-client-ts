@@ -315,6 +315,26 @@ All services follow the same pattern: construct with RestClient, call methods th
 
 ---
 
+### 8. KSeFClient (`tests/unit/client.test.ts`)
+
+**Complexity:** Medium | **Mocking:** AuthService, CryptographyService, SignatureService
+
+Existing tests verify construction and service wiring. Missing: login/logout flows that were added by auth-manager-wiring.
+
+| Test | What to verify |
+|------|----------------|
+| `loginWithToken` happy path | Calls `auth.getChallenge()`, `crypto.init()`, `crypto.encryptKsefToken()`, `auth.submitKsefTokenAuthRequest()` with correct NIP/challenge/encryptedToken, `auth.getAccessToken()` with operation token. After completion: `authManager.getAccessToken()` and `getRefreshToken()` return stored tokens |
+| `loginWithToken` propagates challenge error | `auth.getChallenge()` rejects → `loginWithToken` rejects, authManager stays empty |
+| `loginWithCertificate` happy path | Calls `auth.getChallenge()`, dynamically imports `SignatureService`, calls `SignatureService.sign()` with AuthTokenRequest XML (not raw challenge), `auth.submitXadesAuthRequest()` with signed XML, `auth.getAccessToken()`. Tokens stored in authManager |
+| `loginWithCertificate` builds correct XML | Signed XML contains `<AuthTokenRequest>` with `<Challenge>`, `<ContextIdentifier><Nip>`, `<SubjectIdentifierType>certificateSubject</SubjectIdentifierType>` |
+| `logout` clears tokens | Set tokens via authManager, call `logout()`, verify both `getAccessToken()` and `getRefreshToken()` return `undefined` |
+| `authManager` wired on construction | `client.authManager` is defined, `getAccessToken()` returns `undefined` initially |
+| Custom `authManager` via options | Pass custom AuthManager in options, verify `client.authManager` is the provided instance |
+
+**Estimate:** ~7 tests
+
+---
+
 ## E2E Tests
 
 **Existing:** `tests/e2e/cert-auth.test.ts` (2 tests)
@@ -339,7 +359,8 @@ E2e tests run against KSeF TEST environment. They require network access and are
 | Builders | 4 | ~25 | Medium |
 | Crypto | 4 | ~30 | Medium (complex) |
 | Services | 13 | ~80 | Low (boilerplate) |
-| **Total** | **31** | **~244** | |
+| KSeFClient | 1 | ~7 | High (login/logout) |
+| **Total** | **32** | **~251** | |
 
 ### Recommended order
 
@@ -347,4 +368,5 @@ E2e tests run against KSeF TEST environment. They require network access and are
 2. **HTTP layer** — core infrastructure, needs fetch mock
 3. **Builders** — pure validation logic
 4. **Crypto** — complex but critical, real crypto (no mocks except CertificateFetcher)
-5. **Services** — highest volume, repetitive pattern (mocked RestClient)
+5. **KSeFClient** — login/logout flows, mocked services
+6. **Services** — highest volume, repetitive pattern (mocked RestClient)
