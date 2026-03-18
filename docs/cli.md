@@ -79,7 +79,7 @@ Signs an AuthTokenRequest XML with XAdES and submits. `--cert`, `--key`, and `--
 ksef auth challenge               # Request an authorization challenge
 ksef auth status <ref>            # Check auth operation status
 ksef auth refresh                 # Refresh access token (requires refreshToken)
-ksef auth whoami                  # Show current session info
+ksef auth whoami                  # Show current session info (exit 1 if no session or expired)
 ksef auth logout                  # Clear stored session
 ```
 
@@ -91,8 +91,12 @@ ksef session close [ref]                      # Close session (current or by ref
 ksef session status [ref]                     # Check session status
 ksef session list [--type online|batch]       # List sessions
 ksef session invoices [ref] [--pageSize N]    # List session invoices
+ksef session invoice <invoiceRef> [--ref R]   # Get single invoice status
 ksef session failed [ref] [--pageSize N]      # List failed invoices
 ksef session upo <sessionRef>                 # Download UPO (official receipt)
+ksef session active [--pageSize N]            # List active authentication sessions
+ksef session revoke <ref>                     # Revoke an active session by reference
+ksef session revoke --current                 # Revoke the current active session
 ```
 
 ### UPO Download
@@ -185,6 +189,7 @@ ksef permission search --type personal                        # Search own permi
 ksef permission search --type persons [--identifier <val>]    # Search person permissions
 ksef permission search --type entities                        # Search entity permissions
 ksef permission status <ref>                                  # Check operation status
+ksef permission attachment-status                              # Check if attachments are allowed
 ```
 
 Search types: `personal`, `persons`, `subunits`, `entities`, `entities-grants`, `subordinate-entities`, `authorizations`, `eu-entities`.
@@ -228,6 +233,26 @@ ksef cert status <ref>                           # Check enrollment status
 ksef cert list [--type Authentication|Offline]   # List certificates
 ksef cert revoke <serial> [--reason "text"]      # Revoke certificate
 ksef cert limits                                 # Show enrollment limits
+ksef cert enrollment-data                        # Get enrollment data template
+ksef cert retrieve --serial <serial1>,<serial2>  # Retrieve certificates by serial numbers
+```
+
+## Limits
+
+View effective KSeF API limits for the current context. Requires an active session.
+
+```bash
+ksef limits context                              # Context limits (invoice size, count per session type)
+ksef limits subject                              # Subject limits (max enrollments, certificates)
+ksef limits rate                                 # API rate limits (per-category table)
+```
+
+## Peppol
+
+Query Peppol integration data.
+
+```bash
+ksef peppol providers [--page N] [--pageSize N]  # List Peppol providers
 ```
 
 ## QR Codes
