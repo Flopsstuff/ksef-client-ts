@@ -353,7 +353,135 @@ const upo = defineCommand({
   },
 });
 
+const active = defineCommand({
+  meta: { name: 'active', description: 'List active authentication sessions' },
+  args: {
+    pageSize: { type: 'string', description: 'Number of results per page' },
+    env: { type: 'string', description: 'Environment (test/demo/prod)' },
+    json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
+    timeout: { type: 'string', description: 'Request timeout (ms)' },
+  },
+  run({ args }) {
+    return withErrorHandler(async () => {
+      const globalOpts = getGlobalOpts(args);
+      const { client } = requireSession(globalOpts);
+      const pageSize = args.pageSize ? parseInt(args.pageSize, 10) : undefined;
+
+      const result = await client.activeSessions.getActiveSessions(pageSize);
+
+      if (args.json) {
+        outputResult(result, { json: true });
+        return;
+      }
+
+      if (result.items.length === 0) {
+        outputWarning('No active sessions found.');
+        return;
+      }
+
+      outputTable(
+        result.items.map((s) => ({
+          reference: s.referenceNumber,
+          startDate: s.startDate,
+          authMethod: s.authenticationMethodInfo?.method ?? s.authenticationMethod ?? 'N/A',
+          status: `${s.status.code} — ${s.status.description}`,
+          isCurrent: s.isCurrent ? 'Yes' : 'No',
+        })),
+        [
+          { key: 'reference', label: 'Reference' },
+          { key: 'startDate', label: 'Start Date' },
+          { key: 'authMethod', label: 'Auth Method' },
+          { key: 'status', label: 'Status' },
+          { key: 'isCurrent', label: 'Current' },
+        ],
+        { json: false },
+      );
+
+      if (result.continuationToken) {
+        consola.info(`More results available. Continuation token: ${result.continuationToken}`);
+      }
+    });
+  },
+});
+
+const revoke = defineCommand({
+  meta: { name: 'revoke', description: 'Revoke an active authentication session' },
+  args: {
+    ref: { type: 'positional', description: 'Session reference to revoke', required: false },
+    current: { type: 'boolean', description: 'Revoke the current session' },
+    env: { type: 'string', description: 'Environment (test/demo/prod)' },
+    json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
+    timeout: { type: 'string', description: 'Request timeout (ms)' },
+  },
+  run({ args }) {
+    return withErrorHandler(async () => {
+      const globalOpts = getGlobalOpts(args);
+      const { client } = requireSession(globalOpts);
+
+      if (args.current) {
+        await client.activeSessions.revokeCurrentSession();
+        if (args.json) {
+          outputResult({ status: 'revoked', reference: 'current' }, { json: true });
+        } else {
+          outputSuccess('Current session revoked.');
+        }
+      } else if (args.ref) {
+        await client.activeSessions.revokeSession(args.ref);
+        if (args.json) {
+          outputResult({ status: 'revoked', reference: args.ref }, { json: true });
+        } else {
+          outputSuccess(`Session ${args.ref} revoked.`);
+        }
+      } else {
+        throw new Error('Provide a session reference or use --current to revoke the current session.');
+      }
+    });
+  },
+});
+
+const invoice = defineCommand({
+  meta: { name: 'invoice', description: 'Get single invoice status in a session' },
+  args: {
+    invoiceRef: { type: 'positional', description: 'Invoice reference number', required: true },
+    ref: { type: 'string', description: 'Session reference (uses stored ref if omitted)' },
+    env: { type: 'string', description: 'Environment (test/demo/prod)' },
+    json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
+    timeout: { type: 'string', description: 'Request timeout (ms)' },
+  },
+  run({ args }) {
+    return withErrorHandler(async () => {
+      const globalOpts = getGlobalOpts(args);
+      const { client, session } = requireSession(globalOpts);
+      const sessionRef = args.ref ?? session.onlineSessionRef;
+
+      if (!sessionRef) {
+        throw new Error('No session reference. Provide --ref or run `ksef session open` first.');
+      }
+
+      const result = await client.sessionStatus.getSessionInvoice(sessionRef, args.invoiceRef);
+
+      if (args.json) {
+        outputResult(result, { json: true });
+      } else {
+        outputKeyValue({
+          'Ordinal': result.ordinalNumber,
+          'Invoice Number': result.invoiceNumber ?? 'N/A',
+          'KSeF Number': result.ksefNumber ?? 'N/A',
+          'Reference': result.referenceNumber,
+          'Hash': result.invoiceHash,
+          'Status': `${result.status.code} — ${result.status.description}`,
+          'Invoicing Date': result.invoicingDate,
+          'Invoicing Mode': result.invoicingMode,
+        }, { json: false });
+      }
+    });
+  },
+});
+
 export const sessionCommand = defineCommand({
   meta: { name: 'session', description: 'Session management commands' },
-  subCommands: { open, close, status, list, invoices, failed, upo },
+  subCommands: { open, close, status, list, invoices, failed, upo, active, revoke, invoice },
 });

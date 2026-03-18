@@ -320,7 +320,90 @@ const limits = defineCommand({
   },
 });
 
+const enrollmentData = defineCommand({
+  meta: { name: 'enrollment-data', description: 'Get enrollment data template from KSeF' },
+  args: {
+    env: { type: 'string', description: 'Environment (test/demo/prod)' },
+    json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
+    timeout: { type: 'string', description: 'Request timeout (ms)' },
+    nip: { type: 'string', description: 'NIP number' },
+  },
+  run({ args }) {
+    return withErrorHandler(async () => {
+      const globalOpts = getGlobalOpts(args);
+      const { client } = requireSession(globalOpts);
+
+      const result = await client.certificates.getEnrollmentData();
+
+      if (args.json) {
+        outputResult(result, { json: true });
+      } else {
+        const kv: Record<string, string | number> = {};
+        if (result.commonName) kv['Common Name'] = result.commonName;
+        if (result.countryName) kv['Country'] = result.countryName;
+        if (result.givenName) kv['Given Name'] = result.givenName;
+        if (result.surname) kv['Surname'] = result.surname;
+        if (result.serialNumber) kv['Serial Number'] = result.serialNumber;
+        if (result.uniqueIdentifier) kv['Unique Identifier'] = result.uniqueIdentifier;
+        if (result.organizationName) kv['Organization'] = result.organizationName;
+        if (result.organizationIdentifier) kv['Organization ID'] = result.organizationIdentifier;
+        outputKeyValue(kv, { json: false });
+      }
+    });
+  },
+});
+
+const retrieve = defineCommand({
+  meta: { name: 'retrieve', description: 'Retrieve certificates by serial numbers' },
+  args: {
+    serial: { type: 'string', description: 'Comma-separated certificate serial numbers', required: true },
+    env: { type: 'string', description: 'Environment (test/demo/prod)' },
+    json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
+    timeout: { type: 'string', description: 'Request timeout (ms)' },
+    nip: { type: 'string', description: 'NIP number' },
+  },
+  run({ args }) {
+    return withErrorHandler(async () => {
+      const globalOpts = getGlobalOpts(args);
+      const { client } = requireSession(globalOpts);
+
+      const serials = (args.serial as string).split(',').map((s) => s.trim()).filter(Boolean);
+      if (serials.length === 0) {
+        throw new Error('Provide at least one serial number via --serial.');
+      }
+
+      const result = await client.certificates.retrieve({ certificateSerialNumbers: serials });
+
+      if (args.json) {
+        outputResult(result, { json: true });
+        return;
+      }
+
+      if (result.certificates.length === 0) {
+        outputWarning('No certificates found.');
+        return;
+      }
+
+      outputTable(
+        result.certificates.map((c) => ({
+          serial: c.certificateSerialNumber,
+          name: c.certificateName,
+          type: c.certificateType,
+        })),
+        [
+          { key: 'serial', label: 'Serial' },
+          { key: 'name', label: 'Name' },
+          { key: 'type', label: 'Type' },
+        ],
+        { json: false },
+      );
+    });
+  },
+});
+
 export const certCommand = defineCommand({
   meta: { name: 'cert', description: 'Certificate management commands' },
-  subCommands: { generate, enroll, status, list, revoke, limits },
+  subCommands: { generate, enroll, status, list, revoke, limits, 'enrollment-data': enrollmentData, retrieve },
 });

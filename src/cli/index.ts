@@ -9,6 +9,8 @@ import { certCommand } from './commands/cert.js';
 import { qrCommand } from './commands/qr.js';
 import { lighthouseCommand } from './commands/lighthouse.js';
 import { testDataCommand } from './commands/test-data.js';
+import { limitsCommand } from './commands/limits.js';
+import { peppolCommand } from './commands/peppol.js';
 import { doctorCommand } from './commands/doctor.js';
 import { completionCommand } from './commands/completion.js';
 
@@ -28,6 +30,8 @@ const main = defineCommand({
     cert: certCommand,
     qr: qrCommand,
     lighthouse: lighthouseCommand,
+    limits: limitsCommand,
+    peppol: peppolCommand,
     'test-data': testDataCommand,
     doctor: doctorCommand,
     completion: completionCommand,

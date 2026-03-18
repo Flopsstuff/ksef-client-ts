@@ -574,7 +574,34 @@ const status = defineCommand({
   },
 });
 
+const attachmentStatus = defineCommand({
+  meta: { name: 'attachment-status', description: 'Check if attachment permissions are allowed' },
+  args: {
+    env: { type: 'string', description: 'Environment (test/demo/prod)' },
+    json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
+    timeout: { type: 'string', description: 'Request timeout (ms)' },
+    nip: { type: 'string', description: 'NIP number' },
+  },
+  run({ args }) {
+    return withErrorHandler(async () => {
+      const globalOpts = getGlobalOpts(args);
+      const { client } = requireSession(globalOpts);
+
+      const result = await client.permissions.getAttachmentStatus();
+
+      if (args.json) {
+        outputResult(result, { json: true });
+      } else {
+        outputKeyValue({
+          'Attachments': result.allowed ? 'Allowed' : 'Not Allowed',
+        }, { json: false });
+      }
+    });
+  },
+});
+
 export const permissionCommand = defineCommand({
   meta: { name: 'permission', description: 'Permission management commands' },
-  subCommands: { grant, revoke, search, status },
+  subCommands: { grant, revoke, search, status, 'attachment-status': attachmentStatus },
 });

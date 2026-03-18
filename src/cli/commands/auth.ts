@@ -152,7 +152,7 @@ const whoami = defineCommand({
       const session = loadSession();
       if (!session) {
         outputWarning('No active session.');
-        return;
+        process.exit(1);
       }
 
       const expired = isSessionExpired(session);
@@ -165,6 +165,10 @@ const whoami = defineCommand({
       };
 
       outputKeyValue(info, { json: args.json });
+
+      if (expired) {
+        process.exit(1);
+      }
     });
   },
 });
