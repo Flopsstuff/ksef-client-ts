@@ -2,7 +2,7 @@
 
 ## Overview
 
-Current state: **301 tests** (299 unit + 2 e2e), all passing. Target: comprehensive coverage across all modules.
+Current state: **321 tests** (319 unit + 2 e2e), all passing. Target: comprehensive coverage across all modules.
 
 Tests live in `tests/` with vitest (globals enabled). Run with `yarn test`.
 
@@ -17,7 +17,7 @@ tests/
 │   ├── crypto/              # Not started
 │   ├── services/            # Not started
 │   ├── qr/                  # ✅ DONE — 19 tests
-│   └── client.test.ts       # Partial — 4 tests (missing login/logout flows)
+│   └── client.test.ts       # ✅ DONE — 24 tests (construction, login/logout flows)
 └── e2e/
     └── cert-auth.test.ts    # ✅ DONE — 2 tests
 ```
@@ -315,23 +315,16 @@ All services follow the same pattern: construct with RestClient, call methods th
 
 ---
 
-### 8. KSeFClient (`tests/unit/client.test.ts`)
+### 8. KSeFClient (`tests/unit/client.test.ts`) — ✅ DONE (24 tests)
 
-**Complexity:** Medium | **Mocking:** AuthService, CryptographyService, SignatureService
+**Complexity:** Medium | **Mocking:** AuthService, CryptographyService, SignatureService (vi.mock + vi.spyOn)
 
-Existing tests verify construction and service wiring. Missing: login/logout flows that were added by auth-manager-wiring.
+4 existing tests (construction, service wiring) + 20 new tests covering login/logout flows:
 
-| Test | What to verify |
-|------|----------------|
-| `loginWithToken` happy path | Calls `auth.getChallenge()`, `crypto.init()`, `crypto.encryptKsefToken()`, `auth.submitKsefTokenAuthRequest()` with correct NIP/challenge/encryptedToken, `auth.getAccessToken()` with operation token. After completion: `authManager.getAccessToken()` and `getRefreshToken()` return stored tokens |
-| `loginWithToken` propagates challenge error | `auth.getChallenge()` rejects → `loginWithToken` rejects, authManager stays empty |
-| `loginWithCertificate` happy path | Calls `auth.getChallenge()`, dynamically imports `SignatureService`, calls `SignatureService.sign()` with AuthTokenRequest XML (not raw challenge), `auth.submitXadesAuthRequest()` with signed XML, `auth.getAccessToken()`. Tokens stored in authManager |
-| `loginWithCertificate` builds correct XML | Signed XML contains `<AuthTokenRequest>` with `<Challenge>`, `<ContextIdentifier><Nip>`, `<SubjectIdentifierType>certificateSubject</SubjectIdentifierType>` |
-| `logout` clears tokens | Set tokens via authManager, call `logout()`, verify both `getAccessToken()` and `getRefreshToken()` return `undefined` |
-| `authManager` wired on construction | `client.authManager` is defined, `getAccessToken()` returns `undefined` initially |
-| Custom `authManager` via options | Pass custom AuthManager in options, verify `client.authManager` is the provided instance |
-
-**Estimate:** ~7 tests
+- **loginWithToken** (7 tests): happy path, call ordering (init→encrypt), payload verification, error propagation (getChallenge, crypto.init, submit, getAccessToken)
+- **loginWithCertificate** (9 tests): happy path, XML generation, SignatureService.sign args, signed XML forwarding, no crypto.init call, error propagation (getChallenge, sign, submit, getAccessToken)
+- **logout** (3 tests): clears access token, clears refresh token, clears both after login
+- **authManager** (1 test): custom authManager via options
 
 ---
 
@@ -358,14 +351,13 @@ E2e tests run against KSeF TEST environment. They require network access and are
 | HTTP | 7 | 105 | ✅ Done |
 | Builders | 4 | 37 | ✅ Done |
 | QR | 3 | 19 | ✅ Done |
-| KSeFClient | 1 | 4 | Partial (missing login/logout) |
+| KSeFClient | 1 | 24 | ✅ Done |
 | Crypto | 0 | 0 | Not started |
 | Services | 0 | 0 | Not started |
 | E2E | 1 | 2 | ✅ Done (cert-auth) |
-| **Total** | **25** | **301** | |
+| **Total** | **25** | **321** | |
 
 ### Remaining work
 
 1. **Crypto** — complex but critical, real crypto (no mocks except CertificateFetcher). ~30 tests.
-2. **KSeFClient** — login/logout flows, mocked services. ~7 tests.
-3. **Services** — highest volume, repetitive pattern (mocked RestClient). ~80 tests.
+2. **Services** — highest volume, repetitive pattern (mocked RestClient). ~80 tests.
