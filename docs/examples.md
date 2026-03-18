@@ -22,85 +22,28 @@ Full authentication flow using a qualified certificate (XAdES-B enveloped signat
 
 ```typescript
 import fs from 'node:fs';
-import {
-  KSeFClient,
-  AuthTokenRequestBuilder,
-  SignatureService,
-} from 'ksef-client-ts';
+import { KSeFClient } from 'ksef-client-ts';
 
 async function authenticateWithXades() {
-  // 1. Create client targeting the TEST environment
   const client = new KSeFClient({ environment: 'TEST' });
 
-  // 2. Initialize cryptography (fetches KSeF public certificates)
-  await client.crypto.init();
-
-  // 3. Obtain an authentication challenge from KSeF
-  const challenge = await client.auth.getChallenge();
-  console.log('Challenge:', challenge.challenge);
-  console.log('Timestamp:', challenge.timestamp);
-
-  // 4. Build the auth token request XML using the builder
-  const tokenRequest = new AuthTokenRequestBuilder()
-    .withChallenge(challenge.challenge)
-    .withContextNip('1234567890')
-    .withSubjectType('Nip')
-    .build();
-
-  // The token request must be serialized to XML before signing.
-  // The exact XML schema depends on your KSeF schema version.
-  const authRequestXml = buildAuthRequestXml(tokenRequest);
-
-  // 5. Load your qualified certificate and private key from PEM files
   const certPem = fs.readFileSync('/path/to/certificate.pem', 'utf-8');
-  const privateKeyPem = fs.readFileSync('/path/to/private-key.pem', 'utf-8');
+  const keyPem = fs.readFileSync('/path/to/private-key.pem', 'utf-8');
 
-  // 6. Sign the XML with an XAdES-B enveloped signature
-  const signedXml = SignatureService.sign(authRequestXml, certPem, privateKeyPem);
+  // One call handles the entire ceremony:
+  // challenge → build AuthTokenRequest XML → XAdES sign → submit → redeem → store tokens
+  await client.loginWithCertificate(certPem, keyPem, '1234567890');
 
-  // 7. Submit the signed XML to KSeF
-  const signatureResponse = await client.auth.submitXadesAuthRequest(signedXml);
-  const { referenceNumber, authenticationToken } = signatureResponse;
-  console.log('Reference number:', referenceNumber);
-  console.log('Auth token valid until:', authenticationToken.validUntil);
-
-  // 8. Check authentication status
-  const authStatus = await client.auth.getAuthStatus(
-    referenceNumber,
-    authenticationToken.token,
-  );
-  console.log('Auth status:', authStatus.status.description);
-
-  // 9. Redeem the auth token for an access token (used for all subsequent API calls)
-  const tokenResponse = await client.auth.getAccessToken(authenticationToken.token);
-  const accessToken = tokenResponse.accessToken.token;
-  console.log('Access token obtained, valid until:', tokenResponse.accessToken.validUntil);
-
-  return accessToken;
-}
-
-// Helper: build auth request XML (structure depends on KSeF XSD)
-function buildAuthRequestXml(tokenRequest: {
-  challenge: string;
-  contextIdentifier: { type: string; value: string };
-  subjectIdentifierType: string;
-}): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<AuthorisationChallengeRequest xmlns="http://ksef.mf.gov.pl/schema/gtw/svc/online/types/2021/10/01/0001">
-  <Challenge>${tokenRequest.challenge}</Challenge>
-  <ContextIdentifier>
-    <Type>${tokenRequest.contextIdentifier.type}</Type>
-    <Identifier>${tokenRequest.contextIdentifier.value}</Identifier>
-  </ContextIdentifier>
-  <SubjectIdentifierType>${tokenRequest.subjectIdentifierType}</SubjectIdentifierType>
-</AuthorisationChallengeRequest>`;
+  // All subsequent calls use automatic token injection from AuthManager.
+  // If a 401 occurs, AuthManager automatically refreshes the token and retries.
+  console.log('Logged in, access token stored in authManager');
 }
 ```
 
 **Notes:**
-- `SignatureService.sign()` is a static method -- no instance needed.
-- Pass `verifyCertificateChain: true` as the second argument to `submitXadesAuthRequest()` if you want KSeF to verify the full certificate chain.
-- The access token from `getAccessToken()` is required for all authenticated API operations (invoices, permissions, sessions, etc.).
+- `loginWithCertificate()` dynamically imports `SignatureService` (avoids loading xml-crypto when using token auth).
+- Internally builds an `AuthTokenRequest` XML document with the challenge and NIP, signs it with XAdES-B, submits to `/auth/xades-signature`, and redeems the operation token.
+- Pass `verifyCertificateChain: true` as the second argument to `submitXadesAuthRequest()` if using the low-level API and you want KSeF to verify the full certificate chain.
 
 ---
 
@@ -109,57 +52,26 @@ function buildAuthRequestXml(tokenRequest: {
 A simpler authentication flow using a pre-issued KSeF authorization token. The token is encrypted with the KSeF public key before submission.
 
 ```typescript
-import {
-  KSeFClient,
-  AuthKsefTokenRequestBuilder,
-} from 'ksef-client-ts';
+import { KSeFClient } from 'ksef-client-ts';
 
 async function authenticateWithKsefToken() {
   const client = new KSeFClient({ environment: 'TEST' });
 
-  // Initialize cryptography (required for token encryption)
-  await client.crypto.init();
+  // One call handles the entire ceremony:
+  // challenge → crypto init → encrypt token → submit → redeem → store tokens
+  await client.loginWithToken('your-ksef-authorization-token', '1234567890');
 
-  // Get challenge
-  const challenge = await client.auth.getChallenge();
+  console.log('Logged in, token stored in authManager');
 
-  // Encrypt the KSeF token using the KSeF public certificate.
-  // The token payload becomes "<token>|<challengeTimestampMs>" and is encrypted
-  // with RSA-OAEP or ECDH+AES-GCM depending on the KSeF certificate key type.
-  const ksefToken = 'your-ksef-authorization-token';
-  const encryptedTokenBytes = client.crypto.encryptKsefToken(
-    ksefToken,
-    challenge.timestamp,
-  );
-  const encryptedTokenBase64 = Buffer.from(encryptedTokenBytes).toString('base64');
-
-  // Build the token auth request
-  const tokenRequest = new AuthKsefTokenRequestBuilder()
-    .withChallenge(challenge.challenge)
-    .withContextNip('1234567890')
-    .withEncryptedToken(encryptedTokenBase64)
-    .build();
-
-  // Submit the token auth request
-  const signatureResponse = await client.auth.submitKsefTokenAuthRequest(tokenRequest);
-  console.log('Reference number:', signatureResponse.referenceNumber);
-
-  // Redeem for access token
-  const tokenResponse = await client.auth.getAccessToken(
-    signatureResponse.authenticationToken.token,
-  );
-
-  console.log('Access token:', tokenResponse.accessToken.token);
-  console.log('Valid until:', tokenResponse.accessToken.validUntil);
-
-  return tokenResponse.accessToken.token;
+  // All service calls now use automatic token injection — no accessToken parameter needed.
+  // If a 401 occurs, the refresh token is used to obtain a new access token automatically.
 }
 ```
 
 **Notes:**
 - Unlike XAdES, this flow does not require a qualified certificate or XML signing.
-- `encryptKsefToken()` automatically selects RSA-OAEP or ECDH+AES-GCM based on the KSeF token encryption certificate's key type.
-- The builder also supports `withContextInternalId()`, `withContextNipVatUe()`, and `withContextPeppolId()` for different context identifier types.
+- Internally, `loginWithToken()` fetches KSeF certificates, encrypts the token (RSA-OAEP or ECDH+AES-GCM based on KSeF cert key type), and stores both access and refresh tokens in `AuthManager`.
+- For low-level control, use `AuthKsefTokenRequestBuilder` with individual `AuthService` methods and hydrate `authManager` manually (see [authentication.md](./authentication.md)).
 
 ---
 
@@ -176,8 +88,9 @@ import type {
   SendInvoiceRequest,
 } from 'ksef-client-ts';
 
-async function sendInvoiceInSession(accessToken: string) {
+async function sendInvoiceInSession() {
   const client = new KSeFClient({ environment: 'TEST' });
+  await client.loginWithToken('your-token', '1234567890');
   await client.crypto.init();
 
   // 1. Generate encryption data (random AES-256 key + IV, key wrapped with KSeF RSA cert)
@@ -193,7 +106,7 @@ async function sendInvoiceInSession(accessToken: string) {
     encryption: encryptionData.encryptionInfo,
   };
 
-  const session = await client.onlineSession.openSession(openRequest, accessToken);
+  const session = await client.onlineSession.openSession(openRequest);
   console.log('Session opened:', session.referenceNumber);
   console.log('Valid until:', session.validUntil);
 
@@ -228,12 +141,11 @@ async function sendInvoiceInSession(accessToken: string) {
     const sendResponse = await client.onlineSession.sendInvoice(
       session.referenceNumber,
       sendRequest,
-      accessToken,
     );
     console.log('Invoice sent, reference:', sendResponse.referenceNumber);
   } finally {
     // 9. Always close the session
-    await client.onlineSession.closeSession(session.referenceNumber, accessToken);
+    await client.onlineSession.closeSession(session.referenceNumber);
     console.log('Session closed');
   }
 }
@@ -256,8 +168,9 @@ import {
   InvoiceQueryFilterBuilder,
 } from 'ksef-client-ts';
 
-async function queryInvoices(accessToken: string) {
+async function queryInvoices() {
   const client = new KSeFClient({ environment: 'TEST' });
+  await client.loginWithToken('your-token', '1234567890');
 
   // Build query filters using the fluent builder API
   const filters = new InvoiceQueryFilterBuilder()
@@ -272,7 +185,6 @@ async function queryInvoices(accessToken: string) {
   // First page (page 0, 25 items per page, ascending order)
   const page1 = await client.invoices.queryInvoiceMetadata(
     filters,
-    accessToken,
     0,     // pageOffset
     25,    // pageSize
     'Asc', // sortOrder
@@ -289,7 +201,6 @@ async function queryInvoices(accessToken: string) {
   if (page1.hasMore) {
     const page2 = await client.invoices.queryInvoiceMetadata(
       filters,
-      accessToken,
       1,     // pageOffset (next page)
       25,
       'Asc',
@@ -305,7 +216,7 @@ async function queryInvoices(accessToken: string) {
     .withInvoiceFilterInvoicingMode('Standalone')
     .build();
 
-  const result = await client.invoices.queryInvoiceMetadata(narrowFilters, accessToken);
+  const result = await client.invoices.queryInvoiceMetadata(narrowFilters);
   console.log(`Filtered results: ${result.invoices.length}`);
 }
 ```
@@ -328,8 +239,9 @@ import {
   PersonPermissionGrantBuilder,
 } from 'ksef-client-ts';
 
-async function managePermissions(accessToken: string) {
+async function managePermissions() {
   const client = new KSeFClient({ environment: 'TEST' });
+  await client.loginWithToken('your-token', '1234567890');
 
   // 1. Grant permissions to a person (identified by NIP)
   const grantRequest = new PersonPermissionGrantBuilder()
@@ -339,28 +251,19 @@ async function managePermissions(accessToken: string) {
     .addPermission('CredentialsRead')
     .build();
 
-  const grantResult = await client.permissions.grantPersonPermissions(
-    grantRequest,
-    accessToken,
-  );
+  const grantResult = await client.permissions.grantPersonPermissions(grantRequest);
   console.log('Grant operation reference:', grantResult.referenceNumber);
 
   // 2. Check the operation status
-  const opStatus = await client.permissions.getOperationStatus(
-    grantResult.referenceNumber,
-    accessToken,
-  );
+  const opStatus = await client.permissions.getOperationStatus(grantResult.referenceNumber);
   console.log('Processing status:', opStatus.processingDescription);
 
   // 3. Query person permissions to verify the grant
-  const personsResult = await client.permissions.queryPersonsGrants(
-    accessToken,
-    {
-      subjectIdentifier: { type: 'Nip', value: '1234567890' },
-      pageOffset: 0,
-      pageSize: 50,
-    },
-  );
+  const personsResult = await client.permissions.queryPersonsGrants({
+    subjectIdentifier: { type: 'Nip', value: '1234567890' },
+    pageOffset: 0,
+    pageSize: 50,
+  });
 
   console.log(`Found ${personsResult.permissions.length} person permissions:`);
   for (const perm of personsResult.permissions) {
@@ -370,15 +273,12 @@ async function managePermissions(accessToken: string) {
   // 4. Revoke a specific permission by its ID
   if (personsResult.permissions.length > 0) {
     const permissionToRevoke = personsResult.permissions[0]!;
-    const revokeResult = await client.permissions.revokeCommonGrant(
-      permissionToRevoke.permissionId,
-      accessToken,
-    );
+    const revokeResult = await client.permissions.revokeCommonGrant(permissionToRevoke.permissionId);
     console.log('Revoke operation reference:', revokeResult.referenceNumber);
   }
 
   // 5. You can also query your own (personal) grants
-  const myGrants = await client.permissions.queryPersonalGrants(accessToken, {
+  const myGrants = await client.permissions.queryPersonalGrants({
     pageOffset: 0,
     pageSize: 100,
   });

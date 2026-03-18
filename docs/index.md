@@ -21,6 +21,8 @@ features:
     details: Authentication, sessions, invoices, permissions, tokens, certificates, QR codes, and more.
   - title: Built-in Cryptography
     details: AES-256-CBC, RSA-OAEP, ECDH, XAdES-B signatures, and self-signed certificate generation using Node.js native crypto.
+  - title: Automatic Token Management
+    details: AuthManager handles token injection, automatic 401 refresh with concurrent dedup, and high-level loginWithToken() / loginWithCertificate() API.
   - title: Zero HTTP Dependencies
     details: Uses native fetch (Node 18+) with no external HTTP libraries. Dual ESM/CJS output via tsup.
   - title: Full-Featured CLI

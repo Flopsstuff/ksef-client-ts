@@ -68,10 +68,10 @@ The login flow is fully automated: get challenge, encrypt token, submit auth req
 ### Certificate Authentication (XAdES)
 
 ```bash
-ksef auth login --cert cert.pem --key key.pem
+ksef auth login --cert cert.pem --key key.pem --nip <nip>
 ```
 
-Signs the challenge with XAdES and submits. Both `--cert` and `--key` are required.
+Signs an AuthTokenRequest XML with XAdES and submits. `--cert`, `--key`, and `--nip` are all required.
 
 ### Other Auth Commands
 

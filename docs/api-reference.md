@@ -60,6 +60,24 @@ constructor(options?: KSeFClientOptions)
 | `crypto`         | `CryptographyService`     | Encryption, hashing, CSR generation      |
 | `qr`             | `VerificationLinkService` | Invoice and certificate verification URLs |
 | `options`        | `ResolvedOptions`         | Resolved configuration                   |
+| `authManager`    | `AuthManager`             | Token store with automatic 401 refresh   |
+
+### Methods
+
+```ts
+loginWithToken(token: string, nip: string): Promise<void>
+```
+High-level login: challenge → crypto init → encrypt token → submit → redeem → store tokens in `authManager`.
+
+```ts
+loginWithCertificate(certPem: string, keyPem: string, nip: string): Promise<void>
+```
+High-level login: challenge → build AuthTokenRequest XML → XAdES sign → submit → redeem → store tokens. `SignatureService` is dynamically imported.
+
+```ts
+logout(): Promise<void>
+```
+Clear access and refresh tokens from `authManager`.
 
 ---
 
@@ -104,17 +122,17 @@ Refresh an expired access token using a refresh token.
 Accessed via `client.activeSessions`.
 
 ```ts
-getActiveSessions(accessToken: string, pageSize?: number, continuationToken?: string): Promise<AuthenticationListResponse>
+getActiveSessions(pageSize?: number, continuationToken?: string): Promise<AuthenticationListResponse>
 ```
 List all active sessions for the current subject.
 
 ```ts
-revokeCurrentSession(token: string): Promise<void>
+revokeCurrentSession(): Promise<void>
 ```
 Revoke the caller's current session.
 
 ```ts
-revokeSession(sessionRef: string, accessToken: string): Promise<void>
+revokeSession(sessionRef: string): Promise<void>
 ```
 Revoke a specific session by its reference number.
 
@@ -125,17 +143,17 @@ Revoke a specific session by its reference number.
 Accessed via `client.onlineSession`.
 
 ```ts
-openSession(request: OpenOnlineSessionRequest, accessToken: string, upoVersion?: string): Promise<OpenOnlineSessionResponse>
+openSession(request: OpenOnlineSessionRequest, upoVersion?: string): Promise<OpenOnlineSessionResponse>
 ```
 Open a new online (interactive) session.
 
 ```ts
-sendInvoice(sessionRef: string, request: SendInvoiceRequest, accessToken: string): Promise<SendInvoiceResponse>
+sendInvoice(sessionRef: string, request: SendInvoiceRequest): Promise<SendInvoiceResponse>
 ```
 Send an invoice within an open online session.
 
 ```ts
-closeSession(sessionRef: string, accessToken: string): Promise<void>
+closeSession(sessionRef: string): Promise<void>
 ```
 Close an online session.
 
@@ -146,7 +164,7 @@ Close an online session.
 Accessed via `client.batchSession`.
 
 ```ts
-openSession(request: OpenBatchSessionRequest, accessToken: string, upoVersion?: string): Promise<OpenBatchSessionResponse>
+openSession(request: OpenBatchSessionRequest, upoVersion?: string): Promise<OpenBatchSessionResponse>
 ```
 Open a new batch session and receive part upload URLs.
 
@@ -156,7 +174,7 @@ sendParts(openResponse: OpenBatchSessionResponse, parts: BatchPartSendingInfo[])
 Upload batch parts to the pre-signed URLs from the open response.
 
 ```ts
-closeSession(batchRef: string, accessToken: string): Promise<void>
+closeSession(batchRef: string): Promise<void>
 ```
 Close a batch session.
 
@@ -167,42 +185,42 @@ Close a batch session.
 Accessed via `client.sessionStatus`.
 
 ```ts
-getSessions(type: SessionType, accessToken: string, pageSize?: number, continuationToken?: string, filter?: SessionsFilter): Promise<SessionsListResponse>
+getSessions(type: SessionType, pageSize?: number, continuationToken?: string, filter?: SessionsFilter): Promise<SessionsListResponse>
 ```
 List sessions by type with optional filtering.
 
 ```ts
-getSessionStatus(sessionRef: string, accessToken: string): Promise<SessionStatusResponse>
+getSessionStatus(sessionRef: string): Promise<SessionStatusResponse>
 ```
 Get the status of a specific session.
 
 ```ts
-getSessionInvoices(sessionRef: string, accessToken: string, pageSize?: number, continuationToken?: string): Promise<SessionInvoicesResponse>
+getSessionInvoices(sessionRef: string, pageSize?: number, continuationToken?: string): Promise<SessionInvoicesResponse>
 ```
 List invoices processed within a session.
 
 ```ts
-getSessionInvoice(sessionRef: string, invoiceRef: string, accessToken: string): Promise<SessionInvoice>
+getSessionInvoice(sessionRef: string, invoiceRef: string): Promise<SessionInvoice>
 ```
 Get details of a specific invoice within a session.
 
 ```ts
-getSessionFailedInvoices(sessionRef: string, accessToken: string, pageSize?: number, continuationToken?: string): Promise<SessionInvoicesResponse>
+getSessionFailedInvoices(sessionRef: string, pageSize?: number, continuationToken?: string): Promise<SessionInvoicesResponse>
 ```
 List invoices that failed processing within a session.
 
 ```ts
-getInvoiceUpoByKsefNumber(sessionRef: string, ksefNumber: string, accessToken: string): Promise<string>
+getInvoiceUpoByKsefNumber(sessionRef: string, ksefNumber: string): Promise<string>
 ```
 Download UPO (official receipt) for an invoice by its KSeF number. Returns raw XML.
 
 ```ts
-getInvoiceUpoByReference(sessionRef: string, invoiceRef: string, accessToken: string): Promise<string>
+getInvoiceUpoByReference(sessionRef: string, invoiceRef: string): Promise<string>
 ```
 Download UPO for an invoice by its reference number. Returns raw XML.
 
 ```ts
-getSessionUpo(sessionRef: string, upoRef: string, accessToken: string): Promise<string>
+getSessionUpo(sessionRef: string, upoRef: string): Promise<string>
 ```
 Download a session-level UPO by reference. Returns raw XML.
 
@@ -213,22 +231,22 @@ Download a session-level UPO by reference. Returns raw XML.
 Accessed via `client.invoices`.
 
 ```ts
-getInvoice(ksefNumber: string, accessToken: string): Promise<string>
+getInvoice(ksefNumber: string): Promise<string>
 ```
 Download an invoice XML by its KSeF number.
 
 ```ts
-queryInvoiceMetadata(filters: InvoiceQueryFilters, accessToken: string, pageOffset?: number, pageSize?: number, sortOrder?: SortOrder): Promise<PagedInvoiceResponse>
+queryInvoiceMetadata(filters: InvoiceQueryFilters, pageOffset?: number, pageSize?: number, sortOrder?: SortOrder): Promise<PagedInvoiceResponse>
 ```
 Query invoice metadata with filters and pagination.
 
 ```ts
-exportInvoices(request: InvoiceExportRequest, accessToken: string): Promise<OperationResponse>
+exportInvoices(request: InvoiceExportRequest): Promise<OperationResponse>
 ```
 Start an asynchronous invoice export job.
 
 ```ts
-getInvoiceExportStatus(ref: string, accessToken: string): Promise<InvoiceExportStatusResponse>
+getInvoiceExportStatus(ref: string): Promise<InvoiceExportStatusResponse>
 ```
 Check the status of an invoice export operation.
 
@@ -241,103 +259,103 @@ Accessed via `client.permissions`.
 ### Grant Methods
 
 ```ts
-grantPersonPermissions(request: GrantPermissionsPersonRequest, accessToken: string): Promise<OperationResponse>
+grantPersonPermissions(request: GrantPermissionsPersonRequest): Promise<OperationResponse>
 ```
 Grant permissions to a person (by PESEL, NIP, or other identifier).
 
 ```ts
-grantEntityPermissions(request: GrantPermissionsEntityRequest, accessToken: string): Promise<OperationResponse>
+grantEntityPermissions(request: GrantPermissionsEntityRequest): Promise<OperationResponse>
 ```
 Grant permissions to a legal entity (by NIP).
 
 ```ts
-grantAuthorizationPermissions(request: GrantPermissionsAuthorizationRequest, accessToken: string): Promise<OperationResponse>
+grantAuthorizationPermissions(request: GrantPermissionsAuthorizationRequest): Promise<OperationResponse>
 ```
 Grant authorization-level permissions.
 
 ```ts
-grantIndirectPermissions(request: GrantPermissionsIndirectRequest, accessToken: string): Promise<OperationResponse>
+grantIndirectPermissions(request: GrantPermissionsIndirectRequest): Promise<OperationResponse>
 ```
 Grant indirect permissions.
 
 ```ts
-grantSubunitPermissions(request: GrantPermissionsSubunitRequest, accessToken: string): Promise<OperationResponse>
+grantSubunitPermissions(request: GrantPermissionsSubunitRequest): Promise<OperationResponse>
 ```
 Grant permissions to a subunit.
 
 ```ts
-grantEuEntityPermissions(request: GrantPermissionsEuEntityRequest, accessToken: string): Promise<OperationResponse>
+grantEuEntityPermissions(request: GrantPermissionsEuEntityRequest): Promise<OperationResponse>
 ```
 Grant permissions to an EU entity.
 
 ```ts
-grantEuEntityRepresentativePermissions(request: GrantPermissionsEuEntityRepresentativeRequest, accessToken: string): Promise<OperationResponse>
+grantEuEntityRepresentativePermissions(request: GrantPermissionsEuEntityRepresentativeRequest): Promise<OperationResponse>
 ```
 Grant permissions to an EU entity representative.
 
 ### Revoke Methods
 
 ```ts
-revokeCommonGrant(grantId: string, accessToken: string): Promise<OperationResponse>
+revokeCommonGrant(grantId: string): Promise<OperationResponse>
 ```
 Revoke a common (person/entity/subunit) permission grant by ID.
 
 ```ts
-revokeAuthorizationGrant(grantId: string, accessToken: string): Promise<OperationResponse>
+revokeAuthorizationGrant(grantId: string): Promise<OperationResponse>
 ```
 Revoke an authorization permission grant by ID.
 
 ### Query Methods
 
 ```ts
-queryPersonalGrants(accessToken: string, options?: QueryPersonalGrantsRequest): Promise<PagedPermissionsResponse<PersonalPermission>>
+queryPersonalGrants(options?: QueryPersonalGrantsRequest): Promise<PagedPermissionsResponse<PersonalPermission>>
 ```
 Query the caller's own permissions.
 
 ```ts
-queryPersonsGrants(accessToken: string, options?: QueryPersonsGrantsRequest): Promise<PagedPermissionsResponse<PersonPermission>>
+queryPersonsGrants(options?: QueryPersonsGrantsRequest): Promise<PagedPermissionsResponse<PersonPermission>>
 ```
 Query permissions granted to persons.
 
 ```ts
-querySubunitsGrants(accessToken: string, options?: QuerySubunitsGrantsRequest): Promise<PagedPermissionsResponse<SubunitPermission>>
+querySubunitsGrants(options?: QuerySubunitsGrantsRequest): Promise<PagedPermissionsResponse<SubunitPermission>>
 ```
 Query permissions granted to subunits.
 
 ```ts
-queryEntitiesRoles(accessToken: string, options?: QueryEntitiesRolesRequest): Promise<PagedRolesResponse<EntityRole>>
+queryEntitiesRoles(options?: QueryEntitiesRolesRequest): Promise<PagedRolesResponse<EntityRole>>
 ```
 Query roles assigned to entities.
 
 ```ts
-queryEntitiesGrants(accessToken: string, options?: QueryEntitiesGrantsRequest): Promise<PagedPermissionsResponse<EntityRole>>
+queryEntitiesGrants(options?: QueryEntitiesGrantsRequest): Promise<PagedPermissionsResponse<EntityRole>>
 ```
 Query permissions granted to entities.
 
 ```ts
-querySubordinateEntitiesRoles(accessToken: string, options?: QuerySubordinateEntitiesRolesRequest): Promise<PagedRolesResponse<SubordinateEntityRole>>
+querySubordinateEntitiesRoles(options?: QuerySubordinateEntitiesRolesRequest): Promise<PagedRolesResponse<SubordinateEntityRole>>
 ```
 Query roles assigned to subordinate entities.
 
 ```ts
-queryAuthorizationsGrants(accessToken: string, options?: QueryAuthorizationsGrantsRequest): Promise<PagedAuthorizationsResponse<AuthorizationGrant>>
+queryAuthorizationsGrants(options?: QueryAuthorizationsGrantsRequest): Promise<PagedAuthorizationsResponse<AuthorizationGrant>>
 ```
 Query authorization-level grants.
 
 ```ts
-queryEuEntitiesGrants(accessToken: string, options?: QueryEuEntitiesGrantsRequest): Promise<PagedPermissionsResponse<EuEntityPermission>>
+queryEuEntitiesGrants(options?: QueryEuEntitiesGrantsRequest): Promise<PagedPermissionsResponse<EuEntityPermission>>
 ```
 Query permissions granted to EU entities.
 
 ### Status Methods
 
 ```ts
-getOperationStatus(ref: string, accessToken: string): Promise<PermissionsOperationStatusResponse>
+getOperationStatus(ref: string): Promise<PermissionsOperationStatusResponse>
 ```
 Check the status of a permissions operation by reference.
 
 ```ts
-getAttachmentStatus(accessToken: string): Promise<PermissionsAttachmentAllowedResponse>
+getAttachmentStatus(): Promise<PermissionsAttachmentAllowedResponse>
 ```
 Check whether attachment permissions are enabled for the current context.
 
@@ -348,22 +366,22 @@ Check whether attachment permissions are enabled for the current context.
 Accessed via `client.tokens`.
 
 ```ts
-generateToken(request: KsefTokenRequest, accessToken: string): Promise<KsefTokenResponse>
+generateToken(request: KsefTokenRequest): Promise<KsefTokenResponse>
 ```
 Generate a new KSeF authentication token.
 
 ```ts
-queryTokens(accessToken: string, options?: QueryKsefTokensOptions): Promise<QueryKsefTokensResponse>
+queryTokens(options?: QueryKsefTokensOptions): Promise<QueryKsefTokensResponse>
 ```
 List all tokens for the current subject.
 
 ```ts
-getToken(ref: string, accessToken: string): Promise<AuthenticationKsefToken>
+getToken(ref: string): Promise<AuthenticationKsefToken>
 ```
 Get a specific token by reference.
 
 ```ts
-revokeToken(ref: string, accessToken: string): Promise<void>
+revokeToken(ref: string): Promise<void>
 ```
 Revoke a token by reference.
 
@@ -374,37 +392,37 @@ Revoke a token by reference.
 Accessed via `client.certificates`.
 
 ```ts
-getLimits(accessToken: string): Promise<CertificateLimitResponse>
+getLimits(): Promise<CertificateLimitResponse>
 ```
 Get certificate enrollment limits.
 
 ```ts
-getEnrollmentData(accessToken: string): Promise<CertificateEnrollmentsInfoResponse>
+getEnrollmentData(): Promise<CertificateEnrollmentsInfoResponse>
 ```
 Get certificate enrollment configuration data.
 
 ```ts
-enroll(request: SendCertificateEnrollmentRequest, accessToken: string): Promise<CertificateEnrollmentResponse>
+enroll(request: SendCertificateEnrollmentRequest): Promise<CertificateEnrollmentResponse>
 ```
 Submit a certificate enrollment request (CSR).
 
 ```ts
-getEnrollmentStatus(ref: string, accessToken: string): Promise<CertificateEnrollmentStatusResponse>
+getEnrollmentStatus(ref: string): Promise<CertificateEnrollmentStatusResponse>
 ```
 Check the status of a certificate enrollment by reference.
 
 ```ts
-retrieve(request: CertificateListRequest, accessToken: string): Promise<CertificateListResponse>
+retrieve(request: CertificateListRequest): Promise<CertificateListResponse>
 ```
 Retrieve certificates matching the given criteria.
 
 ```ts
-revoke(serialNumber: string, request: CertificateRevokeRequest, accessToken: string): Promise<void>
+revoke(serialNumber: string, request: CertificateRevokeRequest): Promise<void>
 ```
 Revoke a certificate by serial number.
 
 ```ts
-query(request: CertificateMetadataListRequest, accessToken: string): Promise<CertificateMetadataListResponse>
+query(request: CertificateMetadataListRequest): Promise<CertificateMetadataListResponse>
 ```
 Query certificate metadata.
 
@@ -431,17 +449,17 @@ Get system status messages.
 Accessed via `client.limits`.
 
 ```ts
-getContextLimits(accessToken: string): Promise<SessionLimitsInCurrentContextResponse>
+getContextLimits(): Promise<SessionLimitsInCurrentContextResponse>
 ```
 Get session limits for the current context.
 
 ```ts
-getSubjectLimits(accessToken: string): Promise<CertificatesLimitInCurrentSubjectResponse>
+getSubjectLimits(): Promise<CertificatesLimitInCurrentSubjectResponse>
 ```
 Get certificate limits for the current subject.
 
 ```ts
-getRateLimits(accessToken: string): Promise<EffectiveApiRateLimits>
+getRateLimits(): Promise<EffectiveApiRateLimits>
 ```
 Get the effective API rate limits.
 
@@ -452,7 +470,7 @@ Get the effective API rate limits.
 Accessed via `client.peppol`.
 
 ```ts
-queryProviders(accessToken: string, pageOffset?: number, pageSize?: number): Promise<QueryPeppolProvidersResponse>
+queryProviders(pageOffset?: number, pageSize?: number): Promise<QueryPeppolProvidersResponse>
 ```
 Query registered PEPPOL providers.
 
@@ -513,58 +531,58 @@ Disable attachment permissions for a test subject.
 ### Session Limits
 
 ```ts
-changeSessionLimits(request: ChangeSessionLimitsInCurrentContextRequest, accessToken: string): Promise<TestDataStatusResponse>
+changeSessionLimits(request: ChangeSessionLimitsInCurrentContextRequest): Promise<TestDataStatusResponse>
 ```
 Override session limits in the current context.
 
 ```ts
-restoreDefaultSessionLimits(accessToken: string): Promise<TestDataStatusResponse>
+restoreDefaultSessionLimits(): Promise<TestDataStatusResponse>
 ```
 Restore default session limits.
 
 ### Certificate Limits
 
 ```ts
-changeCertificatesLimit(request: ChangeCertificatesLimitInCurrentSubjectRequest, accessToken: string): Promise<TestDataStatusResponse>
+changeCertificatesLimit(request: ChangeCertificatesLimitInCurrentSubjectRequest): Promise<TestDataStatusResponse>
 ```
 Override certificate limits for the current subject.
 
 ```ts
-restoreDefaultCertificatesLimit(accessToken: string): Promise<TestDataStatusResponse>
+restoreDefaultCertificatesLimit(): Promise<TestDataStatusResponse>
 ```
 Restore default certificate limits.
 
 ### Rate Limits
 
 ```ts
-setRateLimits(request: EffectiveApiRateLimitsRequest, accessToken: string): Promise<TestDataStatusResponse>
+setRateLimits(request: EffectiveApiRateLimitsRequest): Promise<TestDataStatusResponse>
 ```
 Set custom API rate limits.
 
 ```ts
-restoreDefaultRateLimits(accessToken: string): Promise<TestDataStatusResponse>
+restoreDefaultRateLimits(): Promise<TestDataStatusResponse>
 ```
 Restore default API rate limits.
 
 ```ts
-setProductionRateLimits(request: EffectiveApiRateLimitsRequest, accessToken: string): Promise<TestDataStatusResponse>
+setProductionRateLimits(request: EffectiveApiRateLimitsRequest): Promise<TestDataStatusResponse>
 ```
 Set production-level rate limits in the test environment.
 
 ```ts
-restoreDefaultProductionRateLimits(accessToken: string): Promise<TestDataStatusResponse>
+restoreDefaultProductionRateLimits(): Promise<TestDataStatusResponse>
 ```
 Restore default production rate limits.
 
 ### Context Blocking
 
 ```ts
-blockContext(request: ContextBlockRequest, accessToken: string): Promise<TestDataStatusResponse>
+blockContext(request: ContextBlockRequest): Promise<TestDataStatusResponse>
 ```
 Block a context (simulate maintenance or ban).
 
 ```ts
-unblockContext(request: ContextUnblockRequest, accessToken: string): Promise<TestDataStatusResponse>
+unblockContext(request: ContextUnblockRequest): Promise<TestDataStatusResponse>
 ```
 Unblock a previously blocked context.
 
@@ -1041,6 +1059,11 @@ interface KSeFClientOptions {
   apiVersion?: string;                      // Default: 'v2'
   timeout?: number;                         // Default: 30000 (ms)
   customHeaders?: Record<string, string>;   // Extra headers for all requests
+  authManager?: AuthManager;                // Custom AuthManager (default: DefaultAuthManager)
+  transport?: TransportFn;                  // Custom fetch implementation
+  retry?: Partial<RetryPolicy>;            // Retry policy overrides
+  rateLimit?: { globalRps?: number; endpointLimits?: ... } | null; // null disables
+  presignedUrlHosts?: string[];            // Additional allowed hosts for presigned URLs
 }
 ```
 

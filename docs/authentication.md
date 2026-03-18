@@ -197,60 +197,67 @@ ksef auth refresh
 
 ## Library Usage
 
-### Token authentication
+### Token authentication (recommended)
+
+The high-level `loginWithToken()` method handles the entire ceremony (challenge, crypto init, encrypt, submit, redeem) in one call:
 
 ```typescript
 import { KSeFClient } from 'ksef-client-ts';
 
 const client = new KSeFClient({ environment: 'TEST' });
 
-// 1. Get challenge
+await client.loginWithToken('AAAA-BBBB-CCCC-DDDD', '1234567890');
+
+// Tokens are stored in client.authManager — all subsequent API calls
+// inject the Authorization header automatically.
+const invoices = await client.invoices.queryInvoiceMetadata(filters);
+
+// When done:
+await client.logout();
+```
+
+### XAdES certificate authentication
+
+The high-level `loginWithCertificate()` method handles challenge, AuthTokenRequest XML construction, XAdES signing, submit, and redeem:
+
+```typescript
+import fs from 'node:fs';
+import { KSeFClient } from 'ksef-client-ts';
+
+const client = new KSeFClient({ environment: 'TEST' });
+
+const certPem = fs.readFileSync('./cert.pem', 'utf-8');
+const keyPem = fs.readFileSync('./private-key.pem', 'utf-8');
+
+await client.loginWithCertificate(certPem, keyPem, '1234567890');
+
+// Authenticated — use any service method without passing tokens.
+```
+
+### Automatic token refresh
+
+When a request gets a 401 response, `AuthManager` automatically calls `POST /auth/token/refresh` with the stored refresh token, retries the request with the new access token, and deduplicates concurrent refresh calls. No user code needed.
+
+### Advanced: manual authentication flow
+
+For full control over each step, use the low-level `AuthService` methods directly:
+
+```typescript
+const client = new KSeFClient({ environment: 'TEST' });
+
 const challenge = await client.auth.getChallenge();
-
-// 2. Initialize crypto (fetches KSeF public certificates)
 await client.crypto.init();
+const encryptedToken = client.crypto.encryptKsefToken('AAAA-BBBB-CCCC-DDDD', challenge.timestamp);
 
-// 3. Encrypt the token
-const encryptedToken = client.crypto.encryptKsefToken(
-  'AAAA-BBBB-CCCC-DDDD',
-  challenge.timestamp,
-);
-
-// 4. Submit encrypted token
 const result = await client.auth.submitKsefTokenAuthRequest({
   challenge: challenge.challenge,
   contextIdentifier: { type: 'Nip', value: '1234567890' },
   encryptedToken: Buffer.from(encryptedToken).toString('base64'),
 });
 
-// 5. Redeem for access token
-const authToken = result.authenticationToken.token;
-const session = await client.auth.getAccessToken(authToken);
+const tokens = await client.auth.getAccessToken(result.authenticationToken.token);
 
-console.log('Access token:', session.accessToken.token);
-console.log('Valid until:', session.accessToken.validUntil);
-```
-
-### XAdES certificate authentication
-
-```typescript
-import fs from 'node:fs';
-import { KSeFClient, SignatureService } from 'ksef-client-ts';
-
-const client = new KSeFClient({ environment: 'TEST' });
-
-// 1. Get challenge
-const challenge = await client.auth.getChallenge();
-
-// 2. Sign the challenge XML with XAdES-B
-const certPem = fs.readFileSync('./cert.pem', 'utf-8');
-const keyPem = fs.readFileSync('./private-key.pem', 'utf-8');
-const signedXml = SignatureService.sign(challenge.challenge, certPem, keyPem);
-
-// 3. Submit signed XML
-const result = await client.auth.submitXadesAuthRequest(signedXml);
-
-// 4. Redeem for access token
-const authToken = result.authenticationToken.token;
-const session = await client.auth.getAccessToken(authToken);
+// Store tokens in AuthManager manually:
+client.authManager.setAccessToken(tokens.accessToken.token);
+client.authManager.setRefreshToken(tokens.refreshToken.token);
 ```
