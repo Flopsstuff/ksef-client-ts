@@ -54,4 +54,26 @@ describe('lighthouse', () => {
     await (lighthouseCommand.subCommands!.messages as any).run!({ args: {} });
     expect(output.outputTable).toHaveBeenCalled();
   });
+
+  it('status — json flag outputs result as JSON', async () => {
+    mockClient.lighthouse.getStatus.mockResolvedValue({ status: 'AVAILABLE', timestamp: '2024-01-01' });
+    await (lighthouseCommand.subCommands!.status as any).run!({ args: { json: true } });
+    expect(output.outputResult).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'AVAILABLE' }),
+      { json: true },
+    );
+  });
+
+  it('status — warns when status is not AVAILABLE', async () => {
+    mockClient.lighthouse.getStatus.mockResolvedValue({ status: 'MAINTENANCE', timestamp: '2024-01-01' });
+    await (lighthouseCommand.subCommands!.status as any).run!({ args: {} });
+    expect(mockOutputWarning).toHaveBeenCalledWith(expect.stringContaining('MAINTENANCE'));
+  });
+
+  it('messages — json flag outputs result as JSON', async () => {
+    const msgs = [{ title: 'Test', category: 'System', type: 'Info', start: '2024-01-01' }];
+    mockClient.lighthouse.getMessages.mockResolvedValue(msgs);
+    await (lighthouseCommand.subCommands!.messages as any).run!({ args: { json: true } });
+    expect(output.outputResult).toHaveBeenCalledWith(msgs, { json: true });
+  });
 });

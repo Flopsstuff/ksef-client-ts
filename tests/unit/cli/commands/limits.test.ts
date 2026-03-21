@@ -56,4 +56,28 @@ describe('limits', () => {
     expect(mockClient.limits.getRateLimits).toHaveBeenCalled();
     expect(output.outputTable).toHaveBeenCalled();
   });
+
+  it('context — json flag outputs result as JSON', async () => {
+    const result = {
+      onlineSession: { maxInvoiceSizeInMB: 10, maxInvoiceWithAttachmentSizeInMB: 50, maxInvoices: 100 },
+      batchSession: { maxInvoiceSizeInMB: 10, maxInvoiceWithAttachmentSizeInMB: 50, maxInvoices: 1000 },
+    };
+    mockClient.limits.getContextLimits.mockResolvedValue(result);
+    await (limitsCommand.subCommands!.context as any).run!({ args: { json: true } });
+    expect(output.outputResult).toHaveBeenCalledWith(result, { json: true });
+  });
+
+  it('subject — json flag outputs result as JSON', async () => {
+    const result = { enrollment: { maxEnrollments: 5 }, certificate: { maxCertificates: 10 } };
+    mockClient.limits.getSubjectLimits.mockResolvedValue(result);
+    await (limitsCommand.subCommands!.subject as any).run!({ args: { json: true } });
+    expect(output.outputResult).toHaveBeenCalledWith(result, { json: true });
+  });
+
+  it('rate — json flag outputs result as JSON', async () => {
+    const result = { invoiceQueries: { perSecond: 10, perMinute: 100, perHour: 1000 } };
+    mockClient.limits.getRateLimits.mockResolvedValue(result);
+    await (limitsCommand.subCommands!.rate as any).run!({ args: { json: true } });
+    expect(output.outputResult).toHaveBeenCalledWith(result, { json: true });
+  });
 });

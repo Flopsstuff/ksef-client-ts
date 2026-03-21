@@ -83,6 +83,27 @@ describe('config', () => {
         }),
       );
     });
+
+    it('sets nip when provided', async () => {
+      await runSet({ nip: '1234567890' });
+      expect(mockSaveConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ nip: '1234567890' }),
+      );
+    });
+
+    it('sets valid output format', async () => {
+      await runSet({ output: 'json' });
+      expect(mockSaveConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ output: 'json' }),
+      );
+    });
+
+    it('sets valid timeout', async () => {
+      await runSet({ timeout: '5000' });
+      expect(mockSaveConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ timeout: 5000 }),
+      );
+    });
   });
 
   describe('show', () => {

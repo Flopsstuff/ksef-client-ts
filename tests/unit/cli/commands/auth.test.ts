@@ -163,5 +163,77 @@ describe('auth', () => {
       await runWhoami();
       expect(mockExit).toHaveBeenCalledWith(1);
     });
+
+    it('no session — outputs warning and exits', async () => {
+      mockLoadSession.mockReturnValue(null);
+      mockExit.mockImplementationOnce(() => { throw new Error('process.exit'); });
+      await expect(runWhoami()).rejects.toThrow('process.exit');
+      expect(mockOutputWarning).toHaveBeenCalledWith('No active session.');
+      expect(mockExit).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('status', () => {
+    async function runStatus(args: Record<string, unknown>) {
+      return (authCommand.subCommands!.status as any).run!({ args });
+    }
+
+    it('calls getAuthStatus with ref and access token', async () => {
+      const mockResult = { status: 'ok' };
+      mockClient.auth.getAuthStatus.mockResolvedValue(mockResult);
+      await runStatus({ ref: 'ref-abc-123' });
+      expect(mockRequireSession).toHaveBeenCalled();
+      expect(mockClient.auth.getAuthStatus).toHaveBeenCalledWith('ref-abc-123', validSession.accessToken);
+      expect(vi.mocked(output.outputResult)).toHaveBeenCalledWith(mockResult, { json: undefined });
+    });
+
+    it('passes json flag to outputResult', async () => {
+      mockClient.auth.getAuthStatus.mockResolvedValue({ status: 'ok' });
+      await runStatus({ ref: 'ref-abc-123', json: true });
+      expect(vi.mocked(output.outputResult)).toHaveBeenCalledWith({ status: 'ok' }, { json: true });
+    });
+  });
+
+  describe('challenge', () => {
+    async function runChallenge(args: Record<string, unknown> = {}) {
+      return (authCommand.subCommands!.challenge as any).run!({ args });
+    }
+
+    it('calls client.auth.getChallenge and outputs result', async () => {
+      const challengeResult = { challenge: 'abc', timestamp: '2024-01-01' };
+      mockClient.auth.getChallenge.mockResolvedValue(challengeResult);
+      await runChallenge();
+      expect(mockClient.auth.getChallenge).toHaveBeenCalled();
+      expect(vi.mocked(output.outputResult)).toHaveBeenCalledWith(challengeResult, { json: undefined });
+    });
+
+    it('passes json flag to outputResult', async () => {
+      const challengeResult = { challenge: 'abc' };
+      mockClient.auth.getChallenge.mockResolvedValue(challengeResult);
+      await runChallenge({ json: true });
+      expect(vi.mocked(output.outputResult)).toHaveBeenCalledWith(challengeResult, { json: true });
+    });
+  });
+
+  describe('login — saveConfig on env change', () => {
+    it('saves config when args.env differs from config.environment', async () => {
+      mockLoadConfig.mockReturnValue({ ...defaultConfig, environment: 'test' as any });
+      await runLogin({ token: 'tok-123', nip: '1234567890', env: 'prod' });
+      expect(vi.mocked(configStore.saveConfig)).toHaveBeenCalledWith(
+        expect.objectContaining({ environment: 'prod' }),
+      );
+    });
+
+    it('does not save config when args.env matches config.environment', async () => {
+      mockLoadConfig.mockReturnValue({ ...defaultConfig, environment: 'test' as any });
+      await runLogin({ token: 'tok-123', nip: '1234567890', env: 'test' });
+      expect(vi.mocked(configStore.saveConfig)).not.toHaveBeenCalled();
+    });
+
+    it('does not save config when args.env is not provided', async () => {
+      mockLoadConfig.mockReturnValue({ ...defaultConfig, environment: 'test' as any });
+      await runLogin({ token: 'tok-123', nip: '1234567890' });
+      expect(vi.mocked(configStore.saveConfig)).not.toHaveBeenCalled();
+    });
   });
 });

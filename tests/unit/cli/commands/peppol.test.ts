@@ -44,4 +44,25 @@ describe('peppol', () => {
     await (peppolCommand.subCommands!.providers as any).run!({ args: {} });
     expect(output.outputWarning).toHaveBeenCalledWith(expect.stringContaining('No providers'));
   });
+
+  it('providers — json flag outputs result as JSON', async () => {
+    const result = {
+      peppolProviders: [{ id: 'id-1', name: 'Provider 1', dateCreated: '2025-01-01T00:00:00Z' }],
+      hasMore: false,
+    };
+    mockClient.peppol.queryProviders.mockResolvedValue(result);
+    await (peppolCommand.subCommands!.providers as any).run!({ args: { json: true } });
+    expect(output.outputResult).toHaveBeenCalledWith(result, { json: true });
+  });
+
+  it('providers — hasMore shows pagination hint', async () => {
+    const { consola } = await import('consola');
+    mockClient.peppol.queryProviders.mockResolvedValue({
+      peppolProviders: [{ id: 'id-1', name: 'Provider 1', dateCreated: '2025-01-01T00:00:00Z' }],
+      hasMore: true,
+    });
+    await (peppolCommand.subCommands!.providers as any).run!({ args: {} });
+    expect(output.outputTable).toHaveBeenCalled();
+    expect(consola.info).toHaveBeenCalledWith(expect.stringContaining('--page'));
+  });
 });
