@@ -35,9 +35,13 @@ export class BatchSessionService {
       if (!uploadReq) {
         throw new Error(`No upload request found for part ${part.ordinalNumber}`);
       }
+      const headers: Record<string, string> = {};
+      for (const [k, v] of Object.entries(uploadReq.headers)) {
+        if (v != null) headers[k] = v;
+      }
       await fetch(uploadReq.url, {
         method: uploadReq.method,
-        headers: uploadReq.headers,
+        headers,
         body: part.data,
       });
     });

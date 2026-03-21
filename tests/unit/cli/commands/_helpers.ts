@@ -41,7 +41,7 @@ export function createMockClient() {
       'grantPermissions', 'revokePermissions', 'enableAttachment', 'disableAttachment',
       'changeSessionLimits', 'restoreDefaultSessionLimits', 'changeCertificatesLimit',
       'restoreDefaultCertificatesLimit', 'setRateLimits', 'restoreDefaultRateLimits',
-      'setProductionRateLimits', 'restoreDefaultProductionRateLimits',
+      'setProductionRateLimits',
       'blockContext', 'unblockContext',
     ]),
     peppol: mockService(['queryProviders']),

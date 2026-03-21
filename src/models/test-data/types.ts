@@ -25,7 +25,7 @@ export type TestDataPermissionType =
 
 export interface TestDataPermission {
   permissionType: TestDataPermissionType;
-  description?: string;
+  description: string;
 }
 
 export type TestDataAuthenticationContextIdentifierType = 'Nip' | 'InternalId' | 'NipVatUe' | 'PeppolId';

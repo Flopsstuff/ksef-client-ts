@@ -23,7 +23,7 @@ export interface PartUploadRequest {
   method: string;
   ordinalNumber: number;
   url: string;
-  headers: Record<string, string>;
+  headers: Record<string, string | null>;
 }
 
 export interface OpenBatchSessionResponse {

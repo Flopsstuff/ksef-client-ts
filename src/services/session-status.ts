@@ -31,7 +31,7 @@ export class SessionStatusService {
       if (filter.dateModifiedTo) req.query('dateModifiedTo', filter.dateModifiedTo);
       if (filter.statuses) {
         for (const status of filter.statuses) {
-          req.query('sessionStatus', status);
+          req.query('statuses', status);
         }
       }
     }
@@ -52,7 +52,7 @@ export class SessionStatusService {
   ): Promise<SessionInvoicesResponse> {
     const req = RestRequest.get(Routes.Sessions.invoices(sessionRef));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
-    if (continuationToken !== undefined) req.query('continuationToken', continuationToken);
+    if (continuationToken !== undefined) req.header('x-continuation-token', continuationToken);
     const response = await this.restClient.execute<SessionInvoicesResponse>(req);
     return response.body;
   }
@@ -73,7 +73,7 @@ export class SessionStatusService {
   ): Promise<SessionInvoicesResponse> {
     const req = RestRequest.get(Routes.Sessions.failedInvoices(sessionRef));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
-    if (continuationToken !== undefined) req.query('continuationToken', continuationToken);
+    if (continuationToken !== undefined) req.header('x-continuation-token', continuationToken);
     const response = await this.restClient.execute<SessionInvoicesResponse>(req);
     return response.body;
   }

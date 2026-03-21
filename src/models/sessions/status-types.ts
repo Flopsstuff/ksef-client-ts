@@ -16,7 +16,7 @@ export interface SessionsQueryResponseItem {
   status: OperationStatusInfo;
   dateCreated: string;
   dateUpdated: string;
-  validUntil: string;
+  validUntil?: string | null;
   totalInvoiceCount: number;
   successfulInvoiceCount: number;
   failedInvoiceCount: number;
@@ -43,7 +43,7 @@ export interface SessionStatusResponse {
   invoiceCount?: number;
   successfulInvoiceCount?: number;
   failedInvoiceCount?: number;
-  validUntil?: string;
+  validUntil?: string | null;
   dateCreated: string;
   dateUpdated: string;
 }

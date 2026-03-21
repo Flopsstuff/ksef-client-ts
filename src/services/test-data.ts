@@ -134,12 +134,6 @@ export class TestDataService {
     return response.body;
   }
 
-  async restoreDefaultProductionRateLimits(): Promise<TestDataStatusResponse> {
-    const req = RestRequest.delete(Routes.TestData.productionRateLimits);
-    const response = await this.restClient.execute<TestDataStatusResponse>(req);
-    return response.body;
-  }
-
   // Context blocking
 
   async blockContext(request: BlockContextAuthenticationRequest): Promise<TestDataStatusResponse> {

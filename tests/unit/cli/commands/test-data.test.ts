@@ -84,7 +84,7 @@ describe('test-data', () => {
       },
     });
     expect(mockClient.testData.grantPermissions).toHaveBeenCalledWith(
-      expect.objectContaining({ permissions: [{ permissionType: 'InvoiceRead' }, { permissionType: 'InvoiceWrite' }] }),
+      expect.objectContaining({ permissions: [{ permissionType: 'InvoiceRead', description: '' }, { permissionType: 'InvoiceWrite', description: '' }] }),
     );
   });
 });

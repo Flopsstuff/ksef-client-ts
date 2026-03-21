@@ -1,7 +1,7 @@
 export interface ExceptionDetails {
-  exceptionCode: number;
-  exceptionDescription: string;
-  details?: string[];
+  exceptionCode?: number;
+  exceptionDescription?: string | null;
+  details?: string[] | null;
 }
 
 export interface ApiErrorResponse {
@@ -13,6 +13,16 @@ export interface ApiErrorResponse {
     referenceNumber?: string;
     exceptionDetailList?: ExceptionDetails[];
   };
+}
+
+export interface TooManyRequestsStatus {
+  code: number;
+  description?: string;
+  details?: string[];
+}
+
+export interface TooManyRequestsResponse {
+  status: TooManyRequestsStatus;
 }
 
 export interface UnauthorizedProblemDetails {
@@ -28,7 +38,8 @@ export type ForbiddenReasonCode =
   | 'ip-not-allowed'
   | 'insufficient-resource-access'
   | 'auth-method-not-allowed'
-  | 'security-service-blocked';
+  | 'security-service-blocked'
+  | (string & {});
 
 export interface ForbiddenProblemDetails {
   title: string;

@@ -33,7 +33,7 @@ export interface AuthenticationOperationStatusResponse {
   startDate: string;
   authenticationMethodInfo: AuthenticationMethodInfo;
   /** @deprecated Required by spec but deprecated. */
-  authenticationMethod?: string;
+  authenticationMethod?: AuthenticationMethod;
   status: OperationStatusInfo;
   isTokenRedeemed?: boolean;
   lastTokenRefreshDate?: string;

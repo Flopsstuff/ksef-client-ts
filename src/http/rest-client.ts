@@ -3,7 +3,7 @@ import { KSeFApiError } from '../errors/ksef-api-error.js';
 import { KSeFRateLimitError } from '../errors/ksef-rate-limit-error.js';
 import { KSeFUnauthorizedError } from '../errors/ksef-unauthorized-error.js';
 import { KSeFForbiddenError } from '../errors/ksef-forbidden-error.js';
-import type { ApiErrorResponse, UnauthorizedProblemDetails, ForbiddenProblemDetails } from '../errors/types.js';
+import type { ApiErrorResponse, TooManyRequestsResponse, UnauthorizedProblemDetails, ForbiddenProblemDetails } from '../errors/types.js';
 import type { ResolvedOptions } from '../config/options.js';
 import { RouteBuilder } from './route-builder.js';
 import { type RestRequest } from './rest-request.js';
@@ -184,10 +184,11 @@ export class RestClient {
     };
 
     if (response.status === 429) {
+      const parsed = parseJson<TooManyRequestsResponse & ApiErrorResponse>();
       throw KSeFRateLimitError.fromRetryAfterHeader(
         response.status,
         response.headers.get('Retry-After'),
-        parseJson<ApiErrorResponse>(),
+        parsed,
       );
     }
 

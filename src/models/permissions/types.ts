@@ -296,7 +296,7 @@ export interface PersonByIdentifierDetails {
 export interface PersonByFingerprintWithIdentifierDetails {
   firstName: string;
   lastName: string;
-  identifier: PersonSubjectIdentifier;
+  identifier: PersonIdentifier;
 }
 
 export interface PersonByFingerprintWithoutIdentifierDetails {
@@ -464,7 +464,7 @@ export interface QueryPersonalGrantsRequest {
 
 export interface QueryPersonsGrantsRequest {
   queryType: PersonPermissionsQueryType;
-  authorIdentifier?: PersonSubjectIdentifier;
+  authorIdentifier?: PersonPermissionsAuthorIdentifier;
   authorizedIdentifier?: PersonSubjectIdentifier;
   contextIdentifier?: EntityPermissionsContextIdentifier;
   targetIdentifier?: IndirectPermissionsTargetIdentifier;
@@ -494,7 +494,7 @@ export interface QuerySubordinateEntitiesRolesRequest {
 
 export interface QueryAuthorizationsGrantsRequest {
   queryType: EntityAuthorizationsQueryType;
-  authorizingIdentifier?: EntityAuthorizationSubjectIdentifier;
+  authorizingIdentifier?: EntityAuthorizationsAuthorizingEntityIdentifier;
   authorizedIdentifier?: EntityAuthorizationSubjectIdentifier;
   permissionTypes?: InvoicePermissionType[];
 }

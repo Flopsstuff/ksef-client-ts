@@ -15,7 +15,7 @@ export class KSeFApiError extends KSeFError {
   static fromResponse(statusCode: number, body?: ApiErrorResponse): KSeFApiError {
     const details = body?.exception?.exceptionDetailList;
     const message = details?.length
-      ? details.map((d) => d.exceptionDescription).join('; ')
+      ? details.map((d) => d.exceptionDescription ?? '').filter(Boolean).join('; ') || `KSeF API error: HTTP ${statusCode}`
       : `KSeF API error: HTTP ${statusCode}`;
     return new KSeFApiError(message, statusCode, body);
   }

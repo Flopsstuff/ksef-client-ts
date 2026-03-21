@@ -59,8 +59,8 @@ describe('SessionStatusService', () => {
       ['dateClosedTo', '2025-11-30'],
       ['dateModifiedFrom', '2025-03-01'],
       ['dateModifiedTo', '2025-10-31'],
-      ['sessionStatus', 'Open'],
-      ['sessionStatus', 'Closed'],
+      ['statuses', 'Open'],
+      ['statuses', 'Closed'],
     ]);
   });
 
@@ -93,7 +93,7 @@ describe('SessionStatusService', () => {
     expect(result).toEqual(body);
   });
 
-  it('getSessionInvoices with pagination sets pageSize and continuationToken query params', async () => {
+  it('getSessionInvoices with pagination sets pageSize query and x-continuation-token header', async () => {
     const client = createMockRestClient();
     const service = new SessionStatusService(client);
     vi.mocked(client.execute).mockResolvedValueOnce(mockResponse({ invoices: [] }));
@@ -103,8 +103,8 @@ describe('SessionStatusService', () => {
     const req = getRequest(vi.mocked(client.execute));
     expect(req.getQuery()).toEqual([
       ['pageSize', '25'],
-      ['continuationToken', 'cont-tok'],
     ]);
+    expect(req.getHeaders()).toHaveProperty('x-continuation-token', 'cont-tok');
   });
 
   it('getSessionInvoice sends GET to sessions/{ref}/invoices/{invoiceRef}', async () => {
@@ -134,8 +134,8 @@ describe('SessionStatusService', () => {
     expect(req.path).toBe(Routes.Sessions.failedInvoices('sess-5'));
     expect(req.getQuery()).toEqual([
       ['pageSize', '10'],
-      ['continuationToken', 'cont-2'],
     ]);
+    expect(req.getHeaders()).toHaveProperty('x-continuation-token', 'cont-2');
     expect(result).toEqual(body);
   });
 

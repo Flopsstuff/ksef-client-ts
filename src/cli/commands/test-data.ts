@@ -183,7 +183,7 @@ const grantPermissions = defineCommand({
 
       const permissions: TestDataPermission[] = (args.permissions as string)
         .split(',')
-        .map((p) => ({ permissionType: p.trim() as TestDataPermissionType }));
+        .map((p) => ({ permissionType: p.trim() as TestDataPermissionType, description: '' }));
 
       const request: TestDataPermissionsGrantRequest = {
         contextIdentifier: { type: 'Nip', value: args['context-nip'] as string },
@@ -466,26 +466,6 @@ const setProductionRateLimits = defineCommand({
   },
 });
 
-const restoreProductionRateLimits = defineCommand({
-  meta: { name: 'restore-production-rate-limits', description: 'Restore default production API rate limits' },
-  args: {
-    env: { type: 'string', description: 'Environment (test/demo/prod)' },
-    json: { type: 'boolean', description: 'Output as JSON' },
-    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
-    timeout: { type: 'string', description: 'Request timeout (ms)' },
-    nip: { type: 'string', description: 'NIP number' },
-  },
-  run({ args }) {
-    return withErrorHandler(async () => {
-      const globalOpts = getGlobalOpts(args);
-      requireNonProd(globalOpts);
-
-      const { client } = requireSession(globalOpts);
-      const result = await client.testData.restoreDefaultProductionRateLimits();
-      outputStatus(result, args.json);
-    });
-  },
-});
 
 const blockContext = defineCommand({
   meta: { name: 'block-context', description: 'Block a context' },
@@ -567,7 +547,6 @@ export const testDataCommand = defineCommand({
     'set-rate-limits': setRateLimits,
     'restore-rate-limits': restoreRateLimits,
     'set-production-rate-limits': setProductionRateLimits,
-    'restore-production-rate-limits': restoreProductionRateLimits,
     'block-context': blockContext,
     'unblock-context': unblockContext,
   },

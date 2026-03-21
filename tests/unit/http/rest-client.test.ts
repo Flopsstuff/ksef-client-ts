@@ -6,6 +6,8 @@ import type { AuthManager } from '../../../src/http/auth-manager.js';
 import { RateLimitPolicy } from '../../../src/http/rate-limit-policy.js';
 import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
 import { KSeFApiError } from '../../../src/errors/ksef-api-error.js';
+import { KSeFRateLimitError } from '../../../src/errors/ksef-rate-limit-error.js';
+import { KSeFForbiddenError } from '../../../src/errors/ksef-forbidden-error.js';
 
 const defaultOptions: ResolvedOptions = {
   baseUrl: 'https://ksef-test.mf.gov.pl/api',
@@ -341,6 +343,88 @@ describe('RestClient', () => {
       // Non-presigned → no validation → transport called
       await client.execute(RestRequest.get('/test'));
       expect(transport).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('ensureSuccess error mapping', () => {
+    it('throws KSeFRateLimitError on 429 after retries exhausted', async () => {
+      const transport = vi.fn<TransportFn>()
+        .mockResolvedValue(mockResponse(429, { message: 'rate limited' }, { 'Retry-After': '0' }));
+
+      const client = createClient(transport);
+      await expect(client.execute(RestRequest.get('/test'))).rejects.toThrow(KSeFRateLimitError);
+    });
+
+    it('throws KSeFForbiddenError on 403 with reasonCode', async () => {
+      const transport = vi.fn<TransportFn>()
+        .mockResolvedValue(mockResponse(403, { reasonCode: 'INSUFFICIENT_PERMISSIONS', detail: 'forbidden' }));
+
+      const client = createClient(transport);
+      await expect(client.execute(RestRequest.get('/test'))).rejects.toThrow(KSeFForbiddenError);
+    });
+
+    it('throws generic KSeFApiError on 403 without reasonCode', async () => {
+      const transport = vi.fn<TransportFn>()
+        .mockResolvedValue(mockResponse(403, { message: 'no reason code' }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect(err).not.toBeInstanceOf(KSeFForbiddenError);
+    });
+
+    it('appends query params to the URL', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, {}));
+
+      const client = createClient(transport);
+      await client.execute(RestRequest.get('/test').query('page', '1').query('size', '10'));
+
+      const calledUrl = transport.mock.calls[0]![0] as string;
+      expect(calledUrl).toContain('page=1');
+      expect(calledUrl).toContain('size=10');
+    });
+
+    it('throws immediately on non-retryable network error', async () => {
+      const error = new TypeError('Failed to fetch');
+      const transport = vi.fn<TransportFn>().mockRejectedValue(error);
+
+      // retryNetworkErrors: false → no retry on any network error
+      const client = new RestClient(defaultOptions, {
+        transport,
+        retryPolicy: { maxRetries: 2, baseDelayMs: 1, maxDelayMs: 10, retryableStatusCodes: [], retryNetworkErrors: false },
+      });
+      await expect(client.execute(RestRequest.get('/test'))).rejects.toThrow('Failed to fetch');
+      expect(transport).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws last error after all network retries exhausted', async () => {
+      const error = Object.assign(new Error('connection reset'), { code: 'ECONNRESET' });
+      const transport = vi.fn<TransportFn>().mockRejectedValue(error);
+
+      const client = createClient(transport);
+      await expect(client.execute(RestRequest.get('/test'))).rejects.toThrow('connection reset');
+      // 1 initial + 2 retries = 3
+      expect(transport).toHaveBeenCalledTimes(3);
+    });
+
+    it('executeRaw returns ArrayBuffer on success', async () => {
+      const body = new TextEncoder().encode('binary-data');
+      const response = new Response(body, { status: 200 });
+      const transport = vi.fn<TransportFn>().mockResolvedValue(response);
+
+      const client = createClient(transport);
+      const result = await client.executeRaw(RestRequest.get('/download'));
+
+      expect(result.body).toBeInstanceOf(ArrayBuffer);
+      expect(new TextDecoder().decode(result.body)).toBe('binary-data');
+    });
+
+    it('executeRaw throws on error response', async () => {
+      const transport = vi.fn<TransportFn>()
+        .mockResolvedValue(mockResponse(500, { message: 'server error' }));
+
+      const client = createClient(transport);
+      await expect(client.executeRaw(RestRequest.get('/test'))).rejects.toThrow(KSeFApiError);
     });
   });
 

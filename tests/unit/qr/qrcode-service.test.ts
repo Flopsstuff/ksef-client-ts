@@ -60,6 +60,20 @@ describe('QrCodeService', () => {
       expect(svg).toContain('&quot;Label&quot;');
     });
 
+    it('falls back when SVG lacks expected viewBox/height attributes', async () => {
+      // Mock generateQrCodeSvg to return SVG without standard viewBox/height
+      const minimalSvg = '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>';
+      const spy = vi.spyOn(QrCodeService, 'generateQrCodeSvg').mockResolvedValueOnce(minimalSvg);
+
+      const svg = await QrCodeService.generateQrCodeSvgWithLabel(TEST_URL, 'Fallback Label');
+
+      expect(svg).toContain('<text');
+      expect(svg).toContain('Fallback Label');
+      expect(svg).toContain('</svg>');
+
+      spy.mockRestore();
+    });
+
     it('should have an adjusted viewBox height for the label', async () => {
       const svgWithout = await QrCodeService.generateQrCodeSvg(TEST_URL);
       const svgWith = await QrCodeService.generateQrCodeSvgWithLabel(TEST_URL, 'Label');

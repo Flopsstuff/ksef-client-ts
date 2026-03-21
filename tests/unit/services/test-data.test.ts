@@ -45,7 +45,6 @@ describe('TestDataService', () => {
     ['restoreDefaultSessionLimits', Routes.TestData.restoreDefaultSessionLimitsInCurrentContext],
     ['restoreDefaultCertificatesLimit', Routes.TestData.restoreDefaultCertificatesLimitInCurrentSubject],
     ['restoreDefaultRateLimits', Routes.TestData.rateLimits],
-    ['restoreDefaultProductionRateLimits', Routes.TestData.productionRateLimits],
   ];
 
   it('setProductionRateLimits sends POST without body', async () => {
