@@ -1,16 +1,20 @@
 export type SubjectType = 'EnforcementAuthority' | 'VatGroup' | 'JST';
 
+export type TestDataContextIdentifierType = 'Nip';
+
 export interface TestDataContextIdentifier {
-  type: 'Nip';
+  type: TestDataContextIdentifierType;
   value: string;
 }
+
+export type TestDataAuthorizedIdentifierType = 'Nip' | 'Pesel' | 'Fingerprint';
 
 export interface TestDataAuthorizedIdentifier {
-  type: 'Nip' | 'Pesel' | 'Fingerprint';
+  type: TestDataAuthorizedIdentifierType;
   value: string;
 }
 
-export type TestDataPermission =
+export type TestDataPermissionType =
   | 'InvoiceRead'
   | 'InvoiceWrite'
   | 'CredentialsRead'
@@ -18,6 +22,18 @@ export type TestDataPermission =
   | 'EnforcementOperations'
   | 'SubunitManage'
   | 'Introspection';
+
+export interface TestDataPermission {
+  permissionType: TestDataPermissionType;
+  description?: string;
+}
+
+export type TestDataAuthenticationContextIdentifierType = 'Nip' | 'InternalId' | 'NipVatUe' | 'PeppolId';
+
+export interface TestDataAuthenticationContextIdentifier {
+  type: TestDataAuthenticationContextIdentifierType;
+  value: string;
+}
 
 export interface Subunit {
   subjectNip: string;
@@ -58,7 +74,6 @@ export interface TestDataPermissionsGrantRequest {
 export interface TestDataPermissionsRevokeRequest {
   contextIdentifier: TestDataContextIdentifier;
   authorizedIdentifier: TestDataAuthorizedIdentifier;
-  permissions: TestDataPermission[];
 }
 
 export interface AttachmentPermissionGrantRequest {
@@ -70,26 +85,12 @@ export interface AttachmentPermissionRevokeRequest {
   expectedEndDate?: string | null;
 }
 
-export interface ChangeSessionLimitsInCurrentContextRequest {
-  maxInvoicesPerSession: number;
-  maxSessionDurationMinutes: number;
+export interface BlockContextAuthenticationRequest {
+  contextIdentifier?: TestDataAuthenticationContextIdentifier | null;
 }
 
-export interface ChangeCertificatesLimitInCurrentSubjectRequest {
-  limit: number;
-}
-
-export interface EffectiveApiRateLimitsRequest {
-  contextIdentifier: TestDataContextIdentifier;
-  rateLimits: Record<string, { maxCallsPerInterval: number; intervalMs: number }>;
-}
-
-export interface ContextBlockRequest {
-  contextIdentifier: TestDataContextIdentifier;
-}
-
-export interface ContextUnblockRequest {
-  contextIdentifier: TestDataContextIdentifier;
+export interface UnblockContextAuthenticationRequest {
+  contextIdentifier?: TestDataAuthenticationContextIdentifier | null;
 }
 
 export interface TestDataStatusResponse {

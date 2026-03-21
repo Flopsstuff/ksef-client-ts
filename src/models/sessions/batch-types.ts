@@ -19,7 +19,7 @@ export interface OpenBatchSessionRequest {
   offlineMode?: boolean;
 }
 
-export interface PackagePartSignatureInitResponse {
+export interface PartUploadRequest {
   method: string;
   ordinalNumber: number;
   url: string;
@@ -28,7 +28,7 @@ export interface PackagePartSignatureInitResponse {
 
 export interface OpenBatchSessionResponse {
   referenceNumber: string;
-  partUploadRequests: PackagePartSignatureInitResponse[];
+  partUploadRequests: PartUploadRequest[];
 }
 
 export interface BatchPartSendingInfo {

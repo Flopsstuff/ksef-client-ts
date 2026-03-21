@@ -11,7 +11,7 @@ import type {
   RetrieveCertificatesResponse,
   QueryCertificatesRequest,
   QueryCertificatesResponse,
-  CertificateRevokeRequest,
+  RevokeCertificateRequest,
 } from '../models/certificates/types.js';
 
 export class CertificateApiService {
@@ -53,7 +53,7 @@ export class CertificateApiService {
     return response.body;
   }
 
-  async revoke(serialNumber: string, request: CertificateRevokeRequest): Promise<void> {
+  async revoke(serialNumber: string, request: RevokeCertificateRequest): Promise<void> {
     const req = RestRequest.post(Routes.Certificates.revoke(serialNumber))
       .body(request);
     await this.restClient.execute<void>(req);

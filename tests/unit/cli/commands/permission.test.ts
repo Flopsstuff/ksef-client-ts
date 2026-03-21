@@ -155,7 +155,6 @@ describe('permission', () => {
   describe('status', () => {
     it('calls getOperationStatus', async () => {
       mockClient.permissions.getOperationStatus.mockResolvedValue({
-        processingCode: 200, processingDescription: 'OK',
         status: { code: 200, description: 'Done' },
       });
       await runStatus({ ref: 'op-ref-1' });

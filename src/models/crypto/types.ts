@@ -2,7 +2,7 @@ import type { EncryptionInfo } from '../common.js';
 
 export type PublicKeyCertificateUsage = 'KsefTokenEncryption' | 'SymmetricKeyEncryption';
 
-export interface PublicKeyCertificateInfo {
+export interface PublicKeyCertificate {
   certificate: string;
   validFrom: string;
   validTo: string;

@@ -39,22 +39,20 @@ const providers = defineCommand({
         return;
       }
 
-      if (result.providers.length === 0) {
+      if (result.peppolProviders.length === 0) {
         outputWarning('No providers found.');
         return;
       }
 
       outputTable(
-        result.providers.map((p) => ({
-          identifier: p.identifier,
+        result.peppolProviders.map((p) => ({
+          id: p.id,
           name: p.name,
-          description: p.description ?? '',
-          created: p.dateCreated ?? '',
+          created: p.dateCreated,
         })),
         [
-          { key: 'identifier', label: 'Identifier' },
+          { key: 'id', label: 'ID' },
           { key: 'name', label: 'Name' },
-          { key: 'description', label: 'Description' },
           { key: 'created', label: 'Created' },
         ],
         { json: false },

@@ -32,7 +32,7 @@ describe('PeppolService', () => {
 
     it('returns the response body', async () => {
       const body: QueryPeppolProvidersResponse = {
-        providers: [{ identifier: '1234567890', name: 'Test' }],
+        peppolProviders: [{ id: '1234567890', name: 'Test', dateCreated: '2025-01-01T00:00:00Z' }],
         hasMore: false,
       };
       vi.mocked(restClient.execute).mockResolvedValueOnce(mockResponse(body));

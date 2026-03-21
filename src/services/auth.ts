@@ -1,7 +1,7 @@
 import { RestClient } from '../http/rest-client.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
-import type { AuthChallengeResponse, AuthenticationInitResponse, AuthKsefTokenRequest, AuthenticationOperationStatusResponse, AuthenticationTokensResponse, RefreshTokenResponse } from '../models/auth/types.js';
+import type { AuthChallengeResponse, AuthenticationInitResponse, AuthKsefTokenRequest, AuthenticationOperationStatusResponse, AuthenticationTokensResponse, AuthenticationTokenRefreshResponse } from '../models/auth/types.js';
 
 export class AuthService {
   private readonly restClient: RestClient;
@@ -48,11 +48,11 @@ export class AuthService {
     return response.body;
   }
 
-  async refreshAccessToken(refreshToken: string): Promise<RefreshTokenResponse> {
+  async refreshAccessToken(refreshToken: string): Promise<AuthenticationTokenRefreshResponse> {
     const request = RestRequest.post(Routes.Authorization.Token.refresh)
       .accessToken(refreshToken)
       .skipAuthRetry();
-    const response = await this.restClient.execute<RefreshTokenResponse>(request);
+    const response = await this.restClient.execute<AuthenticationTokenRefreshResponse>(request);
     return response.body;
   }
 }

@@ -70,6 +70,8 @@ export type PersonPermissionsQueryType =
 
 export type EntityAuthorizationsQueryType = 'Granted' | 'Received';
 
+// Request identifier type enums
+
 export type EntityAuthorizationPermissionsSubjectIdentifierType = 'Nip' | 'PeppolId';
 
 export type EuEntityAdministrationPermissionsSubjectIdentifierType = 'Fingerprint';
@@ -100,7 +102,48 @@ export type EuEntityPermissionSubjectDetailsType =
   | 'PersonByFingerprintWithoutIdentifier'
   | 'EntityByFingerprint';
 
-// Subject identifier details
+// Response identifier type enums
+
+export type PersonalPermissionsContextIdentifierType = 'Nip' | 'InternalId';
+
+export type PersonalPermissionsAuthorizedIdentifierType = 'Nip' | 'Pesel' | 'Fingerprint';
+
+export type PersonalPermissionsTargetIdentifierType = 'Nip' | 'AllPartners' | 'InternalId';
+
+export type PersonPermissionsAuthorizedIdentifierType = 'Nip' | 'Pesel' | 'Fingerprint';
+
+export type PersonPermissionsContextIdentifierType = 'Nip' | 'InternalId';
+
+export type PersonPermissionsTargetIdentifierType = 'Nip' | 'AllPartners' | 'InternalId';
+
+export type PersonPermissionsAuthorIdentifierType = 'Nip' | 'Pesel' | 'Fingerprint' | 'System';
+
+export type SubunitPermissionsAuthorIdentifierType = 'Nip' | 'Pesel' | 'Fingerprint';
+
+export type EntityRolesParentEntityIdentifierType = 'Nip';
+
+export type SubordinateRoleSubordinateEntityIdentifierType = 'Nip';
+
+export type EntityAuthorizationsAuthorIdentifierType = 'Nip' | 'Pesel' | 'Fingerprint';
+
+export type EntityAuthorizationsAuthorizedEntityIdentifierType = 'Nip' | 'PeppolId';
+
+export type EntityAuthorizationsAuthorizingEntityIdentifierType = 'Nip';
+
+export type EuEntityPermissionsAuthorIdentifierType = 'Nip' | 'Pesel' | 'Fingerprint';
+
+export type PersonIdentifierType = 'Pesel' | 'Nip';
+
+export type PersonSubjectByFingerprintDetailsType = 'PersonByFingerprintWithIdentifier' | 'PersonByFingerprintWithoutIdentifier';
+
+export type EntitySubjectByFingerprintDetailsType = 'EntityByFingerprint';
+
+export type EntitySubjectByIdentifierDetailsType = 'EntityByIdentifier';
+
+export type EntitySubjectDetailsType = 'EntityByIdentifier' | 'EntityByFingerprint';
+
+// Request subject identifier details
+
 export interface PersonSubjectIdentifier {
   type: PermissionSubjectIdentifierType;
   value: string;
@@ -161,6 +204,88 @@ export interface EntityPermissionsContextIdentifier {
   value: string;
 }
 
+// Response identifier interfaces
+
+export interface PersonalPermissionsContextIdentifier {
+  type: PersonalPermissionsContextIdentifierType;
+  value: string;
+}
+
+export interface PersonalPermissionsAuthorizedIdentifier {
+  type: PersonalPermissionsAuthorizedIdentifierType;
+  value: string;
+}
+
+export interface PersonalPermissionsTargetIdentifier {
+  type: PersonalPermissionsTargetIdentifierType;
+  value?: string | null;
+}
+
+export interface PersonPermissionsAuthorizedIdentifier {
+  type: PersonPermissionsAuthorizedIdentifierType;
+  value: string;
+}
+
+export interface PersonPermissionsContextIdentifier {
+  type: PersonPermissionsContextIdentifierType;
+  value: string;
+}
+
+export interface PersonPermissionsTargetIdentifier {
+  type: PersonPermissionsTargetIdentifierType;
+  value?: string | null;
+}
+
+export interface PersonPermissionsAuthorIdentifier {
+  type: PersonPermissionsAuthorIdentifierType;
+  value?: string | null;
+}
+
+export interface SubunitPermissionsAuthorizedIdentifier {
+  type: SubunitPermissionsSubjectIdentifierType;
+  value: string;
+}
+
+export interface SubunitPermissionsAuthorIdentifier {
+  type: SubunitPermissionsAuthorIdentifierType;
+  value: string;
+}
+
+export interface EntityRolesParentEntityIdentifier {
+  type: EntityRolesParentEntityIdentifierType;
+  value: string;
+}
+
+export interface SubordinateRoleSubordinateEntityIdentifier {
+  type: SubordinateRoleSubordinateEntityIdentifierType;
+  value: string;
+}
+
+export interface EntityAuthorizationsAuthorIdentifier {
+  type: EntityAuthorizationsAuthorIdentifierType;
+  value: string;
+}
+
+export interface EntityAuthorizationsAuthorizedEntityIdentifier {
+  type: EntityAuthorizationsAuthorizedEntityIdentifierType;
+  value: string;
+}
+
+export interface EntityAuthorizationsAuthorizingEntityIdentifier {
+  type: EntityAuthorizationsAuthorizingEntityIdentifierType;
+  value: string;
+}
+
+export interface EuEntityPermissionsAuthorIdentifier {
+  type: EuEntityPermissionsAuthorIdentifierType;
+  value: string;
+}
+
+export interface PersonIdentifier {
+  type: PersonIdentifierType;
+  value: string;
+}
+
 // Subject details for grant requests
 
 export interface PersonByIdentifierDetails {
@@ -213,6 +338,48 @@ export interface EuEntityPermissionSubjectDetails {
   personByFpWithId?: PersonByFingerprintWithIdentifierDetails;
   personByFpNoId?: PersonByFingerprintWithoutIdentifierDetails;
   entityByFp?: EntityByFingerprintDetails;
+}
+
+// Response subject details
+
+export interface PermissionsSubjectPersonDetails {
+  subjectDetailsType: PersonSubjectDetailsType;
+  firstName: string;
+  lastName: string;
+  personIdentifier?: PersonIdentifier | null;
+  birthDate?: string | null;
+  idDocument?: IdDocument | null;
+}
+
+export interface PermissionsSubjectPersonByFingerprintDetails {
+  subjectDetailsType: PersonSubjectByFingerprintDetailsType;
+  firstName: string;
+  lastName: string;
+  personIdentifier?: PersonIdentifier | null;
+  birthDate?: string | null;
+  idDocument?: IdDocument | null;
+}
+
+export interface PermissionsSubjectEntityDetails {
+  subjectDetailsType: EntitySubjectDetailsType;
+  fullName: string;
+  address?: string | null;
+}
+
+export interface PermissionsSubjectEntityByFingerprintDetails {
+  subjectDetailsType: EntitySubjectByFingerprintDetailsType;
+  fullName: string;
+  address?: string | null;
+}
+
+export interface PermissionsSubjectEntityByIdentifierDetails {
+  subjectDetailsType: EntitySubjectByIdentifierDetailsType;
+  fullName: string;
+}
+
+export interface PermissionsEuEntityDetails {
+  fullName: string;
+  address: string;
 }
 
 // Permission with delegation flag
@@ -339,54 +506,97 @@ export interface QueryEuEntitiesGrantsRequest {
 }
 
 // Search response types
+
 export interface PersonalPermission {
-  permissionId: string;
-  permission: PersonPermissionType;
-  grantDate: string;
+  id: string;
+  contextIdentifier?: PersonalPermissionsContextIdentifier | null;
+  authorizedIdentifier?: PersonalPermissionsAuthorizedIdentifier | null;
+  targetIdentifier?: PersonalPermissionsTargetIdentifier | null;
+  permissionScope: PersonalPermissionScopeType;
+  subjectPersonDetails?: PermissionsSubjectPersonDetails | null;
+  subjectEntityDetails?: PermissionsSubjectEntityDetails | null;
+  permissionState: PermissionState;
+  startDate: string;
+  canDelegate: boolean;
+  description: string;
 }
 
 export interface PersonPermission {
-  permissionId: string;
-  subjectIdentifier: PersonSubjectIdentifier;
-  permission: PersonPermissionType;
-  grantDate: string;
+  id: string;
+  authorizedIdentifier: PersonPermissionsAuthorizedIdentifier;
+  contextIdentifier?: PersonPermissionsContextIdentifier | null;
+  targetIdentifier?: PersonPermissionsTargetIdentifier | null;
+  authorIdentifier: PersonPermissionsAuthorIdentifier;
+  permissionScope: PersonPermissionType;
+  subjectPersonDetails?: PermissionsSubjectPersonDetails | null;
+  subjectEntityDetails?: PermissionsSubjectEntityDetails | null;
+  permissionState: PermissionState;
+  startDate: string;
+  canDelegate: boolean;
+  description: string;
 }
 
 export interface SubunitPermission {
-  permissionId: string;
-  subunitCode: string;
+  id: string;
+  authorizedIdentifier: SubunitPermissionsAuthorizedIdentifier;
+  subunitIdentifier: SubunitPermissionsSubunitIdentifier;
+  authorIdentifier: SubunitPermissionsAuthorIdentifier;
   permissionScope: SubunitPermissionScope;
-  grantDate: string;
+  subjectPersonDetails?: PermissionsSubjectPersonDetails | null;
+  subunitName?: string | null;
+  startDate: string;
+  description: string;
 }
 
 export interface EntityRole {
-  permissionId: string;
-  nip: string;
+  parentEntityIdentifier?: EntityRolesParentEntityIdentifier | null;
   role: EntityRoleType;
-  canDelegate: boolean;
-  grantDate: string;
+  startDate: string;
+  description: string;
 }
 
 export interface SubordinateEntityRole {
-  permissionId: string;
-  nip: string;
+  subordinateEntityIdentifier: SubordinateRoleSubordinateEntityIdentifier;
   role: SubordinateEntityRoleType;
-  canDelegate: boolean;
-  grantDate: string;
+  startDate: string;
+  description: string;
 }
 
-export interface AuthorizationGrant {
-  permissionId: string;
+export interface EntityAuthorizationGrant {
+  id: string;
+  authorIdentifier?: EntityAuthorizationsAuthorIdentifier | null;
+  authorizedEntityIdentifier: EntityAuthorizationsAuthorizedEntityIdentifier;
+  authorizingEntityIdentifier: EntityAuthorizationsAuthorizingEntityIdentifier;
   authorizationScope: InvoicePermissionType;
-  grantDate: string;
+  subjectEntityDetails?: PermissionsSubjectEntityByIdentifierDetails | null;
+  startDate: string;
+  description: string;
 }
+
+/** @deprecated Use EntityAuthorizationGrant instead */
+export type AuthorizationGrant = EntityAuthorizationGrant;
 
 export interface EuEntityPermission {
-  permissionId: string;
-  subjectIdentifier: EuEntityPermissionsSubjectIdentifier;
-  permission: EuEntityPermissionType;
+  id: string;
+  authorIdentifier: EuEntityPermissionsAuthorIdentifier;
+  vatUeIdentifier: string;
+  euEntityName: string;
+  authorizedFingerprintIdentifier: string;
+  permissionScope: EuEntityPermissionsQueryPermissionType;
+  subjectPersonDetails?: PermissionsSubjectPersonByFingerprintDetails | null;
+  subjectEntityDetails?: PermissionsSubjectEntityByFingerprintDetails | null;
+  euEntityDetails?: PermissionsEuEntityDetails | null;
+  startDate: string;
+  description: string;
+}
+
+export interface EntityPermissionItem {
+  id: string;
+  contextIdentifier: EntityPermissionsContextIdentifier;
+  permissionScope: EntityPermissionItemType;
+  startDate: string;
   canDelegate: boolean;
-  grantDate: string;
+  description: string;
 }
 
 // Paged wrappers
@@ -402,17 +612,15 @@ export interface PagedRolesResponse<T> {
 
 export interface PagedAuthorizationsResponse<T> {
   hasMore: boolean;
-  authorizations: T[];
+  authorizationGrants: T[];
 }
 
 // Operation status
 export interface PermissionsOperationStatusResponse {
-  processingCode: number;
-  processingDescription: string;
-  elementReferenceNumber?: string;
   status: OperationStatusInfo;
 }
 
 export interface PermissionsAttachmentAllowedResponse {
-  allowed: boolean;
+  isAttachmentAllowed?: boolean;
+  revokedDate?: string | null;
 }

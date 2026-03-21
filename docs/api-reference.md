@@ -111,7 +111,7 @@ getAccessToken(authToken: string): Promise<AuthOperationStatusResponse>
 Redeem the auth token for a session access token.
 
 ```ts
-refreshAccessToken(refreshToken: string): Promise<RefreshTokenResponse>
+refreshAccessToken(refreshToken: string): Promise<AuthenticationTokenRefreshResponse>
 ```
 Refresh an expired access token using a refresh token.
 
@@ -531,7 +531,7 @@ Disable attachment permissions for a test subject.
 ### Session Limits
 
 ```ts
-changeSessionLimits(request: ChangeSessionLimitsInCurrentContextRequest): Promise<TestDataStatusResponse>
+changeSessionLimits(request: SetSessionLimitsRequest): Promise<TestDataStatusResponse>
 ```
 Override session limits in the current context.
 
@@ -543,9 +543,9 @@ Restore default session limits.
 ### Certificate Limits
 
 ```ts
-changeCertificatesLimit(request: ChangeCertificatesLimitInCurrentSubjectRequest): Promise<TestDataStatusResponse>
+changeCertificatesLimit(request: SetSubjectLimitsRequest): Promise<TestDataStatusResponse>
 ```
-Override certificate limits for the current subject.
+Override subject limits (enrollment/certificate) for the current subject.
 
 ```ts
 restoreDefaultCertificatesLimit(): Promise<TestDataStatusResponse>
@@ -555,7 +555,7 @@ Restore default certificate limits.
 ### Rate Limits
 
 ```ts
-setRateLimits(request: EffectiveApiRateLimitsRequest): Promise<TestDataStatusResponse>
+setRateLimits(request: SetRateLimitsRequest): Promise<TestDataStatusResponse>
 ```
 Set custom API rate limits.
 
@@ -565,7 +565,7 @@ restoreDefaultRateLimits(): Promise<TestDataStatusResponse>
 Restore default API rate limits.
 
 ```ts
-setProductionRateLimits(request: EffectiveApiRateLimitsRequest): Promise<TestDataStatusResponse>
+setProductionRateLimits(): Promise<TestDataStatusResponse>
 ```
 Set production-level rate limits in the test environment.
 

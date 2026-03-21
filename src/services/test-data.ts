@@ -10,13 +10,15 @@ import type {
   TestDataPermissionsRevokeRequest,
   AttachmentPermissionGrantRequest,
   AttachmentPermissionRevokeRequest,
-  ChangeSessionLimitsInCurrentContextRequest,
-  ChangeCertificatesLimitInCurrentSubjectRequest,
-  EffectiveApiRateLimitsRequest,
-  ContextBlockRequest,
-  ContextUnblockRequest,
+  BlockContextAuthenticationRequest,
+  UnblockContextAuthenticationRequest,
   TestDataStatusResponse,
 } from '../models/test-data/types.js';
+import type {
+  SetSessionLimitsRequest,
+  SetSubjectLimitsRequest,
+  SetRateLimitsRequest,
+} from '../models/limits/types.js';
 
 export class TestDataService {
   private readonly restClient: RestClient;
@@ -83,7 +85,7 @@ export class TestDataService {
 
   // Session limits
 
-  async changeSessionLimits(request: ChangeSessionLimitsInCurrentContextRequest): Promise<TestDataStatusResponse> {
+  async changeSessionLimits(request: SetSessionLimitsRequest): Promise<TestDataStatusResponse> {
     const req = RestRequest.post(Routes.TestData.changeSessionLimitsInCurrentContext)
       .body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
@@ -98,7 +100,7 @@ export class TestDataService {
 
   // Certificate limits
 
-  async changeCertificatesLimit(request: ChangeCertificatesLimitInCurrentSubjectRequest): Promise<TestDataStatusResponse> {
+  async changeCertificatesLimit(request: SetSubjectLimitsRequest): Promise<TestDataStatusResponse> {
     const req = RestRequest.post(Routes.TestData.changeCertificatesLimitInCurrentSubject)
       .body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
@@ -113,7 +115,7 @@ export class TestDataService {
 
   // Rate limits
 
-  async setRateLimits(request: EffectiveApiRateLimitsRequest): Promise<TestDataStatusResponse> {
+  async setRateLimits(request: SetRateLimitsRequest): Promise<TestDataStatusResponse> {
     const req = RestRequest.post(Routes.TestData.rateLimits)
       .body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
@@ -126,9 +128,8 @@ export class TestDataService {
     return response.body;
   }
 
-  async setProductionRateLimits(request: EffectiveApiRateLimitsRequest): Promise<TestDataStatusResponse> {
-    const req = RestRequest.post(Routes.TestData.productionRateLimits)
-      .body(request);
+  async setProductionRateLimits(): Promise<TestDataStatusResponse> {
+    const req = RestRequest.post(Routes.TestData.productionRateLimits);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;
   }
@@ -141,14 +142,14 @@ export class TestDataService {
 
   // Context blocking
 
-  async blockContext(request: ContextBlockRequest): Promise<TestDataStatusResponse> {
+  async blockContext(request: BlockContextAuthenticationRequest): Promise<TestDataStatusResponse> {
     const req = RestRequest.post(Routes.TestData.blockContext)
       .body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);
     return response.body;
   }
 
-  async unblockContext(request: ContextUnblockRequest): Promise<TestDataStatusResponse> {
+  async unblockContext(request: UnblockContextAuthenticationRequest): Promise<TestDataStatusResponse> {
     const req = RestRequest.post(Routes.TestData.unblockContext)
       .body(request);
     const response = await this.restClient.execute<TestDataStatusResponse>(req);

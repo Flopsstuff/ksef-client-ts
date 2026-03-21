@@ -1,7 +1,7 @@
 import { RestClient } from '../http/rest-client.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
-import type { PublicKeyCertificateInfo } from '../models/crypto/types.js';
+import type { PublicKeyCertificate } from '../models/crypto/types.js';
 
 export class CertificateFetcher {
   private readonly restClient: RestClient;
@@ -39,7 +39,7 @@ export class CertificateFetcher {
 
   private async fetchCertificates(): Promise<void> {
     const request = RestRequest.get(Routes.Security.publicKeyCertificates);
-    const response = await this.restClient.execute<PublicKeyCertificateInfo[]>(request);
+    const response = await this.restClient.execute<PublicKeyCertificate[]>(request);
     const certs = response.body;
 
     if (!certs || certs.length === 0) {

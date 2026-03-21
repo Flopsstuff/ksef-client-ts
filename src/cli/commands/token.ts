@@ -20,8 +20,7 @@ const generate = defineCommand({
   meta: { name: 'generate', description: 'Generate a new KSeF token' },
   args: {
     permissions: { type: 'string', description: 'Comma-separated permissions (e.g. InvoiceRead,InvoiceWrite)', required: true },
-    description: { type: 'string', description: 'Token description' },
-    validTo: { type: 'string', description: 'Token expiry date (ISO format)' },
+    description: { type: 'string', description: 'Token description', required: true },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -40,9 +39,8 @@ const generate = defineCommand({
       const permissions = args.permissions.split(',').map((p) => p.trim()) as KsefTokenPermissionType[];
 
       const request: KsefTokenRequest = {
+        description: args.description as string,
         permissions,
-        description: args.description,
-        validTo: args.validTo,
       };
 
       const result = await client.tokens.generateToken(request);
@@ -67,7 +65,7 @@ const list = defineCommand({
     description: { type: 'string', description: 'Filter by description' },
     author: { type: 'string', description: 'Filter by author identifier' },
     authorType: { type: 'string', description: 'Author identifier type (Nip/Pesel/Fingerprint)' },
-    page: { type: 'string', description: 'Page offset' },
+    continue: { type: 'string', description: 'Continuation token for next page' },
     pageSize: { type: 'string', description: 'Number of results per page' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
@@ -81,7 +79,7 @@ const list = defineCommand({
       const { client } = requireSession(globalOpts);
 
       const options: QueryKsefTokensOptions = {
-        pageOffset: args.page ? parseInt(args.page, 10) : undefined,
+        continuationToken: args.continue as string | undefined,
         pageSize: args.pageSize ? parseInt(args.pageSize, 10) : undefined,
         status: args.status ? args.status.split(',').map((s) => s.trim()) as QueryKsefTokensOptions['status'] : undefined,
         description: args.description,

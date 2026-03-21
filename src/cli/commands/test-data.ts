@@ -7,6 +7,8 @@ import type { GlobalOptions } from '../types.js';
 import type {
   SubjectType,
   TestDataPermission,
+  TestDataPermissionType,
+  TestDataAuthenticationContextIdentifierType,
   SubjectCreateRequest,
   SubjectRemoveRequest,
   PersonCreateRequest,
@@ -15,13 +17,16 @@ import type {
   TestDataPermissionsRevokeRequest,
   AttachmentPermissionGrantRequest,
   AttachmentPermissionRevokeRequest,
-  ChangeSessionLimitsInCurrentContextRequest,
-  ChangeCertificatesLimitInCurrentSubjectRequest,
-  EffectiveApiRateLimitsRequest,
-  ContextBlockRequest,
-  ContextUnblockRequest,
+  BlockContextAuthenticationRequest,
+  UnblockContextAuthenticationRequest,
   TestDataStatusResponse,
 } from '../../models/test-data/types.js';
+import type {
+  SetSessionLimitsRequest,
+  SetSubjectLimitsRequest,
+  SetRateLimitsRequest,
+} from '../../models/limits/types.js';
+import type { PermissionSubjectIdentifierType } from '../../models/common.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -176,7 +181,9 @@ const grantPermissions = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const permissions = (args.permissions as string).split(',').map((p) => p.trim()) as TestDataPermission[];
+      const permissions: TestDataPermission[] = (args.permissions as string)
+        .split(',')
+        .map((p) => ({ permissionType: p.trim() as TestDataPermissionType }));
 
       const request: TestDataPermissionsGrantRequest = {
         contextIdentifier: { type: 'Nip', value: args['context-nip'] as string },
@@ -199,7 +206,6 @@ const revokePermissions = defineCommand({
     'context-nip': { type: 'string', description: 'Context NIP', required: true },
     identifier: { type: 'string', description: 'Authorized identifier value', required: true },
     'identifier-type': { type: 'string', description: 'Identifier type (Nip/Pesel/Fingerprint)', required: true },
-    permissions: { type: 'string', description: 'Comma-separated permissions', required: true },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -211,15 +217,12 @@ const revokePermissions = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const permissions = (args.permissions as string).split(',').map((p) => p.trim()) as TestDataPermission[];
-
       const request: TestDataPermissionsRevokeRequest = {
         contextIdentifier: { type: 'Nip', value: args['context-nip'] as string },
         authorizedIdentifier: {
           type: args['identifier-type'] as 'Nip' | 'Pesel' | 'Fingerprint',
           value: args.identifier as string,
         },
-        permissions,
       };
 
       const result = await createClient(globalOpts).testData.revokePermissions(request);
@@ -278,8 +281,12 @@ const disableAttachment = defineCommand({
 const changeSessionLimits = defineCommand({
   meta: { name: 'change-session-limits', description: 'Change session limits in current context' },
   args: {
-    'max-invoices': { type: 'string', description: 'Max invoices per session', required: true },
-    'max-duration': { type: 'string', description: 'Max session duration in minutes', required: true },
+    'online-max-size': { type: 'string', description: 'Online session: max invoice size in MB (0-5)', required: true },
+    'online-max-attach-size': { type: 'string', description: 'Online session: max invoice with attachment size in MB (0-10)', required: true },
+    'online-max-invoices': { type: 'string', description: 'Online session: max invoices (0-100000)', required: true },
+    'batch-max-size': { type: 'string', description: 'Batch session: max invoice size in MB (0-5)', required: true },
+    'batch-max-attach-size': { type: 'string', description: 'Batch session: max invoice with attachment size in MB (0-10)', required: true },
+    'batch-max-invoices': { type: 'string', description: 'Batch session: max invoices (0-100000)', required: true },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -293,9 +300,17 @@ const changeSessionLimits = defineCommand({
 
       const { client } = requireSession(globalOpts);
 
-      const request: ChangeSessionLimitsInCurrentContextRequest = {
-        maxInvoicesPerSession: parseInt(args['max-invoices'] as string, 10),
-        maxSessionDurationMinutes: parseInt(args['max-duration'] as string, 10),
+      const request: SetSessionLimitsRequest = {
+        onlineSession: {
+          maxInvoiceSizeInMB: parseInt(args['online-max-size'] as string, 10),
+          maxInvoiceWithAttachmentSizeInMB: parseInt(args['online-max-attach-size'] as string, 10),
+          maxInvoices: parseInt(args['online-max-invoices'] as string, 10),
+        },
+        batchSession: {
+          maxInvoiceSizeInMB: parseInt(args['batch-max-size'] as string, 10),
+          maxInvoiceWithAttachmentSizeInMB: parseInt(args['batch-max-attach-size'] as string, 10),
+          maxInvoices: parseInt(args['batch-max-invoices'] as string, 10),
+        },
       };
 
       const result = await client.testData.changeSessionLimits(request);
@@ -326,9 +341,11 @@ const restoreSessionLimits = defineCommand({
 });
 
 const changeCertLimits = defineCommand({
-  meta: { name: 'change-cert-limits', description: 'Change certificates limit in current subject' },
+  meta: { name: 'change-cert-limits', description: 'Change subject limits (enrollment/certificate) in current subject' },
   args: {
-    limit: { type: 'string', description: 'Certificate limit', required: true },
+    'identifier-type': { type: 'string', description: 'Subject identifier type (Nip/Pesel/Fingerprint)' },
+    'max-enrollments': { type: 'string', description: 'Max enrollments limit' },
+    'max-certificates': { type: 'string', description: 'Max certificates limit' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -342,8 +359,14 @@ const changeCertLimits = defineCommand({
 
       const { client } = requireSession(globalOpts);
 
-      const request: ChangeCertificatesLimitInCurrentSubjectRequest = {
-        limit: parseInt(args.limit as string, 10),
+      const request: SetSubjectLimitsRequest = {
+        subjectIdentifierType: args['identifier-type'] as PermissionSubjectIdentifierType | undefined,
+        enrollment: args['max-enrollments'] !== undefined
+          ? { maxEnrollments: parseInt(args['max-enrollments'] as string, 10) }
+          : undefined,
+        certificate: args['max-certificates'] !== undefined
+          ? { maxCertificates: parseInt(args['max-certificates'] as string, 10) }
+          : undefined,
       };
 
       const result = await client.testData.changeCertificatesLimit(request);
@@ -376,8 +399,7 @@ const restoreCertLimits = defineCommand({
 const setRateLimits = defineCommand({
   meta: { name: 'set-rate-limits', description: 'Set effective API rate limits' },
   args: {
-    'context-nip': { type: 'string', description: 'Context NIP', required: true },
-    limits: { type: 'string', description: 'Rate limits as JSON string', required: true },
+    limits: { type: 'string', description: 'Rate limits as JSON string (ApiRateLimitsOverride)', required: true },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -391,10 +413,8 @@ const setRateLimits = defineCommand({
 
       const { client } = requireSession(globalOpts);
 
-      const rateLimits = JSON.parse(args.limits as string);
-      const request: EffectiveApiRateLimitsRequest = {
-        contextIdentifier: { type: 'Nip', value: args['context-nip'] as string },
-        rateLimits,
+      const request: SetRateLimitsRequest = {
+        rateLimits: JSON.parse(args.limits as string),
       };
 
       const result = await client.testData.setRateLimits(request);
@@ -427,8 +447,6 @@ const restoreRateLimits = defineCommand({
 const setProductionRateLimits = defineCommand({
   meta: { name: 'set-production-rate-limits', description: 'Set production API rate limits' },
   args: {
-    'context-nip': { type: 'string', description: 'Context NIP', required: true },
-    limits: { type: 'string', description: 'Rate limits as JSON string', required: true },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -442,13 +460,7 @@ const setProductionRateLimits = defineCommand({
 
       const { client } = requireSession(globalOpts);
 
-      const rateLimits = JSON.parse(args.limits as string);
-      const request: EffectiveApiRateLimitsRequest = {
-        contextIdentifier: { type: 'Nip', value: args['context-nip'] as string },
-        rateLimits,
-      };
-
-      const result = await client.testData.setProductionRateLimits(request);
+      const result = await client.testData.setProductionRateLimits();
       outputStatus(result, args.json);
     });
   },
@@ -478,7 +490,8 @@ const restoreProductionRateLimits = defineCommand({
 const blockContext = defineCommand({
   meta: { name: 'block-context', description: 'Block a context' },
   args: {
-    'context-nip': { type: 'string', description: 'Context NIP', required: true },
+    'context-value': { type: 'string', description: 'Context identifier value', required: true },
+    'context-type': { type: 'string', description: 'Context identifier type (Nip/InternalId/NipVatUe/PeppolId)', default: 'Nip' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -492,8 +505,11 @@ const blockContext = defineCommand({
 
       const { client } = requireSession(globalOpts);
 
-      const request: ContextBlockRequest = {
-        contextIdentifier: { type: 'Nip', value: args['context-nip'] as string },
+      const request: BlockContextAuthenticationRequest = {
+        contextIdentifier: {
+          type: (args['context-type'] ?? 'Nip') as TestDataAuthenticationContextIdentifierType,
+          value: args['context-value'] as string,
+        },
       };
 
       const result = await client.testData.blockContext(request);
@@ -505,7 +521,8 @@ const blockContext = defineCommand({
 const unblockContext = defineCommand({
   meta: { name: 'unblock-context', description: 'Unblock a context' },
   args: {
-    'context-nip': { type: 'string', description: 'Context NIP', required: true },
+    'context-value': { type: 'string', description: 'Context identifier value', required: true },
+    'context-type': { type: 'string', description: 'Context identifier type (Nip/InternalId/NipVatUe/PeppolId)', default: 'Nip' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -519,8 +536,11 @@ const unblockContext = defineCommand({
 
       const { client } = requireSession(globalOpts);
 
-      const request: ContextUnblockRequest = {
-        contextIdentifier: { type: 'Nip', value: args['context-nip'] as string },
+      const request: UnblockContextAuthenticationRequest = {
+        contextIdentifier: {
+          type: (args['context-type'] ?? 'Nip') as TestDataAuthenticationContextIdentifierType,
+          value: args['context-value'] as string,
+        },
       };
 
       const result = await client.testData.unblockContext(request);

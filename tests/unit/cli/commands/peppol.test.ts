@@ -31,7 +31,7 @@ beforeEach(() => {
 describe('peppol', () => {
   it('providers — calls queryProviders', async () => {
     mockClient.peppol.queryProviders.mockResolvedValue({
-      providers: [{ identifier: 'id-1', name: 'Provider 1' }],
+      peppolProviders: [{ id: 'id-1', name: 'Provider 1', dateCreated: '2025-01-01T00:00:00Z' }],
       hasMore: false,
     });
     await (peppolCommand.subCommands!.providers as any).run!({ args: {} });
@@ -40,7 +40,7 @@ describe('peppol', () => {
   });
 
   it('providers — empty shows warning', async () => {
-    mockClient.peppol.queryProviders.mockResolvedValue({ providers: [], hasMore: false });
+    mockClient.peppol.queryProviders.mockResolvedValue({ peppolProviders: [], hasMore: false });
     await (peppolCommand.subCommands!.providers as any).run!({ args: {} });
     expect(output.outputWarning).toHaveBeenCalledWith(expect.stringContaining('No providers'));
   });

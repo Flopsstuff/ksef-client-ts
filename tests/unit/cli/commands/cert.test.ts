@@ -129,7 +129,7 @@ describe('cert', () => {
   describe('revoke', () => {
     it('calls certificates.revoke', async () => {
       await runRevoke({ serial: 'serial-1' });
-      expect(mockClient.certificates.revoke).toHaveBeenCalledWith('serial-1', { reason: undefined });
+      expect(mockClient.certificates.revoke).toHaveBeenCalledWith('serial-1', { revocationReason: null });
     });
   });
 });

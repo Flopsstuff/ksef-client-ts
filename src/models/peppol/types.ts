@@ -1,11 +1,10 @@
 export interface PeppolProvider {
-  identifier: string;
+  id: string;
   name: string;
-  description?: string;
-  dateCreated?: string;
+  dateCreated: string;
 }
 
 export interface QueryPeppolProvidersResponse {
-  providers: PeppolProvider[];
+  peppolProviders: PeppolProvider[];
   hasMore: boolean;
 }

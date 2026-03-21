@@ -80,9 +80,9 @@ describe('CertificateApiService', () => {
   it('revoke sends POST with serialNumber in path and body', async () => {
     const client = createMockRestClient();
     const service = new CertificateApiService(client);
-    const request = { reason: 'compromised' };
+    const request = { revocationReason: 'KeyCompromise' as const };
 
-    await service.revoke('SN-12345', request as any);
+    await service.revoke('SN-12345', request);
 
     const req = getRequest(vi.mocked(client.execute));
     expect(req.method).toBe('POST');
@@ -131,7 +131,7 @@ describe('CertificateApiService', () => {
     const client = createMockRestClient();
     const service = new CertificateApiService(client);
 
-    const result = await service.revoke('SN-999', { reason: 'expired' } as any);
+    const result = await service.revoke('SN-999', { revocationReason: 'Unspecified' });
 
     expect(client.execute).toHaveBeenCalledTimes(1);
     expect(result).toBeUndefined();

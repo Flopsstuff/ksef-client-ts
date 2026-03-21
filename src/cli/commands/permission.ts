@@ -299,14 +299,14 @@ const search = defineCommand({
 
           outputTable(
             response.permissions.map((p) => ({
-              id: p.permissionId,
-              permission: p.permission,
-              grantDate: p.grantDate,
+              id: p.id,
+              permission: p.permissionScope,
+              startDate: p.startDate,
             })),
             [
               { key: 'id', label: 'ID' },
               { key: 'permission', label: 'Permission' },
-              { key: 'grantDate', label: 'Grant Date' },
+              { key: 'startDate', label: 'Start Date' },
             ],
             { json: false },
           );
@@ -332,16 +332,16 @@ const search = defineCommand({
 
           outputTable(
             response.permissions.map((p) => ({
-              id: p.permissionId,
-              identifier: `${p.subjectIdentifier.type}:${p.subjectIdentifier.value}`,
-              permission: p.permission,
-              grantDate: p.grantDate,
+              id: p.id,
+              identifier: `${p.authorizedIdentifier.type}:${p.authorizedIdentifier.value}`,
+              permission: p.permissionScope,
+              startDate: p.startDate,
             })),
             [
               { key: 'id', label: 'ID' },
               { key: 'identifier', label: 'Identifier' },
               { key: 'permission', label: 'Permission' },
-              { key: 'grantDate', label: 'Grant Date' },
+              { key: 'startDate', label: 'Start Date' },
             ],
             { json: false },
           );
@@ -363,16 +363,16 @@ const search = defineCommand({
 
           outputTable(
             response.permissions.map((p) => ({
-              id: p.permissionId,
-              subunitCode: p.subunitCode,
+              id: p.id,
+              subunitIdentifier: `${p.subunitIdentifier.type}:${p.subunitIdentifier.value}`,
               permissionScope: p.permissionScope,
-              grantDate: p.grantDate,
+              startDate: p.startDate,
             })),
             [
               { key: 'id', label: 'ID' },
-              { key: 'subunitCode', label: 'Subunit Code' },
+              { key: 'subunitIdentifier', label: 'Subunit' },
               { key: 'permissionScope', label: 'Permission' },
-              { key: 'grantDate', label: 'Grant Date' },
+              { key: 'startDate', label: 'Start Date' },
             ],
             { json: false },
           );
@@ -394,18 +394,14 @@ const search = defineCommand({
 
           outputTable(
             response.roles.map((r) => ({
-              id: r.permissionId,
-              nip: r.nip,
+              nip: r.parentEntityIdentifier?.value ?? 'N/A',
               role: r.role,
-              canDelegate: String(r.canDelegate),
-              grantDate: r.grantDate,
+              startDate: r.startDate,
             })),
             [
-              { key: 'id', label: 'ID' },
-              { key: 'nip', label: 'NIP' },
+              { key: 'nip', label: 'Parent NIP' },
               { key: 'role', label: 'Role' },
-              { key: 'canDelegate', label: 'Can Delegate' },
-              { key: 'grantDate', label: 'Grant Date' },
+              { key: 'startDate', label: 'Start Date' },
             ],
             { json: false },
           );
@@ -427,16 +423,16 @@ const search = defineCommand({
 
           outputTable(
             response.permissions.map((p) => ({
-              id: p.permissionId,
-              nip: p.nip,
-              role: p.role,
-              grantDate: p.grantDate,
+              id: p.id,
+              context: `${p.contextIdentifier.type}:${p.contextIdentifier.value}`,
+              permissionScope: p.permissionScope,
+              startDate: p.startDate,
             })),
             [
               { key: 'id', label: 'ID' },
-              { key: 'nip', label: 'NIP' },
-              { key: 'role', label: 'Role' },
-              { key: 'grantDate', label: 'Grant Date' },
+              { key: 'context', label: 'Context' },
+              { key: 'permissionScope', label: 'Permission' },
+              { key: 'startDate', label: 'Start Date' },
             ],
             { json: false },
           );
@@ -458,16 +454,14 @@ const search = defineCommand({
 
           outputTable(
             response.roles.map((r) => ({
-              id: r.permissionId,
-              nip: r.nip,
+              nip: r.subordinateEntityIdentifier.value,
               role: r.role,
-              grantDate: r.grantDate,
+              startDate: r.startDate,
             })),
             [
-              { key: 'id', label: 'ID' },
-              { key: 'nip', label: 'NIP' },
+              { key: 'nip', label: 'Subordinate NIP' },
               { key: 'role', label: 'Role' },
-              { key: 'grantDate', label: 'Grant Date' },
+              { key: 'startDate', label: 'Start Date' },
             ],
             { json: false },
           );
@@ -483,21 +477,21 @@ const search = defineCommand({
             return;
           }
 
-          if (response.authorizations.length === 0) {
+          if (response.authorizationGrants.length === 0) {
             outputWarning('No permissions found.');
             return;
           }
 
           outputTable(
-            response.authorizations.map((a) => ({
-              id: a.permissionId,
+            response.authorizationGrants.map((a) => ({
+              id: a.id,
               authorizationScope: a.authorizationScope,
-              grantDate: a.grantDate,
+              startDate: a.startDate,
             })),
             [
               { key: 'id', label: 'ID' },
               { key: 'authorizationScope', label: 'Permission' },
-              { key: 'grantDate', label: 'Grant Date' },
+              { key: 'startDate', label: 'Start Date' },
             ],
             { json: false },
           );
@@ -519,16 +513,16 @@ const search = defineCommand({
 
           outputTable(
             response.permissions.map((p) => ({
-              id: p.permissionId,
-              identifier: `${p.subjectIdentifier.type}:${p.subjectIdentifier.value}`,
-              permission: p.permission,
-              grantDate: p.grantDate,
+              id: p.id,
+              authorIdentifier: `${p.authorIdentifier.type}:${p.authorIdentifier.value}`,
+              permission: p.permissionScope,
+              startDate: p.startDate,
             })),
             [
               { key: 'id', label: 'ID' },
-              { key: 'identifier', label: 'Identifier' },
+              { key: 'authorIdentifier', label: 'Author' },
               { key: 'permission', label: 'Permission' },
-              { key: 'grantDate', label: 'Grant Date' },
+              { key: 'startDate', label: 'Start Date' },
             ],
             { json: false },
           );
@@ -563,9 +557,6 @@ const status = defineCommand({
         outputResult(result, { json: true });
       } else {
         outputKeyValue({
-          'Processing Code': result.processingCode,
-          'Description': result.processingDescription,
-          'Element Reference': result.elementReferenceNumber ?? 'N/A',
           'Status Code': result.status.code,
           'Status Description': result.status.description,
         }, { json: false });
@@ -594,7 +585,7 @@ const attachmentStatus = defineCommand({
         outputResult(result, { json: true });
       } else {
         outputKeyValue({
-          'Attachments': result.allowed ? 'Allowed' : 'Not Allowed',
+          'Attachments': result.isAttachmentAllowed ? 'Allowed' : 'Not Allowed',
         }, { json: false });
       }
     });

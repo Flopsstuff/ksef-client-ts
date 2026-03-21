@@ -10,9 +10,8 @@ export type KsefTokenPermissionType =
 export type KsefTokenStatus = 'Pending' | 'Active' | 'Revoking' | 'Revoked' | 'Failed';
 
 export interface KsefTokenRequest {
-  description?: string;
+  description: string;
   permissions: KsefTokenPermissionType[];
-  validTo?: string;
 }
 
 export interface KsefTokenResponse {
@@ -32,7 +31,8 @@ export interface AuthenticationKsefToken {
   statusDetails?: string[] | null;
 }
 
-export type TokenStatus = 'Pending' | 'Active' | 'Revoking' | 'Revoked' | 'Failed';
+export type QueryTokensResponseItem = AuthenticationKsefToken;
+export type TokenStatusResponse = AuthenticationKsefToken;
 
 export type TokenAuthorIdentifierType = 'Nip' | 'Pesel' | 'Fingerprint';
 
@@ -49,9 +49,9 @@ export interface TokenContextIdentifier {
 }
 
 export interface QueryKsefTokensOptions {
-  pageOffset?: number;
+  continuationToken?: string;
   pageSize?: number;
-  status?: TokenStatus[];
+  status?: KsefTokenStatus[];
   description?: string;
   authorIdentifier?: string;
   authorIdentifierType?: TokenAuthorIdentifierType;
@@ -59,5 +59,5 @@ export interface QueryKsefTokensOptions {
 
 export interface QueryKsefTokensResponse {
   continuationToken?: string | null;
-  tokens: AuthenticationKsefToken[];
+  tokens: QueryTokensResponseItem[];
 }

@@ -7,14 +7,9 @@ export interface AuthChallengeResponse {
   clientIp: string;
 }
 
-export interface OperationToken {
-  token: string;
-  validUntil: string;
-}
-
 export interface AuthenticationInitResponse {
   referenceNumber: string;
-  authenticationToken: OperationToken;
+  authenticationToken: TokenInfo;
 }
 
 export interface AuthenticationTokensResponse {
@@ -22,7 +17,7 @@ export interface AuthenticationTokensResponse {
   refreshToken: TokenInfo;
 }
 
-export interface RefreshTokenResponse {
+export interface AuthenticationTokenRefreshResponse {
   accessToken: TokenInfo;
 }
 
@@ -45,7 +40,12 @@ export interface AuthenticationOperationStatusResponse {
   refreshTokenValidUntil?: string;
 }
 
-export type SubjectIdentifierType = 'Nip' | 'Pesel' | 'Fingerprint';
+/**
+ * Subject identifier type for the XAdES auth XML request.
+ * This is XML-specific (not in the REST OpenAPI spec).
+ * Known value: 'certificateSubject' (used with qualified signatures/seals).
+ */
+export type XadesSubjectIdentifierType = 'certificateSubject' | (string & {});
 
 export interface AllowedIps {
   ip4Addresses?: string[];
@@ -60,7 +60,7 @@ export interface AuthorizationPolicy {
 export interface AuthTokenRequest {
   challenge: string;
   contextIdentifier: ContextIdentifier;
-  subjectIdentifierType: SubjectIdentifierType;
+  subjectIdentifierType: XadesSubjectIdentifierType;
   authorizationPolicy?: AuthorizationPolicy;
 }
 

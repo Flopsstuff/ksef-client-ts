@@ -31,6 +31,7 @@ describe('TokenService', () => {
     expect(req.method).toBe('GET');
     expect(req.path).toBe(Routes.Tokens.root);
     expect(req.getQuery()).toEqual([]);
+    expect(req.getHeaders()).not.toHaveProperty('x-continuation-token');
     expect(result).toEqual(expected);
   });
 
@@ -41,19 +42,19 @@ describe('TokenService', () => {
     vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
 
     await service.queryTokens({
-      pageOffset: 0,
+      continuationToken: 'abc-token-123',
       pageSize: 10,
       status: ['Active', 'Pending'],
       description: 'test',
       authorIdentifier: '1234567890',
       authorIdentifierType: 'Nip',
-    } as any);
+    });
 
     const req = getRequest(vi.mocked(client.execute));
     expect(req.method).toBe('GET');
     expect(req.path).toBe(Routes.Tokens.root);
+    expect(req.getHeaders()).toHaveProperty('x-continuation-token', 'abc-token-123');
     expect(req.getQuery()).toEqual([
-      ['pageOffset', '0'],
       ['pageSize', '10'],
       ['status', 'Active'],
       ['status', 'Pending'],

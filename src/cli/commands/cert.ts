@@ -265,7 +265,7 @@ const revoke = defineCommand({
   meta: { name: 'revoke', description: 'Revoke a certificate' },
   args: {
     serial: { type: 'positional', description: 'Certificate serial number', required: true },
-    reason: { type: 'string', description: 'Revocation reason' },
+    revocationReason: { type: 'string', description: 'Revocation reason (Unspecified/Superseded/KeyCompromise)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -278,7 +278,11 @@ const revoke = defineCommand({
       const { client } = requireSession(globalOpts);
       const serial = args.serial as string;
 
-      await client.certificates.revoke(serial, { reason: args.reason as string | undefined });
+      await client.certificates.revoke(serial, {
+        revocationReason: args.revocationReason
+          ? args.revocationReason as import('../../models/certificates/types.js').CertificateRevocationReason
+          : null,
+      });
 
       if (args.json) {
         outputResult({ status: 'revoked', serialNumber: serial }, { json: true });

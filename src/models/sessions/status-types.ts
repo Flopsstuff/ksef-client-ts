@@ -70,7 +70,7 @@ export interface SessionInvoiceStatusResponse {
   permanentStorageDate?: string;
   upoDownloadUrl?: string;
   status: InvoiceStatusInfo;
-  invoicingMode: InvoicingMode;
+  invoicingMode?: InvoicingMode | null;
   upoDownloadUrlExpirationDate?: string;
 }
 

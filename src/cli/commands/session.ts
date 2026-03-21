@@ -474,7 +474,7 @@ const invoice = defineCommand({
           'Hash': result.invoiceHash,
           'Status': `${result.status.code} — ${result.status.description}`,
           'Invoicing Date': result.invoicingDate,
-          'Invoicing Mode': result.invoicingMode,
+          'Invoicing Mode': result.invoicingMode ?? 'N/A',
         }, { json: false });
       }
     });

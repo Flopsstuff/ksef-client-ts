@@ -10,15 +10,15 @@ Total issues found: **52** across 9 domains
 
 | # | Domain | Issues | Severity | Status |
 |---|--------|--------|----------|--------|
-| 1 | Limits & Restrictions | 11 | P0 Critical | [ ] |
-| 2 | Permissions | 7 | P0 Critical | [ ] |
-| 3 | KSeF Tokens | 7 | P1 High | [ ] |
-| 4 | Peppol Services | 5 | P1 High | [ ] |
-| 5 | Certificates | 1 | P1 High | [ ] |
-| 6 | Test Data | 6 | P2 Medium | [ ] |
-| 7 | Invoices | 4 | P2 Medium | [ ] |
-| 8 | Authentication | 3 | P2 Medium | [ ] |
-| 9 | Encryption | 8 | P3 Low | [ ] |
+| 1 | Limits & Restrictions | 11 | P0 Critical | [x] |
+| 2 | Permissions | 7 | P0 Critical | [x] |
+| 3 | KSeF Tokens | 7 | P1 High | [x] |
+| 4 | Peppol Services | 5 | P1 High | [x] |
+| 5 | Certificates | 1 | P1 High | [x] |
+| 6 | Test Data | 6 | P2 Medium | [x] |
+| 7 | Invoices | 4 | P2 Medium | [x] |
+| 8 | Authentication | 3 | P2 Medium | [x] |
+| 9 | Encryption | 8 | P3 Low | [x] |
 
 ---
 

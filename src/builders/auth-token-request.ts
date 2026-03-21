@@ -2,14 +2,14 @@ import { KSeFValidationError } from '../errors/ksef-validation-error.js';
 import type {
   AuthTokenRequest,
   AuthorizationPolicy,
-  SubjectIdentifierType,
+  XadesSubjectIdentifierType,
 } from '../models/auth/types.js';
 import type { ContextIdentifier, ContextIdentifierType } from '../models/common.js';
 
 export class AuthTokenRequestBuilder {
   private challenge?: string;
   private contextIdentifier?: ContextIdentifier;
-  private subjectIdentifierType?: SubjectIdentifierType;
+  private subjectIdentifierType?: XadesSubjectIdentifierType;
   private authorizationPolicy?: AuthorizationPolicy;
 
   withChallenge(challenge: string): this {
@@ -33,7 +33,7 @@ export class AuthTokenRequestBuilder {
     return this.withContext('PeppolId', id);
   }
 
-  withSubjectType(type: SubjectIdentifierType): this {
+  withSubjectType(type: XadesSubjectIdentifierType): this {
     this.subjectIdentifierType = type;
     return this;
   }

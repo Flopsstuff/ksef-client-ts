@@ -23,7 +23,6 @@ describe('TestDataService', () => {
     ['changeSessionLimits', Routes.TestData.changeSessionLimitsInCurrentContext],
     ['changeCertificatesLimit', Routes.TestData.changeCertificatesLimitInCurrentSubject],
     ['setRateLimits', Routes.TestData.rateLimits],
-    ['setProductionRateLimits', Routes.TestData.productionRateLimits],
     ['blockContext', Routes.TestData.blockContext],
     ['unblockContext', Routes.TestData.unblockContext],
   ];
@@ -48,6 +47,19 @@ describe('TestDataService', () => {
     ['restoreDefaultRateLimits', Routes.TestData.rateLimits],
     ['restoreDefaultProductionRateLimits', Routes.TestData.productionRateLimits],
   ];
+
+  it('setProductionRateLimits sends POST without body', async () => {
+    const expected = { code: 0, description: 'OK' };
+    (restClient.execute as any).mockResolvedValueOnce(mockResponse(expected));
+
+    const result = await service.setProductionRateLimits();
+
+    expect(result).toEqual(expected);
+    const req = getRequest(restClient.execute as any);
+    expect(req.method).toBe('POST');
+    expect(req.path).toBe(Routes.TestData.productionRateLimits);
+    expect(req.getBody()).toBeUndefined();
+  });
 
   it.each(deleteMethods)('%s sends DELETE', async (methodName, expectedRoute) => {
     const expected = { code: 0, description: 'OK' };

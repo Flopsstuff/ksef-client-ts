@@ -1,7 +1,7 @@
 import { RestClient } from '../http/rest-client.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
-import type { KsefTokenRequest, KsefTokenResponse, AuthenticationKsefToken, QueryKsefTokensResponse, QueryKsefTokensOptions } from '../models/tokens/types.js';
+import type { KsefTokenRequest, KsefTokenResponse, TokenStatusResponse, QueryKsefTokensResponse, QueryKsefTokensOptions } from '../models/tokens/types.js';
 
 export class TokenService {
   private readonly restClient: RestClient;
@@ -21,7 +21,7 @@ export class TokenService {
     options?: QueryKsefTokensOptions,
   ): Promise<QueryKsefTokensResponse> {
     const req = RestRequest.get(Routes.Tokens.root);
-    if (options?.pageOffset !== undefined) req.query('pageOffset', String(options.pageOffset));
+    if (options?.continuationToken !== undefined) req.header('x-continuation-token', options.continuationToken);
     if (options?.pageSize !== undefined) req.query('pageSize', String(options.pageSize));
     if (options?.status) {
       for (const s of options.status) {
@@ -35,9 +35,9 @@ export class TokenService {
     return response.body;
   }
 
-  async getToken(ref: string): Promise<AuthenticationKsefToken> {
+  async getToken(ref: string): Promise<TokenStatusResponse> {
     const req = RestRequest.get(Routes.Tokens.byReference(ref));
-    const response = await this.restClient.execute<AuthenticationKsefToken>(req);
+    const response = await this.restClient.execute<TokenStatusResponse>(req);
     return response.body;
   }
 

@@ -2,7 +2,7 @@ import { RestClient } from '../http/rest-client.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
 import type { OperationResponse, SortOrder } from '../models/common.js';
-import type { InvoiceQueryFilters, PagedInvoiceResponse, InvoiceExportRequest, InvoiceExportStatusResponse } from '../models/invoices/types.js';
+import type { InvoiceQueryFilters, QueryInvoicesMetadataResponse, InvoiceExportRequest, InvoiceExportStatusResponse } from '../models/invoices/types.js';
 
 export class InvoiceDownloadService {
   private readonly restClient: RestClient;
@@ -22,13 +22,13 @@ export class InvoiceDownloadService {
     pageOffset?: number,
     pageSize?: number,
     sortOrder?: SortOrder,
-  ): Promise<PagedInvoiceResponse> {
+  ): Promise<QueryInvoicesMetadataResponse> {
     const req = RestRequest.post(Routes.Invoices.queryMetadata)
       .body(filters);
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
     if (sortOrder !== undefined) req.query('sortOrder', sortOrder);
-    const response = await this.restClient.execute<PagedInvoiceResponse>(req);
+    const response = await this.restClient.execute<QueryInvoicesMetadataResponse>(req);
     return response.body;
   }
 

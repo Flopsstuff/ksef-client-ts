@@ -21,6 +21,8 @@ export type AmountType = 'Brutto' | 'Netto' | 'Vat';
 
 export type BuyerIdentifierType = 'Nip' | 'VatUe' | 'Other' | 'None';
 
+export type ThirdSubjectIdentifierType = 'Nip' | 'InternalId' | 'VatUe' | 'Other' | 'None';
+
 export type FormType = 'FA' | 'PEF' | 'RR';
 
 export type InvoiceType =
@@ -89,9 +91,14 @@ export interface InvoiceMetadataBuyer {
   name?: string;
 }
 
+export interface InvoiceMetadataThirdSubjectIdentifier {
+  type: ThirdSubjectIdentifierType;
+  value?: string | null;
+}
+
 export interface InvoiceMetadataThirdSubject {
-  identifier: InvoiceMetadataBuyerIdentifier;
-  name?: string;
+  identifier: InvoiceMetadataThirdSubjectIdentifier;
+  name?: string | null;
   role: number;
 }
 
@@ -129,7 +136,7 @@ export interface InvoiceMetadata {
 // Query response
 // ---------------------------------------------------------------------------
 
-export interface PagedInvoiceResponse {
+export interface QueryInvoicesMetadataResponse {
   hasMore: boolean;
   isTruncated: boolean;
   invoices: InvoiceMetadata[];

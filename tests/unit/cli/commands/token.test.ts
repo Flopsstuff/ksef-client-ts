@@ -38,7 +38,7 @@ describe('token', () => {
   it('generate — splits permissions and calls generateToken', async () => {
     mockClient.tokens.generateToken.mockResolvedValue({ referenceNumber: 'ref-1', token: 'tok-1' });
     await (tokenCommand.subCommands!.generate as any).run!({
-      args: { permissions: 'InvoiceRead,InvoiceWrite' },
+      args: { permissions: 'InvoiceRead,InvoiceWrite', description: 'Test token' },
     });
     expect(mockClient.tokens.generateToken).toHaveBeenCalledWith(
       expect.objectContaining({ permissions: ['InvoiceRead', 'InvoiceWrite'] }),
