@@ -1,4 +1,17 @@
 import { defineConfig } from 'vitepress';
+import { copyFileSync, mkdirSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const docsDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+/** Copy docs/open-api.json → docs/public/open-api.json so VitePress serves it as a static asset. */
+function copyOpenApiSpec() {
+  const src = resolve(docsDir, 'open-api.json');
+  const dest = resolve(docsDir, 'public', 'open-api.json');
+  mkdirSync(resolve(docsDir, 'public'), { recursive: true });
+  copyFileSync(src, dest);
+}
 
 export default defineConfig({
   title: 'ksef-client-ts',
@@ -14,19 +27,30 @@ export default defineConfig({
     'ref-*.md',
   ],
 
+  vite: {
+    ssr: {
+      noExternal: ['@scalar/api-reference'],
+    },
+    plugins: [
+      { name: 'copy-openapi-spec', buildStart: copyOpenApiSpec },
+    ],
+  },
+
   themeConfig: {
     nav: [
-      { text: 'Guide', link: '/authentication' },
+      { text: 'Quick Start', link: '/quick-start' },
       { text: 'CLI', link: '/cli' },
       { text: 'API Reference', link: '/api-reference' },
       { text: 'Examples', link: '/examples' },
+      { text: 'OpenAPI', link: '/openapi' },
     ],
 
     sidebar: [
       {
         text: 'Introduction',
         items: [
-          { text: 'Getting Started', link: '/' },
+          { text: 'Home', link: '/' },
+          { text: 'Quick Start', link: '/quick-start' },
           { text: 'Architecture', link: '/architecture' },
           { text: 'Authentication', link: '/authentication' },
         ],
@@ -37,6 +61,7 @@ export default defineConfig({
           { text: 'CLI', link: '/cli' },
           { text: 'Examples', link: '/examples' },
           { text: 'API Reference', link: '/api-reference' },
+          { text: 'OpenAPI', link: '/openapi' },
         ],
       },
     ],

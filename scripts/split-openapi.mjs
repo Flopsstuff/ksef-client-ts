@@ -71,23 +71,16 @@ function resolveAllRefs(schemaNames, allSchemas) {
   return resolved;
 }
 
-const TAG_EN = {
-  "Aktywne sesje": "Active Sessions",
-  "Certyfikaty": "Certificates",
-  "Certyfikaty klucza publicznego": "Public Key Certificates",
-  "Dane testowe": "Test Data",
+const GROUP_EN = {
+  "Uwierzytelnianie": "Authentication",
   "Limity i ograniczenia": "Limits & Restrictions",
-  "Nadawanie uprawnień": "Granting Permissions",
-  "Odbieranie uprawnień": "Revoking Permissions",
-  "Operacje": "Operations",
-  "Pobieranie faktur": "Invoice Download",
-  "Status wysyłki i UPO": "Send Status & UPO",
+  "Szyfrowanie danych": "Encryption",
+  "Faktury": "Invoices",
+  "Uprawnienia": "Permissions",
+  "Certyfikaty": "Certificates",
   "Tokeny KSeF": "KSeF Tokens",
   "Usługi Peppol": "Peppol Services",
-  "Uzyskiwanie dostępu": "Authentication",
-  "Wysyłka interaktywna": "Interactive Send",
-  "Wysyłka wsadowa": "Batch Send",
-  "Wyszukiwanie nadanych uprawnień": "Permission Search",
+  "Dane testowe": "Test Data",
 };
 
 // --- main ---
@@ -95,14 +88,23 @@ const TAG_EN = {
 const spec = JSON.parse(readFileSync(INPUT, "utf8"));
 const allSchemas = spec.components?.schemas || {};
 
-// Group paths by first tag
-const tagPaths = new Map();
+// Build tag → group mapping from x-tagGroups
+const tagGroups = spec["x-tagGroups"] || [];
+const tagToGroup = new Map();
+for (const group of tagGroups) {
+  for (const tag of group.tags) {
+    tagToGroup.set(tag, group.name);
+  }
+}
+
+// Group paths by x-tagGroups
+const groupPaths = new Map();
 for (const [path, methods] of Object.entries(spec.paths)) {
   for (const [, op] of Object.entries(methods)) {
     if (op.tags?.[0]) {
-      const tag = op.tags[0];
-      if (!tagPaths.has(tag)) tagPaths.set(tag, {});
-      tagPaths.get(tag)[path] = spec.paths[path];
+      const group = tagToGroup.get(op.tags[0]) || op.tags[0];
+      if (!groupPaths.has(group)) groupPaths.set(group, {});
+      groupPaths.get(group)[path] = spec.paths[path];
       break;
     }
   }
@@ -114,7 +116,7 @@ mkdirSync(OUT_DIR, { recursive: true });
 
 const manifest = [];
 
-for (const [tag, paths] of tagPaths) {
+for (const [group, paths] of groupPaths) {
   // Find all referenced schemas
   const directRefs = collectRefs(paths);
   const allRefs = resolveAllRefs(directRefs, allSchemas);
@@ -131,8 +133,8 @@ for (const [tag, paths] of tagPaths) {
     components: { schemas },
   });
 
-  const enTag = TAG_EN[tag] || tag;
-  const slug = slugify(enTag);
+  const enGroup = GROUP_EN[group] || group;
+  const slug = slugify(enGroup);
   const filename = `${slug}.json`;
   const outPath = join(OUT_DIR, filename);
   const content = JSON.stringify(chunk, null, 2);
@@ -144,7 +146,7 @@ for (const [tag, paths] of tagPaths) {
   );
 
   manifest.push({
-    tag: enTag,
+    group: enGroup,
     file: filename,
     routes: routes.length,
     schemas: allRefs.size,
@@ -156,7 +158,7 @@ for (const [tag, paths] of tagPaths) {
 const manifestContent = manifest
   .map(
     (m) =>
-      `${m.file} — ${m.tag} (${m.routes} routes, ${m.schemas} schemas, ${(m.bytes / 1024).toFixed(1)} KB)`
+      `${m.file} — ${m.group} (${m.routes} routes, ${m.schemas} schemas, ${(m.bytes / 1024).toFixed(1)} KB)`
   )
   .join("\n");
 writeFileSync(join(OUT_DIR, "_manifest.txt"), manifestContent + "\n");

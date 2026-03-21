@@ -16,3 +16,4 @@ coverage/
 # VitePress
 docs/.vitepress/cache
 docs/.vitepress/dist
+docs/public/open-api.json

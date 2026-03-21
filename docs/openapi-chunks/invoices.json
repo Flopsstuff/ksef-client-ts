@@ -1,0 +1,4004 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "KSeF API TE",
+    "version": "v2"
+  },
+  "paths": {
+    "/invoices/ksef/{ksefNumber}": {
+      "get": {
+        "tags": [
+          "Pobieranie faktur"
+        ],
+        "summary": "Pobranie faktury po numerze KSeF",
+        "parameters": [
+          {
+            "name": "ksefNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/KsefNumber"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "headers": {
+              "x-ms-meta-hash": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sha256HashBase64"
+                }
+              }
+            },
+            "content": {
+              "application/xml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 80,
+          "perMinute": 160,
+          "perHour": 640
+        },
+        "x-required-permissions": [
+          "InvoiceRead"
+        ]
+      }
+    },
+    "/invoices/query/metadata": {
+      "post": {
+        "tags": [
+          "Pobieranie faktur"
+        ],
+        "summary": "Pobranie listy metadanych faktur",
+        "parameters": [
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/SortOrder"
+                }
+              ],
+              "default": "Asc"
+            }
+          },
+          {
+            "name": "pageOffset",
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 250,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "subjectType",
+                  "dateRange"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/InvoiceQueryFilters"
+                  }
+                ]
+              },
+              "example": {
+                "subjectType": "Subject1",
+                "dateRange": {
+                  "dateType": "PermanentStorage",
+                  "from": "2025-08-28T09:22:13.388+00:00",
+                  "to": "2025-09-28T09:24:13.388+00:00"
+                },
+                "amount": {
+                  "type": "Brutto",
+                  "from": 100.5,
+                  "to": 250
+                },
+                "currencyCodes": [
+                  "PLN",
+                  "EUR"
+                ],
+                "invoicingMode": "Online",
+                "formType": "FA",
+                "invoiceTypes": [
+                  "Vat"
+                ],
+                "hasAttachment": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryInvoicesMetadataResponse"
+                },
+                "example": {
+                  "hasMore": false,
+                  "isTruncated": false,
+                  "permanentStorageHwmDate": "2025-08-28T09:23:55.388+00:00",
+                  "invoices": [
+                    {
+                      "ksefNumber": "5555555555-20250828-010080615740-E4",
+                      "invoiceNumber": "FA/KUDYO1a7dddfe-610e-4843-84ba-6b887e35266e",
+                      "issueDate": "2025-08-27",
+                      "invoicingDate": "2025-08-28T09:22:13.3881234+00:00",
+                      "acquisitionDate": "2025-08-28T09:22:56.3881234+00:00",
+                      "permanentStorageDate": "2025-08-28T09:23:01.388123+00:00",
+                      "seller": {
+                        "nip": "5555555555",
+                        "name": "Test Company 1"
+                      },
+                      "buyer": {
+                        "identifier": {
+                          "type": "Nip",
+                          "value": "7352765225"
+                        },
+                        "name": "Test Company 4"
+                      },
+                      "netAmount": 35260.63,
+                      "grossAmount": 43370.57,
+                      "vatAmount": 8109.94,
+                      "currency": "PLN",
+                      "invoicingMode": "Offline",
+                      "invoiceType": "Vat",
+                      "formCode": {
+                        "systemCode": "FA (3)",
+                        "schemaVersion": "1-0E",
+                        "value": "FA"
+                      },
+                      "isSelfInvoicing": false,
+                      "hasAttachment": false,
+                      "invoiceHash": "mkht+3m5trnfxlTYhq3QFn74LkEO69MFNlsMAkCDSPA=",
+                      "thirdSubjects": []
+                    },
+                    {
+                      "ksefNumber": "5555555555-20250828-010080615740-E4",
+                      "invoiceNumber": "5265877635-20250925-010020A0A242-0A",
+                      "issueDate": "2025-08-28",
+                      "invoicingDate": "2025-08-28T10:23:13.3881234+00:00",
+                      "acquisitionDate": "2025-08-28T10:23:56.3881234+00:00",
+                      "permanentStorageDate": "2025-08-28T10:24:01.388123+00:00",
+                      "seller": {
+                        "nip": "5555555555",
+                        "name": "Test Company 1"
+                      },
+                      "buyer": {
+                        "identifier": {
+                          "type": "Nip",
+                          "value": "3225081610"
+                        },
+                        "name": "Test Company 2"
+                      },
+                      "netAmount": 35260.63,
+                      "grossAmount": 43370.57,
+                      "vatAmount": 8109.94,
+                      "currency": "PLN",
+                      "invoicingMode": "Online",
+                      "invoiceType": "Vat",
+                      "formCode": {
+                        "systemCode": "FA (3)",
+                        "schemaVersion": "1-0E",
+                        "value": "FA"
+                      },
+                      "isSelfInvoicing": false,
+                      "hasAttachment": true,
+                      "invoiceHash": "o+nMBU8n8TAhy6EjbcdYdHSZVbUspqmCKqOPLhy3zIQ=",
+                      "thirdSubjects": [
+                        {
+                          "identifier": {
+                            "type": "InternalId",
+                            "value": "5555555555-12345"
+                          },
+                          "name": "Wystawca faktury",
+                          "role": 4
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 80,
+          "perMinute": 160,
+          "perHour": 200
+        },
+        "x-sort": [
+          {
+            "allowedFields": [
+              "permanentStorageDate",
+              "invoicingDate",
+              "issueDate"
+            ],
+            "allowedDirections": [
+              "Asc",
+              "Desc"
+            ]
+          }
+        ],
+        "x-required-permissions": [
+          "InvoiceRead"
+        ]
+      }
+    },
+    "/invoices/exports": {
+      "post": {
+        "tags": [
+          "Pobieranie faktur"
+        ],
+        "summary": "Eksport paczki faktur",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "encryption",
+                  "filters"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/InvoiceExportRequest"
+                  }
+                ]
+              },
+              "example": {
+                "encryption": {
+                  "encryptedSymmetricKey": "bdUVjqLj+y2q6aBUuLxxXYAMqeDuIBRTyr+hB96DaWKaGzuVHw9p+Nk9vhzgF/Q5cavK2k6eCh6SdsrWI0s9mFFj4A4UJtsyD8Dn3esLfUZ5A1juuG3q3SBi/XOC/+9W+0T/KdwdE393mbiUNyx1K/0bw31vKJL0COeJIDP7usAMDl42/H1TNvkjk+8iZ80V0qW7D+RZdz+tdiY1xV0f2mfgwJ46V0CpZ+sB9UAssRj+eVffavJ0TOg2b5JaBxE8MCAvrF6rO5K4KBjUmoy7PP7g1qIbm8xI2GO0KnfPOO5OWj8rsotRwBgu7x19Ine3qYUvuvCZlXRGGZ5NHIzWPM4O74+gNalaMgFCsmv8mMhETSU4SfAGmJr9edxPjQSbgD5i2X4eDRDMwvyaAa7CP1b2oICju+0L7Fywd2ZtUcr6El++eTVoi8HYsTArntET++gULT7XXjmb8e3O0nxrYiYsE9GMJ7HBGv3NOoJ1NTm3a7U6+c0ZJiBVLvn6xXw10LQX243xH+ehsKo6djQJKYtqcNPaXtCwM1c9RrsOx/wRXyWCtTffqLiaR0LbYvfMJAcEWceG+RaeAx4p37OiQqdJypd6LAv9/0ECWK8Bip8yyoA+0EYiAJb9YuDz2YlQX9Mx9E9FzFIAsgEQ2w723HZYWgPywLb+dlsum4lTZKQ=",
+                  "initializationVector": "c29tZUluaXRWZWN0b3I="
+                },
+                "filters": {
+                  "subjectType": "Subject1",
+                  "dateRange": {
+                    "dateType": "PermanentStorage",
+                    "from": "2025-08-28T09:22:13.388+00:00",
+                    "to": "2025-09-28T09:22:13.388+00:00",
+                    "restrictToPermanentStorageHwmDate": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportInvoicesResponse"
+                },
+                "example": {
+                  "referenceNumber": "20251010-EH-1B6C9EB000-4B15D3AEB9-89"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 40,
+          "perMinute": 80,
+          "perHour": 200
+        },
+        "x-sort": [
+          {
+            "allowedFields": [
+              "permanentStorageDate",
+              "invoicingDate",
+              "issueDate"
+            ],
+            "allowedDirections": "Asc"
+          }
+        ],
+        "x-required-permissions": [
+          "InvoiceRead"
+        ]
+      }
+    },
+    "/invoices/exports/{referenceNumber}": {
+      "get": {
+        "tags": [
+          "Pobieranie faktur"
+        ],
+        "summary": "Pobranie statusu eksportu paczki faktur",
+        "parameters": [
+          {
+            "name": "referenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceExportStatusResponse"
+                },
+                "example": {
+                  "status": {
+                    "code": 200
+                  },
+                  "completedDate": "2025-09-16T16:09:40.901091+00:00",
+                  "package": {
+                    "invoiceCount": 10000,
+                    "size": 22425060,
+                    "parts": [
+                      {
+                        "ordinalNumber": 1,
+                        "partName": "20250925-EH-2D2C11B000-E9C9ED8340-EE-001.zip.aes",
+                        "method": "GET",
+                        "url": "https://ksef-api-storage/storage/00/20250626-eh-2d2c11b000-e9c9ed8340-ee/invoice-part/20250925-EH-2D2C11B000-E9C9ED8340-EE-001.zip.aes?skoid=1ad7cfe8-2cb2-406b-b96c-6eefb55794db&sktid=647754c7-3974-4442-a425-c61341b61c69&skt=2025-06-26T09%3A40%3A54Z&ske=2025-06-26T10%3A10%3A54Z&sks=b&skv=2025-01-05&sv=2025-01-05&se=2025-06-26T10%3A10%3A54Z&sr=b&sp=w&sig=8mKZEU8Reuz%2Fn7wHi4T%2FY8BzLeD5l8bR2xJsBxIgDEY%3D",
+                        "partSize": 22425060,
+                        "partHash": "BKH9Uy1CjBFXiQdDUM2CJYk5LxWTm4fE1lljnl83Ajw=",
+                        "encryptedPartSize": 22425072,
+                        "encryptedPartHash": "HlvwRLc59EJH7O5GoeHEZxTQO5TJ/WP1QH0aFi4x2Ss=",
+                        "expirationDate": "2025-09-16T17:09:40.901091+00:00"
+                      }
+                    ],
+                    "isTruncated": true,
+                    "lastPermanentStorageDate": "2025-09-11T11:40:40.266578+00:00",
+                    "permanentStorageHwmDate": "2025-09-11T12:00:40.266578+00:00"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 600,
+          "perHour": 6000
+        },
+        "x-sort": [
+          {
+            "allowedFields": [
+              "permanentStorageDate",
+              "invoicingDate",
+              "issueDate"
+            ],
+            "allowedDirections": "Asc"
+          }
+        ],
+        "x-required-permissions": [
+          "InvoiceRead"
+        ]
+      }
+    },
+    "/sessions": {
+      "get": {
+        "tags": [
+          "Status wysyłki i UPO"
+        ],
+        "summary": "Pobranie listy sesji",
+        "parameters": [
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 1000,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "sessionType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/SessionType"
+                }
+              ]
+            }
+          },
+          {
+            "name": "referenceNumber",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          },
+          {
+            "name": "dateCreatedFrom",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "dateCreatedTo",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "dateClosedFrom",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "dateClosedTo",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "dateModifiedFrom",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "dateModifiedTo",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "statuses",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/CommonSessionStatus"
+              }
+            }
+          },
+          {
+            "name": "x-continuation-token",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionsQueryResponse"
+                },
+                "example": {
+                  "continuationToken": "W3sidG9rZW4iOiIrUklEOn4zeHd0QU1SM3dYYjRCd0FBQUFBQUNBPT0jUlQ6MSNUUkM6MTAjSVNWOjIjSUVPOjY1NTY3I1FDRjo4I0ZQQzpBZ2dBQUFBQUFDQUFBQVlBQUFBQUlBQUFBQUFBQUFBZ0FBQVVBUEVIQUVGdGdJUUFFUUJBQUJBRUFCQVVoZ1NBQXdBQUFBQWdBQUFHQUhFa0NFQWxnQVFBQUFBQUlBQUFGZ0F5Q0FVZ0VBRC9nRE9BRFlFdWdIcUF5SXBEZ0IrQUJnQUFBQUFnQUFBQ0FPNlYiLCJyYW5nZSI6eyJtaW4iOiIiLCJtYXgiOiIwNUMxREYyQjVGMzU5OCJ9fV0=",
+                  "sessions": [
+                    {
+                      "referenceNumber": "20250925-SO-2F67776000-97273B191A-65",
+                      "status": {
+                        "code": 200
+                      },
+                      "dateCreated": "2025-09-25T13:48:26.8700925+00:00",
+                      "dateUpdated": "2025-09-26T02:16:07+00:00",
+                      "validUntil": "2025-09-26T01:48:26.8700925+00:00",
+                      "totalInvoiceCount": 2,
+                      "successfulInvoiceCount": 2,
+                      "failedInvoiceCount": 0
+                    },
+                    {
+                      "referenceNumber": "20250928-SO-494B541000-3AD87C01BA-5D",
+                      "status": {
+                        "code": 200
+                      },
+                      "dateCreated": "2025-09-28T21:20:54.5936927+00:00",
+                      "dateUpdated": "2025-09-29T10:19:28+00:00",
+                      "validUntil": "2025-09-29T09:20:54.5936927+00:00",
+                      "totalInvoiceCount": 3,
+                      "successfulInvoiceCount": 3,
+                      "failedInvoiceCount": 0
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 50,
+          "perMinute": 100,
+          "perHour": 600
+        },
+        "x-sort": [
+          {
+            "field": "dateCreated",
+            "direction": "Desc"
+          }
+        ],
+        "x-required-permissions": [
+          "InvoiceWrite",
+          "Introspection",
+          "EnforcementOperations"
+        ]
+      }
+    },
+    "/sessions/{referenceNumber}": {
+      "get": {
+        "tags": [
+          "Status wysyłki i UPO"
+        ],
+        "summary": "Pobranie statusu sesji",
+        "parameters": [
+          {
+            "name": "referenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionStatusResponse"
+                },
+                "example": {
+                  "status": {
+                    "code": 200
+                  },
+                  "dateCreated": "2025-09-18T15:00:30+00:00",
+                  "dateUpdated": "2025-09-18T15:01:20+00:00",
+                  "upo": {
+                    "pages": [
+                      {
+                        "referenceNumber": "20250918-EU-2EBD6FA000-242EB9B66D-43",
+                        "downloadUrl": "https://api-test.ksef.mf.gov.pl/storage/01/20250918-so-3789a40000-20373e1269-a3/session-upo/upo_00.xml?sv=2025-01-05&st=2025-09-18T14%3A55%3A50Z&se=2025-09-21T15%3A00%3A50Z&sr=b&sp=r&sig=ZlQO6Xtzu3VQQDwmEMfb0VryMxe9WcUgWtkdiB6X2Qo%3D",
+                        "downloadUrlExpirationDate": "2025-09-21T15:00:50+00:00"
+                      }
+                    ]
+                  },
+                  "invoiceCount": 10,
+                  "successfulInvoiceCount": 8,
+                  "failedInvoiceCount": 2
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 1200,
+          "perHour": 12000
+        },
+        "x-required-permissions": [
+          "InvoiceWrite",
+          "Introspection",
+          "PefInvoiceWrite",
+          "EnforcementOperations"
+        ]
+      }
+    },
+    "/sessions/{referenceNumber}/invoices": {
+      "get": {
+        "tags": [
+          "Status wysyłki i UPO"
+        ],
+        "summary": "Pobranie faktur sesji",
+        "parameters": [
+          {
+            "name": "x-continuation-token",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "referenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 1000,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionInvoicesResponse"
+                },
+                "example": {
+                  "continuationToken": "W34idG9rZW4iOiIrUklEOn4xUE5BQU5hcXJVOUFBQUFBQUFBQUFBPT0jUlQ6MSNUUkM6MTAjSVNWOjIjSUVPOjY1NTY3I1FDRjo4I0ZQQzpBVUFBQUFBQUFBQUFRZ0FBQUFBQUFBQT0iLCJyYW5nZSI6eyJtaW4iOiIiLCJtYXgiOiJGRiJ9fV0=",
+                  "invoices": [
+                    {
+                      "ordinalNumber": 1,
+                      "invoiceNumber": "FA/XPWIC-7900685789/06/2025",
+                      "ksefNumber": "5265877635-20250626-010080DD2B5E-26",
+                      "referenceNumber": "20250918-EE-2F15D39000-242207E5C4-1B",
+                      "invoiceHash": "mkht+3m5trnfxlTYhq3QFn74LkEO69MFNlsMAkCDSPA=",
+                      "acquisitionDate": "2025-09-18T12:24:16.0154302+00:00",
+                      "invoicingDate": "2025-09-18T12:23:56.0154302+00:00",
+                      "permanentStorageDate": "2025-09-18T12:24:01.015432+00:00",
+                      "upoDownloadUrl": "https://api-test.ksef.mf.gov.pl/storage/01/20250918-SB-3789A40000-20373E1269-A3/invoice-upo/upo_5265877635-20250626-010080DD2B5E-26.xml?sv=2025-01-05&st=2025-09-18T14%3A49%3A20Z&se=2025-09-21T14%3A54%3A20Z&sr=b&sp=r&sig=%2BUWFPA10gS580VhngGKW%2FZiOOtiHPOiTyMlxhG6ZvWs%3D",
+                      "upoDownloadUrlExpirationDate": "2025-09-21T14:54:20+00:00",
+                      "status": {
+                        "code": 200
+                      }
+                    },
+                    {
+                      "ordinalNumber": 2,
+                      "referenceNumber": "20250918-EE-2F20AD2000-242386DF86-52",
+                      "invoiceHash": "mkht+3m5trnfxlTYhq3QFn74LkEO69MFNlsMAkCDSPA=",
+                      "invoicingDate": "2025-09-18T12:23:56.0154302+00:00",
+                      "status": {
+                        "code": 440,
+                        "details": [
+                          "Duplikat faktury. Faktura o numerze KSeF: 5265877635-20250626-010080DD2B5E-26 została już prawidłowo przesłana do systemu w sesji: 20250626-SO-2F14610000-242991F8C9-B4"
+                        ],
+                        "extensions": {
+                          "originalSessionReferenceNumber": "20250626-SO-2F14610000-242991F8C9-B4",
+                          "originalKsefNumber": "5265877635-20250626-010080DD2B5E-26"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 200,
+          "perHour": 2000
+        },
+        "x-required-permissions": [
+          "InvoiceWrite",
+          "Introspection",
+          "PefInvoiceWrite",
+          "EnforcementOperations"
+        ]
+      }
+    },
+    "/sessions/{referenceNumber}/invoices/{invoiceReferenceNumber}": {
+      "get": {
+        "tags": [
+          "Status wysyłki i UPO"
+        ],
+        "summary": "Pobranie statusu faktury z sesji",
+        "parameters": [
+          {
+            "name": "referenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          },
+          {
+            "name": "invoiceReferenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionInvoiceStatusResponse"
+                },
+                "example": {
+                  "ordinalNumber": 2,
+                  "referenceNumber": "20250626-EE-2F20AD2000-242386DF86-52",
+                  "invoicingDate": "2025-07-11T12:23:56.0154302+00:00",
+                  "status": {
+                    "code": 440,
+                    "details": [
+                      "Duplikat faktury. Faktura o numerze KSeF: 5265877635-20250626-010080DD2B5E-26 została już prawidłowo przesłana do systemu w sesji: 20250626-SO-2F14610000-242991F8C9-B4"
+                    ],
+                    "extensions": {
+                      "originalSessionReferenceNumber": "20250626-SO-2F14610000-242991F8C9-B4",
+                      "originalKsefNumber": "5265877635-20250626-010080DD2B5E-26"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 300,
+          "perMinute": 1200,
+          "perHour": 12000
+        },
+        "x-required-permissions": [
+          "InvoiceWrite",
+          "Introspection",
+          "PefInvoiceWrite",
+          "EnforcementOperations"
+        ]
+      }
+    },
+    "/sessions/{referenceNumber}/invoices/failed": {
+      "get": {
+        "tags": [
+          "Status wysyłki i UPO"
+        ],
+        "summary": "Pobranie niepoprawnie przetworzonych faktur sesji",
+        "parameters": [
+          {
+            "name": "x-continuation-token",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "referenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 1000,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionInvoicesResponse"
+                },
+                "example": {
+                  "continuationToken": "...",
+                  "invoices": [
+                    {
+                      "ordinalNumber": 2,
+                      "referenceNumber": "20250626-EE-2F20AD2000-242386DF86-52",
+                      "invoiceHash": "mkht+3m5trnfxlTYhq3QFn74LkEO69MFNlsMAkCDSPA=",
+                      "invoiceFileName": "invoice1.xml",
+                      "invoicingDate": "2025-07-11T12:23:56.0154302+00:00",
+                      "status": {
+                        "code": 440,
+                        "details": [
+                          "Duplikat faktury. Faktura o numerze KSeF: 5265877635-20250626-010080DD2B5E-26 została już prawidłowo przesłana do systemu w sesji: 20250626-SO-2F14610000-242991F8C9-B4"
+                        ],
+                        "extensions": {
+                          "originalSessionReferenceNumber": "20250626-SO-2F14610000-242991F8C9-B4",
+                          "originalKsefNumber": "5265877635-20250626-010080DD2B5E-26"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 200,
+          "perHour": 2000
+        },
+        "x-required-permissions": [
+          "InvoiceWrite",
+          "Introspection",
+          "PefInvoiceWrite",
+          "EnforcementOperations"
+        ]
+      }
+    },
+    "/sessions/{referenceNumber}/invoices/ksef/{ksefNumber}/upo": {
+      "get": {
+        "tags": [
+          "Status wysyłki i UPO"
+        ],
+        "summary": "Pobranie UPO faktury z sesji na podstawie numeru KSeF",
+        "parameters": [
+          {
+            "name": "referenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          },
+          {
+            "name": "ksefNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/KsefNumber"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "headers": {
+              "x-ms-meta-hash": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sha256HashBase64"
+                }
+              }
+            },
+            "content": {
+              "application/xml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 1200,
+          "perHour": 12000
+        },
+        "x-required-permissions": [
+          "InvoiceWrite",
+          "Introspection",
+          "PefInvoiceWrite",
+          "EnforcementOperations"
+        ]
+      }
+    },
+    "/sessions/{referenceNumber}/invoices/{invoiceReferenceNumber}/upo": {
+      "get": {
+        "tags": [
+          "Status wysyłki i UPO"
+        ],
+        "summary": "Pobranie UPO faktury z sesji na podstawie numeru referencyjnego faktury",
+        "parameters": [
+          {
+            "name": "referenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          },
+          {
+            "name": "invoiceReferenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "headers": {
+              "x-ms-meta-hash": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sha256HashBase64"
+                }
+              }
+            },
+            "content": {
+              "application/xml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 1200,
+          "perHour": 12000
+        },
+        "x-required-permissions": [
+          "InvoiceWrite",
+          "Introspection",
+          "PefInvoiceWrite",
+          "EnforcementOperations"
+        ]
+      }
+    },
+    "/sessions/{referenceNumber}/upo/{upoReferenceNumber}": {
+      "get": {
+        "tags": [
+          "Status wysyłki i UPO"
+        ],
+        "summary": "Pobranie UPO dla sesji",
+        "parameters": [
+          {
+            "name": "referenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          },
+          {
+            "name": "upoReferenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "headers": {
+              "x-ms-meta-hash": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sha256HashBase64"
+                }
+              }
+            },
+            "content": {
+              "application/xml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 1200,
+          "perHour": 12000
+        },
+        "x-required-permissions": [
+          "InvoiceWrite",
+          "Introspection",
+          "PefInvoiceWrite",
+          "EnforcementOperations"
+        ]
+      }
+    },
+    "/sessions/online": {
+      "post": {
+        "tags": [
+          "Wysyłka interaktywna"
+        ],
+        "summary": "Otwarcie sesji interaktywnej",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "formCode",
+                  "encryption"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/OpenOnlineSessionRequest"
+                  }
+                ]
+              },
+              "example": {
+                "formCode": {
+                  "systemCode": "FA (3)",
+                  "schemaVersion": "1-0E",
+                  "value": "FA"
+                },
+                "encryption": {
+                  "encryptedSymmetricKey": "bdUVjqLj+y2q6aBUuLxxXYAMqeDuIBRTyr+hB96DaWKaGzuVHw9p+Nk9vhzgF/Q5cavK2k6eCh6SdsrWI0s9mFFj4A4UJtsyD8Dn3esLfUZ5A1juuG3q3SBi/XOC/+9W+0T/KdwdE393mbiUNyx1K/0bw31vKJL0COeJIDP7usAMDl42/H1TNvkjk+8iZ80V0qW7D+RZdz+tdiY1xV0f2mfgwJ46V0CpZ+sB9UAssRj+eVffavJ0TOg2b5JaBxE8MCAvrF6rO5K4KBjUmoy7PP7g1qIbm8xI2GO0KnfPOO5OWj8rsotRwBgu7x19Ine3qYUvuvCZlXRGGZ5NHIzWPM4O74+gNalaMgFCsmv8mMhETSU4SfAGmJr9edxPjQSbgD5i2X4eDRDMwvyaAa7CP1b2oICju+0L7Fywd2ZtUcr6El++eTVoi8HYsTArntET++gULT7XXjmb8e3O0nxrYiYsE9GMJ7HBGv3NOoJ1NTm3a7U6+c0ZJiBVLvn6xXw10LQX243xH+ehsKo6djQJKYtqcNPaXtCwM1c9RrsOx/wRXyWCtTffqLiaR0LbYvfMJAcEWceG+RaeAx4p37OiQqdJypd6LAv9/0ECWK8Bip8yyoA+0EYiAJb9YuDz2YlQX9Mx9E9FzFIAsgEQ2w723HZYWgPywLb+dlsum4lTZKQ=",
+                  "initializationVector": "OmtDQdl6vkOI1GLKZSjgEg=="
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenOnlineSessionResponse"
+                },
+                "example": {
+                  "referenceNumber": "20250625-SO-2C3E6C8000-B675CF5D68-07",
+                  "validUntil": "2025-07-11T12:23:56.0154302+00:00"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        },
+        "x-required-permissions": [
+          "InvoiceWrite",
+          "PefInvoiceWrite",
+          "EnforcementOperations"
+        ]
+      }
+    },
+    "/sessions/online/{referenceNumber}/invoices": {
+      "post": {
+        "tags": [
+          "Wysyłka interaktywna"
+        ],
+        "summary": "Wysłanie faktury",
+        "parameters": [
+          {
+            "name": "referenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "invoiceHash",
+                  "invoiceSize",
+                  "encryptedInvoiceHash",
+                  "encryptedInvoiceSize",
+                  "encryptedInvoiceContent"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SendInvoiceRequest"
+                  }
+                ]
+              },
+              "example": {
+                "invoiceHash": "EbrK4cOSjW4hEpJaHU71YXSOZZmqP5++dK9nLgTzgV4=",
+                "invoiceSize": 6480,
+                "encryptedInvoiceHash": "miYb1z3Ljw5VucTZslv3Tlt+V/EK1V8Q8evD8HMQ0dc=",
+                "encryptedInvoiceSize": 6496,
+                "encryptedInvoiceContent": "...",
+                "offlineMode": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendInvoiceResponse"
+                },
+                "example": {
+                  "referenceNumber": "20250625-EE-319D7EE000-B67F415CDC-2C"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1800
+        },
+        "x-required-permissions": [
+          "InvoiceWrite",
+          "PefInvoiceWrite",
+          "EnforcementOperations"
+        ]
+      }
+    },
+    "/sessions/online/{referenceNumber}/close": {
+      "post": {
+        "tags": [
+          "Wysyłka interaktywna"
+        ],
+        "summary": "Zamknięcie sesji interaktywnej",
+        "parameters": [
+          {
+            "name": "referenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 300,
+          "perHour": 1200
+        },
+        "x-required-permissions": [
+          "InvoiceWrite",
+          "PefInvoiceWrite",
+          "EnforcementOperations"
+        ]
+      }
+    },
+    "/sessions/batch": {
+      "post": {
+        "tags": [
+          "Wysyłka wsadowa"
+        ],
+        "summary": "Otwarcie sesji wsadowej",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "formCode",
+                  "batchFile",
+                  "encryption"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/OpenBatchSessionRequest"
+                  }
+                ]
+              },
+              "example": {
+                "formCode": {
+                  "systemCode": "FA (2)",
+                  "schemaVersion": "1-0E",
+                  "value": "FA"
+                },
+                "batchFile": {
+                  "fileSize": 16037,
+                  "fileHash": "WO86CC+1Lef11wEosItld/NPwxGN8tobOMLqk9PQjgs=",
+                  "fileParts": [
+                    {
+                      "ordinalNumber": 1,
+                      "fileSize": 16048,
+                      "fileHash": "23ZyDAN0H/+yhC/En2xbNfF0tajAWSfejDaXD7fc2AE="
+                    }
+                  ]
+                },
+                "encryption": {
+                  "encryptedSymmetricKey": "bYqmPAglF01AxZim4oNa+1NerhZYfFgLMnvksBprUur1aesQ0Y5jsmOIfCrozfMkF2tjdO+uOsBg4FPlDgjChwN2/tz2Hqwtxq3RkTr1SjY4x8jxJFpPedcS7EI+XO8C+i9mLj7TFx9p/bg07yM9vHtMAk5b88Ay9Qc3+T5Ch1DM2ClR3sVu2DqdlKzmbINY+rhfGtXn58Qo0XRyESGgc6M0iTZVBRPuPXLnD8a1KpOneCpNzLwxgT6Ei3ivLOpPWT53PxkRTaQ8puj6CIiCKo4FHQzHuI/NmrAhYU7TkNm2kymP/OxBgWdg3XB74tqNFfT8RZN1bZXuPhBidDOqa+xsqY3E871FSDmQwZf58HmoNl31XNvpnryiRGfnAISt+m+ELqgksAresVu6E9poUL1yiff+IOHSZABoYpNiqwnbT8qyW1uk8lKLyFVFu+kOsbzBk1OWWHqSkNFDaznDa2MKjHonOXI0uyKaKWvoBFC4dWN1PVumfpSSFAeYgNpAyVrZdcVOuiliEWepTDjGzJoOafTvwr5za2S6B5bPECDpX7JXazV7Olkq7ezG0w8y3olx+0C+NHoCk8B5/cm4gtVHTgKjiLSGpKJVOJABLXFkOyIOjbQsVe4ryX0Qy+SfL7JIQvTWvM5xkCoOMbzLdMo9tNo5qE34sguFI+lIevY=",
+                  "initializationVector": "jWpJLNBHJ5pQEGCBglmIAw=="
+                },
+                "offlineMode": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenBatchSessionResponse"
+                },
+                "example": {
+                  "referenceNumber": "20250626-SB-213D593000-4DE10D80A5-E9",
+                  "partUploadRequests": [
+                    {
+                      "ordinalNumber": 1,
+                      "method": "PUT",
+                      "url": "https://ksef-api-storage/storage/00/20250626-sb-213d593000-4de10d80a5-e9/batch-parts/1?skoid=1ad7cfe8-2cb2-406b-b96c-6eefb55794db&sktid=647754c7-3974-4442-a425-c61341b61c69&skt=2025-06-26T09%3A40%3A54Z&ske=2025-06-26T10%3A10%3A54Z&sks=b&skv=2025-01-05&sv=2025-01-05&se=2025-06-26T10%3A10%3A54Z&sr=b&sp=w&sig=8mKZEU8Reuz%2Fn7wHi4T%2FY8BzLeD5l8bR2xJsBxIgDEY%3D",
+                      "headers": {
+                        "x-ms-blob-type": "BlockBlob"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 200,
+          "perHour": 600
+        },
+        "x-required-permissions": [
+          "InvoiceWrite",
+          "EnforcementOperations"
+        ]
+      }
+    },
+    "/sessions/batch/{referenceNumber}/close": {
+      "post": {
+        "tags": [
+          "Wysyłka wsadowa"
+        ],
+        "summary": "Zamknięcie sesji wsadowej",
+        "parameters": [
+          {
+            "name": "referenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 100,
+          "perMinute": 200,
+          "perHour": 600
+        },
+        "x-required-permissions": [
+          "InvoiceWrite",
+          "EnforcementOperations"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AmountType": {
+        "enum": [
+          "Brutto",
+          "Netto",
+          "Vat"
+        ],
+        "type": "string"
+      },
+      "BatchFileInfo": {
+        "required": [
+          "fileHash",
+          "fileParts",
+          "fileSize"
+        ],
+        "type": "object",
+        "properties": {
+          "fileSize": {
+            "maximum": 5000000000,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int64"
+          },
+          "fileHash": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Sha256HashBase64"
+              }
+            ]
+          },
+          "fileParts": {
+            "maxItems": 50,
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BatchFilePartInfo"
+            }
+          }
+        }
+      },
+      "BatchFilePartInfo": {
+        "required": [
+          "fileHash",
+          "fileSize",
+          "ordinalNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "ordinalNumber": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "fileSize": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int64"
+          },
+          "fileHash": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Sha256HashBase64"
+              }
+            ]
+          }
+        }
+      },
+      "BuyerIdentifierType": {
+        "enum": [
+          "Nip",
+          "VatUe",
+          "Other",
+          "None"
+        ],
+        "type": "string"
+      },
+      "CommonSessionStatus": {
+        "enum": [
+          "InProgress",
+          "Succeeded",
+          "Failed",
+          "Cancelled"
+        ],
+        "type": "string"
+      },
+      "CurrencyCode": {
+        "enum": [
+          "AED",
+          "AFN",
+          "ALL",
+          "AMD",
+          "ANG",
+          "AOA",
+          "ARS",
+          "AUD",
+          "AWG",
+          "AZN",
+          "BAM",
+          "BBD",
+          "BDT",
+          "BGN",
+          "BHD",
+          "BIF",
+          "BMD",
+          "BND",
+          "BOB",
+          "BOV",
+          "BRL",
+          "BSD",
+          "BTN",
+          "BWP",
+          "BYN",
+          "BZD",
+          "CAD",
+          "CDF",
+          "CHE",
+          "CHF",
+          "CHW",
+          "CLF",
+          "CLP",
+          "CNY",
+          "COP",
+          "COU",
+          "CRC",
+          "CUC",
+          "CUP",
+          "CVE",
+          "CZK",
+          "DJF",
+          "DKK",
+          "DOP",
+          "DZD",
+          "EGP",
+          "ERN",
+          "ETB",
+          "EUR",
+          "FJD",
+          "FKP",
+          "GBP",
+          "GEL",
+          "GGP",
+          "GHS",
+          "GIP",
+          "GMD",
+          "GNF",
+          "GTQ",
+          "GYD",
+          "HKD",
+          "HNL",
+          "HRK",
+          "HTG",
+          "HUF",
+          "IDR",
+          "ILS",
+          "IMP",
+          "INR",
+          "IQD",
+          "IRR",
+          "ISK",
+          "JEP",
+          "JMD",
+          "JOD",
+          "JPY",
+          "KES",
+          "KGS",
+          "KHR",
+          "KMF",
+          "KPW",
+          "KRW",
+          "KWD",
+          "KYD",
+          "KZT",
+          "LAK",
+          "LBP",
+          "LKR",
+          "LRD",
+          "LSL",
+          "LYD",
+          "MAD",
+          "MDL",
+          "MGA",
+          "MKD",
+          "MMK",
+          "MNT",
+          "MOP",
+          "MRU",
+          "MUR",
+          "MVR",
+          "MWK",
+          "MXN",
+          "MXV",
+          "MYR",
+          "MZN",
+          "NAD",
+          "NGN",
+          "NIO",
+          "NOK",
+          "NPR",
+          "NZD",
+          "OMR",
+          "PAB",
+          "PEN",
+          "PGK",
+          "PHP",
+          "PKR",
+          "PLN",
+          "PYG",
+          "QAR",
+          "RON",
+          "RSD",
+          "RUB",
+          "RWF",
+          "SAR",
+          "SBD",
+          "SCR",
+          "SDG",
+          "SEK",
+          "SGD",
+          "SHP",
+          "SLL",
+          "SOS",
+          "SRD",
+          "SSP",
+          "STN",
+          "SVC",
+          "SYP",
+          "SZL",
+          "THB",
+          "TJS",
+          "TMT",
+          "TND",
+          "TOP",
+          "TRY",
+          "TTD",
+          "TWD",
+          "TZS",
+          "UAH",
+          "UGX",
+          "USD",
+          "USN",
+          "UYI",
+          "UYU",
+          "UYW",
+          "UZS",
+          "VES",
+          "VND",
+          "VUV",
+          "WST",
+          "XAF",
+          "XAG",
+          "XAU",
+          "XBA",
+          "XBB",
+          "XBC",
+          "XBD",
+          "XCD",
+          "XCG",
+          "XDR",
+          "XOF",
+          "XPD",
+          "XPF",
+          "XPT",
+          "XSU",
+          "XUA",
+          "XXX",
+          "YER",
+          "ZAR",
+          "ZMW",
+          "ZWL"
+        ],
+        "type": "string"
+      },
+      "EncryptionInfo": {
+        "required": [
+          "encryptedSymmetricKey",
+          "initializationVector"
+        ],
+        "type": "object",
+        "properties": {
+          "encryptedSymmetricKey": {
+            "type": "string",
+            "format": "byte"
+          },
+          "initializationVector": {
+            "type": "string",
+            "format": "byte"
+          }
+        }
+      },
+      "ExceptionDetails": {
+        "type": "object",
+        "properties": {
+          "exceptionCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "exceptionDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "ExceptionInfo": {
+        "type": "object",
+        "properties": {
+          "exceptionDetailList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExceptionDetails"
+            },
+            "nullable": true
+          },
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ],
+            "nullable": true
+          },
+          "serviceCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceCtx": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ExceptionResponse": {
+        "type": "object",
+        "properties": {
+          "exception": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExceptionInfo"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "example": {
+          "exception": {
+            "exceptionDetailList": [
+              {
+                "exceptionCode": 12345,
+                "exceptionDescription": "Opis błędu.",
+                "details": [
+                  "Opcjonalne dodatkowe szczegóły błędu."
+                ]
+              }
+            ],
+            "referenceNumber": "a1b2c3d4-e5f6-4789-ab12-cd34ef567890",
+            "serviceCode": "00-c02cc3747020c605be02159bf3324f0e-eee7647dc67aa74a-00",
+            "serviceCtx": "srvABCDA",
+            "serviceName": "Undefined",
+            "timestamp": "2025-10-11T12:23:56.0154302"
+          }
+        }
+      },
+      "ExportInvoicesResponse": {
+        "required": [
+          "referenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ]
+          }
+        }
+      },
+      "ForbiddenProblemDetails": {
+        "required": [
+          "detail",
+          "reasonCode",
+          "status",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "reasonCode": {
+            "type": "string"
+          },
+          "security": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            },
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "title": "Forbidden",
+          "status": 403,
+          "detail": "Brak wymaganych uprawnień do wykonania operacji w bieżącym kontekście.",
+          "reasonCode": "missing-permissions",
+          "security": {
+            "requiredAnyOfPermissions": [
+              "InvoiceRead",
+              "InvoiceWrite"
+            ],
+            "presentPermissions": [
+              "CredentialsManage"
+            ]
+          }
+        }
+      },
+      "FormCode": {
+        "required": [
+          "schemaVersion",
+          "systemCode",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "systemCode": {
+            "type": "string"
+          },
+          "schemaVersion": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "InvoiceExportRequest": {
+        "required": [
+          "encryption",
+          "filters"
+        ],
+        "type": "object",
+        "properties": {
+          "encryption": {
+            "required": [
+              "encryptedSymmetricKey",
+              "initializationVector"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EncryptionInfo"
+              }
+            ]
+          },
+          "filters": {
+            "required": [
+              "subjectType",
+              "dateRange"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceQueryFilters"
+              }
+            ]
+          }
+        }
+      },
+      "InvoiceExportStatusResponse": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusInfo"
+              }
+            ]
+          },
+          "completedDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "packageExpirationDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "package": {
+            "required": [
+              "invoiceCount",
+              "size",
+              "parts",
+              "isTruncated"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoicePackage"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "InvoiceMetadata": {
+        "required": [
+          "acquisitionDate",
+          "buyer",
+          "currency",
+          "formCode",
+          "grossAmount",
+          "hasAttachment",
+          "invoiceHash",
+          "invoiceNumber",
+          "invoiceType",
+          "invoicingDate",
+          "invoicingMode",
+          "isSelfInvoicing",
+          "issueDate",
+          "ksefNumber",
+          "netAmount",
+          "permanentStorageDate",
+          "seller",
+          "vatAmount"
+        ],
+        "type": "object",
+        "properties": {
+          "ksefNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/KsefNumber"
+              }
+            ]
+          },
+          "invoiceNumber": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "issueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "invoicingDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "acquisitionDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "permanentStorageDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "seller": {
+            "required": [
+              "nip"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceMetadataSeller"
+              }
+            ]
+          },
+          "buyer": {
+            "required": [
+              "identifier"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceMetadataBuyer"
+              }
+            ]
+          },
+          "netAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "grossAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "vatAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "currency": {
+            "maxLength": 3,
+            "minLength": 3,
+            "type": "string"
+          },
+          "invoicingMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoicingMode"
+              }
+            ]
+          },
+          "invoiceType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceType"
+              }
+            ]
+          },
+          "formCode": {
+            "required": [
+              "systemCode",
+              "schemaVersion",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FormCode"
+              }
+            ]
+          },
+          "isSelfInvoicing": {
+            "type": "boolean"
+          },
+          "hasAttachment": {
+            "type": "boolean"
+          },
+          "invoiceHash": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Sha256HashBase64"
+              }
+            ]
+          },
+          "hashOfCorrectedInvoice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Sha256HashBase64"
+              }
+            ],
+            "nullable": true
+          },
+          "thirdSubjects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvoiceMetadataThirdSubject"
+            },
+            "nullable": true
+          },
+          "authorizedSubject": {
+            "required": [
+              "nip",
+              "role"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceMetadataAuthorizedSubject"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "InvoiceMetadataAuthorizedSubject": {
+        "required": [
+          "nip",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "nip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Nip"
+              }
+            ]
+          },
+          "name": {
+            "maxLength": 512,
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "InvoiceMetadataBuyer": {
+        "required": [
+          "identifier"
+        ],
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "required": [
+              "type"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceMetadataBuyerIdentifier"
+              }
+            ]
+          },
+          "name": {
+            "maxLength": 512,
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "InvoiceMetadataBuyerIdentifier": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BuyerIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "InvoiceMetadataSeller": {
+        "required": [
+          "nip"
+        ],
+        "type": "object",
+        "properties": {
+          "nip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Nip"
+              }
+            ]
+          },
+          "name": {
+            "maxLength": 512,
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "InvoiceMetadataThirdSubject": {
+        "required": [
+          "identifier",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceMetadataThirdSubjectIdentifier"
+              }
+            ]
+          },
+          "name": {
+            "maxLength": 512,
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "InvoiceMetadataThirdSubjectIdentifier": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ThirdSubjectIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "InvoicePackage": {
+        "required": [
+          "invoiceCount",
+          "isTruncated",
+          "parts",
+          "size"
+        ],
+        "type": "object",
+        "properties": {
+          "invoiceCount": {
+            "maximum": 10000,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int64"
+          },
+          "size": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int64"
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvoicePackagePart"
+            }
+          },
+          "isTruncated": {
+            "type": "boolean"
+          },
+          "lastIssueDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "lastInvoicingDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastPermanentStorageDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "permanentStorageHwmDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "InvoicePackagePart": {
+        "required": [
+          "encryptedPartHash",
+          "encryptedPartSize",
+          "expirationDate",
+          "method",
+          "ordinalNumber",
+          "partHash",
+          "partName",
+          "partSize",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "ordinalNumber": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "partName": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "partSize": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int64"
+          },
+          "partHash": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Sha256HashBase64"
+              }
+            ]
+          },
+          "encryptedPartSize": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int64"
+          },
+          "encryptedPartHash": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Sha256HashBase64"
+              }
+            ]
+          },
+          "expirationDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "InvoiceQueryAmount": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AmountType"
+              }
+            ]
+          },
+          "from": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "to": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        }
+      },
+      "InvoiceQueryBuyerIdentifier": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BuyerIdentifierType"
+              }
+            ]
+          },
+          "value": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "InvoiceQueryDateRange": {
+        "required": [
+          "dateType",
+          "from"
+        ],
+        "type": "object",
+        "properties": {
+          "dateType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceQueryDateType"
+              }
+            ]
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "restrictToPermanentStorageHwmDate": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "InvoiceQueryDateType": {
+        "enum": [
+          "Issue",
+          "Invoicing",
+          "PermanentStorage"
+        ],
+        "type": "string"
+      },
+      "InvoiceQueryFilters": {
+        "required": [
+          "dateRange",
+          "subjectType"
+        ],
+        "type": "object",
+        "properties": {
+          "subjectType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceQuerySubjectType"
+              }
+            ]
+          },
+          "dateRange": {
+            "required": [
+              "dateType",
+              "from"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceQueryDateRange"
+              }
+            ]
+          },
+          "ksefNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/KsefNumber"
+              }
+            ],
+            "nullable": true
+          },
+          "invoiceNumber": {
+            "maxLength": 256,
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "required": [
+              "type"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceQueryAmount"
+              }
+            ],
+            "nullable": true
+          },
+          "sellerNip": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Nip"
+              }
+            ],
+            "nullable": true
+          },
+          "buyerIdentifier": {
+            "required": [
+              "type"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceQueryBuyerIdentifier"
+              }
+            ],
+            "nullable": true
+          },
+          "currencyCodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CurrencyCode"
+            },
+            "nullable": true
+          },
+          "invoicingMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoicingMode"
+              }
+            ],
+            "nullable": true
+          },
+          "isSelfInvoicing": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "formType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceQueryFormType"
+              }
+            ],
+            "nullable": true
+          },
+          "invoiceTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvoiceType"
+            },
+            "nullable": true
+          },
+          "hasAttachment": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "InvoiceQueryFormType": {
+        "enum": [
+          "FA",
+          "PEF",
+          "RR"
+        ],
+        "type": "string"
+      },
+      "InvoiceQuerySubjectType": {
+        "enum": [
+          "Subject1",
+          "Subject2",
+          "Subject3",
+          "SubjectAuthorized"
+        ],
+        "type": "string"
+      },
+      "InvoiceStatusInfo": {
+        "required": [
+          "code",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "extensions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "nullable": true
+            },
+            "nullable": true
+          }
+        }
+      },
+      "InvoiceType": {
+        "enum": [
+          "Vat",
+          "Zal",
+          "Kor",
+          "Roz",
+          "Upr",
+          "KorZal",
+          "KorRoz",
+          "VatPef",
+          "VatPefSp",
+          "KorPef",
+          "VatRr",
+          "KorVatRr"
+        ],
+        "type": "string"
+      },
+      "InvoicingMode": {
+        "enum": [
+          "Online",
+          "Offline"
+        ],
+        "type": "string"
+      },
+      "KsefNumber": {
+        "maxLength": 36,
+        "minLength": 35,
+        "pattern": "^([1-9](\\d[1-9]|[1-9]\\d)\\d{7})-(20[2-9][0-9]|2[1-9]\\d{2}|[3-9]\\d{3})(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])-([0-9A-F]{6})-?([0-9A-F]{6})-([0-9A-F]{2})$",
+        "type": "string"
+      },
+      "Nip": {
+        "maxLength": 10,
+        "minLength": 10,
+        "pattern": "^[1-9]((\\d[1-9])|([1-9]\\d))\\d{7}$",
+        "type": "string"
+      },
+      "OpenBatchSessionRequest": {
+        "required": [
+          "batchFile",
+          "encryption",
+          "formCode"
+        ],
+        "type": "object",
+        "properties": {
+          "formCode": {
+            "required": [
+              "systemCode",
+              "schemaVersion",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FormCode"
+              }
+            ]
+          },
+          "batchFile": {
+            "required": [
+              "fileSize",
+              "fileHash",
+              "fileParts"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BatchFileInfo"
+              }
+            ]
+          },
+          "encryption": {
+            "required": [
+              "encryptedSymmetricKey",
+              "initializationVector"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EncryptionInfo"
+              }
+            ]
+          },
+          "offlineMode": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "OpenBatchSessionResponse": {
+        "required": [
+          "partUploadRequests",
+          "referenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ]
+          },
+          "partUploadRequests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartUploadRequest"
+            }
+          }
+        }
+      },
+      "OpenOnlineSessionRequest": {
+        "required": [
+          "encryption",
+          "formCode"
+        ],
+        "type": "object",
+        "properties": {
+          "formCode": {
+            "required": [
+              "systemCode",
+              "schemaVersion",
+              "value"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FormCode"
+              }
+            ]
+          },
+          "encryption": {
+            "required": [
+              "encryptedSymmetricKey",
+              "initializationVector"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EncryptionInfo"
+              }
+            ]
+          }
+        }
+      },
+      "OpenOnlineSessionResponse": {
+        "required": [
+          "referenceNumber",
+          "validUntil"
+        ],
+        "type": "object",
+        "properties": {
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ]
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PartUploadRequest": {
+        "required": [
+          "headers",
+          "method",
+          "ordinalNumber",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "ordinalNumber": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "method": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        }
+      },
+      "QueryInvoicesMetadataResponse": {
+        "required": [
+          "hasMore",
+          "invoices",
+          "isTruncated"
+        ],
+        "type": "object",
+        "properties": {
+          "hasMore": {
+            "type": "boolean"
+          },
+          "isTruncated": {
+            "type": "boolean"
+          },
+          "permanentStorageHwmDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "invoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvoiceMetadata"
+            }
+          }
+        }
+      },
+      "ReferenceNumber": {
+        "maxLength": 36,
+        "minLength": 36,
+        "type": "string"
+      },
+      "RetryAfter": {
+        "type": "integer",
+        "format": "int32",
+        "example": 30
+      },
+      "SendInvoiceRequest": {
+        "required": [
+          "encryptedInvoiceContent",
+          "encryptedInvoiceHash",
+          "encryptedInvoiceSize",
+          "invoiceHash",
+          "invoiceSize"
+        ],
+        "type": "object",
+        "properties": {
+          "invoiceHash": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Sha256HashBase64"
+              }
+            ]
+          },
+          "invoiceSize": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int64"
+          },
+          "encryptedInvoiceHash": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Sha256HashBase64"
+              }
+            ]
+          },
+          "encryptedInvoiceSize": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int64"
+          },
+          "encryptedInvoiceContent": {
+            "type": "string",
+            "format": "byte"
+          },
+          "offlineMode": {
+            "type": "boolean",
+            "default": false
+          },
+          "hashOfCorrectedInvoice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Sha256HashBase64"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "SendInvoiceResponse": {
+        "required": [
+          "referenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ]
+          }
+        }
+      },
+      "SessionInvoiceStatusResponse": {
+        "required": [
+          "invoiceHash",
+          "invoicingDate",
+          "ordinalNumber",
+          "referenceNumber",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "ordinalNumber": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "invoiceNumber": {
+            "maxLength": 256,
+            "type": "string",
+            "nullable": true
+          },
+          "ksefNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/KsefNumber"
+              }
+            ],
+            "nullable": true
+          },
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ]
+          },
+          "invoiceHash": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Sha256HashBase64"
+              }
+            ]
+          },
+          "invoiceFileName": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          },
+          "acquisitionDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "invoicingDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "permanentStorageDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "upoDownloadUrl": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "upoDownloadUrlExpirationDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "invoicingMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoicingMode"
+              }
+            ],
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceStatusInfo"
+              }
+            ]
+          }
+        }
+      },
+      "SessionInvoicesResponse": {
+        "required": [
+          "invoices"
+        ],
+        "type": "object",
+        "properties": {
+          "continuationToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "invoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionInvoiceStatusResponse"
+            }
+          }
+        }
+      },
+      "SessionStatusResponse": {
+        "required": [
+          "dateCreated",
+          "dateUpdated",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusInfo"
+              }
+            ]
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateUpdated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true
+          },
+          "upo": {
+            "required": [
+              "pages"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UpoResponse"
+              }
+            ],
+            "nullable": true
+          },
+          "invoiceCount": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "successfulInvoiceCount": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "failedInvoiceCount": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "SessionType": {
+        "enum": [
+          "Online",
+          "Batch"
+        ],
+        "type": "string"
+      },
+      "SessionsQueryResponse": {
+        "required": [
+          "sessions"
+        ],
+        "type": "object",
+        "properties": {
+          "continuationToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionsQueryResponseItem"
+            }
+          }
+        }
+      },
+      "SessionsQueryResponseItem": {
+        "required": [
+          "dateCreated",
+          "dateUpdated",
+          "failedInvoiceCount",
+          "referenceNumber",
+          "status",
+          "successfulInvoiceCount",
+          "totalInvoiceCount"
+        ],
+        "type": "object",
+        "properties": {
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ]
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusInfo"
+              }
+            ]
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateUpdated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "totalInvoiceCount": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "successfulInvoiceCount": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedInvoiceCount": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "Sha256HashBase64": {
+        "maxLength": 44,
+        "minLength": 44,
+        "type": "string",
+        "format": "byte"
+      },
+      "SortOrder": {
+        "enum": [
+          "Asc",
+          "Desc"
+        ],
+        "type": "string"
+      },
+      "StatusInfo": {
+        "required": [
+          "code",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "ThirdSubjectIdentifierType": {
+        "enum": [
+          "Nip",
+          "InternalId",
+          "VatUe",
+          "Other",
+          "None"
+        ],
+        "type": "string"
+      },
+      "TooManyRequestsResponse": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "required": [
+              "code",
+              "description",
+              "details"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "integer"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "status": {
+            "code": 429,
+            "details": [
+              "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
+            ]
+          }
+        }
+      },
+      "UnauthorizedProblemDetails": {
+        "required": [
+          "detail",
+          "status",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "traceId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "title": "Unauthorized",
+          "status": 401,
+          "detail": "Wymagane jest uwierzytelnienie."
+        }
+      },
+      "UpoPageResponse": {
+        "required": [
+          "downloadUrl",
+          "downloadUrlExpirationDate",
+          "referenceNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ]
+          },
+          "downloadUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "downloadUrlExpirationDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UpoResponse": {
+        "required": [
+          "pages"
+        ],
+        "type": "object",
+        "properties": {
+          "pages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpoPageResponse"
+            }
+          }
+        }
+      }
+    }
+  }
+}
