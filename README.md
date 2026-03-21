@@ -6,13 +6,15 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 
 ## Features
 
-- Full KSeF API v2 coverage: authentication, sessions, invoices, permissions, tokens, certificates
-- AES-256-CBC / RSA-OAEP / ECDH+AES-GCM encryption, XAdES-B XML signatures
-- Self-signed certificate generation, CSR generation (RSA-2048 / ECDSA P-256)
-- QR code generation and invoice/certificate verification links
-- Fluent builders for auth requests, invoice queries, and permission grants
-- CLI tool (`ksef`) for terminal usage
-- Dual ESM/CJS output, zero HTTP dependencies (native `fetch`, Node.js 18+)
+- **Complete API coverage** — auth, sessions, invoices, permissions, tokens, certificates, QR codes, and more
+- **Full-featured CLI** — `ksef` with many command groups and subcommands for day-to-day KSeF workflows
+- **Full documentation** — VitePress site: Quick Start, API reference, OpenAPI spec
+- **OpenAPI aligned** — types checked against the official KSeF spec; full spec and domain chunks in `docs/`
+- **Comprehensive test coverage** — Vitest across HTTP, crypto, services, builders; CI on every change
+- **Zero HTTP dependencies** — native `fetch` (Node 18+); dual ESM/CJS via tsup
+- **Built-in cryptography** — AES-256-CBC, RSA-OAEP, ECDH, XAdES-B, self-signed certs (Node crypto)
+- **Automatic token management** — AuthManager: token injection, 401 refresh with dedup, `loginWithToken` / `loginWithCertificate`
+- **Typed errors & fluent builders** — `KSeFError` hierarchy (401, 403, 429, validation) and request builders
 
 Requires **Node.js 18+**. Package not yet published — clone and build locally:
 
