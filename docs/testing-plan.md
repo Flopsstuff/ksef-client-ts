@@ -2,7 +2,7 @@
 
 ## Overview
 
-Current state: **475 tests** (473 unit + 2 e2e), all passing. Target: comprehensive coverage across all modules.
+Current state: **583 tests** (581 unit + 2 e2e), all passing. Target: comprehensive coverage across all modules.
 
 Tests live in `tests/` with vitest (globals enabled). Run with `yarn test`.
 
@@ -15,7 +15,7 @@ tests/
 │   ├── http/                # ✅ DONE — 105 tests (rest-client, rest-request, transport, retry, rate-limit, presigned-url, auth-manager)
 │   ├── builders/            # ✅ DONE — 37 tests (auth-token, auth-ksef-token, invoice-query, permissions)
 │   ├── crypto/              # Not started
-│   ├── services/            # Not started
+│   ├── services/            # ✅ DONE — 108 tests (all 13 services, 100% coverage)
 │   ├── cli/                 # ✅ DONE — 152 tests (utilities + 14 command files)
 │   ├── qr/                  # ✅ DONE — 19 tests
 │   └── client.test.ts       # ✅ DONE — 24 tests (construction, login/logout flows)
@@ -168,7 +168,7 @@ All constraint constants verified (REQUIRED_CHALLENGE_LENGTH, CERTIFICATE_NAME_*
 
 **File:** `auth-manager.test.ts` (13 tests) — token storage, 401 refresh, header injection
 
-Note: `route-builder.test.ts` and `routes.test.ts` from original plan not yet created (low priority — routes are tested indirectly via rest-client and service tests).
+Note: `route-builder.test.ts` and `routes.test.ts` from original plan not yet created (low priority — routes now at 100% coverage via service tests).
 
 ---
 
@@ -282,11 +282,11 @@ Note: `route-builder.test.ts` and `routes.test.ts` from original plan not yet cr
 
 ---
 
-### 7. Services (`tests/unit/services/`)
+### 7. Services (`tests/unit/services/`) — ✅ DONE (108 tests)
 
 All services follow the same pattern: construct with RestClient, call methods that delegate to `restClient.execute()`. Mock RestClient to verify correct request construction.
 
-**Strategy:** One test file per service. Mock `RestClient.execute` / `executeRaw` to verify:
+**Strategy:** One test file per service. Shared helper `_helpers.ts` provides `createMockRestClient()`, `getRequest()`, `mockResponse()`, `mockRawResponse()`. Mock `RestClient.execute` / `executeRaw` to verify:
 - Correct HTTP method (GET/POST/PUT/DELETE)
 - Correct route path
 - Correct headers (access token, content-type, custom)
@@ -296,23 +296,23 @@ All services follow the same pattern: construct with RestClient, call methods th
 
 **Files:**
 
-| File | Service | Methods | Key scenarios |
-|------|---------|---------|---------------|
-| `auth.test.ts` | AuthService | 6 | Challenge GET, XAdES POST, token POST, status GET, redeem POST, refresh POST |
-| `active-sessions.test.ts` | ActiveSessionsService | 3 | List with pagination, revoke current (DELETE), revoke by ref |
-| `online-session.test.ts` | OnlineSessionService | 3 | Open (POST), send invoice (PUT), close (DELETE) |
-| `batch-session.test.ts` | BatchSessionService | 3 | Open, send parts (parallel uploads), close |
-| `session-status.test.ts` | SessionStatusService | 7 | Query with filters, status, invoice list, failed invoices, UPO retrieval (raw binary) |
-| `invoice-download.test.ts` | InvoiceDownloadService | 4 | Get XML (raw), query with filters, export, export status |
-| `permissions.test.ts` | PermissionsService | 14+ | Grant types, revoke, query with pagination |
-| `token.test.ts` | TokenService | 4 | Generate, query, get, revoke |
-| `certificate-api.test.ts` | CertificateApiService | 7 | Limits, enrollment, status, retrieve, revoke, query |
+| File | Service | Tests | Key scenarios |
+|------|---------|-------|---------------|
+| `auth.test.ts` | AuthService | 7 | Challenge POST, XAdES POST (Content-Type xml, verifyCertificateChain), token POST, status GET (Bearer), redeem POST, refresh POST (skipAuthRetry) |
+| `active-sessions.test.ts` | ActiveSessionsService | 5 | List with pagination (continuation token header), revoke current (DELETE), revoke by ref |
+| `online-session.test.ts` | OnlineSessionService | 4 | Open (POST, X-KSeF-Feature header), send invoice (POST), close (POST) |
+| `batch-session.test.ts` | BatchSessionService | 6 | Open (POST, X-KSeF-Feature), send parts (presigned URL fetch, parallel, missing part error), close |
+| `session-status.test.ts` | SessionStatusService | 12 | Query with filters (8 params + multi-status), status, invoices, failed invoices, UPO retrieval (executeRaw + x-ms-meta-hash header) |
+| `invoice-download.test.ts` | InvoiceDownloadService | 6 | Get XML (executeRaw + TextDecoder), query metadata (pagination), export, export status |
+| `permissions.test.ts` | PermissionsService | 24 | 7 grant types + deprecated delegation, 2 revoke (DELETE), 8 query methods (GET/POST, pagination, options ?? {}), 2 status |
+| `tokens.test.ts` | TokenService | 6 | Generate, query (multi-value status), get, revoke |
+| `certificates.test.ts` | CertificateApiService | 9 | Limits, enrollment data, enroll, enrollment status, retrieve, revoke (serialNumber path), query (pagination) |
 | `limits.test.ts` | LimitsService | 3 | Context, subject, rate limits |
-| `peppol.test.ts` | PeppolService | 1 | Query with pagination |
-| `lighthouse.test.ts` | LighthouseService | 2 | Status, messages (uses raw fetch, not RestClient) |
-| `test-data.test.ts` | TestDataService | 18 | All CRUD operations |
+| `peppol.test.ts` | PeppolService | 3 | Query (no params, pagination, body return) |
+| `lighthouse.test.ts` | LighthouseService | 5 | Status, messages, empty messages, no lighthouseUrl error, HTTP error (uses native fetch, not RestClient) |
+| `test-data.test.ts` | TestDataService | 18 | 14 POST + 4 DELETE via it.each |
 
-**Estimate:** ~80 tests
+**Coverage:** 100% statements, 100% lines, 100% functions, 92.5% branches.
 
 ---
 
@@ -386,20 +386,6 @@ Specific files with partial coverage not addressed by other sections.
 | `ensureSuccess()` non-JSON body on error | Falls back to text message |
 | `ensureSuccess()` empty body on error | Generic error message |
 
-**File:** `http/routes.test.ts` (new)
-**Current coverage:** 89% | Parameterized route functions uncovered
-
-| Test | What to verify |
-|------|----------------|
-| `Routes.ActiveSessions.delete(ref)` | Correct interpolation |
-| `Routes.Authorization.status(ref)` | Correct interpolation |
-| `Routes.Sessions.byReference(ref)` | Correct interpolation |
-| `Routes.Sessions.invoices(ref)` | Correct interpolation |
-| `Routes.Sessions.upoByKsefNumber(ref, num)` | Correct interpolation |
-| `Routes.Permissions.Common.grantById(id)` | Correct interpolation |
-| `Routes.Certificates.enrollmentStatus(ref)` | Correct interpolation |
-| `Routes.Certificates.revoke(sn)` | Correct interpolation |
-
 **File:** `qr/qrcode-service.test.ts` (extend existing)
 **Current coverage:** 92.75% | Lines 42-46 uncovered
 
@@ -459,10 +445,10 @@ E2e tests run against KSeF TEST environment. They require network access and are
 | CLI Utilities | 6 | 52 | ✅ Done |
 | CLI Commands | 14 | 100 | ✅ Done |
 | Crypto | 0 | 0 | Not started |
-| Services | 0 | 0 | Not started |
+| Services | 14 | 108 | ✅ Done |
 | Coverage Gaps | 0 | 0 | Not started |
 | E2E | 1 | 2 | ✅ Done (cert-auth) |
-| **Total** | **44** | **475** | |
+| **Total** | **58** | **583** | |
 
 ### Coverage exclusions
 
@@ -471,5 +457,4 @@ Barrel re-export files (`**/index.ts`), `src/http/rest-response.ts` (interface-o
 ### Remaining work
 
 1. **Crypto** — complex but critical, real crypto (no mocks except CertificateFetcher). ~30 tests.
-2. **Services** — highest volume, repetitive pattern (mocked RestClient). ~80 tests.
-3. **Coverage Gaps** — extend existing test files + new routes test to close partial coverage. ~18 tests.
+2. **Coverage Gaps** — extend existing test files + new routes test to close partial coverage. ~18 tests.
