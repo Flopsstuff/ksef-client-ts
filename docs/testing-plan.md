@@ -2,7 +2,7 @@
 
 ## Overview
 
-Current state: **323 tests** (321 unit + 2 e2e), all passing. Target: comprehensive coverage across all modules.
+Current state: **475 tests** (473 unit + 2 e2e), all passing. Target: comprehensive coverage across all modules.
 
 Tests live in `tests/` with vitest (globals enabled). Run with `yarn test`.
 
@@ -16,7 +16,7 @@ tests/
 │   ├── builders/            # ✅ DONE — 37 tests (auth-token, auth-ksef-token, invoice-query, permissions)
 │   ├── crypto/              # Not started
 │   ├── services/            # Not started
-│   ├── cli/                 # Not started — 6 files (~45 tests)
+│   ├── cli/                 # ✅ DONE — 152 tests (utilities + 14 command files)
 │   ├── qr/                  # ✅ DONE — 19 tests
 │   └── client.test.ts       # ✅ DONE — 24 tests (construction, login/logout flows)
 └── e2e/
@@ -316,11 +316,13 @@ All services follow the same pattern: construct with RestClient, call methods th
 
 ---
 
-### 8. CLI Utilities (`tests/unit/cli/`) — Not started
+### 8. CLI (`tests/unit/cli/`) — ✅ DONE (152 tests)
 
-CLI commands (~3600 lines) are integration-heavy and out of scope. But five small utility modules (~250 lines total, 0% coverage) are easily unit-testable.
+#### 8a. CLI Utilities (52 tests)
 
-**File:** `error-handler.test.ts`
+Six utility modules tested directly:
+
+**File:** `error-handler.test.ts` (9 tests) — ✅ DONE
 **Complexity:** Medium | **Mocking:** console/process.exit, error constructors
 
 | Test | What to verify |
@@ -330,77 +332,36 @@ CLI commands (~3600 lines) are integration-heavy and out of scope. But five smal
 | KSeFForbiddenError | Logs 403 with reason code |
 | KSeFApiError (generic) | Logs status + message |
 | Network errors (ECONNREFUSED) | Suggests `ksef doctor` |
-| Network errors (ETIMEDOUT) | Suggests `ksef doctor` |
 | Unknown Error | Logs generic fallback message |
 
-**File:** `output.test.ts`
-**Complexity:** Simple | **Mocking:** console
+**File:** `output.test.ts` (10 tests) — ✅ DONE
+**File:** `client-factory.test.ts` (11 tests) — ✅ DONE
+**File:** `session-store.test.ts` (12 tests) — ✅ DONE
+**File:** `config-store.test.ts` (6 tests) — ✅ DONE
+**File:** `types.test.ts` (5 tests) — ✅ DONE
 
-| Test | What to verify |
-|------|----------------|
-| `outputResult()` JSON mode | Valid JSON to stdout |
-| `outputResult()` pretty mode | consola log called |
-| `outputTable()` JSON mode | JSON array output |
-| `outputTable()` pretty mode | cli-table3 rendered |
-| `outputTable()` empty rows | No crash, empty table |
-| `outputKeyValue()` | 2-column table or JSON |
-| `outputSuccess()` / `outputWarning()` | Correct log level |
+#### 8b. CLI Commands (100 tests)
 
-**File:** `client-factory.test.ts`
-**Complexity:** Medium | **Mocking:** config-store, session-store
+All 14 command files in `src/cli/commands/` covered. Shared helper: `tests/unit/cli/commands/_helpers.ts` (mock client factory + fixtures).
 
-| Test | What to verify |
-|------|----------------|
-| `createClient()` default env | TEST environment |
-| `createClient()` explicit env flag | Flag takes precedence |
-| `createClient()` custom timeout | Timeout forwarded |
-| `requireSession()` valid session | Returns client + session, tokens hydrated |
-| `requireSession()` no session file | Throws with helpful message |
-| `requireSession()` expired session | Throws |
-| `requireOnlineSession()` no ref | Throws |
-| Verbose flag | Sets consola level |
+**Strategy:** Mock `withErrorHandler` as passthrough, mock `client-factory`, `config-store`, `session-store`, `output`, `consola`, `node:fs`. Access subcommands via `command.subCommands!.name.run!({ args })`.
 
-**File:** `session-store.test.ts`
-**Complexity:** Medium | **Mocking:** fs (or use tmp dir)
-
-| Test | What to verify |
-|------|----------------|
-| `saveSession()` + `loadSession()` roundtrip | Data preserved |
-| `saveSession()` file permissions | 0o600 |
-| `loadSession()` missing file | Returns null |
-| `loadSession()` invalid JSON | Returns null |
-| `clearSession()` | File removed |
-| `clearSession()` missing file | No throw |
-| `isSessionExpired()` future date | false |
-| `isSessionExpired()` past date | true |
-| `isSessionExpired()` no expiresAt | false |
-| `saveOnlineSessionRef()` | Ref appended to session |
-| `clearOnlineSessionRef()` | Ref removed, rest preserved |
-| `saveOnlineSessionRef()` no session | Throws |
-
-**File:** `config-store.test.ts`
-**Complexity:** Simple | **Mocking:** fs (or use tmp dir)
-
-| Test | What to verify |
-|------|----------------|
-| `saveConfig()` + `loadConfig()` roundtrip | Data preserved |
-| `loadConfig()` missing file | Returns defaults |
-| `loadConfig()` invalid JSON | Returns defaults |
-| `loadConfig()` partial config | Merged with defaults |
-| `resetConfig()` | Overwrites with DEFAULT_CONFIG |
-
-**File:** `types.test.ts`
-**Complexity:** Simple | **Mocking:** None
-
-| Test | What to verify |
-|------|----------------|
-| `toEnvironmentName('test')` | Returns 'TEST' |
-| `toEnvironmentName('demo')` | Returns 'DEMO' |
-| `toEnvironmentName('prod')` | Returns 'PRD' |
-| `DEFAULT_CONFIG` | Expected shape and values |
-| `CLI_ENV_CHOICES` | Contains test, demo, prod |
-
-**Estimate:** ~45 tests
+| File | Tests | Key scenarios |
+|------|-------|---------------|
+| `completion.test.ts` | 6 | bash/zsh/fish output structure, all 12 top-level commands present |
+| `config.test.ts` | 9 | set validation (env, output, timeout), saveConfig, show/reset wiring |
+| `invoice.test.ts` | 12 | buildQueryFilters (from required, defaults, sellerNip, buyerNip, amount, currency), send (file not found, single file), get (ksefNumber, file output) |
+| `permission.test.ts` | 16 | grant validation (7 types), grant happy paths (person split permissions, entity canDelegate:false, authorization first-only), revoke (common/authorization), search, status |
+| `doctor.test.ts` | 8 | config pass/fail, connectivity pass/fail, session none/expired/valid, JSON output |
+| `auth.test.ts` | 12 | login (no token, no NIP, token path, cert path, save session, NIP fallback), logout, refresh (no session, no token, save), whoami (truncated token, expired exit) |
+| `session.test.ts` | 10 | open (no NIP, saves ref), close (wiring, no ref), upo (by upoRef, ksefNumber, no params), revoke (current, by ref, no params) |
+| `cert.test.ts` | 8 | generate (invalid type/method, missing fields, file exists, happy path), enroll, revoke |
+| `test-data.test.ts` | 5 | requireNonProd (prod throws, test/demo pass), createSubject wiring, grantPermissions comma split |
+| `lighthouse.test.ts` | 3 | status, messages empty warning, messages with data |
+| `token.test.ts` | 3 | generate (no permissions, split), revoke wiring |
+| `limits.test.ts` | 3 | context/subject/rate wiring |
+| `qr.test.ts` | 3 | invoice URL, certificate key read, file output |
+| `peppol.test.ts` | 2 | providers wiring, empty warning |
 
 ---
 
@@ -495,12 +456,13 @@ E2e tests run against KSeF TEST environment. They require network access and are
 | Builders | 4 | 37 | ✅ Done |
 | QR | 3 | 19 | ✅ Done |
 | KSeFClient | 1 | 24 | ✅ Done |
+| CLI Utilities | 6 | 52 | ✅ Done |
+| CLI Commands | 14 | 100 | ✅ Done |
 | Crypto | 0 | 0 | Not started |
 | Services | 0 | 0 | Not started |
-| CLI Utilities | 0 | 0 | Not started |
 | Coverage Gaps | 0 | 0 | Not started |
 | E2E | 1 | 2 | ✅ Done (cert-auth) |
-| **Total** | **25** | **323** | |
+| **Total** | **44** | **475** | |
 
 ### Coverage exclusions
 
@@ -510,5 +472,4 @@ Barrel re-export files (`**/index.ts`), `src/http/rest-response.ts` (interface-o
 
 1. **Crypto** — complex but critical, real crypto (no mocks except CertificateFetcher). ~30 tests.
 2. **Services** — highest volume, repetitive pattern (mocked RestClient). ~80 tests.
-3. **CLI Utilities** — 5 small utility modules (~250 lines, 0% coverage), easy to unit-test. ~45 tests.
-4. **Coverage Gaps** — extend existing test files + new routes test to close partial coverage. ~18 tests.
+3. **Coverage Gaps** — extend existing test files + new routes test to close partial coverage. ~18 tests.

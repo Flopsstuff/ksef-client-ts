@@ -24,12 +24,29 @@ describe('InvoiceQueryFilterBuilder', () => {
     expect(filter.dateRange).toEqual({ dateType: 'InvoicingDate', from: '2025-01-01' });
   });
 
-  it('should build restricted date range', () => {
+  it('should build restricted date range without to', () => {
     const filter = new InvoiceQueryFilterBuilder()
       .withSubjectType('Subject1')
       .withDateRangeRestricted('InvoicingDate', '2025-01-01')
       .build();
-    expect(filter.dateRange.restrictToPermanentStorageHwmDate).toBe(true);
+    expect(filter.dateRange).toEqual({
+      dateType: 'InvoicingDate',
+      from: '2025-01-01',
+      restrictToPermanentStorageHwmDate: true,
+    });
+  });
+
+  it('should build restricted date range with to', () => {
+    const filter = new InvoiceQueryFilterBuilder()
+      .withSubjectType('Subject1')
+      .withDateRangeRestricted('InvoicingDate', '2025-01-01', '2025-12-31')
+      .build();
+    expect(filter.dateRange).toEqual({
+      dateType: 'InvoicingDate',
+      from: '2025-01-01',
+      to: '2025-12-31',
+      restrictToPermanentStorageHwmDate: true,
+    });
   });
 
   it('should include all optional fields', () => {
