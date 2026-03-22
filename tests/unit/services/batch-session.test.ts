@@ -1,4 +1,5 @@
 import { BatchSessionService } from '../../../src/services/batch-session.js';
+import { KSEF_FEATURE_HEADER, UpoVersion } from '../../../src/http/ksef-feature.js';
 import { Routes } from '../../../src/http/routes.js';
 import { createMockRestClient, getRequest, mockResponse } from './_helpers.js';
 
@@ -24,19 +25,31 @@ describe('BatchSessionService', () => {
     expect(result).toEqual(body);
   });
 
-  it('openSession with upoVersion sets X-KSeF-Feature header', async () => {
+  it('openSession with UpoVersion.V4_3 sets X-KSeF-Feature header', async () => {
     const client = createMockRestClient();
     const service = new BatchSessionService(client);
     const request = { formCode: { code: 'FA' } } as any;
     const body = { referenceNumber: 'batch-ref', partUploadRequests: [] };
     vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(body));
 
-    await service.openSession(request, 'v2.1');
+    await service.openSession(request, UpoVersion.V4_3);
 
     const req = getRequest(vi.mocked(client.execute));
     expect(req.method).toBe('POST');
     expect(req.path).toBe(Routes.Sessions.Batch.open);
-    expect(req.getHeaders()).toHaveProperty('X-KSeF-Feature', 'v2.1');
+    expect(req.getHeaders()).toHaveProperty(KSEF_FEATURE_HEADER, 'upo-v4-3');
+  });
+
+  it('openSession with UpoVersion.V4_2 sets X-KSeF-Feature header', async () => {
+    const client = createMockRestClient();
+    const service = new BatchSessionService(client);
+    const request = { formCode: { code: 'FA' } } as any;
+    vi.mocked(client.execute).mockResolvedValueOnce(mockResponse({ referenceNumber: 'batch-ref', partUploadRequests: [] }));
+
+    await service.openSession(request, UpoVersion.V4_2);
+
+    const req = getRequest(vi.mocked(client.execute));
+    expect(req.getHeaders()).toHaveProperty(KSEF_FEATURE_HEADER, 'upo-v4-2');
   });
 
   it('sendParts uploads to presigned URLs with correct method, headers, and body', async () => {

@@ -3,7 +3,8 @@ export {
   KsefNumber, KsefNumberV35, KsefNumberV36, CertificateName, Pesel,
   CertificateFingerprint, Base64String, Ip4Address, Ip4Range, Ip4Mask, Sha256Base64,
   isValidNip, isValidVatUe, isValidNipVatUe, isValidInternalId, isValidPeppolId,
-  isValidReferenceNumber, isValidKsefNumber, isValidPesel, isValidCertificateName,
+  isValidReferenceNumber, isValidKsefNumber, isValidKsefNumberV35, isValidKsefNumberV36,
+  isValidPesel, isValidCertificateName,
   isValidCertificateFingerprint, isValidBase64, isValidIp4Address, isValidSha256Base64,
 } from './patterns.js';
 export {

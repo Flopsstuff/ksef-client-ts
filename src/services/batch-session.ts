@@ -1,6 +1,8 @@
 import { RestClient } from '../http/rest-client.js';
+import { KSEF_FEATURE_HEADER } from '../http/ksef-feature.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
+import type { UpoVersion } from '../http/ksef-feature.js';
 import type { OpenBatchSessionRequest, OpenBatchSessionResponse, BatchPartSendingInfo } from '../models/sessions/batch-types.js';
 
 export class BatchSessionService {
@@ -12,12 +14,12 @@ export class BatchSessionService {
 
   async openSession(
     request: OpenBatchSessionRequest,
-    upoVersion?: string,
+    upoVersion?: UpoVersion | string,
   ): Promise<OpenBatchSessionResponse> {
     const req = RestRequest.post(Routes.Sessions.Batch.open)
       .body(request);
     if (upoVersion) {
-      req.header('X-KSeF-Feature', upoVersion);
+      req.header(KSEF_FEATURE_HEADER, upoVersion);
     }
     const response = await this.restClient.execute<OpenBatchSessionResponse>(req);
     return response.body;

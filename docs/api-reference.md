@@ -28,6 +28,8 @@ Complete API reference for the `ksef-client-ts` library — a TypeScript client 
 20. [Builders](#builders)
 21. [Error Types](#error-types)
 22. [Validation](#validation)
+23. [Workflows](#workflows)
+24. [KSeF Feature Constants](#ksef-feature-constants)
 23. [Configuration](#configuration)
 
 ---
@@ -1007,23 +1009,37 @@ All patterns are exported as `RegExp` constants.
 
 ### Validator Functions
 
-Each returns `boolean`.
+Each returns `boolean`. Functions marked with **CRC-8** verify the checksum in addition to regex format.
 
 ```ts
-isValidNip(value: string): boolean
+isValidNip(value: string): boolean          // regex + weighted checksum (mod 11)
+isValidPesel(value: string): boolean        // regex + weighted checksum (mod 10)
+isValidKsefNumber(value: string): boolean   // regex + CRC-8 (handles 35 and 36-char formats)
+isValidKsefNumberV35(value: string): boolean // regex + CRC-8 (35-char canonical format)
+isValidKsefNumberV36(value: string): boolean // regex + CRC-8 (36-char format with middle hyphen)
 isValidVatUe(value: string): boolean
 isValidNipVatUe(value: string): boolean
 isValidInternalId(value: string): boolean
 isValidPeppolId(value: string): boolean
 isValidReferenceNumber(value: string): boolean
-isValidKsefNumber(value: string): boolean
-isValidPesel(value: string): boolean
 isValidCertificateName(value: string): boolean
 isValidCertificateFingerprint(value: string): boolean
 isValidBase64(value: string): boolean
 isValidIp4Address(value: string): boolean
 isValidSha256Base64(value: string): boolean
 ```
+
+#### KSeF Number CRC-8 Validation
+
+KSeF invoice numbers are exactly 35 characters: 32 data chars + separator + 2-char CRC-8 checksum (uppercase hex). The CRC-8 uses polynomial `0x07` with init value `0x00`, matching the [official specification](https://github.com/CIRFMF/ksef-docs).
+
+```
+5265877635-20250826-0100001AF629-AF
+|          |        |            |
+NIP(10)    Date(8)  TechHex(12)  CRC-8(2)
+```
+
+`isValidKsefNumber()` accepts both 35-char (`HHHHHHHHHHHH`) and 36-char (`HHHHHH-HHHHHH`) formats, normalizing internally before CRC verification.
 
 ### Constraints
 
@@ -1086,3 +1102,122 @@ Pre-configured environments with API, QR, and lighthouse URLs.
 | `TEST` | `https://api-test.ksef.mf.gov.pl` | `https://qr-test.ksef.mf.gov.pl`   |
 | `DEMO` | `https://api-demo.ksef.mf.gov.pl` | `https://qr-demo.ksef.mf.gov.pl`   |
 | `PROD` | `https://api.ksef.mf.gov.pl`      | `https://qr.ksef.mf.gov.pl`        |
+
+---
+
+## Workflows
+
+High-level orchestration functions that combine multiple service calls into common multi-step operations. All functions are exported from the package root.
+
+### Authentication Workflows
+
+```ts
+import { authenticateWithToken, authenticateWithCertificate, authenticateWithPkcs12 } from 'ksef-client-ts';
+
+// Token auth: challenge → encrypt → submit → poll → redeem tokens
+const result = await authenticateWithToken(client, {
+  token: 'your-ksef-token',
+  nip: '1234567890',
+});
+// result: { accessToken, refreshToken, accessTokenExpiry, refreshTokenExpiry }
+
+// Certificate auth: challenge → XAdES sign → submit → poll → redeem tokens
+const result = await authenticateWithCertificate(client, {
+  certPem: '-----BEGIN CERTIFICATE-----...',
+  keyPem: '-----BEGIN PRIVATE KEY-----...',
+  nip: '1234567890',
+});
+
+// PKCS#12 auth: load P12 → delegate to certificate auth
+const result = await authenticateWithPkcs12(client, {
+  p12Buffer: fs.readFileSync('cert.p12'),
+  password: 'secret',
+  nip: '1234567890',
+});
+```
+
+### Online Session Workflows
+
+```ts
+import { openOnlineSession, openSendAndClose } from 'ksef-client-ts';
+
+// Open a session and get a handle for sending invoices
+const handle = await openOnlineSession(client, { formCode, encryption });
+await handle.sendInvoice(invoiceRequest);
+await handle.close();
+const upo = await handle.waitForUpo();
+
+// Or do it all in one call: open → send → close → poll UPO
+const upo = await openSendAndClose(client, {
+  formCode, encryption, invoices: [invoice1, invoice2],
+});
+```
+
+### Batch Session Workflow
+
+```ts
+import { uploadBatch } from 'ksef-client-ts';
+
+const result = await uploadBatch(client, {
+  formCode, encryption, parts: [{ partContent, partSize, partHash }],
+});
+// result: { sessionReference, upo }
+```
+
+### Invoice Export Workflows
+
+```ts
+import { exportInvoices, exportAndDownload } from 'ksef-client-ts';
+
+// Initiate export and poll until ready
+const result = await exportInvoices(client, { queryFilters });
+// result: { parts: [{ ordinal, url, size, hash, expiration }] }
+
+// Or export + download + decrypt in one call
+const result = await exportAndDownload(client, { queryFilters, cipherKey, cipherIv });
+// result: { parts: [...], decryptedParts: [Uint8Array, ...] }
+```
+
+### Polling Utility
+
+```ts
+import { pollUntil } from 'ksef-client-ts';
+
+// Generic polling with configurable interval and max attempts
+const result = await pollUntil(
+  () => client.sessionStatus.getSessionStatus(ref),
+  (status) => status.processingCode === 200,
+  { intervalMs: 2000, maxAttempts: 30 },
+);
+```
+
+### Workflow Types
+
+| Type | Description |
+|------|-------------|
+| `PollOptions` | `intervalMs`, `maxAttempts`, `onProgress` callback |
+| `OnlineSessionHandle` | Session ref + `sendInvoice()`, `close()`, `waitForUpo()` methods |
+| `UpoInfo` | Pages with reference numbers, download URLs, invoice counts |
+| `BatchUploadResult` | Session reference + UPO info |
+| `ExportResult` | Export parts array (ordinal, URL, size, hash, expiration) |
+| `ExportDownloadResult` | Extends `ExportResult` with `decryptedParts: Uint8Array[]` |
+| `AuthResult` | Access/refresh tokens with expiry timestamps |
+
+---
+
+## KSeF Feature Constants
+
+Constants for the `X-KSeF-Feature` header, used to negotiate UPO format version and XAdES compliance.
+
+```ts
+import { KSEF_FEATURE_HEADER, UpoVersion, ENFORCE_XADES_COMPLIANCE } from 'ksef-client-ts';
+```
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `KSEF_FEATURE_HEADER` | `'X-KSeF-Feature'` | HTTP header name for feature negotiation |
+| `UpoVersion.V4_2` | `'upo-v4-2'` | UPO format v4-2 (default before 2026-01-05) |
+| `UpoVersion.V4_3` | `'upo-v4-3'` | UPO format v4-3 (adds InvoicingMode field) |
+| `ENFORCE_XADES_COMPLIANCE` | `'enforce-xades-compliance'` | Strict XAdES validation in auth requests |
+
+Session open methods (`onlineSession.openSession()`, `batchSession.openSession()`) and `auth.submitXadesAuthRequest()` accept an optional `upoVersion` parameter to set this header.

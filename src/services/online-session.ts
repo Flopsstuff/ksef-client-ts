@@ -1,6 +1,8 @@
 import { RestClient } from '../http/rest-client.js';
+import { KSEF_FEATURE_HEADER } from '../http/ksef-feature.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
+import type { UpoVersion } from '../http/ksef-feature.js';
 import type { OpenOnlineSessionRequest, OpenOnlineSessionResponse, SendInvoiceRequest, SendInvoiceResponse } from '../models/sessions/online-types.js';
 
 export class OnlineSessionService {
@@ -12,12 +14,12 @@ export class OnlineSessionService {
 
   async openSession(
     request: OpenOnlineSessionRequest,
-    upoVersion?: string,
+    upoVersion?: UpoVersion | string,
   ): Promise<OpenOnlineSessionResponse> {
     const req = RestRequest.post(Routes.Sessions.Online.open)
       .body(request);
     if (upoVersion) {
-      req.header('X-KSeF-Feature', upoVersion);
+      req.header(KSEF_FEATURE_HEADER, upoVersion);
     }
     const response = await this.restClient.execute<OpenOnlineSessionResponse>(req);
     return response.body;

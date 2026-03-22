@@ -13,6 +13,7 @@ Complete usage examples for `ksef-client-ts`. All examples target the KSeF TEST 
 5. [Manage Permissions](#5-manage-permissions)
 6. [Generate QR Code](#6-generate-qr-code)
 7. [Self-Signed Certificate](#7-self-signed-certificate)
+8. [Workflows (High-Level API)](#8-workflows-high-level-api)
 
 ---
 
@@ -418,3 +419,77 @@ async function generateTestCertificate() {
 - The `fingerprint` field is the uppercase hex SHA-256 hash of the DER-encoded certificate.
 - Self-signed certificates are valid for 365 days from generation.
 - These certificates are intended for the TEST environment only. Production use requires qualified certificates issued by a trusted CA.
+
+---
+
+## 8. Workflows (High-Level API)
+
+Workflows are high-level orchestration functions that handle multi-step operations in a single call. They combine auth, sessions, polling, and encryption into simple, composable functions.
+
+### Auth + Send Invoice in One Flow
+
+```typescript
+import {
+  KSeFClient,
+  authenticateWithToken,
+  openSendAndClose,
+} from 'ksef-client-ts';
+
+async function sendInvoiceWorkflow() {
+  const client = new KSeFClient({ environment: 'TEST' });
+
+  // 1. Authenticate (handles challenge → encrypt → submit → poll → store tokens)
+  await authenticateWithToken(client, {
+    token: 'your-ksef-token',
+    nip: '1234567890',
+  });
+
+  // 2. Init crypto for encryption
+  await client.crypto.init();
+  const encryptionData = client.crypto.getEncryptionData();
+
+  // 3. Open session, send invoices, close, and poll UPO — all in one call
+  const upo = await openSendAndClose(client, {
+    formCode: { systemCode: 'FA (2)', schemaVersion: '1-0E', value: 'FA' },
+    encryption: encryptionData.encryptionInfo,
+    invoices: [
+      {
+        invoiceHash: meta.hashSHA,
+        invoiceSize: meta.fileSize,
+        encryptedInvoiceHash: encMeta.hashSHA,
+        encryptedInvoiceSize: encMeta.fileSize,
+        encryptedInvoiceContent: Buffer.from(encrypted).toString('base64'),
+      },
+    ],
+  });
+
+  console.log('UPO received:', upo.pages.length, 'pages');
+}
+```
+
+### Export and Decrypt Invoices
+
+```typescript
+import { KSeFClient, authenticateWithToken, exportAndDownload } from 'ksef-client-ts';
+
+async function exportWorkflow() {
+  const client = new KSeFClient({ environment: 'TEST' });
+  await authenticateWithToken(client, { token: 'your-token', nip: '1234567890' });
+  await client.crypto.init();
+
+  const result = await exportAndDownload(client, {
+    queryFilters: { /* your filters */ },
+    cipherKey: encryptionData.cipherKey,
+    cipherIv: encryptionData.cipherIv,
+  });
+
+  console.log(`Downloaded ${result.decryptedParts.length} parts`);
+}
+```
+
+**Notes:**
+- Workflow functions accept a `KSeFClient` instance as the first argument — they don't create their own client.
+- `openSendAndClose()` handles the full lifecycle: open session → send all invoices → close → poll for UPO.
+- `exportAndDownload()` initiates export, polls until ready, downloads all parts, and decrypts them with AES-256-CBC.
+- All workflows support `PollOptions` for configuring polling interval and max attempts.
+- See the [API Reference — Workflows](/api-reference#workflows) for the full list of functions and types.

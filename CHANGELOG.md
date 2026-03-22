@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2026-03-22
+
+### Added
+- **Workflows** — high-level orchestration functions for multi-step KSeF operations:
+  - `openOnlineSession()` / `openSendAndClose()` — online session: open, send invoices, close, poll UPO.
+  - `uploadBatch()` — batch session: open, upload parts, close, poll UPO.
+  - `exportInvoices()` / `exportAndDownload()` — invoice export: initiate, poll status, download and decrypt parts.
+  - `authenticateWithToken()` / `authenticateWithCertificate()` / `authenticateWithPkcs12()` — full auth flow orchestration.
+  - Shared `pollUntil()` utility extracted from E2E helpers.
+- **UPO versioning** — type-safe `UpoVersion` constants (`V4_2`, `V4_3`) and `KSEF_FEATURE_HEADER` for `X-KSeF-Feature` header support on session open requests.
+- **XAdES compliance header** — `enforceXadesCompliance` parameter on `AuthService.submitXadesAuthRequest()` with `ENFORCE_XADES_COMPLIANCE` constant.
+- **KSeF number CRC-8 validation** — `isValidKsefNumber()` now verifies CRC-8 checksum (polynomial 0x07) per official KSeF spec. New `isValidKsefNumberV35()` and `isValidKsefNumberV36()` validators for version-specific formats.
+
+### Fixed
+- Added missing `context-type-not-allowed` literal to `ForbiddenReasonCode` type union (aligns with OpenAPI spec).
+
 ## [0.1.1] - 2026-03-22
 
 ### Added

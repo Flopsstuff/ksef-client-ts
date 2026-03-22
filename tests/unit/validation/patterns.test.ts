@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   isValidNip, isValidVatUe, isValidNipVatUe, isValidInternalId,
   isValidPeppolId, isValidReferenceNumber, isValidKsefNumber,
+  isValidKsefNumberV35, isValidKsefNumberV36,
   isValidPesel, isValidCertificateName, isValidCertificateFingerprint,
   isValidBase64, isValidIp4Address, isValidSha256Base64,
   KsefNumberV35, KsefNumberV36, Ip4Range, Ip4Mask,
@@ -172,20 +173,89 @@ describe('isValidReferenceNumber', () => {
 });
 
 describe('isValidKsefNumber', () => {
-  it('accepts valid KSeF number without optional hyphen', () => {
-    expect(isValidKsefNumber('1234567890-20260301-AABBCC-DDEE11-22')).toBe(true);
+  it('accepts official KSeF example', () => {
+    expect(isValidKsefNumber('5265877635-20250826-0100001AF629-AF')).toBe(true);
   });
 
-  it('accepts valid KSeF number with contiguous hex groups', () => {
-    expect(isValidKsefNumber('1234567890-20260301-AABBCCDDEE11-22')).toBe(true);
+  it('accepts valid KSeF number (35 chars, contiguous hex)', () => {
+    expect(isValidKsefNumber('1234567890-20260301-AABBCCDDEE11-ED')).toBe(true);
+  });
+
+  it('accepts valid KSeF number (36 chars, middle hyphen)', () => {
+    expect(isValidKsefNumber('1234567890-20260301-AABBCC-DDEE11-ED')).toBe(true);
+  });
+
+  it('rejects valid format with wrong checksum', () => {
+    expect(isValidKsefNumber('1234567890-20260301-AABBCCDDEE11-22')).toBe(false);
   });
 
   it('rejects invalid NIP part', () => {
-    expect(isValidKsefNumber('0123456789-20260301-AABBCC-DDEE11-22')).toBe(false);
+    expect(isValidKsefNumber('0123456789-20260301-AABBCC-DDEE11-ED')).toBe(false);
   });
 
   it('rejects empty string', () => {
     expect(isValidKsefNumber('')).toBe(false);
+  });
+});
+
+describe('isValidKsefNumberV35', () => {
+  it('accepts NIP-based V35 with valid CRC', () => {
+    expect(isValidKsefNumberV35('1234567890-20260301-AABBCCDDEE11-ED')).toBe(true);
+  });
+
+  it('accepts M-prefixed V35 with valid CRC', () => {
+    expect(isValidKsefNumberV35('M123456789-20260301-AABBCCDDEE11-9C')).toBe(true);
+  });
+
+  it('accepts 3-letter prefix V35 with valid CRC', () => {
+    expect(isValidKsefNumberV35('ABC1234567-20260301-AABBCCDDEE11-F0')).toBe(true);
+  });
+
+  it('accepts official example', () => {
+    expect(isValidKsefNumberV35('5265877635-20250826-0100001AF629-AF')).toBe(true);
+  });
+
+  it('rejects wrong checksum', () => {
+    expect(isValidKsefNumberV35('1234567890-20260301-AABBCCDDEE11-22')).toBe(false);
+  });
+
+  it('rejects V36 format (with middle hyphen)', () => {
+    expect(isValidKsefNumberV35('1234567890-20260301-AABBCC-DDEE11-ED')).toBe(false);
+  });
+
+  it('rejects empty string', () => {
+    expect(isValidKsefNumberV35('')).toBe(false);
+  });
+
+  it('handles CRC edge case: checksum 00', () => {
+    expect(isValidKsefNumberV35('1234567890-20260301-AABBCCDDEEED3-00')).toBe(false); // wrong length
+    expect(isValidKsefNumberV35('1234567890-20260301-AABBCCDDEED3-00')).toBe(true);
+  });
+
+  it('handles CRC edge case: checksum FF', () => {
+    expect(isValidKsefNumberV35('1234567890-20260301-AABBCCDDEE00-FF')).toBe(true);
+  });
+});
+
+describe('isValidKsefNumberV36', () => {
+  it('accepts NIP-based V36 with valid CRC', () => {
+    expect(isValidKsefNumberV36('1234567890-20260301-AABBCC-DDEE11-ED')).toBe(true);
+  });
+
+  it('accepts M-prefixed V36 with valid CRC', () => {
+    expect(isValidKsefNumberV36('M123456789-20260301-AABBCC-DDEE11-9C')).toBe(true);
+  });
+
+  it('rejects wrong checksum', () => {
+    expect(isValidKsefNumberV36('1234567890-20260301-AABBCC-DDEE11-22')).toBe(false);
+  });
+
+  it('rejects V35 format (no middle hyphen)', () => {
+    expect(isValidKsefNumberV36('1234567890-20260301-AABBCCDDEE11-ED')).toBe(false);
+  });
+
+  it('rejects empty string', () => {
+    expect(isValidKsefNumberV36('')).toBe(false);
   });
 });
 

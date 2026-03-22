@@ -67,6 +67,7 @@ export default defineConfig({
       {
         text: 'Project',
         items: [
+          { text: 'Tests', link: '/tests' },
           { text: 'Changelog', link: '/changelog' },
         ],
       },

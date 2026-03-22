@@ -132,7 +132,7 @@ export class KSeFClient {
 
 const AUTH_TOKEN_REQUEST_NS = 'http://ksef.mf.gov.pl/auth/token/2.0';
 
-function buildAuthTokenRequestXml(
+export function buildAuthTokenRequestXml(
   challenge: string,
   nip: string,
   subjectIdentifierType = 'certificateSubject',
