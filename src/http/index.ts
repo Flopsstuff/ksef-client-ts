@@ -24,3 +24,9 @@ export {
   defaultPresignedUrlPolicy,
   validatePresignedUrl,
 } from './presigned-url-policy.js';
+export {
+  KSEF_FEATURE_HEADER,
+  UpoVersion,
+  type UpoVersion as UpoVersionType,
+  ENFORCE_XADES_COMPLIANCE,
+} from './ksef-feature.js';

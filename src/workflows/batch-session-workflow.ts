@@ -1,4 +1,5 @@
 import type { KSeFClient } from '../client.js';
+import type { UpoVersion } from '../http/ksef-feature.js';
 import type { FormCode } from '../models/common.js';
 import type { BatchPartSendingInfo } from '../models/sessions/batch-types.js';
 import type { BatchUploadResult, PollOptions } from './types.js';
@@ -6,7 +7,7 @@ import { pollUntil } from './polling.js';
 
 export interface BatchUploadOptions {
   formCode?: FormCode;
-  upoVersion?: string;
+  upoVersion?: UpoVersion | string;
   pollOptions?: PollOptions;
 }
 

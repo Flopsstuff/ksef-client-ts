@@ -1,4 +1,5 @@
 import { RestClient } from '../http/rest-client.js';
+import { KSEF_FEATURE_HEADER, ENFORCE_XADES_COMPLIANCE } from '../http/ksef-feature.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
 import type { AuthChallengeResponse, AuthenticationInitResponse, AuthKsefTokenRequest, AuthenticationOperationStatusResponse, AuthenticationTokensResponse, AuthenticationTokenRefreshResponse } from '../models/auth/types.js';
@@ -19,11 +20,15 @@ export class AuthService {
   async submitXadesAuthRequest(
     signedXml: string,
     verifyCertificateChain = false,
+    enforceXadesCompliance = false,
   ): Promise<AuthenticationInitResponse> {
     const request = RestRequest.post(Routes.Authorization.xadesSignature)
       .body(signedXml)
       .header('Content-Type', 'application/xml')
       .query('verifyCertificateChain', String(verifyCertificateChain));
+    if (enforceXadesCompliance) {
+      request.header(KSEF_FEATURE_HEADER, ENFORCE_XADES_COMPLIANCE);
+    }
     const response = await this.restClient.execute<AuthenticationInitResponse>(request);
     return response.body;
   }

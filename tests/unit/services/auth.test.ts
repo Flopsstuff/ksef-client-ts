@@ -1,4 +1,5 @@
 import { AuthService } from '../../../src/services/auth.js';
+import { KSEF_FEATURE_HEADER, ENFORCE_XADES_COMPLIANCE } from '../../../src/http/ksef-feature.js';
 import { Routes } from '../../../src/http/routes.js';
 import { createMockRestClient, getRequest, mockResponse } from './_helpers.js';
 
@@ -47,6 +48,24 @@ describe('AuthService', () => {
 
     const req = getRequest(vi.mocked(client.execute));
     expect(req.getQuery()).toEqual([['verifyCertificateChain', 'true']]);
+  });
+
+  it('submitXadesAuthRequest without enforceXadesCompliance does not set X-KSeF-Feature header', async () => {
+    vi.mocked(client.execute).mockResolvedValueOnce(mockResponse({ referenceNumber: 'ref-3' }));
+
+    await service.submitXadesAuthRequest('<xml/>');
+
+    const req = getRequest(vi.mocked(client.execute));
+    expect(req.getHeaders()).not.toHaveProperty(KSEF_FEATURE_HEADER);
+  });
+
+  it('submitXadesAuthRequest with enforceXadesCompliance=true sets X-KSeF-Feature header', async () => {
+    vi.mocked(client.execute).mockResolvedValueOnce(mockResponse({ referenceNumber: 'ref-4' }));
+
+    await service.submitXadesAuthRequest('<xml/>', false, true);
+
+    const req = getRequest(vi.mocked(client.execute));
+    expect(req.getHeaders()).toHaveProperty(KSEF_FEATURE_HEADER, ENFORCE_XADES_COMPLIANCE);
   });
 
   it('submitKsefTokenAuthRequest sends POST with payload body', async () => {

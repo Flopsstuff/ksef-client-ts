@@ -1,11 +1,12 @@
 import type { KSeFClient } from '../client.js';
+import type { UpoVersion } from '../http/ksef-feature.js';
 import type { FormCode } from '../models/common.js';
 import type { OnlineSessionHandle, PollOptions, UpoInfo } from './types.js';
 import { pollUntil } from './polling.js';
 
 export interface OpenOnlineSessionOptions {
   formCode?: FormCode;
-  upoVersion?: string;
+  upoVersion?: UpoVersion | string;
 }
 
 export interface SendAndCloseOptions extends OpenOnlineSessionOptions {
