@@ -10,8 +10,8 @@ describe('toEnvironmentName', () => {
     expect(toEnvironmentName('demo')).toBe('DEMO');
   });
 
-  it('maps "prod" to "PRD"', () => {
-    expect(toEnvironmentName('prod')).toBe('PRD');
+  it('maps "prod" to "PROD"', () => {
+    expect(toEnvironmentName('prod')).toBe('PROD');
   });
 });
 

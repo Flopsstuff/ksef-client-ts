@@ -71,6 +71,13 @@ describe('07 - Permissions', { timeout: 120_000 }, () => {
     expect(remaining.length).toBe(0);
   });
 
+  it('should query entities roles', async () => {
+    const result = await client.permissions.queryEntitiesRoles();
+    expect(result).toHaveProperty('roles');
+    expect(Array.isArray(result.roles)).toBe(true);
+    expect(result).toHaveProperty('hasMore');
+  });
+
   it('should get attachment status', async () => {
     const result = await client.permissions.getAttachmentStatus();
     expect(result).toHaveProperty('isAttachmentAllowed');

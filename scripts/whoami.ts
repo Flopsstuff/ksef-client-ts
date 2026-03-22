@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Quick "whoami" check: authenticates with KSEF_TOKEN + KSEF_NIP
- * against all 3 KSeF environments (TEST, DEMO, PRD) and queries personal grants.
+ * against all 3 KSeF environments (TEST, DEMO, PROD) and queries personal grants.
  *
  * Usage:
  *   npx tsx scripts/whoami.ts
@@ -22,7 +22,7 @@ if (!TOKEN || !NIP) {
   process.exit(1);
 }
 
-const envs: EnvironmentName[] = ['TEST', 'DEMO', 'PRD'];
+const envs: EnvironmentName[] = ['TEST', 'DEMO', 'PROD'];
 
 for (const env of envs) {
   console.log(`\n--- ${env} ---`);

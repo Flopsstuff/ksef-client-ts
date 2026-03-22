@@ -4,20 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-TypeScript client library for the Polish National e-Invoice System (KSeF) API v2. Targets Node.js 18+ with dual ESM/CJS output.
+TypeScript client library for the Polish National e-Invoice System (KSeF) API v2. Targets Node.js 18+ with dual ESM/CJS output. Current version and release history are in `CHANGELOG.md`.
 
 ## Commands
 
 ```bash
-yarn build          # Build ESM + CJS + DTS via tsup
-yarn lint           # Type-check only (tsc --noEmit)
-yarn test           # Run all tests (vitest run)
-yarn test:watch     # Watch mode
+yarn build            # Build ESM + CJS + DTS via tsup
+yarn lint             # Type-check only (tsc --noEmit)
+yarn test             # Run unit tests (vitest run tests/unit)
+yarn test:e2e         # Run E2E tests (vitest run tests/e2e)
+yarn test:watch       # Watch mode (all tests)
+yarn docs:dev         # VitePress dev server
+yarn docs:build       # Build docs site
+yarn check-api        # Check OpenAPI coverage
+yarn split-openapi    # Split open-api.json into per-domain chunks
 ```
 
 Run a single test file: `yarn vitest run tests/unit/foo.test.ts`
 
-Tests live in `tests/**/*.test.ts` (vitest, globals enabled).
+Tests: 889 tests across 61 files (48 unit + 13 E2E). Tests live in `tests/**/*.test.ts` (vitest, globals enabled).
 
 **Package manager is yarn 4.x** (Corepack). Do not use npm. The `.yarnrc.yml` sets `nodeLinker: node-modules`.
 
@@ -27,24 +32,36 @@ Tests live in `tests/**/*.test.ts` (vitest, globals enabled).
 
 ```
 KSeFClient (src/client.ts)
-  ├── 13 service properties (auth, invoices, permissions, crypto, …)
+  ├── 13 API services + crypto + qr (15 properties total)
   ├── each service wraps RestClient for its API domain
   └── crypto is lazy-initialized (user calls client.crypto.init())
 
-Services (src/services/*.ts)
+Services (src/services/*.ts) — 13 services
   └── use RestClient.execute<T>() with RestRequest builders + Routes constants
 
 HTTP layer (src/http/)
   ├── RestClient — wraps native fetch, handles errors (429/401/403), JSON, auth headers
   ├── RestRequest — fluent builder (method, path, body, headers, query)
   ├── RouteBuilder — prepends /v2/ version prefix
-  └── Routes — all API endpoint paths as const object
+  ├── Routes — all API endpoint paths as const object
+  ├── RetryPolicy — exponential backoff with jitter, configurable retryable status codes
+  ├── RateLimitPolicy — token bucket rate limiter (global + per-endpoint)
+  ├── PresignedUrlPolicy — validates presigned download URLs (HTTPS, host allowlist)
+  └── AuthManager — manages access/refresh tokens, auto-refresh on 401 with dedup
 
 Crypto layer (src/crypto/)
   ├── CertificateFetcher — fetches & caches KSeF public certs
   ├── CryptographyService — AES-256-CBC, RSA-OAEP, ECDH+AES-GCM, CSR gen
   ├── SignatureService — XAdES-B enveloped XML signatures (static)
   └── CertificateService — self-signed cert generation (static)
+
+QR layer (src/qr/)
+  ├── VerificationLinkService — builds invoice/certificate verification URLs
+  └── QrCodeService — generates QR codes (PNG, SVG, SVG+label)
+
+CLI (src/cli/) — 14 command groups via commander.js
+  └── auth, session, invoice, permission, token, cert, lighthouse, limits,
+      peppol, test-data, qr, config, doctor, completion
 ```
 
 ### Key conventions
@@ -67,13 +84,29 @@ Crypto layer (src/crypto/)
 
 ### OpenAPI spec
 
-`docs/open-api.json` is the KSeF API OpenAPI specification (source of truth). Per-domain chunks in `docs/openapi-chunks/` (16 files). Regenerate with `node scripts/split-openapi.mjs`.
+`docs/open-api.json` is the KSeF API OpenAPI specification (source of truth, v2.3.0-te). Per-domain chunks in `docs/openapi-chunks/` (16 files). Regenerate with `yarn split-openapi`. Validate coverage with `yarn check-api`.
 
 ### Error hierarchy
 
 `KSeFError` (base) → `KSeFApiError` (generic HTTP), `KSeFUnauthorizedError` (401), `KSeFForbiddenError` (403), `KSeFRateLimitError` (429), `KSeFAuthStatusError`, `KSeFSessionExpiredError`, `KSeFValidationError` (builder validation).
 
 `RestClient.ensureSuccess` reads body text once, then parses per status code (429→401→403→generic).
+
+### CI/CD
+
+4 GitHub Actions workflows in `.github/workflows/`:
+- `test.yml` — unit tests on Node 18/20/22 matrix, coverage badge via gist
+- `e2e.yml` — E2E tests against KSeF TEST environment (push to main + manual)
+- `release.yml` — GitHub Release from tag `v*`, extracts notes from CHANGELOG.md
+- `deploy-docs.yml` — VitePress → GitHub Pages
+
+### Documentation
+
+VitePress site in `docs/` with Scalar API reference. Config: `docs/.vitepress/config.ts`.
+
+### Plans
+
+`plans/` directory (gitignored) contains development plans and roadmaps. Not tracked in git.
 
 ### Reference implementations
 

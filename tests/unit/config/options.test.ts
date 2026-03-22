@@ -13,12 +13,12 @@ describe('resolveOptions', () => {
     expect(opts.customHeaders).toEqual({});
   });
 
-  it('uses PRD environment when specified', () => {
-    const opts = resolveOptions({ environment: 'PRD' });
+  it('uses PROD environment when specified', () => {
+    const opts = resolveOptions({ environment: 'PROD' });
 
-    expect(opts.baseUrl).toBe(Environment.PRD.apiUrl);
-    expect(opts.baseQrUrl).toBe(Environment.PRD.qrUrl);
-    expect(opts.lighthouseUrl).toBe(Environment.PRD.lighthouseUrl);
+    expect(opts.baseUrl).toBe(Environment.PROD.apiUrl);
+    expect(opts.baseQrUrl).toBe(Environment.PROD.qrUrl);
+    expect(opts.lighthouseUrl).toBe(Environment.PROD.lighthouseUrl);
   });
 
   it('uses DEMO environment when specified', () => {
@@ -29,7 +29,7 @@ describe('resolveOptions', () => {
   });
 
   it('custom baseUrl overrides environment apiUrl', () => {
-    const opts = resolveOptions({ environment: 'PRD', baseUrl: 'https://custom.api' });
+    const opts = resolveOptions({ environment: 'PROD', baseUrl: 'https://custom.api' });
 
     expect(opts.baseUrl).toBe('https://custom.api');
   });

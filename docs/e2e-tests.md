@@ -1,6 +1,6 @@
 # E2E Tests
 
-End-to-end tests that run against the **KSeF TEST environment** (`https://ksef-test.mf.gov.pl`).
+End-to-end tests that run against the **KSeF TEST environment** (`https://api-test.ksef.mf.gov.pl`).
 
 ## Zero Secrets
 

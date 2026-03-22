@@ -10,20 +10,20 @@ describe('Environment configs', () => {
     expect(Environment.DEMO.apiUrl).toBe('https://api-demo.ksef.mf.gov.pl');
   });
 
-  it('PRD has correct apiUrl', () => {
-    expect(Environment.PRD.apiUrl).toBe('https://api.ksef.mf.gov.pl');
+  it('PROD has correct apiUrl', () => {
+    expect(Environment.PROD.apiUrl).toBe('https://api.ksef.mf.gov.pl');
   });
 
   it('all environments have qrUrl', () => {
     expect(Environment.TEST.qrUrl).toBeTruthy();
     expect(Environment.DEMO.qrUrl).toBeTruthy();
-    expect(Environment.PRD.qrUrl).toBeTruthy();
+    expect(Environment.PROD.qrUrl).toBeTruthy();
   });
 
-  it('TEST and PRD have lighthouseUrl, DEMO does not', () => {
+  it('TEST and PROD have lighthouseUrl, DEMO does not', () => {
     expect(Environment.TEST.lighthouseUrl).toBeTruthy();
     expect(Environment.DEMO.lighthouseUrl).toBe('');
-    expect(Environment.PRD.lighthouseUrl).toBeTruthy();
+    expect(Environment.PROD.lighthouseUrl).toBeTruthy();
   });
 
   it('all URLs use HTTPS', () => {
@@ -41,6 +41,6 @@ describe('Environment configs', () => {
   });
 
   it('has exactly 3 environments', () => {
-    expect(Object.keys(Environment)).toEqual(['TEST', 'DEMO', 'PRD']);
+    expect(Object.keys(Environment)).toEqual(['TEST', 'DEMO', 'PROD']);
   });
 });

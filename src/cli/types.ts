@@ -30,7 +30,7 @@ export interface GlobalOptions {
 const ENV_MAP: Record<string, EnvironmentName> = {
   test: 'TEST',
   demo: 'DEMO',
-  prod: 'PRD',
+  prod: 'PROD',
 };
 
 export function toEnvironmentName(env: CliConfig['environment']): EnvironmentName {

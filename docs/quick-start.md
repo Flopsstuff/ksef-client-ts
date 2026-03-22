@@ -22,8 +22,8 @@ const client = new KSeFClient({ environment: 'TEST' });
 await client.loginWithToken('AAAA-BBBB-CCCC-DDDD', '1234567890');
 
 // 3. Use any service — auth headers are injected automatically
-const status = await client.sessions.getSessionStatus();
-console.log('Session reference:', status.referenceNumber);
+const grants = await client.permissions.queryPersonalGrants();
+console.log('Permissions:', grants.permissions.length);
 
 // 4. Logout when done
 await client.logout();

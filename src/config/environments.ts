@@ -15,7 +15,7 @@ export const Environment = {
     qrUrl: 'https://qr-demo.ksef.mf.gov.pl',
     lighthouseUrl: '',
   },
-  PRD: {
+  PROD: {
     apiUrl: 'https://api.ksef.mf.gov.pl',
     qrUrl: 'https://qr.ksef.mf.gov.pl',
     lighthouseUrl: 'https://api-latarnia.ksef.mf.gov.pl',

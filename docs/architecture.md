@@ -9,7 +9,7 @@ Internal architecture of `ksef-client-ts`. Intended for contributors and anyone 
 ```
 KSeFClient (src/client.ts)
   │
-  ├── 14 service properties ──→ Services (src/services/*.ts)
+  ├── 13 service properties ──→ Services (src/services/*.ts)
   │                                 └── RestRequest + Routes → RestClient.execute<T>()
   │
   ├── crypto ──→ CryptographyService (src/crypto/)
@@ -41,7 +41,7 @@ Data flows **top-down**: `KSeFClient` → `Service` → `RestClient` → `fetch`
 src/
 ├── client.ts              # KSeFClient — main entry point, wires everything
 ├── index.ts               # Barrel re-exports for the public API
-├── config/                # Environment configs (TEST/DEMO/PRD), options resolver
+├── config/                # Environment configs (TEST/DEMO/PROD), options resolver
 ├── http/                  # HTTP transport layer (see below)
 ├── services/              # One service per API domain (14 total)
 ├── models/                # TypeScript types, organized by domain

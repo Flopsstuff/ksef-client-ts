@@ -91,22 +91,22 @@ getChallenge(): Promise<AuthChallengeResponse>
 Request an authorization challenge from the KSeF API.
 
 ```ts
-submitXadesAuthRequest(signedXml: string, verifyCertificateChain?: boolean, enforceXadesCompliance?: boolean): Promise<SignatureResponse>
+submitXadesAuthRequest(signedXml: string, verifyCertificateChain?: boolean): Promise<AuthenticationInitResponse>
 ```
 Submit a signed XAdES XML for authentication. Sends XML as `application/octet-stream`.
 
 ```ts
-submitKsefTokenAuthRequest(payload: AuthKsefTokenRequest): Promise<SignatureResponse>
+submitKsefTokenAuthRequest(payload: AuthKsefTokenRequest): Promise<AuthenticationInitResponse>
 ```
 Authenticate using an encrypted KSeF token.
 
 ```ts
-getAuthStatus(referenceNumber: string, authToken: string): Promise<AuthStatus>
+getAuthStatus(referenceNumber: string, authToken: string): Promise<AuthenticationOperationStatusResponse>
 ```
 Poll the authorization status by reference number.
 
 ```ts
-getAccessToken(authToken: string): Promise<AuthOperationStatusResponse>
+getAccessToken(authToken: string): Promise<AuthenticationTokensResponse>
 ```
 Redeem the auth token for a session access token.
 
@@ -185,7 +185,7 @@ Close a batch session.
 Accessed via `client.sessionStatus`.
 
 ```ts
-getSessions(type: SessionType, pageSize?: number, continuationToken?: string, filter?: SessionsFilter): Promise<SessionsListResponse>
+getSessions(type: SessionType, pageSize?: number, continuationToken?: string, filter?: SessionsFilter): Promise<SessionsQueryResponse>
 ```
 List sessions by type with optional filtering.
 
@@ -200,7 +200,7 @@ getSessionInvoices(sessionRef: string, pageSize?: number, continuationToken?: st
 List invoices processed within a session.
 
 ```ts
-getSessionInvoice(sessionRef: string, invoiceRef: string): Promise<SessionInvoice>
+getSessionInvoice(sessionRef: string, invoiceRef: string): Promise<SessionInvoiceStatusResponse>
 ```
 Get details of a specific invoice within a session.
 
@@ -210,19 +210,19 @@ getSessionFailedInvoices(sessionRef: string, pageSize?: number, continuationToke
 List invoices that failed processing within a session.
 
 ```ts
-getInvoiceUpoByKsefNumber(sessionRef: string, ksefNumber: string): Promise<string>
+getInvoiceUpoByKsefNumber(sessionRef: string, ksefNumber: string): Promise<UpoResult>
 ```
-Download UPO (official receipt) for an invoice by its KSeF number. Returns raw XML.
+Download UPO (official receipt) for an invoice by its KSeF number. Returns `{ upo: string, hash?: string }`.
 
 ```ts
-getInvoiceUpoByReference(sessionRef: string, invoiceRef: string): Promise<string>
+getInvoiceUpoByReference(sessionRef: string, invoiceRef: string): Promise<UpoResult>
 ```
-Download UPO for an invoice by its reference number. Returns raw XML.
+Download UPO for an invoice by its reference number. Returns `{ upo: string, hash?: string }`.
 
 ```ts
-getSessionUpo(sessionRef: string, upoRef: string): Promise<string>
+getSessionUpo(sessionRef: string, upoRef: string): Promise<UpoResult>
 ```
-Download a session-level UPO by reference. Returns raw XML.
+Download a session-level UPO by reference. Returns `{ upo: string, hash?: string }`.
 
 ---
 
@@ -284,7 +284,7 @@ grantSubunitPermissions(request: GrantPermissionsSubunitRequest): Promise<Operat
 Grant permissions to a subunit.
 
 ```ts
-grantEuEntityPermissions(request: GrantPermissionsEuEntityRequest): Promise<OperationResponse>
+grantEuEntityAdminPermissions(request: GrantPermissionsEuEntityAdminRequest): Promise<OperationResponse>
 ```
 Grant permissions to an EU entity.
 
@@ -313,7 +313,7 @@ queryPersonalGrants(options?: QueryPersonalGrantsRequest): Promise<PagedPermissi
 Query the caller's own permissions.
 
 ```ts
-queryPersonsGrants(options?: QueryPersonsGrantsRequest): Promise<PagedPermissionsResponse<PersonPermission>>
+queryPersonsGrants(options: QueryPersonsGrantsRequest, pageOffset?: number, pageSize?: number): Promise<PagedPermissionsResponse<PersonPermission>>
 ```
 Query permissions granted to persons.
 
@@ -328,7 +328,7 @@ queryEntitiesRoles(options?: QueryEntitiesRolesRequest): Promise<PagedRolesRespo
 Query roles assigned to entities.
 
 ```ts
-queryEntitiesGrants(options?: QueryEntitiesGrantsRequest): Promise<PagedPermissionsResponse<EntityRole>>
+queryEntitiesGrants(options?: QueryEntitiesGrantsRequest, pageOffset?: number, pageSize?: number): Promise<PagedPermissionsResponse<EntityPermissionItem>>
 ```
 Query permissions granted to entities.
 
@@ -338,7 +338,7 @@ querySubordinateEntitiesRoles(options?: QuerySubordinateEntitiesRolesRequest): P
 Query roles assigned to subordinate entities.
 
 ```ts
-queryAuthorizationsGrants(options?: QueryAuthorizationsGrantsRequest): Promise<PagedAuthorizationsResponse<AuthorizationGrant>>
+queryAuthorizationsGrants(options: QueryAuthorizationsGrantsRequest, pageOffset?: number, pageSize?: number): Promise<PagedAuthorizationsResponse<EntityAuthorizationGrant>>
 ```
 Query authorization-level grants.
 
@@ -483,106 +483,101 @@ Accessed via `client.testData`. Available only in the TEST environment.
 ### Subject Management
 
 ```ts
-createSubject(request: SubjectCreateRequest): Promise<TestDataStatusResponse>
+createSubject(request: SubjectCreateRequest): Promise<void>
 ```
 Create a test subject (NIP entity).
 
 ```ts
-removeSubject(request: SubjectRemoveRequest): Promise<TestDataStatusResponse>
+removeSubject(request: SubjectRemoveRequest): Promise<void>
 ```
 Remove a test subject.
 
 ### Person Management
 
 ```ts
-createPerson(request: PersonCreateRequest): Promise<TestDataStatusResponse>
+createPerson(request: PersonCreateRequest): Promise<void>
 ```
 Create a test person (PESEL identity).
 
 ```ts
-removePerson(request: PersonRemoveRequest): Promise<TestDataStatusResponse>
+removePerson(request: PersonRemoveRequest): Promise<void>
 ```
 Remove a test person.
 
 ### Permissions
 
 ```ts
-grantPermissions(request: TestDataPermissionsGrantRequest): Promise<TestDataStatusResponse>
+grantPermissions(request: TestDataPermissionsGrantRequest): Promise<void>
 ```
 Grant test permissions directly (bypasses normal flow).
 
 ```ts
-revokePermissions(request: TestDataPermissionsRevokeRequest): Promise<TestDataStatusResponse>
+revokePermissions(request: TestDataPermissionsRevokeRequest): Promise<void>
 ```
 Revoke test permissions directly.
 
 ### Attachment Permissions
 
 ```ts
-enableAttachment(request: AttachmentPermissionGrantRequest): Promise<TestDataStatusResponse>
+enableAttachment(request: AttachmentPermissionGrantRequest): Promise<void>
 ```
 Enable attachment permissions for a test subject.
 
 ```ts
-disableAttachment(request: AttachmentPermissionRevokeRequest): Promise<TestDataStatusResponse>
+disableAttachment(request: AttachmentPermissionRevokeRequest): Promise<void>
 ```
 Disable attachment permissions for a test subject.
 
 ### Session Limits
 
 ```ts
-changeSessionLimits(request: SetSessionLimitsRequest): Promise<TestDataStatusResponse>
+changeSessionLimits(request: SetSessionLimitsRequest): Promise<void>
 ```
 Override session limits in the current context.
 
 ```ts
-restoreDefaultSessionLimits(): Promise<TestDataStatusResponse>
+restoreDefaultSessionLimits(): Promise<void>
 ```
 Restore default session limits.
 
 ### Certificate Limits
 
 ```ts
-changeCertificatesLimit(request: SetSubjectLimitsRequest): Promise<TestDataStatusResponse>
+changeCertificatesLimit(request: SetSubjectLimitsRequest): Promise<void>
 ```
 Override subject limits (enrollment/certificate) for the current subject.
 
 ```ts
-restoreDefaultCertificatesLimit(): Promise<TestDataStatusResponse>
+restoreDefaultCertificatesLimit(): Promise<void>
 ```
 Restore default certificate limits.
 
 ### Rate Limits
 
 ```ts
-setRateLimits(request: SetRateLimitsRequest): Promise<TestDataStatusResponse>
+setRateLimits(request: SetRateLimitsRequest): Promise<void>
 ```
 Set custom API rate limits.
 
 ```ts
-restoreDefaultRateLimits(): Promise<TestDataStatusResponse>
+restoreDefaultRateLimits(): Promise<void>
 ```
 Restore default API rate limits.
 
 ```ts
-setProductionRateLimits(): Promise<TestDataStatusResponse>
+setProductionRateLimits(): Promise<void>
 ```
 Set production-level rate limits in the test environment.
-
-```ts
-restoreDefaultProductionRateLimits(): Promise<TestDataStatusResponse>
-```
-Restore default production rate limits.
 
 ### Context Blocking
 
 ```ts
-blockContext(request: ContextBlockRequest): Promise<TestDataStatusResponse>
+blockContext(request: BlockContextAuthenticationRequest): Promise<void>
 ```
 Block a context (simulate maintenance or ban).
 
 ```ts
-unblockContext(request: ContextUnblockRequest): Promise<TestDataStatusResponse>
+unblockContext(request: UnblockContextAuthenticationRequest): Promise<void>
 ```
 Unblock a previously blocked context.
 
@@ -1052,7 +1047,7 @@ All fields are optional. Defaults to the `TEST` environment.
 
 ```ts
 interface KSeFClientOptions {
-  environment?: EnvironmentName;            // 'TEST' | 'DEMO' | 'PRD'
+  environment?: EnvironmentName;            // 'TEST' | 'DEMO' | 'PROD'
   baseUrl?: string;                         // Override API base URL
   baseQrUrl?: string;                       // Override QR verification base URL
   lighthouseUrl?: string;                   // Override lighthouse status URL
@@ -1090,4 +1085,4 @@ Pre-configured environments with API, QR, and lighthouse URLs.
 | ------ | ---------------------------------- | ----------------------------------- |
 | `TEST` | `https://api-test.ksef.mf.gov.pl` | `https://qr-test.ksef.mf.gov.pl`   |
 | `DEMO` | `https://api-demo.ksef.mf.gov.pl` | `https://qr-demo.ksef.mf.gov.pl`   |
-| `PRD`  | `https://api.ksef.mf.gov.pl`      | `https://qr.ksef.mf.gov.pl`        |
+| `PROD` | `https://api.ksef.mf.gov.pl`      | `https://qr.ksef.mf.gov.pl`        |

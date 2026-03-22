@@ -63,6 +63,13 @@ export default defineConfig({
           { text: 'OpenAPI', link: '/openapi' },
         ],
       },
+      {
+        text: 'Testing',
+        items: [
+          { text: 'E2E Tests', link: '/e2e-tests' },
+          { text: 'E2E Coverage Plan', link: '/E2E_TEST_COVERAGE_PLAN' },
+        ],
+      },
     ],
 
     socialLinks: [

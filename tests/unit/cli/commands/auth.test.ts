@@ -85,8 +85,8 @@ async function runWhoami(args: Record<string, unknown> = {}) {
 
 describe('auth', () => {
   describe('login', () => {
-    it('throws without token and cert/key', async () => {
-      await expect(runLogin({ nip: '1234567890' })).rejects.toThrow('Provide --token or both --cert and --key');
+    it('throws without token, p12, and cert/key', async () => {
+      await expect(runLogin({ nip: '1234567890' })).rejects.toThrow('Provide --token, --p12, or both --cert and --key');
     });
 
     it('throws without NIP (neither args nor config)', async () => {
@@ -104,6 +104,21 @@ describe('auth', () => {
       vi.mocked(fs.readFileSync).mockReturnValueOnce('CERT-PEM' as any).mockReturnValueOnce('KEY-PEM' as any);
       await runLogin({ cert: '/cert.pem', key: '/key.pem', nip: '1234567890' });
       expect(mockClient.loginWithCertificate).toHaveBeenCalledWith('CERT-PEM', 'KEY-PEM', '1234567890');
+    });
+
+    it('p12 path — reads file as buffer and calls loginWithPkcs12', async () => {
+      const fs = await import('node:fs');
+      const p12Buf = Buffer.from('mock-p12-data');
+      vi.mocked(fs.readFileSync).mockReturnValueOnce(p12Buf as any);
+      await runLogin({ p12: '/cert.p12', 'p12-password': 'secret', nip: '1234567890' });
+      expect(mockClient.loginWithPkcs12).toHaveBeenCalledWith(p12Buf, 'secret', '1234567890');
+    });
+
+    it('p12 path — defaults password to empty string', async () => {
+      const fs = await import('node:fs');
+      vi.mocked(fs.readFileSync).mockReturnValueOnce(Buffer.from('mock') as any);
+      await runLogin({ p12: '/cert.p12', nip: '1234567890' });
+      expect(mockClient.loginWithPkcs12).toHaveBeenCalledWith(expect.any(Buffer), '', '1234567890');
     });
 
     it('saves session after login', async () => {

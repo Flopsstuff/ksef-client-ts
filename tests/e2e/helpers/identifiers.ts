@@ -1,4 +1,4 @@
-import { randomInt, randomUUID } from 'node:crypto';
+import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { isValidNip, isValidPesel } from '../../../src/validation/patterns.js';
 
 /**
@@ -61,4 +61,25 @@ export function generateRandomPesel(): string {
  */
 export function generateUniqueInvoiceNumber(): string {
   return randomUUID();
+}
+
+/**
+ * Generate a valid SHA-256 certificate fingerprint (64 uppercase hex chars).
+ * Matches CertificateFingerprint pattern: /^[0-9A-F]{64}$/
+ */
+export function generateFingerprint(input?: string): string {
+  return createHash('sha256')
+    .update(input ?? generateRandomNip())
+    .digest('hex')
+    .toUpperCase();
+}
+
+/**
+ * Generate a valid NipVatUe identifier (NIP + '-' + EU VAT ID).
+ * Uses DE format (DE + 9 digits) for simplicity. Total length: 22 chars (fits 15-25 range).
+ */
+export function generateNipVatUe(nip?: string): string {
+  const n = nip ?? generateRandomNip();
+  const de = String(randomInt(100_000_000, 1_000_000_000));
+  return `${n}-DE${de}`;
 }

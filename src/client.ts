@@ -107,6 +107,12 @@ export class KSeFClient {
     this.authManager.setRefreshToken(tokens.refreshToken.token);
   }
 
+  async loginWithPkcs12(p12: Buffer | Uint8Array, password: string, nip: string): Promise<void> {
+    const { Pkcs12Loader } = await import('./crypto/pkcs12-loader.js');
+    const { certificatePem, privateKeyPem } = Pkcs12Loader.load(p12, password);
+    await this.loginWithCertificate(certificatePem, privateKeyPem, nip);
+  }
+
   private async awaitAuthReady(referenceNumber: string, authToken: string): Promise<void> {
     for (let i = 0; i < 30; i++) {
       const status = await this.auth.getAuthStatus(referenceNumber, authToken);

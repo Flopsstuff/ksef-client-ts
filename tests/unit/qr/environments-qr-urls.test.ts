@@ -10,7 +10,7 @@ describe('Environment QR URLs', () => {
     expect(Environment.DEMO.qrUrl).toBe('https://qr-demo.ksef.mf.gov.pl');
   });
 
-  it('PRD environment has correct QR URL', () => {
-    expect(Environment.PRD.qrUrl).toBe('https://qr.ksef.mf.gov.pl');
+  it('PROD environment has correct QR URL', () => {
+    expect(Environment.PROD.qrUrl).toBe('https://qr.ksef.mf.gov.pl');
   });
 });

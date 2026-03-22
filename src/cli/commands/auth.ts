@@ -40,6 +40,8 @@ const login = defineCommand({
     token: { type: 'string', description: 'KSeF authorization token' },
     cert: { type: 'string', description: 'Path to PEM certificate file (XAdES auth)' },
     key: { type: 'string', description: 'Path to PEM private key file (XAdES auth)' },
+    p12: { type: 'string', description: 'Path to PKCS#12 (.p12/.pfx) certificate file' },
+    'p12-password': { type: 'string', description: 'Password for the PKCS#12 file (default: empty)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -59,13 +61,17 @@ const login = defineCommand({
 
       if (args.token) {
         await client.loginWithToken(args.token, nip);
+      } else if (args.p12) {
+        const fs = await import('node:fs');
+        const p12Buffer = fs.readFileSync(args.p12);
+        await client.loginWithPkcs12(p12Buffer, (args['p12-password'] as string) ?? '', nip);
       } else if (args.cert && args.key) {
         const fs = await import('node:fs');
         const certPem = fs.readFileSync(args.cert, 'utf-8');
         const keyPem = fs.readFileSync(args.key, 'utf-8');
         await client.loginWithCertificate(certPem, keyPem, nip);
       } else {
-        throw new Error('Provide --token or both --cert and --key for authentication.');
+        throw new Error('Provide --token, --p12, or both --cert and --key for authentication.');
       }
 
       const session: SessionData = {

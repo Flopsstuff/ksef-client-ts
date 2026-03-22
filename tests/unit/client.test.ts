@@ -11,6 +11,14 @@ vi.mock('../../src/crypto/signature-service.js', () => ({
   SignatureService: { sign: mockSign },
 }));
 
+const mockPkcs12Load = vi.fn().mockReturnValue({
+  certificatePem: '-----BEGIN CERTIFICATE-----\nP12CERT\n-----END CERTIFICATE-----',
+  privateKeyPem: '-----BEGIN RSA PRIVATE KEY-----\nP12KEY\n-----END RSA PRIVATE KEY-----',
+});
+vi.mock('../../src/crypto/pkcs12-loader.js', () => ({
+  Pkcs12Loader: { load: (...args: unknown[]) => mockPkcs12Load(...args) },
+}));
+
 const FIXTURES = {
   nip: '1234567890',
   token: 'test-ksef-token-abc123',
@@ -306,6 +314,66 @@ describe('KSeFClient', () => {
       await expect(client.loginWithCertificate(FIXTURES.certPem, FIXTURES.keyPem, FIXTURES.nip))
         .rejects.toThrow('access token failed');
       expect(authManager.setAccessToken).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('loginWithPkcs12', () => {
+    let client: KSeFClient;
+    let authManager: AuthManager;
+    let loginWithCertSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      mockSign.mockReset().mockReturnValue('<signed-xml/>');
+      mockPkcs12Load.mockReset().mockReturnValue({
+        certificatePem: FIXTURES.certPem,
+        privateKeyPem: FIXTURES.keyPem,
+      });
+      authManager = createMockAuthManager();
+      client = new KSeFClient({ authManager });
+
+      vi.spyOn(client.auth, 'getChallenge')
+        .mockResolvedValue(FIXTURES.challengeResponse);
+      vi.spyOn(client.auth, 'submitXadesAuthRequest')
+        .mockResolvedValue(FIXTURES.authInitResponse);
+      vi.spyOn(client.auth, 'getAuthStatus')
+        .mockResolvedValue({
+          startDate: '2025-01-15T10:30:00.000Z',
+          authenticationMethodInfo: { category: 'XadesSignature', code: 'XADES', displayName: 'XAdES' },
+          authenticationMethod: 'XadesSignature',
+          status: { code: 200, description: 'OK' },
+        });
+      vi.spyOn(client.auth, 'getAccessToken')
+        .mockResolvedValue(FIXTURES.tokensResponse);
+
+      loginWithCertSpy = vi.spyOn(client, 'loginWithCertificate');
+    });
+
+    it('calls Pkcs12Loader.load with buffer and password', async () => {
+      const p12 = Buffer.from('mock-p12');
+      await client.loginWithPkcs12(p12, 'my-password', FIXTURES.nip);
+
+      expect(mockPkcs12Load).toHaveBeenCalledWith(p12, 'my-password');
+    });
+
+    it('delegates to loginWithCertificate with extracted PEM', async () => {
+      await client.loginWithPkcs12(Buffer.from('mock-p12'), 'pass', FIXTURES.nip);
+
+      expect(loginWithCertSpy).toHaveBeenCalledWith(FIXTURES.certPem, FIXTURES.keyPem, FIXTURES.nip);
+    });
+
+    it('stores tokens after successful login', async () => {
+      await client.loginWithPkcs12(Buffer.from('mock-p12'), 'pass', FIXTURES.nip);
+
+      expect(authManager.setAccessToken).toHaveBeenCalledWith('access-token-final-abc');
+      expect(authManager.setRefreshToken).toHaveBeenCalledWith('refresh-token-final-def');
+    });
+
+    it('propagates Pkcs12Loader error', async () => {
+      mockPkcs12Load.mockImplementation(() => { throw new Error('Invalid PKCS#12'); });
+
+      await expect(client.loginWithPkcs12(Buffer.from('bad'), 'pass', FIXTURES.nip))
+        .rejects.toThrow('Invalid PKCS#12');
+      expect(loginWithCertSpy).not.toHaveBeenCalled();
     });
   });
 
