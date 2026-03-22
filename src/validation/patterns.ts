@@ -24,6 +24,23 @@ export const Sha256Base64 = /^[A-Za-z0-9+/]{43}=$/;
 const NIP_WEIGHTS = [6, 5, 7, 2, 3, 4, 5, 6, 7];
 const PESEL_WEIGHTS = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3];
 
+// CRC-8 (KSeF number checksum — polynomial 0x07, init 0x00)
+const CRC8_POLY = 0x07;
+
+function computeCrc8Hex(data: string): string {
+  let crc = 0x00;
+  const bytes = new TextEncoder().encode(data);
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let i = 0; i < 8; i++) {
+      crc = (crc & 0x80) !== 0
+        ? ((crc << 1) ^ CRC8_POLY) & 0xff
+        : (crc << 1) & 0xff;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(2, '0');
+}
+
 // Validator helpers
 export function isValidNip(value: string): boolean {
   if (!Nip.test(value)) return false;
@@ -39,7 +56,28 @@ export function isValidNipVatUe(value: string): boolean { return NipVatUe.test(v
 export function isValidInternalId(value: string): boolean { return InternalId.test(value); }
 export function isValidPeppolId(value: string): boolean { return PeppolId.test(value); }
 export function isValidReferenceNumber(value: string): boolean { return ReferenceNumber.test(value); }
-export function isValidKsefNumber(value: string): boolean { return KsefNumber.test(value); }
+export function isValidKsefNumber(value: string): boolean {
+  if (!KsefNumber.test(value)) return false;
+  let normalized = value;
+  if (value.length === 36) {
+    const parts = value.split('-');
+    if (parts.length === 5) normalized = `${parts[0]}-${parts[1]}-${parts[2]}${parts[3]}-${parts[4]}`;
+    else return false;
+  }
+  if (normalized.length !== 35) return false;
+  return computeCrc8Hex(normalized.slice(0, 32)) === normalized.slice(-2);
+}
+export function isValidKsefNumberV35(value: string): boolean {
+  if (!KsefNumberV35.test(value)) return false;
+  return computeCrc8Hex(value.slice(0, 32)) === value.slice(-2);
+}
+export function isValidKsefNumberV36(value: string): boolean {
+  if (!KsefNumberV36.test(value)) return false;
+  const parts = value.split('-');
+  if (parts.length !== 5) return false;
+  const normalized = `${parts[0]}-${parts[1]}-${parts[2]}${parts[3]}-${parts[4]}`;
+  return computeCrc8Hex(normalized.slice(0, 32)) === normalized.slice(-2);
+}
 export function isValidPesel(value: string): boolean {
   if (!Pesel.test(value)) return false;
   let sum = 0;
