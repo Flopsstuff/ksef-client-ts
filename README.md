@@ -16,7 +16,30 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 - **Automatic token management** — AuthManager: token injection, 401 refresh with dedup, `loginWithToken` / `loginWithCertificate`
 - **Typed errors & fluent builders** — `KSeFError` hierarchy (401, 403, 429, validation) and request builders
 
-Requires **Node.js 18+**. Package not yet published — clone and build locally:
+Requires **Node.js 18+**.
+
+## Install
+
+Install CLI globally:
+
+```bash
+npm i -g ksef-client-ts
+ksef --help
+```
+
+Install in a project:
+
+```bash
+# Choose one package manager:
+# npm
+npm i ksef-client-ts
+# Yarn
+yarn add ksef-client-ts
+# pnpm
+pnpm add ksef-client-ts
+```
+
+For local development, clone and build:
 
 ```bash
 git clone https://github.com/Flopsstuff/ksef-client-ts.git
