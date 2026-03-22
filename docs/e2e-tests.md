@@ -77,6 +77,7 @@ Since no env vars are available, the test bootstraps its own token:
 
 ## CI
 
-GitHub Actions workflow at `.github/workflows/e2e.yml`:
+GitHub Actions workflow at `.github/workflows/ci.yml` (consolidated unit + E2E):
 - Triggers: push to `main` (src/tests changes), manual dispatch
-- Single job, 30min timeout, no secrets required
+- Unit tests on Node 18/20/22 matrix, E2E tests against KSeF TEST environment
+- 30min timeout, no secrets required

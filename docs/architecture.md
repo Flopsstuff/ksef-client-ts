@@ -22,6 +22,13 @@ KSeFClient (src/client.ts)
   └── loginWithToken() / loginWithCertificate() / logout()
         └── orchestrates auth + crypto + token storage
 
+Workflows (src/workflows/)
+  ├── authenticateWithToken/Certificate/Pkcs12 ──→ auth + crypto + polling
+  ├── openOnlineSession / openSendAndClose ──→ session + invoice + UPO polling
+  ├── uploadBatch ──→ batch session + parts upload + UPO polling
+  ├── exportInvoices / exportAndDownload ──→ export + polling + decrypt
+  └── pollUntil() ──→ shared polling utility
+
 RestClient (src/http/rest-client.ts)
   ├── RouteBuilder ──→ prepends /v2/ version prefix
   ├── TransportFn ──→ native fetch (or custom)
@@ -62,7 +69,8 @@ src/
 ├── crypto/                # Cryptography layer (see below)
 ├── qr/                    # QR code + verification link generation
 ├── errors/                # Error hierarchy (see below)
-├── validation/            # Regex patterns and constraints
+├── validation/            # Regex patterns, checksum validators, constraints
+├── workflows/             # High-level orchestration (auth, sessions, export, polling)
 └── cli/                   # CLI tool (commander-based)
 ```
 
@@ -250,6 +258,23 @@ On 401 (once per request):
 ```
 
 Custom `AuthManager` can be passed via `KSeFClientOptions.authManager` to integrate with external token stores.
+
+---
+
+## Workflows (`src/workflows/`)
+
+High-level orchestration functions that compose multiple service calls into common multi-step operations. Unlike services (which map 1:1 to API endpoints), workflows handle the full lifecycle: auth → action → polling → result.
+
+| File | Functions | Purpose |
+|------|-----------|---------|
+| `auth-workflow.ts` | `authenticateWithToken()`, `authenticateWithCertificate()`, `authenticateWithPkcs12()` | Full auth ceremony: challenge → encrypt/sign → submit → poll → redeem tokens |
+| `online-session-workflow.ts` | `openOnlineSession()`, `openSendAndClose()` | Online session: open → send invoices → close → poll UPO |
+| `batch-session-workflow.ts` | `uploadBatch()` | Batch session: open → upload parts → close → poll UPO |
+| `invoice-export-workflow.ts` | `exportInvoices()`, `exportAndDownload()` | Export: initiate → poll status → download + decrypt parts |
+| `polling.ts` | `pollUntil()` | Shared polling utility with configurable interval and max attempts |
+| `types.ts` | `PollOptions`, `OnlineSessionHandle`, `UpoInfo`, etc. | Workflow type definitions |
+
+Workflows accept a `KSeFClient` instance and options, returning typed results. They are exported from the package root via `src/workflows/index.ts`.
 
 ---
 
