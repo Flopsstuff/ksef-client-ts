@@ -6,7 +6,7 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 
 ## Features
 
-- **Complete API coverage** — auth, sessions, invoices, permissions, tokens, certificates, QR codes, and more
+- **Complete API coverage** — (KSeF) API v2.3.0 auth, sessions, invoices, permissions, tokens, certificates, QR codes, and more
 - **Full-featured CLI** — `ksef` with many command groups and subcommands for day-to-day KSeF workflows
 - **Full documentation** — VitePress site: Quick Start, API reference, OpenAPI spec
 - **OpenAPI aligned** — types checked against the official KSeF spec; full spec and domain chunks in `docs/`

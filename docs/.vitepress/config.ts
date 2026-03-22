@@ -42,6 +42,7 @@ export default defineConfig({
       { text: 'API Reference', link: '/api-reference' },
       { text: 'Examples', link: '/examples' },
       { text: 'OpenAPI', link: '/openapi' },
+      { text: 'Changelog', link: '/changelog' },
     ],
 
     sidebar: [
@@ -64,10 +65,9 @@ export default defineConfig({
         ],
       },
       {
-        text: 'Testing',
+        text: 'Project',
         items: [
-          { text: 'E2E Tests', link: '/e2e-tests' },
-          { text: 'E2E Coverage Plan', link: '/E2E_TEST_COVERAGE_PLAN' },
+          { text: 'Changelog', link: '/changelog' },
         ],
       },
     ],
