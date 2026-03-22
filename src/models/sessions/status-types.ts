@@ -55,7 +55,7 @@ export interface InvoiceStatusInfo {
   code: number;
   description: string;
   details?: string[];
-  extensions?: Record<string, string>;
+  extensions?: Record<string, string | null> | null;
 }
 
 export interface SessionInvoiceStatusResponse {

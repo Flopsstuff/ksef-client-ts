@@ -19,8 +19,8 @@ import type {
   AttachmentPermissionRevokeRequest,
   BlockContextAuthenticationRequest,
   UnblockContextAuthenticationRequest,
-  TestDataStatusResponse,
 } from '../../models/test-data/types.js';
+import type { OperationStatusInfo } from '../../models/common.js';
 import type {
   SetSessionLimitsRequest,
   SetSubjectLimitsRequest,
@@ -45,7 +45,7 @@ function requireNonProd(globalOpts: GlobalOptions): void {
   }
 }
 
-function outputStatus(result: TestDataStatusResponse, json?: boolean): void {
+function outputStatus(result: OperationStatusInfo, json?: boolean): void {
   if (json) {
     outputResult(result, { json: true });
   } else {

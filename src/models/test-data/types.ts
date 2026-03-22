@@ -93,7 +93,3 @@ export interface UnblockContextAuthenticationRequest {
   contextIdentifier?: TestDataAuthenticationContextIdentifier | null;
 }
 
-export interface TestDataStatusResponse {
-  code: number;
-  description: string;
-}

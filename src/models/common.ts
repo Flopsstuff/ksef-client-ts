@@ -5,7 +5,7 @@ export interface OperationResponse {
 export interface OperationStatusInfo {
   code: number;
   description: string;
-  details?: string[];
+  details?: string[] | null;
 }
 
 export interface TokenInfo {

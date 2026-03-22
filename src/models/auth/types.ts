@@ -33,11 +33,11 @@ export interface AuthenticationOperationStatusResponse {
   startDate: string;
   authenticationMethodInfo: AuthenticationMethodInfo;
   /** @deprecated Required by spec but deprecated. */
-  authenticationMethod?: AuthenticationMethod;
+  authenticationMethod: AuthenticationMethod;
   status: OperationStatusInfo;
-  isTokenRedeemed?: boolean;
-  lastTokenRefreshDate?: string;
-  refreshTokenValidUntil?: string;
+  isTokenRedeemed?: boolean | null;
+  lastTokenRefreshDate?: string | null;
+  refreshTokenValidUntil?: string | null;
 }
 
 /**
@@ -48,13 +48,13 @@ export interface AuthenticationOperationStatusResponse {
 export type XadesSubjectIdentifierType = 'certificateSubject' | (string & {});
 
 export interface AllowedIps {
-  ip4Addresses?: string[];
-  ip4Ranges?: string[];
-  ip4Masks?: string[];
+  ip4Addresses?: string[] | null;
+  ip4Ranges?: string[] | null;
+  ip4Masks?: string[] | null;
 }
 
 export interface AuthorizationPolicy {
-  allowedIps?: AllowedIps;
+  allowedIps?: AllowedIps | null;
 }
 
 export interface AuthTokenRequest {

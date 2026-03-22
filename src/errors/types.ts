@@ -17,8 +17,8 @@ export interface ApiErrorResponse {
 
 export interface TooManyRequestsStatus {
   code: number;
-  description?: string;
-  details?: string[];
+  description: string;
+  details: string[];
 }
 
 export interface TooManyRequestsResponse {
