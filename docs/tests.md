@@ -4,14 +4,10 @@ Test infrastructure for `ksef-client-ts`: unit tests (vitest, mocked) and E2E te
 
 ## Overview
 
-| | Unit | E2E |
-|---|------|-----|
-| **Tests** | 961 | 18 suites |
-| **Files** | 68 | 18 |
-| **Runner** | vitest | vitest |
-| **Environment** | Mocked (no network) | KSeF TEST (`api-test.ksef.mf.gov.pl`) |
-| **Secrets** | None | None (self-signed certs) |
-| **Speed** | ~7s total | ~15min total (API latency) |
+All tests use **vitest** and live in the `tests/` directory:
+
+- **Unit tests** (`tests/unit/`) — mocked, no network access. Cover services, HTTP layer, crypto, CLI, builders, validation, workflows, and error hierarchy.
+- **E2E tests** (`tests/e2e/`) — run against the live KSeF TEST environment (`api-test.ksef.mf.gov.pl`). No secrets needed — all auth uses self-signed certificates.
 
 ## Running
 
