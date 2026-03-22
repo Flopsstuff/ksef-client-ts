@@ -1,0 +1,62 @@
+name: GitHub Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          NOTES_FILE="release_notes.md"
+
+          if [[ ! -f CHANGELOG.md ]]; then
+            echo "has_notes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" {in_section=1; next}
+            in_section && $0 ~ "^## \\[" {exit}
+            in_section {print}
+          ' CHANGELOG.md > "$NOTES_FILE"
+
+          if [[ -s "$NOTES_FILE" ]] && [[ -n "$(tr -d '[:space:]' < "$NOTES_FILE")" ]]; then
+            echo "has_notes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_notes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create release from CHANGELOG section
+        if: steps.changelog.outputs.has_notes == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: release_notes.md
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create release with generated notes
+        if: steps.changelog.outputs.has_notes != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
