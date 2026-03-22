@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
 - Updated invoice types and replaced deprecated `RR` usage with `FA_RR`.
 - Clarified selected schema descriptions, including VAT amount currency (PLN) and invoice metadata/query descriptions.
 - Updated bearer auth scheme casing in the OpenAPI definition.
+- NIP/PESEL Validations
+- Add full E2E test suite 
 
 ## [0.1.0] - 2026-03-22
 

@@ -23,7 +23,6 @@ export default defineConfig({
   ],
 
   srcExclude: [
-    '*-plan.md',
     'ref-*.md',
   ],
 
