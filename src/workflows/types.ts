@@ -38,3 +38,7 @@ export interface ExportResult {
   isTruncated: boolean;
   permanentStorageHwmDate?: string;
 }
+
+export interface ExportDownloadResult extends ExportResult {
+  decryptedParts: Uint8Array[];
+}

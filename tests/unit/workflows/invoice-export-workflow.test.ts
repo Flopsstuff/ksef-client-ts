@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { exportInvoices } from '../../../src/workflows/invoice-export-workflow.js';
+import { exportInvoices, exportAndDownload } from '../../../src/workflows/invoice-export-workflow.js';
 import type { InvoiceQueryFilters } from '../../../src/models/invoices/types.js';
 
 function createMockClient() {
@@ -11,6 +11,7 @@ function createMockClient() {
         cipherKey: new Uint8Array(32),
         cipherIv: new Uint8Array(16),
       }),
+      decryptAES256: vi.fn().mockReturnValue(new Uint8Array([0x50, 0x4b, 0x03, 0x04])),
     },
     invoices: {
       exportInvoices: vi.fn().mockResolvedValue({ referenceNumber: 'export-ref-1' }),
@@ -117,5 +118,59 @@ describe('exportInvoices', () => {
     const result = await exportInvoices(client, filters, { pollOptions: { intervalMs: 1, maxAttempts: 10 } });
     expect(client.invoices.getInvoiceExportStatus).toHaveBeenCalledTimes(3);
     expect(result.invoiceCount).toBe(1);
+  });
+});
+
+describe('exportAndDownload', () => {
+  it('exports, downloads all parts, and decrypts them', async () => {
+    const encryptedBytes = new Uint8Array([99, 99, 99]);
+    const mockTransport = vi.fn().mockImplementation(async () =>
+      new Response(encryptedBytes.slice().buffer, { status: 200 }),
+    );
+
+    const result = await exportAndDownload(client, filters, {
+      pollOptions: { intervalMs: 1 },
+      transport: mockTransport,
+    });
+
+    expect(mockTransport).toHaveBeenCalledTimes(2);
+    expect(mockTransport).toHaveBeenCalledWith('https://download.example.com/1', { method: 'GET' });
+    expect(mockTransport).toHaveBeenCalledWith('https://download.example.com/2', { method: 'GET' });
+    expect(client.crypto.decryptAES256).toHaveBeenCalledTimes(2);
+    expect(result.decryptedParts).toHaveLength(2);
+    expect(result.decryptedParts[0]).toEqual(new Uint8Array([0x50, 0x4b, 0x03, 0x04]));
+    expect(result.invoiceCount).toBe(10);
+    expect(result.parts).toHaveLength(2);
+  });
+
+  it('throws on download failure', async () => {
+    const mockTransport = vi.fn().mockResolvedValue(
+      new Response('Not Found', { status: 404 }),
+    );
+
+    await expect(
+      exportAndDownload(client, filters, {
+        pollOptions: { intervalMs: 1 },
+        transport: mockTransport,
+      }),
+    ).rejects.toThrow('Download failed for part 1: HTTP 404');
+  });
+
+  it('passes encryption keys from getEncryptionData to decryptAES256', async () => {
+    const mockTransport = vi.fn().mockImplementation(async () =>
+      new Response(new Uint8Array([1, 2, 3]).buffer, { status: 200 }),
+    );
+
+    await exportAndDownload(client, filters, {
+      pollOptions: { intervalMs: 1 },
+      transport: mockTransport,
+    });
+
+    const encData = client.crypto.getEncryptionData();
+    expect(client.crypto.decryptAES256).toHaveBeenCalledWith(
+      expect.any(Uint8Array),
+      encData.cipherKey,
+      encData.cipherIv,
+    );
   });
 });
