@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           registry-url: https://registry.npmjs.org
 
       - name: Enable Corepack
@@ -43,4 +43,4 @@ jobs:
         run: yarn lint && yarn test && yarn build
 
       - name: Publish package
-        run: npm publish --provenance --access public
+        run: npm publish --access public
