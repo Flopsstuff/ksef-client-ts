@@ -13,7 +13,6 @@ import type {
   BlockContextAuthenticationRequest,
   UnblockContextAuthenticationRequest,
 } from '../models/test-data/types.js';
-import type { OperationStatusInfo } from '../models/common.js';
 import type {
   SetSessionLimitsRequest,
   SetSubjectLimitsRequest,
@@ -29,124 +28,107 @@ export class TestDataService {
 
   // Subject management
 
-  async createSubject(request: SubjectCreateRequest): Promise<OperationStatusInfo> {
+  async createSubject(request: SubjectCreateRequest): Promise<void> {
     const req = RestRequest.post(Routes.TestData.createSubject).body(request);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
-  async removeSubject(request: SubjectRemoveRequest): Promise<OperationStatusInfo> {
+  async removeSubject(request: SubjectRemoveRequest): Promise<void> {
     const req = RestRequest.post(Routes.TestData.removeSubject).body(request);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
   // Person management
 
-  async createPerson(request: PersonCreateRequest): Promise<OperationStatusInfo> {
+  async createPerson(request: PersonCreateRequest): Promise<void> {
     const req = RestRequest.post(Routes.TestData.createPerson).body(request);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
-  async removePerson(request: PersonRemoveRequest): Promise<OperationStatusInfo> {
+  async removePerson(request: PersonRemoveRequest): Promise<void> {
     const req = RestRequest.post(Routes.TestData.removePerson).body(request);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
   // Permissions
 
-  async grantPermissions(request: TestDataPermissionsGrantRequest): Promise<OperationStatusInfo> {
+  async grantPermissions(request: TestDataPermissionsGrantRequest): Promise<void> {
     const req = RestRequest.post(Routes.TestData.grantPerms).body(request);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
-  async revokePermissions(request: TestDataPermissionsRevokeRequest): Promise<OperationStatusInfo> {
+  async revokePermissions(request: TestDataPermissionsRevokeRequest): Promise<void> {
     const req = RestRequest.post(Routes.TestData.revokePerms).body(request);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
   // Attachment permissions
 
-  async enableAttachment(request: AttachmentPermissionGrantRequest): Promise<OperationStatusInfo> {
+  async enableAttachment(request: AttachmentPermissionGrantRequest): Promise<void> {
     const req = RestRequest.post(Routes.TestData.enableAttach).body(request);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
-  async disableAttachment(request: AttachmentPermissionRevokeRequest): Promise<OperationStatusInfo> {
+  async disableAttachment(request: AttachmentPermissionRevokeRequest): Promise<void> {
     const req = RestRequest.post(Routes.TestData.disableAttach).body(request);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
   // Session limits
 
-  async changeSessionLimits(request: SetSessionLimitsRequest): Promise<OperationStatusInfo> {
+  async changeSessionLimits(request: SetSessionLimitsRequest): Promise<void> {
     const req = RestRequest.post(Routes.TestData.changeSessionLimitsInCurrentContext)
       .body(request);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
-  async restoreDefaultSessionLimits(): Promise<OperationStatusInfo> {
+  async restoreDefaultSessionLimits(): Promise<void> {
     const req = RestRequest.delete(Routes.TestData.restoreDefaultSessionLimitsInCurrentContext);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
   // Certificate limits
 
-  async changeCertificatesLimit(request: SetSubjectLimitsRequest): Promise<OperationStatusInfo> {
+  async changeCertificatesLimit(request: SetSubjectLimitsRequest): Promise<void> {
     const req = RestRequest.post(Routes.TestData.changeCertificatesLimitInCurrentSubject)
       .body(request);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
-  async restoreDefaultCertificatesLimit(): Promise<OperationStatusInfo> {
+  async restoreDefaultCertificatesLimit(): Promise<void> {
     const req = RestRequest.delete(Routes.TestData.restoreDefaultCertificatesLimitInCurrentSubject);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
   // Rate limits
 
-  async setRateLimits(request: SetRateLimitsRequest): Promise<OperationStatusInfo> {
+  async setRateLimits(request: SetRateLimitsRequest): Promise<void> {
     const req = RestRequest.post(Routes.TestData.rateLimits)
       .body(request);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
-  async restoreDefaultRateLimits(): Promise<OperationStatusInfo> {
+  async restoreDefaultRateLimits(): Promise<void> {
     const req = RestRequest.delete(Routes.TestData.rateLimits);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
-  async setProductionRateLimits(): Promise<OperationStatusInfo> {
+  async setProductionRateLimits(): Promise<void> {
     const req = RestRequest.post(Routes.TestData.productionRateLimits);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
   // Context blocking
 
-  async blockContext(request: BlockContextAuthenticationRequest): Promise<OperationStatusInfo> {
+  async blockContext(request: BlockContextAuthenticationRequest): Promise<void> {
     const req = RestRequest.post(Routes.TestData.blockContext)
       .body(request);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 
-  async unblockContext(request: UnblockContextAuthenticationRequest): Promise<OperationStatusInfo> {
+  async unblockContext(request: UnblockContextAuthenticationRequest): Promise<void> {
     const req = RestRequest.post(Routes.TestData.unblockContext)
       .body(request);
-    const response = await this.restClient.execute<OperationStatusInfo>(req);
-    return response.body;
+    await this.restClient.execute<void>(req);
   }
 }

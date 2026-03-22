@@ -1,7 +1,7 @@
 import { defineCommand } from 'citty';
 import { createClient, requireSession } from '../client-factory.js';
 import { loadConfig } from '../config-store.js';
-import { outputResult, outputSuccess, outputKeyValue } from '../output.js';
+import { outputResult, outputSuccess } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions } from '../types.js';
 import type {
@@ -20,7 +20,6 @@ import type {
   BlockContextAuthenticationRequest,
   UnblockContextAuthenticationRequest,
 } from '../../models/test-data/types.js';
-import type { OperationStatusInfo } from '../../models/common.js';
 import type {
   SetSessionLimitsRequest,
   SetSubjectLimitsRequest,
@@ -45,15 +44,11 @@ function requireNonProd(globalOpts: GlobalOptions): void {
   }
 }
 
-function outputStatus(result: OperationStatusInfo, json?: boolean): void {
+function outputDone(json?: boolean): void {
   if (json) {
-    outputResult(result, { json: true });
+    outputResult({ status: 'ok' }, { json: true });
   } else {
     outputSuccess('Done.');
-    outputKeyValue({
-      'Code': result.code,
-      'Description': result.description,
-    }, { json: false });
   }
 }
 
@@ -81,8 +76,8 @@ const createSubject = defineCommand({
         createdDate: args['created-date'] as string | undefined,
       };
 
-      const result = await createClient(globalOpts).testData.createSubject(request);
-      outputStatus(result, args.json);
+      await createClient(globalOpts).testData.createSubject(request);
+      outputDone(args.json);
     });
   },
 });
@@ -102,8 +97,8 @@ const removeSubject = defineCommand({
       requireNonProd(globalOpts);
 
       const request: SubjectRemoveRequest = { subjectNip: args.nip as string };
-      const result = await createClient(globalOpts).testData.removeSubject(request);
-      outputStatus(result, args.json);
+      await createClient(globalOpts).testData.removeSubject(request);
+      outputDone(args.json);
     });
   },
 });
@@ -136,8 +131,8 @@ const createPerson = defineCommand({
         createdDate: args['created-date'] as string | undefined,
       };
 
-      const result = await createClient(globalOpts).testData.createPerson(request);
-      outputStatus(result, args.json);
+      await createClient(globalOpts).testData.createPerson(request);
+      outputDone(args.json);
     });
   },
 });
@@ -157,8 +152,8 @@ const removePerson = defineCommand({
       requireNonProd(globalOpts);
 
       const request: PersonRemoveRequest = { nip: args.nip as string };
-      const result = await createClient(globalOpts).testData.removePerson(request);
-      outputStatus(result, args.json);
+      await createClient(globalOpts).testData.removePerson(request);
+      outputDone(args.json);
     });
   },
 });
@@ -194,8 +189,8 @@ const grantPermissions = defineCommand({
         permissions,
       };
 
-      const result = await createClient(globalOpts).testData.grantPermissions(request);
-      outputStatus(result, args.json);
+      await createClient(globalOpts).testData.grantPermissions(request);
+      outputDone(args.json);
     });
   },
 });
@@ -225,8 +220,8 @@ const revokePermissions = defineCommand({
         },
       };
 
-      const result = await createClient(globalOpts).testData.revokePermissions(request);
-      outputStatus(result, args.json);
+      await createClient(globalOpts).testData.revokePermissions(request);
+      outputDone(args.json);
     });
   },
 });
@@ -246,8 +241,8 @@ const enableAttachment = defineCommand({
       requireNonProd(globalOpts);
 
       const request: AttachmentPermissionGrantRequest = { nip: args.nip as string };
-      const result = await createClient(globalOpts).testData.enableAttachment(request);
-      outputStatus(result, args.json);
+      await createClient(globalOpts).testData.enableAttachment(request);
+      outputDone(args.json);
     });
   },
 });
@@ -272,8 +267,8 @@ const disableAttachment = defineCommand({
         expectedEndDate: args['end-date'] as string | undefined,
       };
 
-      const result = await createClient(globalOpts).testData.disableAttachment(request);
-      outputStatus(result, args.json);
+      await createClient(globalOpts).testData.disableAttachment(request);
+      outputDone(args.json);
     });
   },
 });
@@ -313,8 +308,8 @@ const changeSessionLimits = defineCommand({
         },
       };
 
-      const result = await client.testData.changeSessionLimits(request);
-      outputStatus(result, args.json);
+      await client.testData.changeSessionLimits(request);
+      outputDone(args.json);
     });
   },
 });
@@ -334,8 +329,8 @@ const restoreSessionLimits = defineCommand({
       requireNonProd(globalOpts);
 
       const { client } = requireSession(globalOpts);
-      const result = await client.testData.restoreDefaultSessionLimits();
-      outputStatus(result, args.json);
+      await client.testData.restoreDefaultSessionLimits();
+      outputDone(args.json);
     });
   },
 });
@@ -369,8 +364,8 @@ const changeCertLimits = defineCommand({
           : undefined,
       };
 
-      const result = await client.testData.changeCertificatesLimit(request);
-      outputStatus(result, args.json);
+      await client.testData.changeCertificatesLimit(request);
+      outputDone(args.json);
     });
   },
 });
@@ -390,8 +385,8 @@ const restoreCertLimits = defineCommand({
       requireNonProd(globalOpts);
 
       const { client } = requireSession(globalOpts);
-      const result = await client.testData.restoreDefaultCertificatesLimit();
-      outputStatus(result, args.json);
+      await client.testData.restoreDefaultCertificatesLimit();
+      outputDone(args.json);
     });
   },
 });
@@ -417,8 +412,8 @@ const setRateLimits = defineCommand({
         rateLimits: JSON.parse(args.limits as string),
       };
 
-      const result = await client.testData.setRateLimits(request);
-      outputStatus(result, args.json);
+      await client.testData.setRateLimits(request);
+      outputDone(args.json);
     });
   },
 });
@@ -438,8 +433,8 @@ const restoreRateLimits = defineCommand({
       requireNonProd(globalOpts);
 
       const { client } = requireSession(globalOpts);
-      const result = await client.testData.restoreDefaultRateLimits();
-      outputStatus(result, args.json);
+      await client.testData.restoreDefaultRateLimits();
+      outputDone(args.json);
     });
   },
 });
@@ -460,8 +455,8 @@ const setProductionRateLimits = defineCommand({
 
       const { client } = requireSession(globalOpts);
 
-      const result = await client.testData.setProductionRateLimits();
-      outputStatus(result, args.json);
+      await client.testData.setProductionRateLimits();
+      outputDone(args.json);
     });
   },
 });
@@ -492,8 +487,8 @@ const blockContext = defineCommand({
         },
       };
 
-      const result = await client.testData.blockContext(request);
-      outputStatus(result, args.json);
+      await client.testData.blockContext(request);
+      outputDone(args.json);
     });
   },
 });
@@ -523,8 +518,8 @@ const unblockContext = defineCommand({
         },
       };
 
-      const result = await client.testData.unblockContext(request);
-      outputStatus(result, args.json);
+      await client.testData.unblockContext(request);
+      outputDone(args.json);
     });
   },
 });

@@ -1,6 +1,6 @@
 import { TestDataService } from '../../../src/services/test-data.js';
 import { Routes } from '../../../src/http/routes.js';
-import { createMockRestClient, getRequest, mockResponse } from './_helpers.js';
+import { createMockRestClient, getRequest } from './_helpers.js';
 
 describe('TestDataService', () => {
   let restClient: ReturnType<typeof createMockRestClient>;
@@ -29,12 +29,9 @@ describe('TestDataService', () => {
 
   it.each(postMethods)('%s sends POST with body', async (methodName, expectedRoute) => {
     const body = { nip: '1234567890' };
-    const expected = { code: 0, description: 'OK' };
-    (restClient.execute as any).mockResolvedValueOnce(mockResponse(expected));
 
-    const result = await (service as any)[methodName](body);
+    await (service as any)[methodName](body);
 
-    expect(result).toEqual(expected);
     const req = getRequest(restClient.execute as any);
     expect(req.method).toBe('POST');
     expect(req.path).toBe(expectedRoute);
@@ -48,12 +45,8 @@ describe('TestDataService', () => {
   ];
 
   it('setProductionRateLimits sends POST without body', async () => {
-    const expected = { code: 0, description: 'OK' };
-    (restClient.execute as any).mockResolvedValueOnce(mockResponse(expected));
+    await service.setProductionRateLimits();
 
-    const result = await service.setProductionRateLimits();
-
-    expect(result).toEqual(expected);
     const req = getRequest(restClient.execute as any);
     expect(req.method).toBe('POST');
     expect(req.path).toBe(Routes.TestData.productionRateLimits);
@@ -61,12 +54,8 @@ describe('TestDataService', () => {
   });
 
   it.each(deleteMethods)('%s sends DELETE', async (methodName, expectedRoute) => {
-    const expected = { code: 0, description: 'OK' };
-    (restClient.execute as any).mockResolvedValueOnce(mockResponse(expected));
+    await (service as any)[methodName]();
 
-    const result = await (service as any)[methodName]();
-
-    expect(result).toEqual(expected);
     const req = getRequest(restClient.execute as any);
     expect(req.method).toBe('DELETE');
     expect(req.path).toBe(expectedRoute);

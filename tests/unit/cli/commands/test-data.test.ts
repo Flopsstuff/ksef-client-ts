@@ -48,7 +48,7 @@ describe('test-data', () => {
     });
 
     it('passes in test environment', async () => {
-      mockClient.testData.createSubject.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.createSubject.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['create-subject'] as any).run!({
         args: { nip: '123', type: 'VatGroup', description: 'test' },
       });
@@ -57,7 +57,7 @@ describe('test-data', () => {
 
     it('passes in demo environment', async () => {
       mockLoadConfig.mockReturnValue({ ...defaultConfig, environment: 'demo' });
-      mockClient.testData.createSubject.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.createSubject.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['create-subject'] as any).run!({
         args: { nip: '123', type: 'VatGroup', description: 'test' },
       });
@@ -66,7 +66,7 @@ describe('test-data', () => {
   });
 
   it('createSubject — wiring', async () => {
-    mockClient.testData.createSubject.mockResolvedValue({ code: 200, description: 'OK' });
+    mockClient.testData.createSubject.mockResolvedValue(undefined);
     await (testDataCommand.subCommands!['create-subject'] as any).run!({
       args: { nip: '123', type: 'VatGroup', description: 'test' },
     });
@@ -76,7 +76,7 @@ describe('test-data', () => {
   });
 
   it('grantPermissions — splits comma-separated permissions', async () => {
-    mockClient.testData.grantPermissions.mockResolvedValue({ code: 200, description: 'OK' });
+    mockClient.testData.grantPermissions.mockResolvedValue(undefined);
     await (testDataCommand.subCommands!['grant-permissions'] as any).run!({
       args: {
         'context-nip': '111', identifier: '222', 'identifier-type': 'Nip',
@@ -90,7 +90,7 @@ describe('test-data', () => {
 
   describe('block-context', () => {
     it('calls testData.blockContext with correct request', async () => {
-      mockClient.testData.blockContext.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.blockContext.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['block-context'] as any).run!({
         args: { 'context-value': '1234567890', 'context-type': 'Nip' },
       });
@@ -102,7 +102,7 @@ describe('test-data', () => {
     });
 
     it('defaults context-type to Nip', async () => {
-      mockClient.testData.blockContext.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.blockContext.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['block-context'] as any).run!({
         args: { 'context-value': '1234567890' },
       });
@@ -125,7 +125,7 @@ describe('test-data', () => {
 
   describe('remove-subject', () => {
     it('calls testData.removeSubject with correct NIP', async () => {
-      mockClient.testData.removeSubject.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.removeSubject.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['remove-subject'] as any).run!({
         args: { nip: '9876543210' },
       });
@@ -137,7 +137,7 @@ describe('test-data', () => {
 
   describe('create-person', () => {
     it('calls testData.createPerson with all fields', async () => {
-      mockClient.testData.createPerson.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.createPerson.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['create-person'] as any).run!({
         args: { nip: '111', pesel: '22222222222', description: 'test person', bailiff: true, deceased: false, 'created-date': '2024-01-01' },
       });
@@ -154,7 +154,7 @@ describe('test-data', () => {
     });
 
     it('defaults isBailiff to false', async () => {
-      mockClient.testData.createPerson.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.createPerson.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['create-person'] as any).run!({
         args: { nip: '111', pesel: '22222222222', description: 'test' },
       });
@@ -166,7 +166,7 @@ describe('test-data', () => {
 
   describe('remove-person', () => {
     it('calls testData.removePerson with correct NIP', async () => {
-      mockClient.testData.removePerson.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.removePerson.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['remove-person'] as any).run!({
         args: { nip: '333' },
       });
@@ -178,7 +178,7 @@ describe('test-data', () => {
 
   describe('revoke-permissions', () => {
     it('calls testData.revokePermissions with correct identifiers', async () => {
-      mockClient.testData.revokePermissions.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.revokePermissions.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['revoke-permissions'] as any).run!({
         args: { 'context-nip': '111', identifier: '222', 'identifier-type': 'Pesel' },
       });
@@ -193,7 +193,7 @@ describe('test-data', () => {
 
   describe('enable-attachment', () => {
     it('calls testData.enableAttachment with NIP', async () => {
-      mockClient.testData.enableAttachment.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.enableAttachment.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['enable-attachment'] as any).run!({
         args: { nip: '5555555555' },
       });
@@ -205,7 +205,7 @@ describe('test-data', () => {
 
   describe('disable-attachment', () => {
     it('calls testData.disableAttachment with NIP and end-date', async () => {
-      mockClient.testData.disableAttachment.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.disableAttachment.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['disable-attachment'] as any).run!({
         args: { nip: '6666666666', 'end-date': '2024-12-31' },
       });
@@ -217,7 +217,7 @@ describe('test-data', () => {
 
   describe('change-session-limits', () => {
     it('calls testData.changeSessionLimits with parsed integer values', async () => {
-      mockClient.testData.changeSessionLimits.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.changeSessionLimits.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['change-session-limits'] as any).run!({
         args: {
           'online-max-size': '3',
@@ -245,7 +245,7 @@ describe('test-data', () => {
 
   describe('restore-session-limits', () => {
     it('calls testData.restoreDefaultSessionLimits', async () => {
-      mockClient.testData.restoreDefaultSessionLimits.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.restoreDefaultSessionLimits.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['restore-session-limits'] as any).run!({
         args: {},
       });
@@ -255,7 +255,7 @@ describe('test-data', () => {
 
   describe('change-cert-limits', () => {
     it('calls testData.changeCertificatesLimit with all options', async () => {
-      mockClient.testData.changeCertificatesLimit.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.changeCertificatesLimit.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['change-cert-limits'] as any).run!({
         args: { 'identifier-type': 'Nip', 'max-enrollments': '10', 'max-certificates': '20' },
       });
@@ -267,7 +267,7 @@ describe('test-data', () => {
     });
 
     it('omits enrollment and certificate when not provided', async () => {
-      mockClient.testData.changeCertificatesLimit.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.changeCertificatesLimit.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['change-cert-limits'] as any).run!({
         args: {},
       });
@@ -281,7 +281,7 @@ describe('test-data', () => {
 
   describe('restore-cert-limits', () => {
     it('calls testData.restoreDefaultCertificatesLimit', async () => {
-      mockClient.testData.restoreDefaultCertificatesLimit.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.restoreDefaultCertificatesLimit.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['restore-cert-limits'] as any).run!({
         args: {},
       });
@@ -291,7 +291,7 @@ describe('test-data', () => {
 
   describe('set-rate-limits', () => {
     it('calls testData.setRateLimits with parsed JSON', async () => {
-      mockClient.testData.setRateLimits.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.setRateLimits.mockResolvedValue(undefined);
       const limitsJson = JSON.stringify({ requestsPerMinute: 100 });
       await (testDataCommand.subCommands!['set-rate-limits'] as any).run!({
         args: { limits: limitsJson },
@@ -304,7 +304,7 @@ describe('test-data', () => {
 
   describe('restore-rate-limits', () => {
     it('calls testData.restoreDefaultRateLimits', async () => {
-      mockClient.testData.restoreDefaultRateLimits.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.restoreDefaultRateLimits.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['restore-rate-limits'] as any).run!({
         args: {},
       });
@@ -314,7 +314,7 @@ describe('test-data', () => {
 
   describe('set-production-rate-limits', () => {
     it('calls testData.setProductionRateLimits', async () => {
-      mockClient.testData.setProductionRateLimits.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.setProductionRateLimits.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['set-production-rate-limits'] as any).run!({
         args: {},
       });
@@ -322,18 +322,18 @@ describe('test-data', () => {
     });
 
     it('outputs JSON when --json is set', async () => {
-      mockClient.testData.setProductionRateLimits.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.setProductionRateLimits.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['set-production-rate-limits'] as any).run!({
         args: { json: true },
       });
       const { outputResult } = await import('../../../../src/cli/output.js');
-      expect(outputResult).toHaveBeenCalledWith({ code: 200, description: 'OK' }, { json: true });
+      expect(outputResult).toHaveBeenCalledWith({ status: 'ok' }, { json: true });
     });
   });
 
   describe('unblock-context', () => {
     it('calls testData.unblockContext with correct request', async () => {
-      mockClient.testData.unblockContext.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.unblockContext.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['unblock-context'] as any).run!({
         args: { 'context-value': '9876543210', 'context-type': 'InternalId' },
       });
@@ -345,7 +345,7 @@ describe('test-data', () => {
     });
 
     it('defaults context-type to Nip', async () => {
-      mockClient.testData.unblockContext.mockResolvedValue({ code: 200, description: 'OK' });
+      mockClient.testData.unblockContext.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['unblock-context'] as any).run!({
         args: { 'context-value': '9876543210' },
       });
