@@ -39,6 +39,7 @@ export type ForbiddenReasonCode =
   | 'insufficient-resource-access'
   | 'auth-method-not-allowed'
   | 'security-service-blocked'
+  | 'context-type-not-allowed'
   | (string & {});
 
 export interface ForbiddenProblemDetails {
