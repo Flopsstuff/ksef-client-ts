@@ -13,6 +13,7 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 - **Zero HTTP dependencies** — native `fetch` (Node 18+); dual ESM/CJS via tsup
 - **Built-in cryptography** — AES-256-CBC, RSA-OAEP, ECDH, XAdES-B, self-signed certs (Node crypto)
 - **Automatic token management** — AuthManager: token injection, 401 refresh with dedup, `loginWithToken` / `loginWithCertificate`
+- **High-level workflows** — orchestration functions for auth, online/batch sessions, invoice export with polling and decryption
 - **Typed errors & fluent builders** — `KSeFError` hierarchy (401, 403, 429, validation) and request builders
 
 Requires **Node.js 18+**.
