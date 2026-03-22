@@ -38,7 +38,7 @@ describe('ActiveSessionsService', () => {
 
     await service.revokeCurrentSession();
 
-    const req = getRequest(vi.mocked(client.execute));
+    const req = getRequest(vi.mocked(client.executeVoid));
     expect(req.method).toBe('DELETE');
     expect(req.path).toBe('auth/sessions/current');
   });
@@ -49,18 +49,18 @@ describe('ActiveSessionsService', () => {
 
     await service.revokeSession('session-ref-42');
 
-    const req = getRequest(vi.mocked(client.execute));
+    const req = getRequest(vi.mocked(client.executeVoid));
     expect(req.method).toBe('DELETE');
     expect(req.path).toBe('auth/sessions/session-ref-42');
   });
 
-  it('revokeSession returns void (execute called once, result is undefined)', async () => {
+  it('revokeSession returns void (executeVoid called once, result is undefined)', async () => {
     const client = createMockRestClient();
     const service = new ActiveSessionsService(client);
 
     const result = await service.revokeSession('ref-xyz');
 
-    expect(client.execute).toHaveBeenCalledTimes(1);
+    expect(client.executeVoid).toHaveBeenCalledTimes(1);
     expect(result).toBeUndefined();
   });
 });

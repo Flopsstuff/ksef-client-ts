@@ -50,6 +50,6 @@ export class BatchSessionService {
 
   async closeSession(batchRef: string): Promise<void> {
     const req = RestRequest.post(Routes.Sessions.Batch.close(batchRef));
-    await this.restClient.execute<void>(req);
+    await this.restClient.executeVoid(req);
   }
 }

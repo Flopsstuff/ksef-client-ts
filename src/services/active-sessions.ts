@@ -23,11 +23,11 @@ export class ActiveSessionsService {
 
   async revokeCurrentSession(): Promise<void> {
     const request = RestRequest.delete(Routes.ActiveSessions.currentSession);
-    await this.restClient.execute<void>(request);
+    await this.restClient.executeVoid(request);
   }
 
   async revokeSession(sessionRef: string): Promise<void> {
     const request = RestRequest.delete(Routes.ActiveSessions.delete(sessionRef));
-    await this.restClient.execute<void>(request);
+    await this.restClient.executeVoid(request);
   }
 }

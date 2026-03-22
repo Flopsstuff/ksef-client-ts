@@ -121,9 +121,9 @@ describe('BatchSessionService', () => {
 
     await service.closeSession('batch-xyz');
 
-    const req = getRequest(vi.mocked(client.execute));
+    const req = getRequest(vi.mocked(client.executeVoid));
     expect(req.method).toBe('POST');
     expect(req.path).toBe(Routes.Sessions.Batch.close('batch-xyz'));
-    expect(client.execute).toHaveBeenCalledTimes(1);
+    expect(client.executeVoid).toHaveBeenCalledTimes(1);
   });
 });

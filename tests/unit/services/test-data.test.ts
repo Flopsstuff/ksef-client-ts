@@ -32,7 +32,7 @@ describe('TestDataService', () => {
 
     await (service as any)[methodName](body);
 
-    const req = getRequest(restClient.execute as any);
+    const req = getRequest(restClient.executeVoid as any);
     expect(req.method).toBe('POST');
     expect(req.path).toBe(expectedRoute);
     expect(req.getBody()).toEqual(body);
@@ -47,7 +47,7 @@ describe('TestDataService', () => {
   it('setProductionRateLimits sends POST without body', async () => {
     await service.setProductionRateLimits();
 
-    const req = getRequest(restClient.execute as any);
+    const req = getRequest(restClient.executeVoid as any);
     expect(req.method).toBe('POST');
     expect(req.path).toBe(Routes.TestData.productionRateLimits);
     expect(req.getBody()).toBeUndefined();
@@ -56,7 +56,7 @@ describe('TestDataService', () => {
   it.each(deleteMethods)('%s sends DELETE', async (methodName, expectedRoute) => {
     await (service as any)[methodName]();
 
-    const req = getRequest(restClient.execute as any);
+    const req = getRequest(restClient.executeVoid as any);
     expect(req.method).toBe('DELETE');
     expect(req.path).toBe(expectedRoute);
     expect(req.getBody()).toBeUndefined();

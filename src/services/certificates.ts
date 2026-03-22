@@ -56,7 +56,7 @@ export class CertificateApiService {
   async revoke(serialNumber: string, request: RevokeCertificateRequest): Promise<void> {
     const req = RestRequest.post(Routes.Certificates.revoke(serialNumber))
       .body(request);
-    await this.restClient.execute<void>(req);
+    await this.restClient.executeVoid(req);
   }
 
   async query(request: QueryCertificatesRequest, pageSize?: number, pageOffset?: number): Promise<QueryCertificatesResponse> {

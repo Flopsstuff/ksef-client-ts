@@ -104,6 +104,7 @@ describe('KSeFClient', () => {
     let getChallengespy: ReturnType<typeof vi.spyOn>;
     let submitSpy: ReturnType<typeof vi.spyOn>;
     let getAccessTokenSpy: ReturnType<typeof vi.spyOn>;
+    let getAuthStatusSpy: ReturnType<typeof vi.spyOn>;
     let cryptoInitSpy: ReturnType<typeof vi.spyOn>;
     let encryptSpy: ReturnType<typeof vi.spyOn>;
 
@@ -115,6 +116,13 @@ describe('KSeFClient', () => {
         .mockResolvedValue(FIXTURES.challengeResponse);
       submitSpy = vi.spyOn(client.auth, 'submitKsefTokenAuthRequest')
         .mockResolvedValue(FIXTURES.authInitResponse);
+      getAuthStatusSpy = vi.spyOn(client.auth, 'getAuthStatus')
+        .mockResolvedValue({
+          startDate: '2025-01-15T10:30:00.000Z',
+          authenticationMethodInfo: { category: 'Token', code: 'TOKEN', displayName: 'Token' },
+          authenticationMethod: 'Token',
+          status: { code: 200, description: 'OK' },
+        });
       getAccessTokenSpy = vi.spyOn(client.auth, 'getAccessToken')
         .mockResolvedValue(FIXTURES.tokensResponse);
       cryptoInitSpy = vi.spyOn(client.crypto, 'init')
@@ -194,6 +202,7 @@ describe('KSeFClient', () => {
     let getChallengeSpy: ReturnType<typeof vi.spyOn>;
     let submitXadesSpy: ReturnType<typeof vi.spyOn>;
     let getAccessTokenSpy: ReturnType<typeof vi.spyOn>;
+    let getAuthStatusSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
       mockSign.mockReset().mockReturnValue('<signed-xml/>');
@@ -204,6 +213,13 @@ describe('KSeFClient', () => {
         .mockResolvedValue(FIXTURES.challengeResponse);
       submitXadesSpy = vi.spyOn(client.auth, 'submitXadesAuthRequest')
         .mockResolvedValue(FIXTURES.authInitResponse);
+      getAuthStatusSpy = vi.spyOn(client.auth, 'getAuthStatus')
+        .mockResolvedValue({
+          startDate: '2025-01-15T10:30:00.000Z',
+          authenticationMethodInfo: { category: 'XadesSignature', code: 'XADES', displayName: 'XAdES' },
+          authenticationMethod: 'XadesSignature',
+          status: { code: 200, description: 'OK' },
+        });
       getAccessTokenSpy = vi.spyOn(client.auth, 'getAccessToken')
         .mockResolvedValue(FIXTURES.tokensResponse);
     });
@@ -318,6 +334,12 @@ describe('KSeFClient', () => {
 
       vi.spyOn(client.auth, 'getChallenge').mockResolvedValue(FIXTURES.challengeResponse);
       vi.spyOn(client.auth, 'submitKsefTokenAuthRequest').mockResolvedValue(FIXTURES.authInitResponse);
+      vi.spyOn(client.auth, 'getAuthStatus').mockResolvedValue({
+        startDate: '2025-01-15T10:30:00.000Z',
+        authenticationMethodInfo: { category: 'Token', code: 'TOKEN', displayName: 'Token' },
+        authenticationMethod: 'Token',
+        status: { code: 200, description: 'OK' },
+      });
       vi.spyOn(client.auth, 'getAccessToken').mockResolvedValue(FIXTURES.tokensResponse);
       vi.spyOn(client.crypto, 'init').mockResolvedValue(undefined);
       vi.spyOn(client.crypto, 'encryptKsefToken').mockReturnValue(new Uint8Array([1, 2, 3]));

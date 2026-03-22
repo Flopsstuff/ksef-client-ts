@@ -84,6 +84,7 @@ export class KSeFClient {
     });
 
     const authToken = submitResult.authenticationToken.token;
+    await this.awaitAuthReady(submitResult.referenceNumber, authToken);
     const tokens = await this.auth.getAccessToken(authToken);
 
     this.authManager.setAccessToken(tokens.accessToken.token);
@@ -99,10 +100,22 @@ export class KSeFClient {
 
     const submitResult = await this.auth.submitXadesAuthRequest(signedXml);
     const authToken = submitResult.authenticationToken.token;
+    await this.awaitAuthReady(submitResult.referenceNumber, authToken);
     const tokens = await this.auth.getAccessToken(authToken);
 
     this.authManager.setAccessToken(tokens.accessToken.token);
     this.authManager.setRefreshToken(tokens.refreshToken.token);
+  }
+
+  private async awaitAuthReady(referenceNumber: string, authToken: string): Promise<void> {
+    for (let i = 0; i < 30; i++) {
+      const status = await this.auth.getAuthStatus(referenceNumber, authToken);
+      if (status.status.code === 200) return;
+      if (status.status.code !== 100) {
+        throw new Error(`Authentication failed with status ${status.status.code}: ${status.status.description}`);
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
   }
 
   async logout(): Promise<void> {

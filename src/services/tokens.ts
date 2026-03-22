@@ -43,6 +43,6 @@ export class TokenService {
 
   async revokeToken(ref: string): Promise<void> {
     const req = RestRequest.delete(Routes.Tokens.byReference(ref));
-    await this.restClient.execute<void>(req);
+    await this.restClient.executeVoid(req);
   }
 }

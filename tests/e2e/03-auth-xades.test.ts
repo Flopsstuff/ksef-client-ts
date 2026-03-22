@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { KSeFClient } from '../../src/client.js';
 import { CertificateService } from '../../src/crypto/certificate-service.js';
 import { SignatureService } from '../../src/crypto/signature-service.js';
 import { AuthTokenRequestBuilder } from '../../src/builders/auth-token-request.js';
 import type { AuthTokenRequest } from '../../src/models/auth/types.js';
+import { createTestClient } from './helpers/auth.js';
+import { generateRandomNip } from './helpers/identifiers.js';
 
-const NIP = process.env.KSEF_NIP ?? '9999999999';
+const NIP = generateRandomNip();
 
 function serializeAuthTokenRequest(req: AuthTokenRequest): string {
   const ns = 'http://ksef.mf.gov.pl/auth/token/2.0';
@@ -34,31 +35,35 @@ function serializeAuthTokenRequest(req: AuthTokenRequest): string {
   ].filter(Boolean).join('');
 }
 
-describe('Certificate auth e2e', { timeout: 60_000 }, () => {
-  const client = new KSeFClient({ environment: 'TEST' });
+describe('03 - XAdES Certificate Authentication', { timeout: 60_000 }, () => {
+  const client = createTestClient();
 
-  it('should generate a self-signed certificate', async () => {
+  it('should generate a self-signed RSA certificate', async () => {
     const cert = await CertificateService.generatePersonalCertificate(
       'Jan', 'Kowalski', NIP, `Test KSeF CLI - ${NIP}`, 'RSA',
     );
-
     expect(cert.certificatePem).toContain('BEGIN CERTIFICATE');
     expect(cert.privateKeyPem).toContain('BEGIN PRIVATE KEY');
     expect(cert.fingerprint).toMatch(/^[a-fA-F0-9]{64}$/);
   });
 
+  it('should generate a self-signed ECDSA certificate', async () => {
+    const cert = await CertificateService.generatePersonalCertificate(
+      'Jan', 'Kowalski', NIP, `Test KSeF CLI - ${NIP}`, 'ECDSA',
+    );
+    expect(cert.certificatePem).toContain('BEGIN CERTIFICATE');
+    expect(cert.privateKeyPem).toContain('BEGIN PRIVATE KEY');
+  });
+
   it('should get challenge and build a signed XAdES auth request', async () => {
-    // 1. Generate certificate
     const cert = await CertificateService.generatePersonalCertificate(
       'Jan', 'Kowalski', NIP, `Test KSeF CLI - ${NIP}`, 'RSA',
     );
 
-    // 2. Get challenge
     const challenge = await client.auth.getChallenge();
     expect(challenge.challenge).toBeTruthy();
     expect(challenge.timestamp).toBeTruthy();
 
-    // 3. Build and sign AuthTokenRequest XML
     const authRequest = new AuthTokenRequestBuilder()
       .withChallenge(challenge.challenge)
       .withContextNip(NIP)
@@ -73,5 +78,30 @@ describe('Certificate auth e2e', { timeout: 60_000 }, () => {
     expect(signedXml).toContain('ds:Signature');
     expect(signedXml).toContain('ds:SignatureValue');
     expect(signedXml).toContain('ds:X509Certificate');
+  });
+
+  it('should generate a company seal certificate', async () => {
+    const cert = await CertificateService.generateCompanySeal(
+      'Testowa Firma sp. z o.o.',
+      `VATPL-${NIP}`,
+      'Testowa Firma',
+      'RSA',
+    );
+    expect(cert.certificatePem).toContain('BEGIN CERTIFICATE');
+    expect(cert.privateKeyPem).toContain('BEGIN PRIVATE KEY');
+  });
+
+  it('should complete full XAdES auth via loginWithCertificate (self-signed, zero secrets)', async () => {
+    const freshClient = createTestClient();
+    const testNip = generateRandomNip();
+    const cert = await CertificateService.generateCompanySeal(
+      'E2E Test Company', `VATPL-${testNip}`, `E2E Test ${testNip}`, 'RSA',
+    );
+
+    await freshClient.loginWithCertificate(cert.certificatePem, cert.privateKeyPem, testNip);
+
+    // Verify by making an authenticated request
+    const grants = await freshClient.permissions.queryPersonalGrants();
+    expect(grants).toHaveProperty('permissions');
   });
 });

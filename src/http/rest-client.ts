@@ -56,6 +56,11 @@ export class RestClient {
     return { body, headers: response.headers, statusCode: response.status };
   }
 
+  async executeVoid(request: RestRequest): Promise<void> {
+    const response = await this.sendRequest(request);
+    await this.ensureSuccess(response);
+  }
+
   async executeRaw(request: RestRequest): Promise<RestResponse<ArrayBuffer>> {
     const response = await this.sendRequest(request);
     await this.ensureSuccess(response);

@@ -35,6 +35,6 @@ export class OnlineSessionService {
 
   async closeSession(sessionRef: string): Promise<void> {
     const req = RestRequest.post(Routes.Sessions.Online.close(sessionRef));
-    await this.restClient.execute<void>(req);
+    await this.restClient.executeVoid(req);
   }
 }

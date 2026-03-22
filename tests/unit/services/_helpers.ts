@@ -8,6 +8,7 @@ export function createMockRestClient() {
       headers: new Headers(),
       statusCode: 200,
     }),
+    executeVoid: vi.fn().mockResolvedValue(undefined),
     executeRaw: vi.fn().mockResolvedValue({
       body: new ArrayBuffer(0),
       headers: new Headers(),

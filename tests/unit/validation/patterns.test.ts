@@ -8,8 +8,22 @@ import {
 } from '../../../src/validation/index.js';
 
 describe('isValidNip', () => {
-  it('accepts valid 10-digit NIP', () => {
-    expect(isValidNip('1234567890')).toBe(true);
+  it('accepts valid NIP with correct checksum', () => {
+    expect(isValidNip('5260250995')).toBe(true);
+  });
+
+  it('accepts another valid NIP', () => {
+    expect(isValidNip('7171642051')).toBe(true);
+  });
+
+  it('rejects NIP where checksum mod 11 equals 10', () => {
+    // 1234567890: weights sum = 230, 230 % 11 = 10 → always invalid
+    expect(isValidNip('1234567890')).toBe(false);
+  });
+
+  it('rejects NIP with wrong check digit', () => {
+    // 5260250995 is valid; changing last digit to 6 makes it invalid
+    expect(isValidNip('5260250996')).toBe(false);
   });
 
   it('rejects NIP with leading zero', () => {
@@ -30,8 +44,24 @@ describe('isValidNip', () => {
 });
 
 describe('isValidPesel', () => {
-  it('accepts valid PESEL with month 04', () => {
-    expect(isValidPesel('83040321490')).toBe(true);
+  it('accepts valid PESEL with correct checksum', () => {
+    // 02070803628: checksum = (10 - 132%10)%10 = 8, last digit = 8
+    expect(isValidPesel('02070803628')).toBe(true);
+  });
+
+  it('accepts another valid PESEL', () => {
+    // 44051401458: checksum = (10 - 102%10)%10 = 8, last digit = 8
+    expect(isValidPesel('44051401458')).toBe(true);
+  });
+
+  it('rejects PESEL with wrong check digit', () => {
+    // 83040321490: format valid, but checksum = 4, last digit = 0
+    expect(isValidPesel('83040321490')).toBe(false);
+  });
+
+  it('rejects PESEL with correct format but altered check digit', () => {
+    // 02070803628 is valid; changing last digit to 9
+    expect(isValidPesel('02070803629')).toBe(false);
   });
 
   it('rejects PESEL with invalid month 13', () => {
@@ -75,7 +105,7 @@ describe('isValidVatUe', () => {
 
 describe('isValidNipVatUe', () => {
   it('accepts valid NIP-VAT combination', () => {
-    expect(isValidNipVatUe('1234567890-ATU12345678')).toBe(true);
+    expect(isValidNipVatUe('5260250995-ATU12345678')).toBe(true);
   });
 
   it('rejects invalid NIP part', () => {
@@ -89,7 +119,7 @@ describe('isValidNipVatUe', () => {
 
 describe('isValidInternalId', () => {
   it('accepts valid NIP-5digit format', () => {
-    expect(isValidInternalId('1234567890-12345')).toBe(true);
+    expect(isValidInternalId('5260250995-12345')).toBe(true);
   });
 
   it('rejects invalid NIP part', () => {

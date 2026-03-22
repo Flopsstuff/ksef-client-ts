@@ -57,9 +57,9 @@ describe('OnlineSessionService', () => {
 
     await service.closeSession('sess-xyz');
 
-    const req = getRequest(vi.mocked(client.execute));
+    const req = getRequest(vi.mocked(client.executeVoid));
     expect(req.method).toBe('POST');
     expect(req.path).toBe(Routes.Sessions.Online.close('sess-xyz'));
-    expect(client.execute).toHaveBeenCalledTimes(1);
+    expect(client.executeVoid).toHaveBeenCalledTimes(1);
   });
 });

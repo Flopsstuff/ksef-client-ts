@@ -84,7 +84,7 @@ describe('CertificateApiService', () => {
 
     await service.revoke('SN-12345', request);
 
-    const req = getRequest(vi.mocked(client.execute));
+    const req = getRequest(vi.mocked(client.executeVoid));
     expect(req.method).toBe('POST');
     expect(req.path).toBe(Routes.Certificates.revoke('SN-12345'));
     expect(req.getBody()).toEqual(request);
@@ -127,13 +127,13 @@ describe('CertificateApiService', () => {
     expect(result).toEqual(expected);
   });
 
-  it('revoke returns void (execute called once, result is undefined)', async () => {
+  it('revoke returns void (executeVoid called once, result is undefined)', async () => {
     const client = createMockRestClient();
     const service = new CertificateApiService(client);
 
     const result = await service.revoke('SN-999', { revocationReason: 'Unspecified' });
 
-    expect(client.execute).toHaveBeenCalledTimes(1);
+    expect(client.executeVoid).toHaveBeenCalledTimes(1);
     expect(result).toBeUndefined();
   });
 });

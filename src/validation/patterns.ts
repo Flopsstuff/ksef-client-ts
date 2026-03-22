@@ -20,15 +20,35 @@ export const Ip4Range = /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}-((25[0-5]|(2
 export const Ip4Mask = /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}\/(0|[1-9]|1[0-9]|2[0-9]|3[0-2])$/;
 export const Sha256Base64 = /^[A-Za-z0-9+/]{43}=$/;
 
+// Checksum weights
+const NIP_WEIGHTS = [6, 5, 7, 2, 3, 4, 5, 6, 7];
+const PESEL_WEIGHTS = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3];
+
 // Validator helpers
-export function isValidNip(value: string): boolean { return Nip.test(value); }
+export function isValidNip(value: string): boolean {
+  if (!Nip.test(value)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += Number(value[i]) * NIP_WEIGHTS[i]!;
+  }
+  const checksum = sum % 11;
+  return checksum !== 10 && checksum === Number(value[9]);
+}
 export function isValidVatUe(value: string): boolean { return VatUe.test(value); }
 export function isValidNipVatUe(value: string): boolean { return NipVatUe.test(value); }
 export function isValidInternalId(value: string): boolean { return InternalId.test(value); }
 export function isValidPeppolId(value: string): boolean { return PeppolId.test(value); }
 export function isValidReferenceNumber(value: string): boolean { return ReferenceNumber.test(value); }
 export function isValidKsefNumber(value: string): boolean { return KsefNumber.test(value); }
-export function isValidPesel(value: string): boolean { return Pesel.test(value); }
+export function isValidPesel(value: string): boolean {
+  if (!Pesel.test(value)) return false;
+  let sum = 0;
+  for (let i = 0; i < 10; i++) {
+    sum += Number(value[i]) * PESEL_WEIGHTS[i]!;
+  }
+  const checksum = (10 - (sum % 10)) % 10;
+  return checksum === Number(value[10]);
+}
 export function isValidCertificateName(value: string): boolean { return CertificateName.test(value); }
 export function isValidCertificateFingerprint(value: string): boolean { return CertificateFingerprint.test(value); }
 export function isValidBase64(value: string): boolean { return Base64String.test(value); }

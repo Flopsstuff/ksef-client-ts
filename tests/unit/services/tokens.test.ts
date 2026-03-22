@@ -84,7 +84,7 @@ describe('TokenService', () => {
 
     await service.revokeToken('token-ref-99');
 
-    const req = getRequest(vi.mocked(client.execute));
+    const req = getRequest(vi.mocked(client.executeVoid));
     expect(req.method).toBe('DELETE');
     expect(req.path).toBe(Routes.Tokens.byReference('token-ref-99'));
   });
@@ -95,7 +95,7 @@ describe('TokenService', () => {
 
     const result = await service.revokeToken('ref-xyz');
 
-    expect(client.execute).toHaveBeenCalledTimes(1);
+    expect(client.executeVoid).toHaveBeenCalledTimes(1);
     expect(result).toBeUndefined();
   });
 });
