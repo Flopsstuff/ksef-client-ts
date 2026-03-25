@@ -58,7 +58,7 @@ export async function uploadBatch(
 
   const result = await pollUntil(
     () => client.sessionStatus.getSessionStatus(openResp.referenceNumber),
-    (s) => s.status.code !== 100,
+    (s) => s.status.code === 200 || s.status.code >= 400,
     { ...options?.pollOptions, description: `UPO for batch ${openResp.referenceNumber}` },
   );
   if (result.status.code !== 200) {
