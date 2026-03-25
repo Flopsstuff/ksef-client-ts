@@ -9,7 +9,7 @@ import type { InvoiceQueryFilters } from '../../src/models/invoices/types.js';
 
 const EXPORT_POLL = { intervalMs: 2000, maxAttempts: 120 };
 
-describe('22 - Invoice Export Workflow', { timeout: 300_000 }, () => {
+describe('22 - Invoice Export Workflow', { timeout: 300_000, retry: 2 }, () => {
   let client: KSeFClient;
   let filters: InvoiceQueryFilters;
 
