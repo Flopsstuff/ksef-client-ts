@@ -59,6 +59,7 @@ export default defineConfig({
         text: 'Usage',
         items: [
           { text: 'CLI', link: '/cli' },
+          { text: 'Configuration', link: '/configuration' },
           { text: 'Examples', link: '/examples' },
           { text: 'API Reference', link: '/api-reference' },
           { text: 'OpenAPI', link: '/openapi' },
@@ -67,6 +68,7 @@ export default defineConfig({
       {
         text: 'Project',
         items: [
+          { text: 'Troubleshooting', link: '/troubleshooting' },
           { text: 'Tests', link: '/tests' },
           { text: 'Changelog', link: '/changelog' },
         ],

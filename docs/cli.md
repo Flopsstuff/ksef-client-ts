@@ -292,38 +292,62 @@ ksef lighthouse messages                         # View system messages
 
 ## Test Data
 
-Available only in `test` and `demo` environments. Most commands do not require authentication.
+Test environment data management. **Blocked on `--env prod`** — all commands refuse execution in production. Most commands do not require authentication; limits and context commands require an active session.
+
+### Subjects and persons
 
 ```bash
-# Subjects and persons
-ksef test-data create-subject --nip 1234567890
+ksef test-data create-subject --nip 1234567890 --type EnforcementAuthority --description "Test subject"
 ksef test-data remove-subject --nip 1234567890
-ksef test-data create-person --nip 1234567890 --pesel 12345678901 --first-name Jan --last-name Kowalski
-ksef test-data remove-person --nip 1234567890 --pesel 12345678901
+ksef test-data create-person --nip 1234567890 --pesel 12345678901 --description "Test person"
+ksef test-data create-person --nip 1234567890 --pesel 12345678901 --description "Test" --bailiff --deceased
+ksef test-data remove-person --nip 1234567890
+```
 
-# Permissions (test-only bypass)
-ksef test-data grant-permissions --nip 1234567890 --target-nip 9876543210
-ksef test-data revoke-permissions --nip 1234567890 --target-nip 9876543210
+### Permissions (test-only bypass)
 
-# Attachments
+```bash
+ksef test-data grant-permissions --context-nip 1234567890 --identifier 9876543210 \
+  --identifier-type Nip --permissions "Read,Write"
+ksef test-data revoke-permissions --context-nip 1234567890 --identifier 9876543210 \
+  --identifier-type Nip
+```
+
+### Attachments
+
+```bash
 ksef test-data enable-attachment --nip 1234567890
-ksef test-data disable-attachment --nip 1234567890
+ksef test-data disable-attachment --nip 1234567890 --end-date 2025-12-31
+```
 
-# Limits (requires session)
-ksef test-data change-session-limits --max-invoices 1000
+### Limits (requires session)
+
+```bash
+# Session limits (online and batch)
+ksef test-data change-session-limits \
+  --online-max-size 5 --online-max-attach-size 10 --online-max-invoices 100000 \
+  --batch-max-size 5 --batch-max-attach-size 10 --batch-max-invoices 100000
 ksef test-data restore-session-limits
-ksef test-data change-cert-limits --enrollment-limit 10 --certificate-limit 20
+
+# Certificate/enrollment limits
+ksef test-data change-cert-limits --max-enrollments 10 --max-certificates 20
+ksef test-data change-cert-limits --identifier-type Pesel --max-enrollments 5
 ksef test-data restore-cert-limits
+```
 
-# Rate limits (requires session)
-ksef test-data set-rate-limits --rate 100 --burst 200
+### Rate limits (requires session)
+
+```bash
+ksef test-data set-rate-limits --limits '{"category":"InvoiceSend","perSecond":10,"perMinute":100,"perHour":1000}'
 ksef test-data restore-rate-limits
-ksef test-data set-production-rate-limits --rate 50 --burst 100
-ksef test-data restore-production-rate-limits
+ksef test-data set-production-rate-limits
+```
 
-# Context blocking (requires session)
-ksef test-data block-context --reason "maintenance"
-ksef test-data unblock-context
+### Context blocking (requires session)
+
+```bash
+ksef test-data block-context --context-value 1234567890 --context-type Nip
+ksef test-data unblock-context --context-value 1234567890 --context-type Nip
 ```
 
 ## Doctor (Health Check)

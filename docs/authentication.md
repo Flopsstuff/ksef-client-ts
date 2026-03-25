@@ -13,6 +13,10 @@ Overview of authentication methods supported by the Polish National e-Invoice Sy
 5. [Choosing the Right Method](#choosing-the-right-method)
 6. [CLI Usage](#cli-usage)
 7. [Library Usage](#library-usage)
+8. [Token Lifecycle](#token-lifecycle)
+9. [Automatic Token Refresh](#automatic-token-refresh)
+10. [Custom AuthManager](#custom-authmanager)
+11. [Session Hydration (CLI)](#session-hydration-cli)
 
 ---
 
@@ -261,3 +265,108 @@ const tokens = await client.auth.getAccessToken(result.authenticationToken.token
 client.authManager.setAccessToken(tokens.accessToken.token);
 client.authManager.setRefreshToken(tokens.refreshToken.token);
 ```
+
+---
+
+## Token Lifecycle
+
+KSeF authentication uses three distinct token types:
+
+### Access token
+
+Short-lived token used for API calls. `AuthManager` injects it as a `Authorization: Bearer <token>` header on every request automatically. You never need to pass it to service methods.
+
+When the access token expires, the next API call returns 401, triggering automatic refresh.
+
+### Refresh token
+
+Long-lived token used exclusively to obtain new access tokens. The refresh token **does not rotate** — `POST /v2/auth/token/refresh` returns only a new access token; the same refresh token remains valid until its `refreshTokenValidUntil` expiry.
+
+If the refresh token itself expires, automatic refresh fails and you must re-authenticate.
+
+### Auth token (operation token)
+
+One-time token returned by the KSeF challenge flow. Used only during the login ceremony to poll `getAuthStatus()` and redeem access + refresh tokens. Discarded after redemption — never stored in `AuthManager`.
+
+---
+
+## Automatic Token Refresh
+
+When `AuthManager` is configured (it is by default), `RestClient` handles 401 responses transparently:
+
+1. A request receives a **401 Unauthorized** response
+2. `RestClient` calls `authManager.onUnauthorized()`
+3. `DefaultAuthManager` calls `POST /v2/auth/token/refresh` with the stored refresh token
+4. If refresh succeeds, the new access token is stored and the **original request is retried once**
+5. If refresh fails, the original 401 is thrown as `KSeFUnauthorizedError`
+
+### Deduplication
+
+If N parallel requests all receive 401, `DefaultAuthManager` coalesces them into a **single** refresh call. All N callers await the same Promise:
+
+```typescript
+// Simplified DefaultAuthManager.onUnauthorized():
+async onUnauthorized(): Promise<string | null> {
+  if (this.refreshPromise) return this.refreshPromise;
+  this.refreshPromise = this.refreshFn()
+    .then(token => { this.token = token ?? undefined; return token; })
+    .finally(() => { this.refreshPromise = null; });
+  return this.refreshPromise;
+}
+```
+
+### No infinite loops
+
+The retry happens at most once per request. If the retried request also returns 401, the error is thrown without another refresh attempt. Internal auth requests (e.g., `refreshAccessToken()`) set a `skipAuthRetry` flag to prevent the refresh endpoint itself from triggering a recursive refresh cycle.
+
+---
+
+## Custom AuthManager
+
+Replace the default `AuthManager` by passing a custom implementation:
+
+```typescript
+import { KSeFClient } from 'ksef-client-ts';
+import type { AuthManager } from 'ksef-client-ts';
+
+class MyAuthManager implements AuthManager {
+  private accessToken: string | undefined;
+  private refreshToken: string | undefined;
+
+  getAccessToken() { return this.accessToken; }
+  setAccessToken(token: string | undefined) { this.accessToken = token; }
+  getRefreshToken() { return this.refreshToken; }
+  setRefreshToken(token: string | undefined) { this.refreshToken = token; }
+
+  async onUnauthorized(): Promise<string | null> {
+    // Custom refresh logic: vault, external service, etc.
+    const newToken = await myTokenService.refresh(this.refreshToken);
+    if (newToken) { this.accessToken = newToken; return newToken; }
+    return null;
+  }
+}
+
+const client = new KSeFClient({
+  authManager: new MyAuthManager(),
+});
+
+// loginWithToken/loginWithCertificate still work — they call
+// authManager.setAccessToken() / setRefreshToken() after the ceremony.
+await client.loginWithToken('AAAA-BBBB-CCCC-DDDD', '1234567890');
+```
+
+Use cases: testing (mock tokens), custom storage (database, Redis), external auth systems (secrets manager).
+
+---
+
+## Session Hydration (CLI)
+
+The CLI persists session state to `~/.ksef/session.json` (mode `0o600`) after login. On subsequent invocations, `requireSession()` creates a `KSeFClient` and hydrates `AuthManager`:
+
+```typescript
+const client = createClient(opts);
+client.authManager.setAccessToken(session.accessToken);
+client.authManager.setRefreshToken(session.refreshToken);
+```
+
+If the stored access token has expired, the first API request triggers automatic refresh transparently. The session file retains the old access token — on the next CLI invocation, another refresh occurs. This is acceptable because the refresh token is long-lived and each refresh is a single lightweight API call.
