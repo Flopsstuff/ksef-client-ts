@@ -26,6 +26,7 @@ export interface ResolvedOptions {
   apiVersion: string;
   timeout: number;
   customHeaders: Record<string, string>;
+  environmentName?: EnvironmentName;
 }
 
 const DEFAULT_API_VERSION = 'v2';
@@ -43,5 +44,6 @@ export function resolveOptions(options: KSeFClientOptions = {}): ResolvedOptions
     apiVersion: options.apiVersion ?? DEFAULT_API_VERSION,
     timeout: options.timeout ?? DEFAULT_TIMEOUT,
     customHeaders: options.customHeaders ?? {},
+    environmentName: options.environment ?? (options.baseUrl ? undefined : 'TEST'),
   };
 }

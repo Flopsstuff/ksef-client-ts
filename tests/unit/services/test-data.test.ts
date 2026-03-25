@@ -1,4 +1,5 @@
 import { TestDataService } from '../../../src/services/test-data.js';
+import { KSeFError } from '../../../src/errors/ksef-error.js';
 import { Routes } from '../../../src/http/routes.js';
 import { createMockRestClient, getRequest } from './_helpers.js';
 
@@ -60,5 +61,40 @@ describe('TestDataService', () => {
     expect(req.method).toBe('DELETE');
     expect(req.path).toBe(expectedRoute);
     expect(req.getBody()).toBeUndefined();
+  });
+
+  describe('environment guard', () => {
+    const allMethods = [
+      ...postMethods.map(([name]) => name),
+      'setProductionRateLimits',
+      ...deleteMethods.map(([name]) => name),
+    ];
+
+    it.each(['PROD', 'DEMO'] as const)('throws KSeFError on %s environment', async (env) => {
+      const svc = new TestDataService(restClient as any, env);
+
+      for (const method of allMethods) {
+        await expect((svc as any)[method]({ nip: '1234567890' })).rejects.toThrow(KSeFError);
+        await expect((svc as any)[method]({ nip: '1234567890' })).rejects.toThrow(
+          `Test data APIs are only available on the TEST environment (current: ${env})`,
+        );
+      }
+    });
+
+    it('allows TEST environment', async () => {
+      const svc = new TestDataService(restClient as any, 'TEST');
+      await svc.createSubject({ nip: '1234567890' } as any);
+
+      const req = getRequest(restClient.executeVoid as any);
+      expect(req.path).toBe(Routes.TestData.createSubject);
+    });
+
+    it('allows undefined environment (custom URL)', async () => {
+      const svc = new TestDataService(restClient as any, undefined);
+      await svc.createSubject({ nip: '1234567890' } as any);
+
+      const req = getRequest(restClient.executeVoid as any);
+      expect(req.path).toBe(Routes.TestData.createSubject);
+    });
   });
 });
