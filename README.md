@@ -90,7 +90,7 @@ yarn test         # Run all tests (vitest)
 
 [![Tests](https://github.com/Flopsstuff/ksef-client-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/Flopsstuff/ksef-client-ts/actions/workflows/ci.yml)
 ![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Fl0p/1558034ac67a11548c7f8f0c05e8d4c0/raw/ksef-client-ts-coverage.json&cacheSeconds=300)
-![NPM Version](https://img.shields.io/npm/v/ksef-client-ts)
+![NPM Version](https://img.shields.io/npm/v/ksef-client-ts?color=green)
 ![NPM Downloads](https://img.shields.io/npm/dm/ksef-client-ts)
 ![GitHub Stars](https://img.shields.io/github/stars/Flopsstuff/ksef-client-ts)
 ![GitHub Forks](https://img.shields.io/github/forks/Flopsstuff/ksef-client-ts)
