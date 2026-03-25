@@ -25,7 +25,7 @@ describe('05 - Batch Session E2E', { timeout: 300_000 }, () => {
     const { client, nip } = await authenticateWithCert();
     const zipData = await createInvoiceZip(nip, INVOICE_COUNT);
 
-    const result = await uploadBatch(client as any, zipData, {
+    const result = await uploadBatch(client, zipData, {
       formCode: getFormCode('FA_2'),
       pollOptions: POLL_OPTIONS,
     });
@@ -48,7 +48,7 @@ describe('05 - Batch Session E2E', { timeout: 300_000 }, () => {
     const { client, nip } = await authenticateWithCert();
     const zipData = await createInvoiceZip(nip, INVOICE_COUNT);
 
-    const result = await uploadBatch(client as any, zipData, {
+    const result = await uploadBatch(client, zipData, {
       formCode: getFormCode('FA_2'),
       maxPartSize: 1000, // ~1KB — forces ZIP (~15KB) into ~15 parts
       pollOptions: POLL_OPTIONS,
@@ -94,6 +94,7 @@ describe('05 - Batch Session E2E', { timeout: 300_000 }, () => {
 
     // Upload correct data — but declared hash doesn't match
     let uploadFailed = false;
+    let finalStatus: { status: { code: number } } | undefined;
     try {
       await client.batchSession.sendParts(openResp, [{
         data: encryptedZip.buffer.slice(
@@ -105,21 +106,17 @@ describe('05 - Batch Session E2E', { timeout: 300_000 }, () => {
       }]);
       // If upload succeeded, close and poll — expect processing failure
       await client.batchSession.closeSession(openResp.referenceNumber);
-      const finalStatus = await pollUntil(
+      finalStatus = await pollUntil(
         () => client.sessionStatus.getSessionStatus(openResp.referenceNumber),
         (s) => s.status.code !== 100,
         { intervalMs: 5000, maxAttempts: 60, description: 'corrupted hash detection' },
       );
-      expect(finalStatus.status.code).not.toBe(200);
     } catch {
       uploadFailed = true;
     }
 
     // Either upload rejected or processing failed — both are acceptable
-    expect(true).toBe(true); // Test passes if no unhandled error
-    if (uploadFailed) {
-      // Presigned URL validation caught the mismatch
-    }
+    expect(uploadFailed || finalStatus?.status.code !== 200).toBe(true);
   });
 
   it('should reject batch with corrupted part data', async () => {
@@ -150,6 +147,7 @@ describe('05 - Batch Session E2E', { timeout: 300_000 }, () => {
     const garbage = new Uint8Array(encryptedZip.length);
     for (let i = 0; i < garbage.length; i++) garbage[i] = (encryptedZip[i]! ^ 0xff);
     let uploadFailed = false;
+    let finalStatus: { status: { code: number } } | undefined;
     try {
       await client.batchSession.sendParts(openResp, [{
         data: garbage.buffer.slice(
@@ -161,21 +159,16 @@ describe('05 - Batch Session E2E', { timeout: 300_000 }, () => {
       }]);
       // Upload succeeded (presigned URL doesn't verify content hash)
       await client.batchSession.closeSession(openResp.referenceNumber);
-      const finalStatus = await pollUntil(
+      finalStatus = await pollUntil(
         () => client.sessionStatus.getSessionStatus(openResp.referenceNumber),
         (s) => s.status.code !== 100,
         { intervalMs: 5000, maxAttempts: 60, description: 'corrupted data detection' },
       );
-      // Server should detect hash mismatch or decryption failure
-      expect(finalStatus.status.code).not.toBe(200);
     } catch {
       uploadFailed = true;
     }
 
     // Either upload rejected or processing failed
-    expect(true).toBe(true);
-    if (uploadFailed) {
-      // Presigned URL or server rejected corrupted data
-    }
+    expect(uploadFailed || finalStatus?.status.code !== 200).toBe(true);
   });
 });

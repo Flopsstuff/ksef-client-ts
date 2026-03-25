@@ -292,7 +292,7 @@ ksef lighthouse messages                         # View system messages
 
 ## Test Data
 
-Test environment data management. **Blocked on `--env prod`** — all commands refuse execution in production. Most commands do not require authentication; limits and context commands require an active session.
+Test environment data management. **Only available on `--env test`** — all commands refuse execution on demo and production environments. Most commands do not require authentication; limits and context commands require an active session.
 
 ### Subjects and persons
 
