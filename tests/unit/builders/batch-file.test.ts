@@ -159,6 +159,18 @@ describe('BatchFileBuilder', () => {
       expect(() => BatchFileBuilder.build(data, identityEncrypt, { maxPartSize: 100 }))
         .toThrow(`${BATCH_MAX_PARTS}`);
     });
+
+    it('throws on maxPartSize of 0', () => {
+      const data = randomBytes(100);
+      expect(() => BatchFileBuilder.build(data, identityEncrypt, { maxPartSize: 0 }))
+        .toThrow(KSeFValidationError);
+    });
+
+    it('throws on negative maxPartSize', () => {
+      const data = randomBytes(100);
+      expect(() => BatchFileBuilder.build(data, identityEncrypt, { maxPartSize: -1 }))
+        .toThrow(KSeFValidationError);
+    });
   });
 
   describe('encryptFn integration', () => {

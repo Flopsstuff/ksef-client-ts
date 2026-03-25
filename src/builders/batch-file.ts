@@ -42,6 +42,10 @@ export class BatchFileBuilder {
   ): BatchFileBuildResult {
     const maxPartSize = options?.maxPartSize ?? BATCH_MAX_PART_SIZE;
 
+    if (maxPartSize <= 0) {
+      throw new KSeFValidationError('maxPartSize must be a positive number');
+    }
+
     if (zipBytes.length === 0) {
       throw new KSeFValidationError('ZIP data must not be empty');
     }

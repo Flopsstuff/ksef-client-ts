@@ -30,7 +30,7 @@ async function doExport(
 
   const result = await pollUntil(
     () => client.invoices.getInvoiceExportStatus(opResp.referenceNumber),
-    (s) => s.status.code !== 100,
+    (s) => s.status.code === 200 || s.status.code >= 400,
     { ...options?.pollOptions, description: `export ${opResp.referenceNumber}` },
   );
 

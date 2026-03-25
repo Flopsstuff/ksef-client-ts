@@ -5,7 +5,18 @@ import type { RateLimitConfig } from '../http/rate-limit-policy.js';
 import type { AuthManager } from '../http/auth-manager.js';
 
 export interface KSeFClientOptions {
+  /**
+   * Target KSeF environment. Defaults to `'TEST'` when neither `environment`
+   * nor `baseUrl` is specified.
+   */
   environment?: EnvironmentName;
+  /**
+   * Custom base URL for the KSeF API. Overrides the URL from `environment`.
+   *
+   * **Warning:** When `baseUrl` is set without `environment`, the test environment
+   * guard is bypassed — test data APIs will not be blocked. Set `environment`
+   * explicitly alongside `baseUrl` if the guard is needed.
+   */
   baseUrl?: string;
   baseQrUrl?: string;
   lighthouseUrl?: string;
