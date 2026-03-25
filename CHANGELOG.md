@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - **Test data environment guard** — `TestDataService` now throws `KSeFError` when called on DEMO or PROD environments.
+- **Batch auto-split** — `BatchFileBuilder` automatically splits large ZIP files into parts (100 MB default), encrypts each part with AES-256-CBC, and computes SHA-256 hashes. `uploadBatch()` workflow now accepts raw `Uint8Array` ZIP data and handles encryption + splitting internally.
 
 ## [0.2.0] - 2026-03-22
 
