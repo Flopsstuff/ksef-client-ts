@@ -113,6 +113,9 @@ describe('05 - Batch Session E2E', { timeout: 300_000 }, () => {
       );
     } catch {
       uploadFailed = true;
+    } finally {
+      // Best-effort cleanup — session may already be closed or invalid
+      await client.batchSession.closeSession(openResp.referenceNumber).catch(() => {});
     }
 
     // Either upload rejected or processing failed — both are acceptable
@@ -166,6 +169,9 @@ describe('05 - Batch Session E2E', { timeout: 300_000 }, () => {
       );
     } catch {
       uploadFailed = true;
+    } finally {
+      // Best-effort cleanup — session may already be closed or invalid
+      await client.batchSession.closeSession(openResp.referenceNumber).catch(() => {});
     }
 
     // Either upload rejected or processing failed

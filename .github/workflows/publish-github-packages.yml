@@ -44,9 +44,13 @@ jobs:
         run: yarn lint && yarn test && yarn build
 
       - name: Prepare scoped package name
+        # npm (not yarn) used here: need to temporarily override package name
+        # to @flopsstuff/ksef-client-ts for GitHub Packages scoped registry
         run: npm pkg set name="@flopsstuff/ksef-client-ts"
 
       - name: Publish
+        # npm publish used directly — yarn npm publish doesn't support
+        # --registry override needed for GitHub Packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm publish --registry https://npm.pkg.github.com

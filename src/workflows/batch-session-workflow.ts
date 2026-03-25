@@ -27,6 +27,7 @@ export async function uploadBatch(
   const encData = client.crypto.getEncryptionData();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
 
+  // KSeF provides a single (key, IV) pair per session — all parts share it.
   const encryptFn = (part: Uint8Array) =>
     client.crypto.encryptAES256(part, encData.cipherKey, encData.cipherIv);
 
