@@ -9,7 +9,7 @@ import type { InvoiceQueryFilters } from '../../src/models/invoices/types.js';
 
 const EXPORT_POLL = { intervalMs: 2000, maxAttempts: 120 };
 
-describe('22 - Invoice Export Workflow', { timeout: 300_000, retry: 2 }, () => {
+describe('22 - Invoice Export Workflow', { timeout: 300_000 }, () => {
   let client: KSeFClient;
   let filters: InvoiceQueryFilters;
 
@@ -29,7 +29,14 @@ describe('22 - Invoice Export Workflow', { timeout: 300_000, retry: 2 }, () => {
       .withSubjectType('Subject1')
       .withDateRange('Invoicing', yesterday)
       .build();
-  }, 120_000);
+
+    // Wait until at least one invoice is indexed and queryable
+    for (let i = 0; i < 30; i++) {
+      const meta = await client.invoices.queryInvoiceMetadata(filters);
+      if (meta.invoices.length > 0) break;
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  }, 180_000);
 
   it('should exportInvoices and return ExportResult with parts', async () => {
     const result = await exportInvoices(client, filters, { pollOptions: EXPORT_POLL });
