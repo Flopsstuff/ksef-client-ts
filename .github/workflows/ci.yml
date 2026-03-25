@@ -38,7 +38,7 @@ jobs:
         run: yarn test --coverage
 
       - name: Coverage summary
-        if: matrix.node-version == 20 && success()
+        if: matrix.node-version == 22 && success()
         run: |
           node -e "
           const r = require('./coverage/coverage-summary.json').total;
@@ -57,7 +57,7 @@ jobs:
           "
 
       - name: Update coverage badge
-        if: matrix.node-version == 20 && github.ref == 'refs/heads/main' && success()
+        if: matrix.node-version == 22 && github.ref == 'refs/heads/main' && success()
         run: |
           COVERAGE=$(node -e "console.log(require('./coverage/coverage-summary.json').total.lines.pct)")
           COLOR=$([[ $(echo "$COVERAGE >= 80" | bc) == 1 ]] && echo "brightgreen" || ([[ $(echo "$COVERAGE >= 60" | bc) == 1 ]] && echo "yellow" || echo "red"))
@@ -76,7 +76,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Enable Corepack
         run: corepack enable
