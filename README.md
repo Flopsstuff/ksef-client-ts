@@ -2,7 +2,7 @@
 
 TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 
-**[Documentation](https://flopsstuff.github.io/ksef-client-ts)**
+**[Documentation](https://flopsstuff.github.io/ksef-client-ts)** · **[NPM](https://www.npmjs.com/package/ksef-client-ts)**
 
 ## Features
 
@@ -82,12 +82,16 @@ yarn test         # Run all tests (vitest)
 - [ksef-client-csharp](https://github.com/CIRFMF/ksef-client-csharp) — official C# reference client
 - [ksef-client-java](https://github.com/CIRFMF/ksef-client-java) — official Java reference client
 
-## Status
-
-[![Tests](https://github.com/Flopsstuff/ksef-client-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/Flopsstuff/ksef-client-ts/actions/workflows/ci.yml)
-
-![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Fl0p/1558034ac67a11548c7f8f0c05e8d4c0/raw/ksef-client-ts-coverage.json&cacheSeconds=300)
-
 ## License
 
 [MIT](LICENSE)
+
+---
+
+[![Tests](https://github.com/Flopsstuff/ksef-client-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/Flopsstuff/ksef-client-ts/actions/workflows/ci.yml)
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Fl0p/1558034ac67a11548c7f8f0c05e8d4c0/raw/ksef-client-ts-coverage.json&cacheSeconds=300)
+![NPM Version](https://img.shields.io/npm/v/ksef-client-ts)
+![NPM Downloads](https://img.shields.io/npm/dm/ksef-client-ts)
+![GitHub Stars](https://img.shields.io/github/stars/Flopsstuff/ksef-client-ts)
+![GitHub Forks](https://img.shields.io/github/forks/Flopsstuff/ksef-client-ts)
+![GitHub License](https://img.shields.io/github/license/Flopsstuff/ksef-client-ts)

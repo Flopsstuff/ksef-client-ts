@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
+import { EntityPermissionGrantBuilder } from '../../src/builders/permissions/entity-permission.js';
 import { authenticateWithCert } from './helpers/auth.js';
 import { generateRandomNip } from './helpers/identifiers.js';
 import { pollUntil } from './helpers/polling.js';
@@ -15,16 +16,15 @@ describe('14 - Permissions: Entity', { timeout: 120_000 }, () => {
     const targetNip = generateRandomNip();
     const description = `E2E entity perm ${Date.now()}`;
 
-    // Step 1: Grant entity permissions
-    const grantResp = await client.permissions.grantEntityPermissions({
-      subjectIdentifier: { type: 'Nip', value: targetNip },
-      permissions: [
-        { type: 'InvoiceRead', canDelegate: false },
-        { type: 'InvoiceWrite', canDelegate: false },
-      ],
-      description,
-      subjectDetails: { fullName: 'E2E Test Entity' },
-    });
+    // Step 1: Grant entity permissions (using builder)
+    const grantReq = new EntityPermissionGrantBuilder()
+      .withNip(targetNip)
+      .addPermission('InvoiceRead')
+      .addPermission('InvoiceWrite')
+      .withDescription(description)
+      .withSubjectDetails({ fullName: 'E2E Test Entity' })
+      .build();
+    const grantResp = await client.permissions.grantEntityPermissions(grantReq);
     expect(grantResp.referenceNumber).toBeTruthy();
 
     // Step 2: Poll for grant completion

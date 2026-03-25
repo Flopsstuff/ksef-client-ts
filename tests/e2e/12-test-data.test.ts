@@ -57,4 +57,14 @@ describe('12 - TestData API', { timeout: 120_000 }, () => {
     // Cleanup
     await client.testData.removeSubject({ subjectNip: contextNip });
   });
+
+  it('should block and unblock context', async () => {
+    const nip = generateRandomNip();
+    await client.testData.blockContext({
+      contextIdentifier: { type: 'Nip', value: nip },
+    });
+    await client.testData.unblockContext({
+      contextIdentifier: { type: 'Nip', value: nip },
+    });
+  });
 });

@@ -304,3 +304,65 @@ Workflows accept a `KSeFClient` instance and options, returning typed results. T
 5. **Tests:** Add `tests/unit/services/{domain}.test.ts` — mock `RestClient.execute` to verify correct request construction.
 
 6. **(Optional) Builder:** If the request payload is complex, add a fluent builder in `src/builders/`.
+
+---
+
+## Design Decisions
+
+Key architectural decisions and their rationale.
+
+### Why POST Requests Are Retried
+
+**Context:** Most HTTP clients only retry idempotent methods (GET, PUT, DELETE).
+
+**Decision:** Retry all methods including POST.
+
+**Rationale:** KSeF API operations are idempotent by design — invoice submission returns the same KSeF number on re-submit. Transient failures (503, network errors) shouldn't require manual intervention in batch workflows.
+
+### Reactive Auth Refresh vs Proactive
+
+**Context:** Two approaches to handle token expiry — proactively check TTL before each request, or reactively refresh on 401.
+
+**Decision:** Reactive refresh on 401 with request deduplication.
+
+**Rationale:** Simpler and token-format-agnostic (no JWT parsing needed). Cost is one failed request per expiry (~once per 20+ minute session). N parallel 401s trigger only 1 refresh call via shared Promise deduplication.
+
+### Token Bucket vs Sliding Window Rate Limiting
+
+**Context:** Need proactive rate limiting to avoid 429 responses from KSeF.
+
+**Decision:** Single-tier token bucket with global + per-endpoint quotas.
+
+**Rationale:** Per-second limit is the binding constraint in KSeF. Token bucket is simpler than sliding window, has O(1) memory, and is sufficient for the access pattern. Concurrency safety via sequential promise chain (Node.js single-threaded).
+
+### Separate Policy Objects
+
+**Context:** Could add retry/rate-limit/auth as flat options on RestClient or as separate policy objects.
+
+**Decision:** Typed policy instances (`RetryPolicy`, `RateLimitPolicy`, `AuthManager`, `PresignedUrlPolicy`).
+
+**Rationale:** Enables independent testing, swapping, and documentation of each concern. Each policy is self-contained with its own defaults. `KSeFClientOptions` exposes `Partial<>` versions merged with defaults for ergonomic configuration.
+
+### Presigned URL Validation with Private IP Rejection
+
+**Context:** The library downloads files from presigned URLs returned by the KSeF API.
+
+**Decision:** Validate HTTPS, host whitelist, reject private IPs, block redirect parameters.
+
+**Rationale:** Defense-in-depth against SSRF. Private IP rejection (`127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `::1`, `fc00::/7`) prevents internal network scanning via crafted URLs. Configurable via `presignedUrlHosts` for corporate environments.
+
+### Active Sessions Under `session` Command Group
+
+**Context:** Could create a separate `active-session` top-level CLI command or nest under `session`.
+
+**Decision:** Nest as `session active` and `session revoke` subcommands.
+
+**Rationale:** All session-related operations stay consolidated. 10 subcommands is acceptable when semantically related. Clear naming distinguishes `close` (API session) from `revoke` (authentication session).
+
+### Transport as Function Type, Not Class
+
+**Context:** Need pluggable HTTP transport for testing and custom backends.
+
+**Decision:** `TransportFn = (url: string, init: RequestInit) => Promise<Response>` — a plain function type.
+
+**Rationale:** Minimal surface area. Test mocks are one-liners. `defaultTransport` wraps native `fetch`. No class ceremony needed for a single-method interface.

@@ -10,7 +10,12 @@ function createMockClient() {
         cipherKey: new Uint8Array(32),
         cipherIv: new Uint8Array(16),
       }),
-      getFileMetadata: vi.fn().mockReturnValue({ hashSHA: 'part-hash', fileSize: 500 }),
+      encryptAES256: vi.fn().mockImplementation((content: Uint8Array) => {
+        // Deterministic "encryption" — returns same-length buffer with flipped bits
+        const out = new Uint8Array(content.length);
+        for (let i = 0; i < content.length; i++) out[i] = content[i]! ^ 0xff;
+        return out;
+      }),
     },
     batchSession: {
       openSession: vi.fn().mockResolvedValue({
@@ -42,11 +47,12 @@ beforeEach(() => {
 });
 
 describe('uploadBatch', () => {
-  const parts = [{ data: new ArrayBuffer(500) }];
+  const zipData = new Uint8Array(500).fill(0xab);
 
-  it('executes full open -> upload -> close -> poll flow', async () => {
-    const result = await uploadBatch(client, parts, 500, 'total-hash', { pollOptions: { intervalMs: 1 } });
+  it('executes full open -> encrypt -> upload -> close -> poll flow', async () => {
+    const result = await uploadBatch(client, zipData, { pollOptions: { intervalMs: 1 } });
     expect(client.crypto.init).toHaveBeenCalled();
+    expect(client.crypto.encryptAES256).toHaveBeenCalled();
     expect(client.batchSession.openSession).toHaveBeenCalled();
     expect(client.batchSession.sendParts).toHaveBeenCalled();
     expect(client.batchSession.closeSession).toHaveBeenCalledWith('batch-ref-1');
@@ -57,10 +63,18 @@ describe('uploadBatch', () => {
 
   it('passes formCode and upoVersion', async () => {
     const formCode = { systemCode: 'PEF', schemaVersion: '1', value: 'PEF (1)' };
-    await uploadBatch(client, parts, 500, 'hash', { formCode, upoVersion: 'v4-3', pollOptions: { intervalMs: 1 } });
+    await uploadBatch(client, zipData, { formCode, upoVersion: 'v4-3', pollOptions: { intervalMs: 1 } });
     expect(client.batchSession.openSession).toHaveBeenCalledWith(
       expect.objectContaining({ formCode }),
       'v4-3',
+    );
+  });
+
+  it('passes offlineMode to openSession', async () => {
+    await uploadBatch(client, zipData, { offlineMode: true, pollOptions: { intervalMs: 1 } });
+    expect(client.batchSession.openSession).toHaveBeenCalledWith(
+      expect.objectContaining({ offlineMode: true }),
+      undefined,
     );
   });
 
@@ -69,31 +83,52 @@ describe('uploadBatch', () => {
       status: { code: 400, description: 'Bad request' },
     });
     await expect(
-      uploadBatch(client, parts, 500, 'hash', { pollOptions: { intervalMs: 1 } }),
+      uploadBatch(client, zipData, { pollOptions: { intervalMs: 1 } }),
     ).rejects.toThrow('Batch session failed: 400');
   });
 
-  it('computes file part info for each part', async () => {
-    const multiParts = [{ data: new ArrayBuffer(100) }, { data: new ArrayBuffer(200) }];
+  it('sends encrypted parts (not raw data)', async () => {
+    await uploadBatch(client, zipData, { pollOptions: { intervalMs: 1 } });
+    const sentParts = client.batchSession.sendParts.mock.calls[0][1];
+    // Verify the data was "encrypted" (XOR 0xff)
+    const sentBytes = new Uint8Array(sentParts[0].data);
+    expect(sentBytes[0]).toBe(0xab ^ 0xff);
+  });
+
+  it('computes batchFile metadata with correct hashes', async () => {
+    await uploadBatch(client, zipData, { pollOptions: { intervalMs: 1 } });
+    const openCall = client.batchSession.openSession.mock.calls[0][0];
+    expect(openCall.batchFile.fileSize).toBe(500);
+    expect(openCall.batchFile.fileHash).toBeTruthy();
+    expect(openCall.batchFile.fileParts).toHaveLength(1);
+    expect(openCall.batchFile.fileParts[0].ordinalNumber).toBe(1);
+  });
+
+  it('auto-splits large data with maxPartSize', async () => {
+    const largeData = new Uint8Array(10000).fill(0x01);
     client.batchSession.openSession.mockResolvedValue({
       referenceNumber: 'batch-ref-2',
       partUploadRequests: [
         { method: 'PUT', ordinalNumber: 1, url: 'https://upload.example.com/1', headers: {} },
         { method: 'PUT', ordinalNumber: 2, url: 'https://upload.example.com/2', headers: {} },
+        { method: 'PUT', ordinalNumber: 3, url: 'https://upload.example.com/3', headers: {} },
       ],
     });
-    await uploadBatch(client, multiParts, 300, 'hash', { pollOptions: { intervalMs: 1 } });
+    await uploadBatch(client, largeData, { maxPartSize: 4000, pollOptions: { intervalMs: 1 } });
     const openCall = client.batchSession.openSession.mock.calls[0][0];
-    expect(openCall.batchFile.fileParts).toHaveLength(2);
+    expect(openCall.batchFile.fileParts).toHaveLength(3);
     expect(openCall.batchFile.fileParts[0].ordinalNumber).toBe(1);
-    expect(openCall.batchFile.fileParts[1].ordinalNumber).toBe(2);
+    expect(openCall.batchFile.fileParts[2].ordinalNumber).toBe(3);
+
+    const sentParts = client.batchSession.sendParts.mock.calls[0][1];
+    expect(sentParts).toHaveLength(3);
   });
 
   it('returns empty pages when upo is undefined', async () => {
     client.sessionStatus.getSessionStatus.mockResolvedValue({
       status: { code: 200, description: 'OK' },
     });
-    const result = await uploadBatch(client, parts, 500, 'hash', { pollOptions: { intervalMs: 1 } });
+    const result = await uploadBatch(client, zipData, { pollOptions: { intervalMs: 1 } });
     expect(result.upo.pages).toEqual([]);
   });
 });

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-03-25
+
+### Added
+- **Test data environment guard** — `TestDataService` now throws `KSeFError` when called on DEMO or PROD environments.
+- **Batch auto-split** — `BatchFileBuilder` automatically splits large ZIP files into parts (100 MB default), encrypts each part with AES-256-CBC, and computes SHA-256 hashes.
+- **E2E test coverage expansion** — 5 new E2E test suites: test-data limits & attachments, workflow auth, online session workflow, invoice export workflow, error handling. Existing suites extended with additional assertions.
+
+### Changed
+- **`uploadBatch()` API** — now accepts raw `Uint8Array` ZIP data instead of separate encryption parameters. Encryption, splitting, and hash computation are handled internally by `BatchFileBuilder`.
+
+### Fixed
+- **Export workflow** — `exportAndDownload()` now correctly initializes crypto before decrypting parts.
+- **Session polling** — `waitForUpo()` now checks for terminal status codes (200 or >=400) instead of just "not 100".
+
 ## [0.2.0] - 2026-03-22
 
 ### Added

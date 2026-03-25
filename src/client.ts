@@ -68,7 +68,7 @@ export class KSeFClient {
     this.lighthouse = new LighthouseService(this.options);
     this.limits = new LimitsService(restClient);
     this.peppol = new PeppolService(restClient);
-    this.testData = new TestDataService(restClient);
+    this.testData = new TestDataService(restClient, this.options.environmentName);
     this.qr = new VerificationLinkService(this.options.baseQrUrl);
   }
 

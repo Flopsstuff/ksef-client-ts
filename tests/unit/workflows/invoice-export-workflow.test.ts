@@ -119,6 +119,22 @@ describe('exportInvoices', () => {
     expect(client.invoices.getInvoiceExportStatus).toHaveBeenCalledTimes(3);
     expect(result.invoiceCount).toBe(1);
   });
+
+  it('polls through intermediate code 150 until 200', async () => {
+    let call = 0;
+    client.invoices.getInvoiceExportStatus.mockImplementation(async () => {
+      call++;
+      if (call === 1) return { status: { code: 100, description: 'Pending' } };
+      if (call === 2) return { status: { code: 150, description: 'Processing' } };
+      return {
+        status: { code: 200, description: 'OK' },
+        package: { invoiceCount: 5, size: 500, isTruncated: false, parts: [] },
+      };
+    });
+    const result = await exportInvoices(client, filters, { pollOptions: { intervalMs: 1, maxAttempts: 10 } });
+    expect(client.invoices.getInvoiceExportStatus).toHaveBeenCalledTimes(3);
+    expect(result.invoiceCount).toBe(5);
+  });
 });
 
 describe('exportAndDownload', () => {

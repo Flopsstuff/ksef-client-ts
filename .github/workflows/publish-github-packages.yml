@@ -1,4 +1,4 @@
-name: Publish to npm
+name: Publish to GitHub Packages
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write
+  packages: write
 
 jobs:
   publish:
@@ -19,8 +19,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24 # Needed for OpenID Connect (OIDC)
-          registry-url: https://registry.npmjs.org
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+          scope: "@flopsstuff"
 
       - name: Enable Corepack
         run: corepack enable
@@ -42,5 +43,14 @@ jobs:
       - name: Validate build
         run: yarn lint && yarn test && yarn build
 
-      - name: Publish package
-        run: npm publish --access public
+      - name: Prepare scoped package name
+        # npm (not yarn) used here: need to temporarily override package name
+        # to @flopsstuff/ksef-client-ts for GitHub Packages scoped registry
+        run: npm pkg set name="@flopsstuff/ksef-client-ts"
+
+      - name: Publish
+        # npm publish used directly — yarn npm publish doesn't support
+        # --registry override needed for GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm publish --registry https://npm.pkg.github.com

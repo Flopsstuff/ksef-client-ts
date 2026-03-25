@@ -1,7 +1,9 @@
+import * as crypto from 'node:crypto';
 import { describe, it, expect } from 'vitest';
 import { authenticateWithCertAndCrypto } from './helpers/auth.js';
 import { getFormCode, prepareAndEncryptInvoice } from './helpers/invoices.js';
 import { pollUntil } from './helpers/polling.js';
+import { QrCodeService } from '../../src/qr/qrcode-service.js';
 
 describe('04 - Online Session E2E', { timeout: 180_000 }, () => {
   it('should complete full online session lifecycle with FA_2', async () => {
@@ -55,6 +57,20 @@ describe('04 - Online Session E2E', { timeout: 180_000 }, () => {
     expect(invoiceStatus.status.code).toBe(200);
     const ksefNumber = invoiceStatus.ksefNumber!;
 
+    // Step 6a: Query sessions list with filter
+    const sessionsResponse = await client.sessionStatus.getSessions('Online', 10, undefined, {
+      referenceNumber: sessionRef,
+    });
+    expect(sessionsResponse.sessions.length).toBeGreaterThanOrEqual(1);
+    const matchedSession = sessionsResponse.sessions.find(s => s.referenceNumber === sessionRef);
+    expect(matchedSession).toBeDefined();
+
+    // Step 6b: Get single invoice status
+    const singleInvoice = await client.sessionStatus.getSessionInvoice(sessionRef, invoiceRef);
+    expect(singleInvoice.referenceNumber).toBe(invoiceRef);
+    expect(singleInvoice.ksefNumber).toBe(ksefNumber);
+    expect(singleInvoice.status.code).toBe(200);
+
     // Step 7: Get UPO by KSeF number
     const upoByKsef = await client.sessionStatus.getInvoiceUpoByKsefNumber(sessionRef, ksefNumber);
     expect(upoByKsef.upo).toBeTruthy();
@@ -72,6 +88,25 @@ describe('04 - Online Session E2E', { timeout: 180_000 }, () => {
     const invoiceXml = await client.invoices.getInvoice(ksefNumber);
     expect(invoiceXml).toContain(nip);
     expect(invoiceXml).toContain('Faktura');
+
+    // Step 11: Build invoice verification URL (QR Code I)
+    const invoiceHash = crypto.createHash('sha256').update(invoiceXml).digest('base64');
+    const verificationUrl = client.qr.buildInvoiceVerificationUrl(nip, new Date(), invoiceHash);
+    expect(verificationUrl).toContain('qr-test.ksef.mf.gov.pl');
+    expect(verificationUrl).toContain('/invoice/');
+    expect(verificationUrl).toContain(nip);
+
+    // Step 12: Generate QR code as PNG
+    const pngBuffer = await QrCodeService.generateQrCode(verificationUrl);
+    expect(pngBuffer[0]).toBe(0x89);
+    expect(pngBuffer[1]).toBe(0x50);
+    expect(pngBuffer[2]).toBe(0x4e);
+    expect(pngBuffer[3]).toBe(0x47);
+
+    // Step 13: Generate QR code as SVG
+    const svg = await QrCodeService.generateQrCodeSvg(verificationUrl);
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('viewBox');
   });
 
   it('should report status 445 when sending invoice with wrong NIP', async () => {
@@ -95,6 +130,11 @@ describe('04 - Online Session E2E', { timeout: 180_000 }, () => {
       (s) => (s.failedInvoiceCount ?? 0) > 0,
       { intervalMs: 3000, maxAttempts: 30, description: 'failed invoice detection' },
     );
+
+    // Verify failed invoices list
+    const failedResponse = await client.sessionStatus.getSessionFailedInvoices(sessionRef);
+    expect(failedResponse.invoices.length).toBeGreaterThanOrEqual(1);
+    expect(failedResponse.invoices[0]!.status.code).not.toBe(200);
 
     // Close session
     await client.onlineSession.closeSession(sessionRef);
