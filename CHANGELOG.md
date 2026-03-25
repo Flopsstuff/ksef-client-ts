@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-03-25
+
+### Added
+- **Test data environment guard** — `TestDataService` now throws `KSeFError` when called on DEMO or PROD environments.
+
 ## [0.2.0] - 2026-03-22
 
 ### Added

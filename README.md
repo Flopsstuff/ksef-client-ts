@@ -2,7 +2,7 @@
 
 TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 
-**[Documentation](https://flopsstuff.github.io/ksef-client-ts)**
+**[Documentation](https://flopsstuff.github.io/ksef-client-ts)** · **[NPM](https://www.npmjs.com/package/ksef-client-ts)**
 
 ## Features
 
