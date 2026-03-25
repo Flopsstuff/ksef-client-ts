@@ -1,4 +1,5 @@
 import type { KSeFClient } from '../client.js';
+import type { EncryptionData } from '../models/crypto/types.js';
 import type { InvoiceQueryFilters } from '../models/invoices/types.js';
 import type { ExportDownloadResult, ExportResult, PollOptions } from './types.js';
 import { pollUntil } from './polling.js';
@@ -13,11 +14,11 @@ export interface ExportAndDownloadOptions extends ExportOptions {
   transport?: typeof fetch;
 }
 
-export async function exportInvoices(
+async function doExport(
   client: KSeFClient,
   filters: InvoiceQueryFilters,
   options?: ExportOptions,
-): Promise<ExportResult> {
+): Promise<{ result: ExportResult; encData: EncryptionData }> {
   await client.crypto.init();
   const encData = client.crypto.getEncryptionData();
 
@@ -41,19 +42,31 @@ export async function exportInvoices(
   }
 
   return {
-    parts: result.package.parts.map((p) => ({
-      ordinalNumber: p.ordinalNumber,
-      url: p.url,
-      method: p.method,
-      partSize: p.partSize,
-      encryptedPartSize: p.encryptedPartSize,
-      encryptedPartHash: p.encryptedPartHash,
-      expirationDate: p.expirationDate,
-    })),
-    invoiceCount: result.package.invoiceCount,
-    isTruncated: result.package.isTruncated,
-    permanentStorageHwmDate: result.package.permanentStorageHwmDate,
+    encData,
+    result: {
+      parts: result.package.parts.map((p) => ({
+        ordinalNumber: p.ordinalNumber,
+        url: p.url,
+        method: p.method,
+        partSize: p.partSize,
+        encryptedPartSize: p.encryptedPartSize,
+        encryptedPartHash: p.encryptedPartHash,
+        expirationDate: p.expirationDate,
+      })),
+      invoiceCount: result.package.invoiceCount,
+      isTruncated: result.package.isTruncated,
+      permanentStorageHwmDate: result.package.permanentStorageHwmDate,
+    },
   };
+}
+
+export async function exportInvoices(
+  client: KSeFClient,
+  filters: InvoiceQueryFilters,
+  options?: ExportOptions,
+): Promise<ExportResult> {
+  const { result } = await doExport(client, filters, options);
+  return result;
 }
 
 export async function exportAndDownload(
@@ -61,8 +74,7 @@ export async function exportAndDownload(
   filters: InvoiceQueryFilters,
   options?: ExportAndDownloadOptions,
 ): Promise<ExportDownloadResult> {
-  const encData = client.crypto.getEncryptionData();
-  const exportResult = await exportInvoices(client, filters, options);
+  const { result: exportResult, encData } = await doExport(client, filters, options);
 
   const download = options?.transport ?? fetch;
   const decryptedParts: Uint8Array[] = [];

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
+import { PersonPermissionGrantBuilder } from '../../src/builders/permissions/person-permission.js';
 import { authenticateWithCert } from './helpers/auth.js';
 import { generateRandomPesel } from './helpers/identifiers.js';
 import { pollUntil } from './helpers/polling.js';
@@ -22,16 +23,17 @@ describe('07 - Permissions', { timeout: 120_000 }, () => {
     const targetPesel = generateRandomPesel();
     const description = `E2E test ${Date.now()}`;
 
-    // Step 1: Grant permissions
-    const grantResp = await client.permissions.grantPersonPermissions({
-      subjectIdentifier: { type: 'Pesel', value: targetPesel },
-      permissions: ['InvoiceRead', 'InvoiceWrite'],
-      description,
-      subjectDetails: {
+    // Step 1: Grant permissions (using builder)
+    const grantReq = new PersonPermissionGrantBuilder()
+      .withSubjectIdentifier('Pesel', targetPesel)
+      .withPermissions(['InvoiceRead', 'InvoiceWrite'])
+      .withDescription(description)
+      .withSubjectDetails({
         subjectDetailsType: 'PersonByIdentifier',
         personById: { firstName: 'Test', lastName: 'Person' },
-      },
-    });
+      })
+      .build();
+    const grantResp = await client.permissions.grantPersonPermissions(grantReq);
     expect(grantResp.referenceNumber).toBeTruthy();
 
     // Step 2: Poll for grant completion

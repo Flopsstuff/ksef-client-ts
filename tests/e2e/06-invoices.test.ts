@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
+import { InvoiceQueryFilterBuilder } from '../../src/builders/invoice-query-filter.js';
 import { authenticateWithCertAndCrypto } from './helpers/auth.js';
 import { getFormCode, prepareAndEncryptInvoice } from './helpers/invoices.js';
 import { pollUntil } from './helpers/polling.js';
@@ -47,10 +48,11 @@ describe('06 - Invoice Query & Export', { timeout: 300_000 }, () => {
 
   it('should query invoice metadata', async () => {
     const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
-    const result = await client.invoices.queryInvoiceMetadata({
-      subjectType: 'Subject1',
-      dateRange: { dateType: 'Invoicing', from: yesterday },
-    });
+    const filters = new InvoiceQueryFilterBuilder()
+      .withSubjectType('Subject1')
+      .withDateRange('Invoicing', yesterday)
+      .build();
+    const result = await client.invoices.queryInvoiceMetadata(filters);
     expect(result.invoices).toBeDefined();
     expect(Array.isArray(result.invoices)).toBe(true);
   });
@@ -66,11 +68,12 @@ describe('06 - Invoice Query & Export', { timeout: 300_000 }, () => {
     const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
 
     // Start export
+    const filters = new InvoiceQueryFilterBuilder()
+      .withSubjectType('Subject1')
+      .withDateRange('Invoicing', yesterday)
+      .build();
     const exportResp = await client.invoices.exportInvoices({
-      filters: {
-        subjectType: 'Subject1',
-        dateRange: { dateType: 'Invoicing', from: yesterday },
-      },
+      filters,
       encryption: encData.encryptionInfo,
     });
     expect(exportResp.referenceNumber).toBeTruthy();

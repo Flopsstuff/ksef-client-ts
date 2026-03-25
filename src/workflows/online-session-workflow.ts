@@ -57,7 +57,7 @@ export async function openOnlineSession(
     async waitForUpo(pollOpts?: PollOptions): Promise<UpoInfo> {
       const result = await pollUntil(
         () => client.sessionStatus.getSessionStatus(sessionRef),
-        (s) => s.status.code !== 100,
+        (s) => s.status.code === 200 || s.status.code >= 400,
         { ...pollOpts, description: `UPO for session ${sessionRef}` },
       );
       if (result.status.code !== 200) {

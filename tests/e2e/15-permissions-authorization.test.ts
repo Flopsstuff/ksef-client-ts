@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
+import { AuthorizationPermissionGrantBuilder } from '../../src/builders/permissions/authorization-permission.js';
 import { authenticateWithCert } from './helpers/auth.js';
 import { generateRandomNip } from './helpers/identifiers.js';
 import { pollUntil } from './helpers/polling.js';
@@ -19,13 +20,14 @@ describe('15 - Permissions: Authorization', { timeout: 120_000 }, () => {
     const targetNip = generateRandomNip();
     const description = `E2E auth ${label} ${Date.now()}`;
 
-    // Step 1: Grant authorization
-    const grantResp = await client.permissions.grantAuthorizationPermissions({
-      subjectIdentifier: { type: 'Nip', value: targetNip },
-      permission: permissionType,
-      description,
-      subjectDetails: { fullName: `E2E ${label} Entity` },
-    });
+    // Step 1: Grant authorization (using builder)
+    const grantReq = new AuthorizationPermissionGrantBuilder()
+      .withSubjectIdentifier('Nip', targetNip)
+      .withPermission(permissionType)
+      .withDescription(description)
+      .withSubjectDetails({ fullName: `E2E ${label} Entity` })
+      .build();
+    const grantResp = await client.permissions.grantAuthorizationPermissions(grantReq);
     expect(grantResp.referenceNumber).toBeTruthy();
 
     // Step 2: Poll for grant completion
