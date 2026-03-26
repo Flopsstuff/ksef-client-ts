@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-03-26
+
+### Added
+- **E2E test expansion** — 6 new E2E tests across 4 files
+### Changed
+- TBD
+### Fixed
+- TBD
+
 ## [0.3.0] - 2026-03-25
 
 ### Added

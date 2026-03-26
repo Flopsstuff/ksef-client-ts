@@ -104,4 +104,18 @@ describe('03 - XAdES Certificate Authentication', { timeout: 60_000 }, () => {
     const grants = await freshClient.permissions.queryPersonalGrants();
     expect(grants).toHaveProperty('permissions');
   });
+
+  it('should complete full XAdES auth via loginWithCertificate with ECDSA key', async () => {
+    const freshClient = createTestClient();
+    const testNip = generateRandomNip();
+    const cert = await CertificateService.generateCompanySeal(
+      'E2E ECDSA Company', `VATPL-${testNip}`, `E2E ECDSA Test ${testNip}`, 'ECDSA',
+    );
+
+    await freshClient.loginWithCertificate(cert.certificatePem, cert.privateKeyPem, testNip);
+
+    // Verify by making an authenticated request
+    const grants = await freshClient.permissions.queryPersonalGrants();
+    expect(grants).toHaveProperty('permissions');
+  });
 });
