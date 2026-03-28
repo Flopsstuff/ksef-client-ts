@@ -79,6 +79,16 @@ CLI (src/cli/) — 14 command groups via commander.js
 - `InvoiceFilterInvoicingMode` (not `InvoicingMode`) — avoids collision with session types.
 - `PermissionSubjectIdentifierType` (not `SubjectIdentifierType`) — avoids collision with auth types. Note: both now use `'Nip' | 'Pesel' | 'Fingerprint'` values (aligned with OpenAPI spec).
 
+### KSeF environments and portals
+
+| Env | API | Web Portal |
+|-----|-----|------------|
+| PROD | `https://api.ksef.mf.gov.pl` | `https://ap.ksef.mf.gov.pl/web/` |
+| TEST | `https://api-test.ksef.mf.gov.pl` | — |
+| DEMO | `https://api-demo.ksef.mf.gov.pl` | — |
+
+The web portal is used for token generation, permission management, and invoice browsing via browser (requires qualified signature or trusted profile).
+
 ### Environment variables
 
 `KSEF_TOKEN` and `KSEF_NIP` are set in the current shell environment. Use them for CLI login: `ksef auth login --token "$KSEF_TOKEN" --nip "$KSEF_NIP" --env prod`.
