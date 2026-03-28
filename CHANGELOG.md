@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - TBD
 ### Fixed
-- TBD
+- **CLI date format** — `--from` and `--to` date arguments in `invoice query`, `invoice export`, and `invoice export-incremental` are now normalized to full ISO-8601 datetime, fixing HTTP 400 errors when using short `YYYY-MM-DD` format.
 
 ## [0.4.0] - 2026-03-28
 
