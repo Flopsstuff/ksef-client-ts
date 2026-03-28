@@ -888,38 +888,8 @@ describe('incrementalExportAndDownload', () => {
     });
   });
 
-  describe('crypto.init called once', () => {
-    it('calls crypto.init exactly once even across multiple iterations', async () => {
-      mockDoExport
-        .mockResolvedValueOnce(
-          mockExportResult({
-            isTruncated: true,
-            lastPermanentStorageDate: '2026-02-01',
-          }),
-        )
-        .mockResolvedValueOnce(
-          mockExportResult({
-            isTruncated: true,
-            lastPermanentStorageDate: '2026-02-15',
-          }),
-        )
-        .mockResolvedValueOnce(
-          mockExportResult({ isTruncated: false }),
-        );
-
-      await incrementalExportAndDownload(client, {
-        subjectType: 'Subject1',
-        windowFrom: '2026-01-01',
-        windowTo: '2026-03-01',
-        continuationPoints: {},
-        pollOptions: { intervalMs: 1 },
-        transport: mockTransport,
-      });
-
-      expect(client.crypto.init).toHaveBeenCalledTimes(1);
-    });
-
-    it('calls getEncryptionData exactly once', async () => {
+  describe('crypto delegation to doExport', () => {
+    it('does not call crypto.init or getEncryptionData directly (delegated to doExport)', async () => {
       mockDoExport
         .mockResolvedValueOnce(
           mockExportResult({
@@ -940,7 +910,8 @@ describe('incrementalExportAndDownload', () => {
         transport: mockTransport,
       });
 
-      expect(client.crypto.getEncryptionData).toHaveBeenCalledTimes(1);
+      expect(client.crypto.init).not.toHaveBeenCalled();
+      expect(client.crypto.getEncryptionData).not.toHaveBeenCalled();
     });
   });
 
@@ -966,8 +937,9 @@ describe('incrementalExportAndDownload', () => {
   });
 
   describe('encryption data usage', () => {
-    it('passes client encryption data (cipherKey, cipherIv) to decryptAES256', async () => {
-      mockDoExport.mockResolvedValueOnce(mockExportResult({ isTruncated: false }));
+    it('passes doExport encData (cipherKey, cipherIv) to decryptAES256', async () => {
+      const exportEncData = mockExportResult({ isTruncated: false });
+      mockDoExport.mockResolvedValueOnce(exportEncData);
 
       await incrementalExportAndDownload(client, {
         subjectType: 'Subject1',
@@ -978,11 +950,10 @@ describe('incrementalExportAndDownload', () => {
         transport: mockTransport,
       });
 
-      const encData = client.crypto.getEncryptionData();
       expect(client.crypto.decryptAES256).toHaveBeenCalledWith(
         expect.any(Uint8Array),
-        encData.cipherKey,
-        encData.cipherIv,
+        exportEncData.encData.cipherKey,
+        exportEncData.encData.cipherIv,
       );
     });
   });

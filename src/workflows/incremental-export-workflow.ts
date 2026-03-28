@@ -45,9 +45,6 @@ export async function incrementalExportAndDownload(
     }
   }
 
-  await client.crypto.init();
-  const encData = client.crypto.getEncryptionData();
-
   const referenceNumbers: string[] = [];
   const decryptedParts: Uint8Array[] = [];
   let previousFrom: string | undefined;
@@ -65,7 +62,7 @@ export async function incrementalExportAndDownload(
       ? options.filtersFactory(effectiveFrom, options.windowTo)
       : buildDefaultFilters(options.subjectType, effectiveFrom, options.windowTo);
 
-    const { result, referenceNumber } = await doExport(client, filters, {
+    const { result, encData, referenceNumber } = await doExport(client, filters, {
       onlyMetadata: options.onlyMetadata,
       pollOptions: options.pollOptions,
     });
