@@ -1,4 +1,11 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import { defineCommand, runMain } from 'citty';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(resolve(__dirname, '..', 'package.json'), 'utf-8')) as { version: string };
+const version = pkg.version;
 import { configCommand } from './commands/config.js';
 import { authCommand } from './commands/auth.js';
 import { sessionCommand } from './commands/session.js';
@@ -17,7 +24,7 @@ import { completionCommand } from './commands/completion.js';
 const main = defineCommand({
   meta: {
     name: 'ksef',
-    version: '0.1.0',
+    version,
     description: 'CLI for the Polish National e-Invoice System (KSeF)',
   },
   subCommands: {

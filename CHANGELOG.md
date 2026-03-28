@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - **Incremental export decryption** — `incrementalExportAndDownload` used its own AES key instead of the one from `doExport`, causing `bad decrypt` on downloaded parts.
 - **DEFAULT_FORM_CODE** — `systemCode`/`schemaVersion`/`value` fields were swapped in both workflow files; corrected to match OpenAPI spec (`FA (2)` / `1-0E` / `FA`).
+- **CLI version** — `ksef --version` was hardcoded to `0.1.0`; now reads from `package.json` at runtime.
 
 ## [0.3.0] - 2026-03-25
 
