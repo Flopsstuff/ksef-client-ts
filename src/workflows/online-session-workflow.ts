@@ -14,7 +14,7 @@ export interface SendAndCloseOptions extends OpenOnlineSessionOptions {
   pollOptions?: PollOptions;
 }
 
-const DEFAULT_FORM_CODE: FormCode = { systemCode: 'FA', schemaVersion: '3', value: 'FA (3)' };
+const DEFAULT_FORM_CODE: FormCode = { systemCode: 'FA (2)', schemaVersion: '1-0E', value: 'FA' };
 
 export async function openOnlineSession(
   client: KSeFClient,
