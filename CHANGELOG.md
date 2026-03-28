@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - Unreleased
+
+### Added
+- **Official XSD invoice schemas** — all KSeF invoice XSD schemas (FA, PEF, RR) bundled in `docs/schemas/` with `yarn sync-schemas` to update from the official Ministry of Finance repository.
+- **Encrypted PEM key support** — `--key-password` option for `ksef auth login` to use encrypted PEM private keys without manual decryption.
+### Changed
+- TBD
+### Fixed
+- TBD
+
 ## [0.4.0] - 2026-03-28
 
 ### Added

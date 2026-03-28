@@ -110,7 +110,7 @@ describe('auth', () => {
       const fs = await import('node:fs');
       vi.mocked(fs.readFileSync).mockReturnValueOnce('CERT-PEM' as any).mockReturnValueOnce('KEY-PEM' as any);
       await runLogin({ cert: '/cert.pem', key: '/key.pem', nip: '1234567890' });
-      expect(mockClient.loginWithCertificate).toHaveBeenCalledWith('CERT-PEM', 'KEY-PEM', '1234567890');
+      expect(mockClient.loginWithCertificate).toHaveBeenCalledWith('CERT-PEM', 'KEY-PEM', '1234567890', undefined);
     });
 
     it('p12 path — reads file as buffer and calls loginWithPkcs12', async () => {

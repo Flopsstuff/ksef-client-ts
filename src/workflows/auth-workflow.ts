@@ -23,6 +23,7 @@ export interface CertificateAuthOptions {
   nip: string;
   certPem: string;
   keyPem: string;
+  keyPassword?: string;
   verifyCertificateChain?: boolean;
   enforceXadesCompliance?: boolean;
   pollOptions?: PollOptions;
@@ -82,7 +83,7 @@ export async function authenticateWithCertificate(
   const { buildAuthTokenRequestXml } = await import('../client.js');
   const { SignatureService } = await import('../crypto/signature-service.js');
   const authRequestXml = buildAuthTokenRequestXml(challenge.challenge, options.nip);
-  const signedXml = SignatureService.sign(authRequestXml, options.certPem, options.keyPem);
+  const signedXml = SignatureService.sign(authRequestXml, options.certPem, options.keyPem, options.keyPassword);
 
   const submitResult = await client.auth.submitXadesAuthRequest(
     signedXml,

@@ -13,6 +13,9 @@ coverage/
 # ignore gitpmoji directory
 .gitpmoji
 
+# Certificates, keys, signed XML
+.certs/
+
 # Plans
 plans/
 

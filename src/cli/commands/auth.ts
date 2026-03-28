@@ -76,6 +76,7 @@ const login = defineCommand({
     key: { type: 'string', description: 'Path to PEM private key file (XAdES auth)' },
     p12: { type: 'string', description: 'Path to PKCS#12 (.p12/.pfx) certificate file' },
     'p12-password': { type: 'string', description: 'Password for the PKCS#12 file (default: empty)' },
+    'key-password': { type: 'string', description: 'Password for encrypted PEM private key' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -103,7 +104,7 @@ const login = defineCommand({
         const fs = await import('node:fs');
         const certPem = fs.readFileSync(args.cert, 'utf-8');
         const keyPem = fs.readFileSync(args.key, 'utf-8');
-        await client.loginWithCertificate(certPem, keyPem, nip);
+        await client.loginWithCertificate(certPem, keyPem, nip, args['key-password'] as string | undefined);
       } else {
         throw new Error('Provide --token, --p12, or both --cert and --key for authentication.');
       }
