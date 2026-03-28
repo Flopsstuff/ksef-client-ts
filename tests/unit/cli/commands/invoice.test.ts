@@ -89,7 +89,7 @@ describe('invoice', () => {
       expect(mockClient.invoices.queryInvoiceMetadata).toHaveBeenCalledWith(
         expect.objectContaining({
           subjectType: 'Subject1',
-          dateRange: expect.objectContaining({ dateType: 'Invoicing', from: '2024-01-01' }),
+          dateRange: expect.objectContaining({ dateType: 'Invoicing', from: '2024-01-01T00:00:00+00:00' }),
         }),
         undefined, undefined,
       );
@@ -450,7 +450,7 @@ describe('invoice', () => {
           encryption: { key: 'mock-key' },
           filters: expect.objectContaining({
             subjectType: 'Subject1',
-            dateRange: expect.objectContaining({ from: '2024-01-01' }),
+            dateRange: expect.objectContaining({ from: '2024-01-01T00:00:00+00:00' }),
           }),
         }),
       );

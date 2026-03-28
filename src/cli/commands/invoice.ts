@@ -13,6 +13,7 @@ import type { FormCode } from '../../models/common.js';
 import type { InvoiceQueryFilters, InvoiceSubjectType, InvoiceQueryDateType, AmountType } from '../../models/invoices/types.js';
 import { FORM_CODES, FORM_CODE_KEYS, validateFormCodeForSession } from '../../models/document-structures/index.js';
 import { exportIncremental } from './export-incremental.js';
+import { normalizeCliDate } from '../date-utils.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -30,12 +31,13 @@ function buildQueryFilters(args: Record<string, unknown>): InvoiceQueryFilters {
     throw new Error('--from is required for invoice queries.');
   }
 
+  const to = args.to as string | undefined;
   const filters: InvoiceQueryFilters = {
     subjectType: (args.subjectType as InvoiceSubjectType) ?? 'Subject1',
     dateRange: {
       dateType: (args.dateType as InvoiceQueryDateType) ?? 'Invoicing',
-      from,
-      to: args.to as string | undefined,
+      from: normalizeCliDate(from, 'from'),
+      to: to ? normalizeCliDate(to, 'to') : undefined,
     },
   };
 
