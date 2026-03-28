@@ -14,8 +14,8 @@ ENV="${1:-prod}"
 # Strip --env prefix if passed as --env prod
 [[ "$ENV" == "--env" ]] && ENV="${2:-prod}"
 
-FROM=$(date -v-30d '+%Y-%m-%dT00:00:00+00:00' 2>/dev/null || date -d '30 days ago' '+%Y-%m-%dT00:00:00+00:00')
-TO=$(date '+%Y-%m-%dT23:59:59+00:00')
+FROM=$(date -v-30d '+%Y-%m-%d' 2>/dev/null || date -d '30 days ago' '+%Y-%m-%d')
+TO=$(date '+%Y-%m-%d')
 
 # Check session, login if expired or missing
 if ! $CLI auth whoami >/dev/null 2>&1; then
