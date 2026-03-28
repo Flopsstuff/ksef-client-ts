@@ -81,9 +81,6 @@ export async function incrementalExportAndDownload(
     }
 
     updateContinuationPoint(points, options.subjectType, {
-      invoiceCount: result.invoiceCount,
-      size: 0,
-      parts: [],
       isTruncated: result.isTruncated,
       lastPermanentStorageDate: result.lastPermanentStorageDate,
       permanentStorageHwmDate: result.permanentStorageHwmDate,

@@ -8,6 +8,7 @@ import { loadConfig, saveConfig } from '../config-store.js';
 import { outputResult, outputKeyValue, outputSuccess, outputWarning } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions, SessionData } from '../types.js';
+import { pollUntil } from '../../workflows/polling.js';
 
 const PENDING_CHALLENGE_FILE = path.join(os.homedir(), '.ksef', 'pending-challenge.json');
 
@@ -291,15 +292,11 @@ const loginExternal = defineCommand({
         const submitResult = await client.auth.submitXadesAuthRequest(signedXml);
         const authToken = submitResult.authenticationToken.token;
 
-        // Poll for completion
-        for (let i = 0; i < 30; i++) {
-          const authStatus = await client.auth.getAuthStatus(submitResult.referenceNumber, authToken);
-          if (authStatus.status.code === 200) break;
-          if (authStatus.status.code !== 100) {
-            throw new Error(`Authentication failed: ${authStatus.status.code} — ${authStatus.status.description}`);
-          }
-          await new Promise((r) => setTimeout(r, 1000));
-        }
+        await pollUntil(
+          () => client.auth.getAuthStatus(submitResult.referenceNumber, authToken),
+          (s) => s.status.code !== 100,
+          { intervalMs: 1000, maxAttempts: 30, description: `auth ${submitResult.referenceNumber}` },
+        );
 
         const tokens = await client.auth.getAccessToken(authToken);
 

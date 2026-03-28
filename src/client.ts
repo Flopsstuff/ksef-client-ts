@@ -20,6 +20,7 @@ import { TestDataService } from './services/test-data.js';
 import { CertificateFetcher } from './crypto/certificate-fetcher.js';
 import { CryptographyService } from './crypto/cryptography-service.js';
 import { VerificationLinkService } from './qr/verification-link-service.js';
+import { buildUnsignedAuthTokenRequestXml } from './crypto/auth-xml-builder.js';
 
 export class KSeFClient {
   readonly auth: AuthService;
@@ -129,8 +130,6 @@ export class KSeFClient {
     this.authManager.setRefreshToken(undefined);
   }
 }
-
-import { buildUnsignedAuthTokenRequestXml } from './crypto/auth-xml-builder.js';
 
 export function buildAuthTokenRequestXml(
   challenge: string,

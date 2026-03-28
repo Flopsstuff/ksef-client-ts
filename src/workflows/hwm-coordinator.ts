@@ -5,7 +5,7 @@ export type ContinuationPoints = Record<string, string | undefined>;
 export function updateContinuationPoint(
   points: ContinuationPoints,
   subjectType: string,
-  pkg: InvoiceExportPackage,
+  pkg: Pick<InvoiceExportPackage, 'isTruncated' | 'lastPermanentStorageDate' | 'permanentStorageHwmDate'>,
 ): void {
   if (pkg.isTruncated && pkg.lastPermanentStorageDate) {
     points[subjectType] = pkg.lastPermanentStorageDate;

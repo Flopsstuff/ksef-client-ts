@@ -3,6 +3,7 @@ import type { AuthorizationPolicy } from '../models/auth/types.js';
 import type { ContextIdentifier } from '../models/common.js';
 import type { PollOptions } from './types.js';
 import { pollUntil } from './polling.js';
+import { buildUnsignedAuthTokenRequestXml } from '../crypto/auth-xml-builder.js';
 
 export interface AuthResult {
   accessToken: string;
@@ -124,7 +125,6 @@ export async function authenticateWithExternalSignature(
 ): Promise<AuthResult> {
   const challenge = await client.auth.getChallenge();
 
-  const { buildUnsignedAuthTokenRequestXml } = await import('../crypto/auth-xml-builder.js');
   const unsignedXml = buildUnsignedAuthTokenRequestXml({
     challenge: challenge.challenge,
     contextIdentifier: options.contextIdentifier,

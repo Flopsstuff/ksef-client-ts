@@ -141,7 +141,8 @@ export class BatchFileBuilder {
     const streamParts: BatchPartStreamSendingInfo[] = [];
 
     const reader = zipStreamFactory().getReader();
-    let buffer = new Uint8Array(0);
+    let pending: Uint8Array[] = [];
+    let pendingSize = 0;
 
     for (let partIndex = 0; partIndex < partCount; partIndex++) {
       // Accumulate up to maxPartSize bytes for this part
@@ -150,17 +151,23 @@ export class BatchFileBuilder {
         ? zipSize - partIndex * maxPartSize
         : maxPartSize;
 
-      while (buffer.byteLength < targetSize) {
+      while (pendingSize < targetSize) {
         const { done, value } = await reader.read();
         if (done) break;
-        const merged = new Uint8Array(buffer.byteLength + value.byteLength);
-        merged.set(buffer);
-        merged.set(value, buffer.byteLength);
-        buffer = merged;
+        pending.push(value);
+        pendingSize += value.byteLength;
       }
 
+      const buffer = new Uint8Array(Buffer.concat(pending));
       const partData = buffer.subarray(0, targetSize);
-      buffer = buffer.subarray(targetSize);
+      if (buffer.byteLength > targetSize) {
+        const remainder = buffer.subarray(targetSize);
+        pending = [remainder];
+        pendingSize = remainder.byteLength;
+      } else {
+        pending = [];
+        pendingSize = 0;
+      }
 
       // Create a ReadableStream from the part data, pipe through encryption
       const partStream = new ReadableStream<Uint8Array>({

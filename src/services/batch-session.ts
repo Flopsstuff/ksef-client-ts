@@ -50,6 +50,11 @@ export class BatchSessionService {
     await Promise.all(tasks);
   }
 
+  /**
+   * Upload parts sequentially (not in parallel) because each part uses a
+   * streaming body (`duplex: 'half'`). Parallel streaming uploads can cause
+   * backpressure issues and exceed memory limits for large payloads.
+   */
   async sendPartsWithStream(
     openResponse: OpenBatchSessionResponse,
     parts: BatchPartStreamSendingInfo[],
@@ -66,13 +71,16 @@ export class BatchSessionService {
       for (const [k, v] of Object.entries(uploadReq.headers)) {
         if (v != null) headers[k] = v;
       }
-      await fetch(uploadReq.url, {
+      const resp = await fetch(uploadReq.url, {
         method: uploadReq.method,
         headers,
         body: part.dataStream,
         // @ts-expect-error -- Node 18+ undici supports duplex for streaming body
         duplex: 'half',
       });
+      if (!resp.ok) {
+        throw new Error(`Upload failed for part ${part.ordinalNumber}: HTTP ${resp.status}`);
+      }
     }
   }
 
