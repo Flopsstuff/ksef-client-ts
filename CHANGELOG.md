@@ -10,11 +10,13 @@ All notable changes to this project will be documented in this file.
 - **UPO XML parsing** — parse official KSeF receipt confirmations (UPO) into structured typed objects. Supports all authentication context variants and multi-document session receipts. Integrated into online and batch session workflows, with `--parsed` CLI option for JSON output.
 - **Incremental export (HWM)** — iterative export of invoices with automatic high-water-mark tracking. Resumes from the last processed date across runs, handles truncated results with multiple iterations, and saves state to a JSON file for reliable long-running syncs. Includes CLI command and pluggable storage for custom integrations.
 - **External signing support** — `buildUnsignedAuthTokenRequestXml()` generates unsigned KSeF auth XML for external signing (HSM, EPUAP, smart cards). Supports all 4 context identifier types. Includes `authenticateWithExternalSignature()` callback-based workflow and CLI `ksef auth login-external` with two-phase `--generate` / `--submit` flow.
+- **Multiple document structures** — `SystemCode` enum (FA v2/v3, PEF, PEF_KOR, FA_RR), typed `FORM_CODES` constants (7 variants), session-type constrained unions, helper functions (`getFormCode`, `parseFormCode`, `validateFormCodeForSession`), InvoiceType mapping per document type. CLI `--form-code` option on `ksef session open` and `ksef invoice send` with PEF batch rejection.
 - **Documentation** — 6 new VitePress pages: Workflows, Batch Processing, HTTP Resilience, Cryptography, QR Codes, Validation & Data Integrity.
 ### Changed
 - TBD
 ### Fixed
-- TBD
+- **Incremental export decryption** — `incrementalExportAndDownload` used its own AES key instead of the one from `doExport`, causing `bad decrypt` on downloaded parts.
+- **DEFAULT_FORM_CODE** — `systemCode`/`schemaVersion`/`value` fields were swapped in both workflow files; corrected to match OpenAPI spec (`FA (2)` / `1-0E` / `FA`).
 
 ## [0.3.0] - 2026-03-25
 

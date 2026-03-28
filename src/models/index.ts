@@ -11,3 +11,4 @@ export * from './peppol/index.js';
 export * from './test-data/index.js';
 export * from './crypto/index.js';
 export * from './qrcode/index.js';
+export * from './document-structures/index.js';

@@ -284,6 +284,58 @@ describe('invoice', () => {
     });
   });
 
+  describe('send — form-code option', () => {
+    it('resolves form code for single file send', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as any);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('<xml/>'));
+      mockClient.onlineSession.sendInvoice.mockResolvedValue({ referenceNumber: 'ref-fa3' });
+
+      await runSend({ path: '/test.xml', formCode: 'FA3' });
+      expect(mockClient.onlineSession.sendInvoice).toHaveBeenCalled();
+    });
+
+    it('resolves form code for batch send', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as any);
+      vi.mocked(fs.readdirSync).mockReturnValue(['a.xml'] as any);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('<xml/>'));
+      mockClient.batchSession.openSession.mockResolvedValue({ referenceNumber: 'batch-fa3' });
+      mockClient.batchSession.sendParts.mockResolvedValue(undefined);
+      mockClient.batchSession.closeSession.mockResolvedValue(undefined);
+      mockLoadConfig.mockReturnValue({ ...defaultConfig, nip: '1234567890' });
+
+      await runSend({ path: '/dir', formCode: 'FA3' });
+      expect(mockClient.batchSession.openSession).toHaveBeenCalledWith(
+        expect.objectContaining({ formCode: { systemCode: 'FA (3)', schemaVersion: '1-0E', value: 'FA' } }),
+      );
+    });
+
+    it('throws on invalid --form-code key', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as any);
+      await expect(runSend({ path: '/test.xml', formCode: 'INVALID' })).rejects.toThrow('Invalid form code "INVALID"');
+    });
+
+    it('rejects PEF for batch (directory) mode', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as any);
+      vi.mocked(fs.readdirSync).mockReturnValue(['a.xml'] as any);
+      mockLoadConfig.mockReturnValue({ ...defaultConfig, nip: '1234567890' });
+
+      await expect(runSend({ path: '/dir', formCode: 'PEF3' })).rejects.toThrow('not supported in batch sessions');
+    });
+
+    it('rejects PEFKOR3 for batch mode', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as any);
+      vi.mocked(fs.readdirSync).mockReturnValue(['a.xml'] as any);
+      mockLoadConfig.mockReturnValue({ ...defaultConfig, nip: '1234567890' });
+
+      await expect(runSend({ path: '/dir', formCode: 'PEFKOR3' })).rejects.toThrow('not supported in batch sessions');
+    });
+  });
+
   describe('send — batch error paths', () => {
     it('throws when directory has no XML files', async () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);

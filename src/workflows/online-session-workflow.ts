@@ -1,6 +1,7 @@
 import type { KSeFClient } from '../client.js';
 import type { UpoVersion } from '../http/ksef-feature.js';
 import type { FormCode } from '../models/common.js';
+import { FORM_CODES } from '../models/document-structures/index.js';
 import type { OnlineSessionHandle, ParsedUpoInfo, PollOptions, UpoInfo } from './types.js';
 import { pollUntil } from './polling.js';
 import { parseUpoXml } from '../xml/index.js';
@@ -14,15 +15,13 @@ export interface SendAndCloseOptions extends OpenOnlineSessionOptions {
   pollOptions?: PollOptions;
 }
 
-const DEFAULT_FORM_CODE: FormCode = { systemCode: 'FA (2)', schemaVersion: '1-0E', value: 'FA' };
-
 export async function openOnlineSession(
   client: KSeFClient,
   options?: OpenOnlineSessionOptions,
 ): Promise<OnlineSessionHandle> {
   await client.crypto.init();
   const encData = client.crypto.getEncryptionData();
-  const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
+  const formCode = options?.formCode ?? FORM_CODES.FA_2;
 
   const openResp = await client.onlineSession.openSession(
     { formCode, encryption: encData.encryptionInfo },

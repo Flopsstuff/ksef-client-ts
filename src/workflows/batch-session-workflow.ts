@@ -1,6 +1,7 @@
 import type { KSeFClient } from '../client.js';
 import type { UpoVersion } from '../http/ksef-feature.js';
 import type { FormCode } from '../models/common.js';
+import { FORM_CODES } from '../models/document-structures/index.js';
 import type { BatchPartSendingInfo } from '../models/sessions/batch-types.js';
 import type { BatchUploadResult, ParsedBatchUploadResult, PollOptions } from './types.js';
 import { BatchFileBuilder } from '../builders/batch-file.js';
@@ -17,8 +18,6 @@ export interface BatchUploadOptions {
   offlineMode?: boolean;
 }
 
-const DEFAULT_FORM_CODE: FormCode = { systemCode: 'FA (2)', schemaVersion: '1-0E', value: 'FA' };
-
 export async function uploadBatch(
   client: KSeFClient,
   zipData: Uint8Array,
@@ -26,7 +25,7 @@ export async function uploadBatch(
 ): Promise<BatchUploadResult> {
   await client.crypto.init();
   const encData = client.crypto.getEncryptionData();
-  const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
+  const formCode = options?.formCode ?? FORM_CODES.FA_2;
 
   // KSeF provides a single (key, IV) pair per session — all parts share it.
   const encryptFn = (part: Uint8Array) =>
