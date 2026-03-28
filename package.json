@@ -43,9 +43,17 @@
   "keywords": [
     "ksef",
     "e-invoice",
+    "e-faktura",
+    "invoice",
+    "faktura",
+    "fa3",
+    "xml",
     "poland",
     "tax",
-    "faktura"
+    "typescript",
+    "node",
+    "sdk",
+    "cli"
   ],
   "author": "Flop",
   "license": "MIT",
