@@ -1,8 +1,10 @@
 import type { KSeFClient } from '../client.js';
 import type { UpoVersion } from '../http/ksef-feature.js';
 import type { FormCode } from '../models/common.js';
-import type { OnlineSessionHandle, PollOptions, UpoInfo } from './types.js';
+import { FORM_CODES } from '../models/document-structures/index.js';
+import type { OnlineSessionHandle, ParsedUpoInfo, PollOptions, UpoInfo } from './types.js';
 import { pollUntil } from './polling.js';
+import { parseUpoXml } from '../xml/index.js';
 
 export interface OpenOnlineSessionOptions {
   formCode?: FormCode;
@@ -13,15 +15,13 @@ export interface SendAndCloseOptions extends OpenOnlineSessionOptions {
   pollOptions?: PollOptions;
 }
 
-const DEFAULT_FORM_CODE: FormCode = { systemCode: 'FA', schemaVersion: '3', value: 'FA (3)' };
-
 export async function openOnlineSession(
   client: KSeFClient,
   options?: OpenOnlineSessionOptions,
 ): Promise<OnlineSessionHandle> {
   await client.crypto.init();
   const encData = client.crypto.getEncryptionData();
-  const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
+  const formCode = options?.formCode ?? FORM_CODES.FA_2;
 
   const openResp = await client.onlineSession.openSession(
     { formCode, encryption: encData.encryptionInfo },
@@ -29,6 +29,23 @@ export async function openOnlineSession(
   );
 
   const sessionRef = openResp.referenceNumber;
+
+  async function fetchUpo(pollOpts?: PollOptions): Promise<UpoInfo> {
+    const result = await pollUntil(
+      () => client.sessionStatus.getSessionStatus(sessionRef),
+      (s) => s.status.code === 200 || s.status.code >= 400,
+      { ...pollOpts, description: `UPO for session ${sessionRef}` },
+    );
+    if (result.status.code !== 200) {
+      throw new Error(`Session failed: ${result.status.code} — ${result.status.description}`);
+    }
+    return {
+      pages: result.upo?.pages ?? [],
+      invoiceCount: result.invoiceCount,
+      successfulInvoiceCount: result.successfulInvoiceCount,
+      failedInvoiceCount: result.failedInvoiceCount,
+    };
+  }
 
   return {
     sessionRef,
@@ -55,20 +72,17 @@ export async function openOnlineSession(
     },
 
     async waitForUpo(pollOpts?: PollOptions): Promise<UpoInfo> {
-      const result = await pollUntil(
-        () => client.sessionStatus.getSessionStatus(sessionRef),
-        (s) => s.status.code === 200 || s.status.code >= 400,
-        { ...pollOpts, description: `UPO for session ${sessionRef}` },
-      );
-      if (result.status.code !== 200) {
-        throw new Error(`Session failed: ${result.status.code} — ${result.status.description}`);
+      return fetchUpo(pollOpts);
+    },
+
+    async waitForUpoParsed(pollOpts?: PollOptions): Promise<ParsedUpoInfo> {
+      const upoInfo = await fetchUpo(pollOpts);
+      const parsed = [];
+      for (const page of upoInfo.pages) {
+        const result = await client.sessionStatus.getSessionUpo(sessionRef, page.referenceNumber);
+        parsed.push(parseUpoXml(result.upo));
       }
-      return {
-        pages: result.upo?.pages ?? [],
-        invoiceCount: result.invoiceCount,
-        successfulInvoiceCount: result.successfulInvoiceCount,
-        failedInvoiceCount: result.failedInvoiceCount,
-      };
+      return { ...upoInfo, parsed };
     },
   };
 }

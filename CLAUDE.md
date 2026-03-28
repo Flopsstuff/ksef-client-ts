@@ -22,7 +22,7 @@ yarn split-openapi    # Split open-api.json into per-domain chunks
 
 Run a single test file: `yarn vitest run tests/unit/foo.test.ts`
 
-Tests: 889 tests across 61 files (48 unit + 13 E2E). Tests live in `tests/**/*.test.ts` (vitest, globals enabled).
+Tests live in `tests/**/*.test.ts` (vitest, globals enabled). Unit tests in `tests/unit/`, E2E tests in `tests/e2e/`.
 
 **Package manager is yarn 4.x** (Corepack). Do not use npm. The `.yarnrc.yml` sets `nodeLinker: node-modules`.
 

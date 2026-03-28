@@ -37,10 +37,17 @@ vi.mock('../../../../src/cli/output.js', () => ({
   outputTable: vi.fn(),
 }));
 
-// Mock node:fs for the dynamic import in login cert path
+// Mock node:fs (static import in auth.ts for pending challenge + dynamic import in login cert path)
 vi.mock('node:fs', () => ({
   readFileSync: vi.fn(),
-  default: { readFileSync: vi.fn() },
+  writeFileSync: vi.fn(),
+  mkdirSync: vi.fn(),
+  unlinkSync: vi.fn(),
+  default: { readFileSync: vi.fn(), writeFileSync: vi.fn(), mkdirSync: vi.fn(), unlinkSync: vi.fn() },
+}));
+
+vi.mock('../../../../src/crypto/auth-xml-builder.js', () => ({
+  buildUnsignedAuthTokenRequestXml: vi.fn().mockReturnValue('<UnsignedXml/>'),
 }));
 
 const mockCreateClient = vi.mocked(clientFactory.createClient);
@@ -227,6 +234,132 @@ describe('auth', () => {
       mockClient.auth.getChallenge.mockResolvedValue(challengeResult);
       await runChallenge({ json: true });
       expect(vi.mocked(output.outputResult)).toHaveBeenCalledWith(challengeResult, { json: true });
+    });
+  });
+
+  describe('login-external', () => {
+    async function runLoginExternal(args: Record<string, unknown>) {
+      return (authCommand.subCommands!['login-external'] as any).run!({ args });
+    }
+
+    it('throws without --generate or --submit', async () => {
+      await expect(runLoginExternal({ nip: '1234567890' })).rejects.toThrow('Specify --generate');
+    });
+
+    it('throws without NIP', async () => {
+      mockLoadConfig.mockReturnValue({ ...defaultConfig, nip: undefined });
+      await expect(runLoginExternal({ generate: true })).rejects.toThrow('NIP/identifier is required');
+    });
+
+    it('throws on invalid --context-type', async () => {
+      await expect(runLoginExternal({ generate: true, nip: '123', 'context-type': 'Invalid' })).rejects.toThrow('Invalid --context-type');
+    });
+
+    it('--generate writes unsigned XML to stdout', async () => {
+      const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      mockClient.auth.getChallenge.mockResolvedValue({ challenge: 'ch-test', timestamp: '2026-01-01T00:00:00Z', timestampMs: 0, clientIp: '127.0.0.1' });
+
+      await runLoginExternal({ generate: true, nip: '1234567890' });
+
+      expect(mockClient.auth.getChallenge).toHaveBeenCalled();
+      expect(stdoutSpy).toHaveBeenCalledWith('<UnsignedXml/>');
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('Challenge:'));
+      stdoutSpy.mockRestore();
+      stderrSpy.mockRestore();
+    });
+
+    it('--generate writes unsigned XML to --output file', async () => {
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      mockClient.auth.getChallenge.mockResolvedValue({ challenge: 'ch-test', timestamp: '2026-01-01T00:00:00Z', timestampMs: 0, clientIp: '127.0.0.1' });
+
+      const fs = await import('node:fs');
+      await runLoginExternal({ generate: true, nip: '1234567890', output: '/tmp/unsigned.xml' });
+
+      expect(vi.mocked(fs.writeFileSync)).toHaveBeenCalledWith('/tmp/unsigned.xml', '<UnsignedXml/>', 'utf-8');
+      stderrSpy.mockRestore();
+    });
+
+    it('--submit reads signed XML from --input and authenticates', async () => {
+      const fs = await import('node:fs');
+      vi.mocked(fs.readFileSync).mockReturnValueOnce('<SignedXml/>' as any);
+      mockClient.auth.submitXadesAuthRequest.mockResolvedValue({
+        referenceNumber: 'ref-ext-1',
+        authenticationToken: { token: 'auth-tok-ext', validUntil: '2026-01-02T00:00:00Z' },
+      });
+      mockClient.auth.getAuthStatus.mockResolvedValue({ status: { code: 200, description: 'OK' } });
+      mockClient.auth.getAccessToken.mockResolvedValue({
+        accessToken: { token: 'ext-access', validUntil: '2026-01-02T00:00:00Z' },
+        refreshToken: { token: 'ext-refresh', validUntil: '2026-01-10T00:00:00Z' },
+      });
+
+      await runLoginExternal({ submit: true, nip: '1234567890', input: '/tmp/signed.xml' });
+
+      expect(mockClient.auth.submitXadesAuthRequest).toHaveBeenCalledWith('<SignedXml/>');
+      expect(mockSaveSession).toHaveBeenCalledWith(expect.objectContaining({ accessToken: 'ext-access' }));
+      expect(mockOutputSuccess).toHaveBeenCalledWith(expect.stringContaining('external signature'));
+    });
+
+    it('--submit reads signed XML from stdin when no --input', async () => {
+      // Create an async iterable mock for process.stdin
+      const mockStdin = (async function* () {
+        yield Buffer.from('<StdinSignedXml/>');
+      })();
+      const originalStdin = process.stdin;
+      Object.defineProperty(process, 'stdin', { value: mockStdin, writable: true, configurable: true });
+
+      mockClient.auth.submitXadesAuthRequest.mockResolvedValue({
+        referenceNumber: 'ref-stdin-1',
+        authenticationToken: { token: 'auth-tok-stdin', validUntil: '2026-01-02T00:00:00Z' },
+      });
+      mockClient.auth.getAuthStatus.mockResolvedValue({ status: { code: 200, description: 'OK' } });
+      mockClient.auth.getAccessToken.mockResolvedValue({
+        accessToken: { token: 'stdin-access', validUntil: '2026-01-02T00:00:00Z' },
+        refreshToken: { token: 'stdin-refresh', validUntil: '2026-01-10T00:00:00Z' },
+      });
+
+      await runLoginExternal({ submit: true, nip: '1234567890' });
+
+      expect(mockClient.auth.submitXadesAuthRequest).toHaveBeenCalledWith('<StdinSignedXml/>');
+      expect(mockSaveSession).toHaveBeenCalledWith(expect.objectContaining({ accessToken: 'stdin-access' }));
+
+      Object.defineProperty(process, 'stdin', { value: originalStdin, writable: true, configurable: true });
+    });
+
+    it('--generate saves pending challenge metadata', async () => {
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      mockClient.auth.getChallenge.mockResolvedValue({ challenge: 'ch-save', timestamp: '2026-01-01T00:00:00Z', timestampMs: 0, clientIp: '127.0.0.1' });
+
+      const fsModule = await import('node:fs');
+      await runLoginExternal({ generate: true, nip: '1234567890' });
+
+      // Verify pending challenge was saved (writeFileSync called with pending-challenge.json content)
+      const writeCalls = vi.mocked(fsModule.writeFileSync).mock.calls;
+      const pendingCall = writeCalls.find((c) => String(c[0]).includes('pending-challenge'));
+      expect(pendingCall).toBeDefined();
+      const saved = JSON.parse(pendingCall![1] as string);
+      expect(saved.challenge).toBe('ch-save');
+      expect(saved.timestamp).toBe('2026-01-01T00:00:00Z');
+      expect(saved.contextIdentifier).toEqual({ type: 'Nip', value: '1234567890' });
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('Timestamp:'));
+      stdoutSpy.mockRestore();
+      stderrSpy.mockRestore();
+    });
+
+    it('--generate with --context-type NipVatUe passes correct type', async () => {
+      const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      const { buildUnsignedAuthTokenRequestXml } = await import('../../../../src/crypto/auth-xml-builder.js');
+      mockClient.auth.getChallenge.mockResolvedValue({ challenge: 'ch', timestamp: '', timestampMs: 0, clientIp: '' });
+
+      await runLoginExternal({ generate: true, nip: 'PL1234567890', 'context-type': 'NipVatUe' });
+
+      expect(vi.mocked(buildUnsignedAuthTokenRequestXml)).toHaveBeenCalledWith(
+        expect.objectContaining({ contextIdentifier: { type: 'NipVatUe', value: 'PL1234567890' } }),
+      );
+      stdoutSpy.mockRestore();
+      stderrSpy.mockRestore();
     });
   });
 

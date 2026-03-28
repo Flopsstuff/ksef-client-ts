@@ -7,5 +7,7 @@ export * from './services/index.js';
 export * from './builders/index.js';
 export * from './crypto/index.js';
 export * from './qr/index.js';
+export * from './utils/index.js';
 export * from './workflows/index.js';
+export * from './xml/index.js';
 export { KSeFClient } from './client.js';

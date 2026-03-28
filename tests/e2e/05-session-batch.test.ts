@@ -3,7 +3,7 @@ import JSZip from 'jszip';
 import { authenticateWithCert, authenticateWithCertAndCrypto } from './helpers/auth.js';
 import { getFormCode, prepareInvoiceXml, type InvoiceFormVersion } from './helpers/invoices.js';
 import { pollUntil } from './helpers/polling.js';
-import { uploadBatch } from '../../src/workflows/batch-session-workflow.js';
+import { uploadBatch, uploadBatchStream } from '../../src/workflows/batch-session-workflow.js';
 
 async function createInvoiceZip(
   nip: string,
@@ -51,6 +51,69 @@ describe('05 - Batch Session E2E', { timeout: 300_000 }, () => {
     const result = await uploadBatch(client, zipData, {
       formCode: getFormCode('FA_2'),
       maxPartSize: 1000, // ~1KB — forces ZIP (~15KB) into ~15 parts
+      pollOptions: POLL_OPTIONS,
+    });
+
+    expect(result.sessionRef).toBeTruthy();
+    expect(result.upo.successfulInvoiceCount).toBe(INVOICE_COUNT);
+    expect(result.upo.failedInvoiceCount ?? 0).toBe(0);
+
+    const invoicesResp = await client.sessionStatus.getSessionInvoices(result.sessionRef);
+    expect(invoicesResp.invoices.length).toBe(INVOICE_COUNT);
+    for (const inv of invoicesResp.invoices) {
+      expect(inv.ksefNumber).toBeTruthy();
+      expect(inv.status.code).toBe(200);
+    }
+  });
+
+  it('should complete stream-based batch upload (single part)', async () => {
+    const INVOICE_COUNT = 5;
+    const { client, nip } = await authenticateWithCert();
+    const zipData = await createInvoiceZip(nip, INVOICE_COUNT);
+
+    const zipStreamFactory = () => new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(zipData);
+        controller.close();
+      },
+    });
+
+    const result = await uploadBatchStream(client, zipStreamFactory, zipData.byteLength, {
+      formCode: getFormCode('FA_2'),
+      pollOptions: POLL_OPTIONS,
+    });
+
+    expect(result.sessionRef).toBeTruthy();
+    expect(result.upo.successfulInvoiceCount).toBe(INVOICE_COUNT);
+    expect(result.upo.failedInvoiceCount ?? 0).toBe(0);
+
+    const invoicesResp = await client.sessionStatus.getSessionInvoices(result.sessionRef);
+    expect(invoicesResp.invoices.length).toBe(INVOICE_COUNT);
+    for (const inv of invoicesResp.invoices) {
+      expect(inv.ksefNumber).toBeTruthy();
+      expect(inv.status.code).toBe(200);
+    }
+  });
+
+  it('should complete stream-based batch upload with multiple parts (auto-split)', async () => {
+    const INVOICE_COUNT = 5;
+    const { client, nip } = await authenticateWithCert();
+    const zipData = await createInvoiceZip(nip, INVOICE_COUNT);
+
+    const zipStreamFactory = () => new ReadableStream<Uint8Array>({
+      start(controller) {
+        // Feed in small chunks to simulate realistic streaming
+        const chunkSize = 1024;
+        for (let i = 0; i < zipData.byteLength; i += chunkSize) {
+          controller.enqueue(zipData.subarray(i, Math.min(i + chunkSize, zipData.byteLength)));
+        }
+        controller.close();
+      },
+    });
+
+    const result = await uploadBatchStream(client, zipStreamFactory, zipData.byteLength, {
+      formCode: getFormCode('FA_2'),
+      maxPartSize: 1000, // ~1KB — forces multi-part
       pollOptions: POLL_OPTIONS,
     });
 

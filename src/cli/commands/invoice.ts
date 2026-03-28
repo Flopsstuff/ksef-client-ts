@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { Readable } from 'node:stream';
 import { defineCommand } from 'citty';
 import { consola } from 'consola';
 import { requireSession } from '../client-factory.js';
@@ -8,7 +9,10 @@ import { saveOnlineSessionRef, clearOnlineSessionRef } from '../session-store.js
 import { outputResult, outputTable, outputSuccess } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions } from '../types.js';
+import type { FormCode } from '../../models/common.js';
 import type { InvoiceQueryFilters, InvoiceSubjectType, InvoiceQueryDateType, AmountType } from '../../models/invoices/types.js';
+import { FORM_CODES, FORM_CODE_KEYS, validateFormCodeForSession } from '../../models/document-structures/index.js';
+import { exportIncremental } from './export-incremental.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -71,8 +75,10 @@ const QUERY_FILTER_ARGS = {
 const send = defineCommand({
   meta: { name: 'send', description: 'Send invoice(s) — single XML file or directory for batch' },
   args: {
-    path: { type: 'positional', description: 'Path to XML file or directory of XMLs', required: true },
+    path: { type: 'positional', description: 'Path to XML file, directory of XMLs, or ZIP for batch', required: true },
     sessionRef: { type: 'string', description: 'Override online session reference' },
+    stream: { type: 'boolean', description: 'Use stream-based batch upload (for ZIP files, reduces memory usage)' },
+    formCode: { type: 'string', description: 'Document type: FA2, FA3, PEF3, PEFKOR3, FARR1 (default: FA2)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -87,11 +93,55 @@ const send = defineCommand({
       const nip = args.nip ?? config.nip;
       const filePath = args.path;
 
+      const formCodeKey = args.formCode as string | undefined;
+      let formCode: FormCode = FORM_CODES.FA_2;
+      if (formCodeKey) {
+        const resolved = FORM_CODE_KEYS[formCodeKey];
+        if (!resolved) {
+          throw new Error(`Invalid form code "${formCodeKey}". Valid keys: ${Object.keys(FORM_CODE_KEYS).join(', ')}`);
+        }
+        formCode = resolved;
+      }
+
       if (!fs.existsSync(filePath)) {
         throw new Error(`Path not found: ${filePath}`);
       }
 
       const stat = fs.statSync(filePath);
+
+      if (args.stream) {
+        // Stream-based batch upload from a ZIP file
+        if (!filePath.endsWith('.zip') || stat.isDirectory()) {
+          throw new Error('--stream requires a .zip file path.');
+        }
+
+        if (!nip) {
+          throw new Error('NIP is required. Provide --nip or set it via `ksef config set --nip <nip>`.');
+        }
+
+        if (!validateFormCodeForSession(formCode, 'batch')) {
+          throw new Error(`Document type "${formCode.systemCode}" is not supported in batch sessions. PEF/PEF_KOR require online sessions.`);
+        }
+
+        const { uploadBatchStream } = await import('../../workflows/batch-session-workflow.js');
+        const zipSize = stat.size;
+        const zipStreamFactory = () =>
+          Readable.toWeb(fs.createReadStream(filePath)) as ReadableStream<Uint8Array>;
+
+        if (!args.json) consola.start(`Sending batch via stream (${(zipSize / 1_000_000).toFixed(1)} MB)...`);
+
+        const result = await uploadBatchStream(client, zipStreamFactory, zipSize, {
+          formCode,
+          pollOptions: { intervalMs: 3000 },
+        });
+
+        if (args.json) {
+          outputResult(result, { json: true });
+        } else {
+          outputSuccess(`Batch sent via stream. Ref: ${result.sessionRef}, invoices: ${result.upo.invoiceCount ?? 'unknown'}`);
+        }
+        return;
+      }
 
       if (stat.isDirectory()) {
         // Batch mode: send all XMLs in directory
@@ -107,10 +157,13 @@ const send = defineCommand({
           throw new Error('NIP is required. Provide --nip or set it via `ksef config set --nip <nip>`.');
         }
 
+        if (!validateFormCodeForSession(formCode, 'batch')) {
+          throw new Error(`Document type "${formCode.systemCode}" is not supported in batch sessions. PEF/PEF_KOR require online sessions.`);
+        }
+
         if (!args.json) consola.start(`Sending ${xmlFiles.length} invoices via batch session...`);
         await client.crypto.init();
         const encryptionData = client.crypto.getEncryptionData();
-        const formCode = { systemCode: 'FA (2)', schemaVersion: '1-0E', value: 'FA' };
 
         // Read all files and compute metadata
         const parts = xmlFiles.map((file, i) => {
@@ -373,5 +426,5 @@ const exportStatus = defineCommand({
 
 export const invoiceCommand = defineCommand({
   meta: { name: 'invoice', description: 'Invoice commands' },
-  subCommands: { send, get, query, export: exportCmd, 'export-status': exportStatus },
+  subCommands: { send, get, query, export: exportCmd, 'export-status': exportStatus, 'export-incremental': exportIncremental },
 });

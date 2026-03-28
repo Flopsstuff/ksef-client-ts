@@ -1,3 +1,5 @@
+import type { UpoPotwierdzenie } from '../xml/index.js';
+
 export interface PollOptions {
   intervalMs?: number;
   maxAttempts?: number;
@@ -10,6 +12,7 @@ export interface OnlineSessionHandle {
   sendInvoice(invoiceXml: string | Uint8Array): Promise<string>;
   close(): Promise<void>;
   waitForUpo(options?: PollOptions): Promise<UpoInfo>;
+  waitForUpoParsed(options?: PollOptions): Promise<ParsedUpoInfo>;
 }
 
 export interface UpoInfo {
@@ -19,9 +22,18 @@ export interface UpoInfo {
   failedInvoiceCount?: number;
 }
 
+export interface ParsedUpoInfo extends UpoInfo {
+  parsed: UpoPotwierdzenie[];
+}
+
 export interface BatchUploadResult {
   sessionRef: string;
   upo: UpoInfo;
+}
+
+export interface ParsedBatchUploadResult {
+  sessionRef: string;
+  upo: ParsedUpoInfo;
 }
 
 export interface ExportResult {
@@ -37,8 +49,13 @@ export interface ExportResult {
   invoiceCount: number;
   isTruncated: boolean;
   permanentStorageHwmDate?: string;
+  lastPermanentStorageDate?: string;
 }
 
 export interface ExportDownloadResult extends ExportResult {
   decryptedParts: Uint8Array[];
+}
+
+export interface ExportExtractedResult extends ExportResult {
+  files: Map<string, Buffer>;
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { openOnlineSession, openSendAndClose } from '../../../src/workflows/online-session-workflow.js';
+import type { UpoPotwierdzenie } from '../../../src/xml/index.js';
 
 function createMockClient() {
   return {
@@ -44,7 +45,7 @@ describe('openOnlineSession', () => {
     expect(client.crypto.getEncryptionData).toHaveBeenCalled();
     expect(client.onlineSession.openSession).toHaveBeenCalledWith(
       expect.objectContaining({
-        formCode: { systemCode: 'FA', schemaVersion: '3', value: 'FA (3)' },
+        formCode: { systemCode: 'FA (2)', schemaVersion: '1-0E', value: 'FA' },
         encryption: expect.any(Object),
       }),
       undefined,
@@ -122,6 +123,78 @@ describe('openOnlineSession', () => {
     const upo = await handle.waitForUpo({ intervalMs: 1, maxAttempts: 10 });
     expect(upo.pages).toEqual([]);
     expect(client.sessionStatus.getSessionStatus).toHaveBeenCalledTimes(3);
+  });
+});
+
+const SAMPLE_UPO_XML = `<?xml version="1.0" encoding="utf-8"?>
+<Potwierdzenie xmlns="http://upo.schematy.mf.gov.pl/KSeF/v4-3">
+  <NazwaPodmiotuPrzyjmujacego>Ministerstwo Finansów</NazwaPodmiotuPrzyjmujacego>
+  <NumerReferencyjnySesji>sess-ref-1</NumerReferencyjnySesji>
+  <Uwierzytelnienie>
+    <IdKontekstu><Nip>1234567890</Nip></IdKontekstu>
+    <SkrotDokumentuUwierzytelniajacego>abc123hash=</SkrotDokumentuUwierzytelniajacego>
+  </Uwierzytelnienie>
+  <NazwaStrukturyLogicznej>Schemat_FA(3)_v1-0E.xsd</NazwaStrukturyLogicznej>
+  <KodFormularza>FA (3)</KodFormularza>
+  <Dokument>
+    <NipSprzedawcy>1234567890</NipSprzedawcy>
+    <NumerKSeFDokumentu>1234567890-20250916-AABBCCDDEE-01</NumerKSeFDokumentu>
+    <NumerFaktury>FA/001/2025</NumerFaktury>
+    <DataWystawieniaFaktury>2025-09-16</DataWystawieniaFaktury>
+    <DataPrzeslaniaDokumentu>2025-09-16T10:00:00.000+02:00</DataPrzeslaniaDokumentu>
+    <DataNadaniaNumeruKSeF>2025-09-16T10:00:01.000+02:00</DataNadaniaNumeruKSeF>
+    <SkrotDokumentu>docHash123=</SkrotDokumentu>
+    <TrybWysylki>Online</TrybWysylki>
+  </Dokument>
+</Potwierdzenie>`;
+
+describe('waitForUpoParsed', () => {
+  it('fetches and parses UPO for each page', async () => {
+    client.sessionStatus.getSessionUpo = vi.fn().mockResolvedValue({ upo: SAMPLE_UPO_XML, hash: 'h1' });
+    const handle = await openOnlineSession(client);
+    const result = await handle.waitForUpoParsed({ intervalMs: 1 });
+
+    expect(result.pages).toHaveLength(1);
+    expect(result.invoiceCount).toBe(1);
+    expect(result.parsed).toHaveLength(1);
+
+    const parsed: UpoPotwierdzenie = result.parsed[0];
+    expect(parsed.numerReferencyjnySesji).toBe('sess-ref-1');
+    expect(parsed.uwierzytelnienie.idKontekstu).toEqual({ kind: 'Nip', nip: '1234567890' });
+    expect(parsed.dokumenty).toHaveLength(1);
+    expect(parsed.dokumenty[0].numerKSeFDokumentu).toBe('1234567890-20250916-AABBCCDDEE-01');
+
+    expect(client.sessionStatus.getSessionUpo).toHaveBeenCalledWith('sess-ref-1', 'upo-ref-1');
+  });
+
+  it('parses multiple UPO pages', async () => {
+    client.sessionStatus.getSessionStatus.mockResolvedValue({
+      status: { code: 200, description: 'OK' },
+      upo: {
+        pages: [
+          { referenceNumber: 'upo-page-1', downloadUrl: 'https://example.com/upo/1' },
+          { referenceNumber: 'upo-page-2', downloadUrl: 'https://example.com/upo/2' },
+        ],
+      },
+      invoiceCount: 2,
+      successfulInvoiceCount: 2,
+      failedInvoiceCount: 0,
+    });
+    client.sessionStatus.getSessionUpo = vi.fn().mockResolvedValue({ upo: SAMPLE_UPO_XML });
+    const handle = await openOnlineSession(client);
+    const result = await handle.waitForUpoParsed({ intervalMs: 1 });
+
+    expect(result.parsed).toHaveLength(2);
+    expect(client.sessionStatus.getSessionUpo).toHaveBeenCalledTimes(2);
+    expect(client.sessionStatus.getSessionUpo).toHaveBeenCalledWith('sess-ref-1', 'upo-page-1');
+    expect(client.sessionStatus.getSessionUpo).toHaveBeenCalledWith('sess-ref-1', 'upo-page-2');
+  });
+
+  it('does not affect existing waitForUpo behavior', async () => {
+    const handle = await openOnlineSession(client);
+    const upo = await handle.waitForUpo({ intervalMs: 1 });
+    expect(upo.pages).toHaveLength(1);
+    expect((upo as any).parsed).toBeUndefined();
   });
 });
 

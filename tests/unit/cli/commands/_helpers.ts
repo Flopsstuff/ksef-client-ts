@@ -15,7 +15,7 @@ export function createMockClient() {
     loginWithToken: vi.fn(),
     loginWithCertificate: vi.fn(),
     loginWithPkcs12: vi.fn(),
-    auth: mockService(['getChallenge', 'getAuthStatus', 'refreshAccessToken']),
+    auth: mockService(['getChallenge', 'getAuthStatus', 'refreshAccessToken', 'submitXadesAuthRequest', 'getAccessToken']),
     invoices: mockService(['getInvoice', 'queryInvoiceMetadata', 'exportInvoices', 'getInvoiceExportStatus']),
     permissions: mockService([
       'grantPersonPermissions', 'grantEntityPermissions', 'grantAuthorizationPermissions',

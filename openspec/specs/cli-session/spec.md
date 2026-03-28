@@ -1,5 +1,5 @@
 ### Requirement: Open online session
-The CLI SHALL provide `ksef session open` to open an online KSeF session. It MUST use the stored access token and NIP from config/flags. The returned session reference MUST be persisted in `SessionData.onlineSessionRef` for use by subsequent commands.
+The CLI SHALL provide `ksef session open` to open an online KSeF session. It MUST use the stored access token and NIP from config/flags. It MUST accept an optional `--form-code <key>` flag where `<key>` is one of `FA2`, `FA3`, `PEF3`, `PEFKOR3`, `FARR1` (default: `FA2`). The returned session reference MUST be persisted in `SessionData.onlineSessionRef` for use by subsequent commands.
 
 #### Scenario: Open online session with stored config
 - **WHEN** user runs `ksef session open` with valid auth session and NIP configured
@@ -16,6 +16,22 @@ The CLI SHALL provide `ksef session open` to open an online KSeF session. It MUS
 #### Scenario: Open online session without NIP
 - **WHEN** user runs `ksef session open` with no NIP in config and no `--nip` flag
 - **THEN** CLI SHALL display an error requesting NIP via `--nip` or `ksef config set --nip`
+
+#### Scenario: Open online session with form code
+- **WHEN** user runs `ksef session open --form-code FA3`
+- **THEN** CLI SHALL resolve `FA3` to `FORM_CODES.FA_3` and pass it as `formCode` to the session open request
+
+#### Scenario: Open online session with PEF form code
+- **WHEN** user runs `ksef session open --form-code PEF3`
+- **THEN** CLI SHALL resolve `PEF3` to `FORM_CODES.PEF_3` and open the session with PEF document type
+
+#### Scenario: Open online session with invalid form code key
+- **WHEN** user runs `ksef session open --form-code INVALID`
+- **THEN** CLI SHALL display an error listing valid keys: FA2, FA3, PEF3, PEFKOR3, FARR1
+
+#### Scenario: Open online session with default form code
+- **WHEN** user runs `ksef session open` without `--form-code`
+- **THEN** CLI SHALL use `FORM_CODES.FA_2` as the default
 
 ### Requirement: Batch session via invoice send
 Batch sessions SHALL NOT be opened directly via `ksef session open --batch`. Instead, batch sessions are managed internally by `ksef invoice send <dir/>`. If `--batch` is provided to `session open`, the CLI MUST display an error directing the user to `ksef invoice send <dir/>`.
@@ -92,7 +108,7 @@ The CLI SHALL provide `ksef session failed [ref]` to list failed invoices in a s
 - **THEN** CLI displays a message indicating no failed invoices
 
 ### Requirement: Download UPO
-The CLI SHALL provide `ksef session upo <session-ref>` to download UPO (Urzedowe Poswiadczenie Odbioru). It MUST support three retrieval modes via flags.
+The CLI SHALL provide `ksef session upo <session-ref>` to download UPO (Urzedowe Poswiadczenie Odbioru). It MUST support three retrieval modes via flags. It MUST support a `--parsed` flag that outputs the UPO as a structured JSON object instead of raw XML.
 
 #### Scenario: Download UPO by session UPO reference
 - **WHEN** user runs `ksef session upo <session-ref> --upo-ref <upo-ref>`
@@ -113,6 +129,18 @@ The CLI SHALL provide `ksef session upo <session-ref>` to download UPO (Urzedowe
 #### Scenario: No retrieval mode specified
 - **WHEN** user runs `ksef session upo <session-ref>` without `--upo-ref`, `--ksef-number`, or `--invoice-ref`
 - **THEN** CLI SHALL display an error requesting one of the three flags
+
+#### Scenario: Parsed UPO output as JSON
+- **WHEN** user runs `ksef session upo <session-ref> --ksef-number <num> --parsed`
+- **THEN** CLI fetches the UPO XML, parses it with `parseUpoXml()`, and outputs the `UpoPotwierdzenie` object as formatted JSON to stdout
+
+#### Scenario: Parsed UPO saved to file
+- **WHEN** user runs `ksef session upo <session-ref> --ksef-number <num> --parsed -o upo.json`
+- **THEN** CLI writes the parsed `UpoPotwierdzenie` as formatted JSON to the specified file path
+
+#### Scenario: Parsed flag implies JSON format
+- **WHEN** user runs `ksef session upo <session-ref> --upo-ref <ref> --parsed`
+- **THEN** output MUST be JSON regardless of whether `--json` flag is also provided
 
 ### Requirement: Global flags support
 All session commands SHALL respect global flags: `--env`, `--json`, `--nip`, `--timeout`.

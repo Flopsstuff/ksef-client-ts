@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { authenticateWithToken, authenticateWithCertificate } from '../../../src/workflows/auth-workflow.js';
+import { authenticateWithToken, authenticateWithCertificate, authenticateWithExternalSignature } from '../../../src/workflows/auth-workflow.js';
 
 function createMockClient() {
   return {
@@ -157,5 +157,101 @@ describe('authenticateWithCertificate', () => {
 
     vi.doUnmock('../../../src/client.js');
     vi.doUnmock('../../../src/crypto/signature-service.js');
+  });
+});
+
+describe('authenticateWithExternalSignature', () => {
+  it('performs full external signing flow: challenge → build XML → signXml → submit → poll → redeem', async () => {
+    const signXml = vi.fn().mockReturnValue('<SignedXml/>');
+
+    const result = await authenticateWithExternalSignature(client, {
+      contextIdentifier: { type: 'Nip', value: '1234567890' },
+      signXml,
+      pollOptions: { intervalMs: 1 },
+    });
+
+    expect(client.auth.getChallenge).toHaveBeenCalledOnce();
+    expect(signXml).toHaveBeenCalledOnce();
+    // Verify the unsigned XML was passed to signXml
+    const unsignedXml = signXml.mock.calls[0][0] as string;
+    expect(unsignedXml).toContain('<AuthTokenRequest');
+    expect(unsignedXml).toContain('<Nip>1234567890</Nip>');
+    expect(unsignedXml).toContain('<Challenge>ch-123</Challenge>');
+
+    expect(client.auth.submitXadesAuthRequest).toHaveBeenCalledWith('<SignedXml/>', false, false);
+    expect(client.auth.getAuthStatus).toHaveBeenCalledWith('auth-ref-2', 'auth-token-xades');
+    expect(client.auth.getAccessToken).toHaveBeenCalledWith('auth-token-xades');
+    expect(client.authManager.setAccessToken).toHaveBeenCalledWith('access-tok');
+    expect(client.authManager.setRefreshToken).toHaveBeenCalledWith('refresh-tok');
+    expect(result.accessToken).toBe('access-tok');
+    expect(result.refreshToken).toBe('refresh-tok');
+  });
+
+  it('supports async signXml callback', async () => {
+    const signXml = vi.fn().mockResolvedValue('<AsyncSignedXml/>');
+
+    const result = await authenticateWithExternalSignature(client, {
+      contextIdentifier: { type: 'Nip', value: '1234567890' },
+      signXml,
+      pollOptions: { intervalMs: 1 },
+    });
+
+    expect(client.auth.submitXadesAuthRequest).toHaveBeenCalledWith('<AsyncSignedXml/>', false, false);
+    expect(result.accessToken).toBe('access-tok');
+  });
+
+  it('propagates signXml callback error without submitting', async () => {
+    const signXml = vi.fn().mockRejectedValue(new Error('HSM unavailable'));
+
+    await expect(
+      authenticateWithExternalSignature(client, {
+        contextIdentifier: { type: 'Nip', value: '1234567890' },
+        signXml,
+        pollOptions: { intervalMs: 1 },
+      }),
+    ).rejects.toThrow('HSM unavailable');
+
+    expect(client.auth.submitXadesAuthRequest).not.toHaveBeenCalled();
+  });
+
+  it('propagates synchronous signXml callback error', async () => {
+    const signXml = vi.fn().mockImplementation(() => { throw new Error('Smart card removed'); });
+
+    await expect(
+      authenticateWithExternalSignature(client, {
+        contextIdentifier: { type: 'Nip', value: '1234567890' },
+        signXml,
+        pollOptions: { intervalMs: 1 },
+      }),
+    ).rejects.toThrow('Smart card removed');
+
+    expect(client.auth.submitXadesAuthRequest).not.toHaveBeenCalled();
+  });
+
+  it('forwards verifyCertificateChain and enforceXadesCompliance options', async () => {
+    const signXml = vi.fn().mockReturnValue('<Signed/>');
+
+    await authenticateWithExternalSignature(client, {
+      contextIdentifier: { type: 'Nip', value: '1234567890' },
+      signXml,
+      verifyCertificateChain: true,
+      enforceXadesCompliance: true,
+      pollOptions: { intervalMs: 1 },
+    });
+
+    expect(client.auth.submitXadesAuthRequest).toHaveBeenCalledWith('<Signed/>', true, true);
+  });
+
+  it('uses the provided contextIdentifier type in the unsigned XML', async () => {
+    const signXml = vi.fn().mockReturnValue('<Signed/>');
+
+    await authenticateWithExternalSignature(client, {
+      contextIdentifier: { type: 'PeppolId', value: '0088:123' },
+      signXml,
+      pollOptions: { intervalMs: 1 },
+    });
+
+    const unsignedXml = signXml.mock.calls[0][0] as string;
+    expect(unsignedXml).toContain('<PeppolId>0088:123</PeppolId>');
   });
 });

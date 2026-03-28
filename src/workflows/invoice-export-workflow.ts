@@ -1,7 +1,9 @@
 import type { KSeFClient } from '../client.js';
 import type { EncryptionData } from '../models/crypto/types.js';
 import type { InvoiceQueryFilters } from '../models/invoices/types.js';
-import type { ExportDownloadResult, ExportResult, PollOptions } from './types.js';
+import type { ExportDownloadResult, ExportExtractedResult, ExportResult, PollOptions } from './types.js';
+import type { UnzipOptions } from '../utils/zip.js';
+import { unzip } from '../utils/zip.js';
 import { pollUntil } from './polling.js';
 
 export interface ExportOptions {
@@ -12,13 +14,17 @@ export interface ExportOptions {
 export interface ExportAndDownloadOptions extends ExportOptions {
   /** Custom fetch function for downloading parts (defaults to global fetch). */
   transport?: typeof fetch;
+  /** When true, concatenate and extract the ZIP, returning named files. */
+  extract?: boolean;
+  /** Options for ZIP extraction safety limits (only used when extract is true). */
+  unzipOptions?: UnzipOptions;
 }
 
-async function doExport(
+export async function doExport(
   client: KSeFClient,
   filters: InvoiceQueryFilters,
   options?: ExportOptions,
-): Promise<{ result: ExportResult; encData: EncryptionData }> {
+): Promise<{ result: ExportResult; encData: EncryptionData; referenceNumber: string }> {
   await client.crypto.init();
   const encData = client.crypto.getEncryptionData();
 
@@ -43,6 +49,7 @@ async function doExport(
 
   return {
     encData,
+    referenceNumber: opResp.referenceNumber,
     result: {
       parts: result.package.parts.map((p) => ({
         ordinalNumber: p.ordinalNumber,
@@ -56,6 +63,7 @@ async function doExport(
       invoiceCount: result.package.invoiceCount,
       isTruncated: result.package.isTruncated,
       permanentStorageHwmDate: result.package.permanentStorageHwmDate,
+      lastPermanentStorageDate: result.package.lastPermanentStorageDate,
     },
   };
 }
@@ -72,8 +80,18 @@ export async function exportInvoices(
 export async function exportAndDownload(
   client: KSeFClient,
   filters: InvoiceQueryFilters,
+  options: ExportAndDownloadOptions & { extract: true },
+): Promise<ExportExtractedResult>;
+export async function exportAndDownload(
+  client: KSeFClient,
+  filters: InvoiceQueryFilters,
   options?: ExportAndDownloadOptions,
-): Promise<ExportDownloadResult> {
+): Promise<ExportDownloadResult>;
+export async function exportAndDownload(
+  client: KSeFClient,
+  filters: InvoiceQueryFilters,
+  options?: ExportAndDownloadOptions,
+): Promise<ExportDownloadResult | ExportExtractedResult> {
   const { result: exportResult, encData } = await doExport(client, filters, options);
 
   const download = options?.transport ?? fetch;
@@ -87,6 +105,12 @@ export async function exportAndDownload(
     const encryptedData = new Uint8Array(await resp.arrayBuffer());
     const decrypted = client.crypto.decryptAES256(encryptedData, encData.cipherKey, encData.cipherIv);
     decryptedParts.push(decrypted);
+  }
+
+  if (options?.extract) {
+    const zipBuffer = Buffer.concat(decryptedParts);
+    const files = await unzip(zipBuffer, options.unzipOptions);
+    return { ...exportResult, files };
   }
 
   return {

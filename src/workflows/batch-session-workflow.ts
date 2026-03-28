@@ -1,10 +1,12 @@
 import type { KSeFClient } from '../client.js';
 import type { UpoVersion } from '../http/ksef-feature.js';
 import type { FormCode } from '../models/common.js';
+import { FORM_CODES } from '../models/document-structures/index.js';
 import type { BatchPartSendingInfo } from '../models/sessions/batch-types.js';
-import type { BatchUploadResult, PollOptions } from './types.js';
-import { BatchFileBuilder } from '../builders/batch-file.js';
+import type { BatchUploadResult, ParsedBatchUploadResult, PollOptions } from './types.js';
+import { BatchFileBuilder, type BatchStreamBuildResult } from '../builders/batch-file.js';
 import { pollUntil } from './polling.js';
+import { parseUpoXml } from '../xml/index.js';
 
 export interface BatchUploadOptions {
   formCode?: FormCode;
@@ -16,8 +18,6 @@ export interface BatchUploadOptions {
   offlineMode?: boolean;
 }
 
-const DEFAULT_FORM_CODE: FormCode = { systemCode: 'FA', schemaVersion: '3', value: 'FA (3)' };
-
 export async function uploadBatch(
   client: KSeFClient,
   zipData: Uint8Array,
@@ -25,7 +25,7 @@ export async function uploadBatch(
 ): Promise<BatchUploadResult> {
   await client.crypto.init();
   const encData = client.crypto.getEncryptionData();
-  const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
+  const formCode = options?.formCode ?? FORM_CODES.FA_2;
 
   // KSeF provides a single (key, IV) pair per session — all parts share it.
   const encryptFn = (part: Uint8Array) =>
@@ -74,5 +74,100 @@ export async function uploadBatch(
       successfulInvoiceCount: result.successfulInvoiceCount,
       failedInvoiceCount: result.failedInvoiceCount,
     },
+  };
+}
+
+export { type BatchStreamBuildResult };
+
+export async function uploadBatchStream(
+  client: KSeFClient,
+  zipStreamFactory: () => ReadableStream<Uint8Array>,
+  zipSize: number,
+  options?: BatchUploadOptions,
+): Promise<BatchUploadResult> {
+  await client.crypto.init();
+  const encData = client.crypto.getEncryptionData();
+  const formCode = options?.formCode ?? FORM_CODES.FA_2;
+
+  const encryptStreamFn = (stream: ReadableStream<Uint8Array>) =>
+    client.crypto.encryptAES256Stream(stream, encData.cipherKey, encData.cipherIv);
+
+  const hashStreamFn = (stream: ReadableStream<Uint8Array>) =>
+    client.crypto.getFileMetadataFromStream(stream);
+
+  const { batchFile, streamParts } = await BatchFileBuilder.buildFromStream(
+    zipStreamFactory,
+    zipSize,
+    encryptStreamFn,
+    hashStreamFn,
+    { maxPartSize: options?.maxPartSize },
+  );
+
+  const openResp = await client.batchSession.openSession(
+    {
+      formCode,
+      encryption: encData.encryptionInfo,
+      batchFile,
+      offlineMode: options?.offlineMode,
+    },
+    options?.upoVersion,
+  );
+
+  await client.batchSession.sendPartsWithStream(openResp, streamParts);
+
+  await client.batchSession.closeSession(openResp.referenceNumber);
+
+  const result = await pollUntil(
+    () => client.sessionStatus.getSessionStatus(openResp.referenceNumber),
+    (s) => s.status.code === 200 || s.status.code >= 400,
+    { ...options?.pollOptions, description: `UPO for batch ${openResp.referenceNumber}` },
+  );
+  if (result.status.code !== 200) {
+    throw new Error(`Batch session failed: ${result.status.code} — ${result.status.description}`);
+  }
+
+  return {
+    sessionRef: openResp.referenceNumber,
+    upo: {
+      pages: result.upo?.pages ?? [],
+      invoiceCount: result.invoiceCount,
+      successfulInvoiceCount: result.successfulInvoiceCount,
+      failedInvoiceCount: result.failedInvoiceCount,
+    },
+  };
+}
+
+export async function uploadBatchStreamParsed(
+  client: KSeFClient,
+  zipStreamFactory: () => ReadableStream<Uint8Array>,
+  zipSize: number,
+  options?: BatchUploadOptions,
+): Promise<ParsedBatchUploadResult> {
+  const result = await uploadBatchStream(client, zipStreamFactory, zipSize, options);
+  const parsed = [];
+  for (const page of result.upo.pages) {
+    const upoResult = await client.sessionStatus.getSessionUpo(result.sessionRef, page.referenceNumber);
+    parsed.push(parseUpoXml(upoResult.upo));
+  }
+  return {
+    sessionRef: result.sessionRef,
+    upo: { ...result.upo, parsed },
+  };
+}
+
+export async function uploadBatchParsed(
+  client: KSeFClient,
+  zipData: Uint8Array,
+  options?: BatchUploadOptions,
+): Promise<ParsedBatchUploadResult> {
+  const result = await uploadBatch(client, zipData, options);
+  const parsed = [];
+  for (const page of result.upo.pages) {
+    const upoResult = await client.sessionStatus.getSessionUpo(result.sessionRef, page.referenceNumber);
+    parsed.push(parseUpoXml(upoResult.upo));
+  }
+  return {
+    sessionRef: result.sessionRef,
+    upo: { ...result.upo, parsed },
   };
 }

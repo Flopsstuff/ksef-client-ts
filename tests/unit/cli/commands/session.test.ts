@@ -100,6 +100,30 @@ describe('session', () => {
       await runOpen({ json: true });
       expect(mockOutputResult).toHaveBeenCalledWith(openResult, { json: true });
     });
+
+    it('uses --form-code to resolve form code', async () => {
+      mockClient.onlineSession.openSession.mockResolvedValue({
+        referenceNumber: 'ref-fa3', validUntil: '2099-01-01',
+      });
+      await runOpen({ formCode: 'FA3' });
+      expect(mockClient.onlineSession.openSession).toHaveBeenCalledWith(
+        expect.objectContaining({ formCode: { systemCode: 'FA (3)', schemaVersion: '1-0E', value: 'FA' } }),
+      );
+    });
+
+    it('resolves PEF3 form code for online session', async () => {
+      mockClient.onlineSession.openSession.mockResolvedValue({
+        referenceNumber: 'ref-pef3', validUntil: '2099-01-01',
+      });
+      await runOpen({ formCode: 'PEF3' });
+      expect(mockClient.onlineSession.openSession).toHaveBeenCalledWith(
+        expect.objectContaining({ formCode: { systemCode: 'PEF (3)', schemaVersion: '2-1', value: 'PEF' } }),
+      );
+    });
+
+    it('throws on invalid --form-code key', async () => {
+      await expect(runOpen({ formCode: 'INVALID' })).rejects.toThrow('Invalid form code "INVALID"');
+    });
   });
 
   describe('close', () => {

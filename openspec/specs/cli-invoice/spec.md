@@ -1,5 +1,5 @@
 ### Requirement: Send single invoice
-The CLI SHALL provide `ksef invoice send <file.xml>` to send a single invoice. The CLI MUST read the XML file, compute its hash and size, encrypt the content via `client.crypto`, and call `OnlineSessionService.sendInvoice()`. Crypto MUST be initialized automatically (`client.crypto.init()`).
+The CLI SHALL provide `ksef invoice send <file.xml>` to send a single invoice. The CLI MUST read the XML file, compute its hash and size, encrypt the content via `client.crypto`, and call `OnlineSessionService.sendInvoice()`. Crypto MUST be initialized automatically (`client.crypto.init()`). It MUST accept an optional `--form-code <key>` flag where `<key>` is one of `FA2`, `FA3`, `PEF3`, `PEFKOR3`, `FARR1`.
 
 #### Scenario: Send single invoice file
 - **WHEN** user runs `ksef invoice send invoice.xml` with an active online session
@@ -17,8 +17,16 @@ The CLI SHALL provide `ksef invoice send <file.xml>` to send a single invoice. T
 - **WHEN** user runs `ksef invoice send invoice.xml --session-ref <ref>`
 - **THEN** CLI uses the provided session ref instead of the stored one
 
+#### Scenario: Send with form code override
+- **WHEN** user runs `ksef invoice send invoice.xml --form-code PEF3`
+- **THEN** CLI SHALL resolve `PEF3` to `FORM_CODES.PEF_3` and use it when the session requires a form code context
+
+#### Scenario: Send with invalid form code key
+- **WHEN** user runs `ksef invoice send invoice.xml --form-code INVALID`
+- **THEN** CLI SHALL display an error listing valid keys: FA2, FA3, PEF3, PEFKOR3, FARR1
+
 ### Requirement: Send batch invoices from directory
-The CLI SHALL support `ksef invoice send <dir/>` when the path is a directory. It MUST open a batch session, read all `*.xml` files, send them as batch parts, and close the batch session.
+The CLI SHALL support `ksef invoice send <dir/>` when the path is a directory. It MUST open a batch session, read all `*.xml` files, send them as batch parts, and close the batch session. It MUST accept an optional `--form-code <key>` flag. If `--form-code` specifies a PEF variant (`PEF3` or `PEFKOR3`), the CLI MUST reject with an error because batch sessions do not support PEF document types.
 
 #### Scenario: Send directory of invoices
 - **WHEN** user runs `ksef invoice send ./invoices/` and the directory contains XML files
@@ -31,6 +39,14 @@ The CLI SHALL support `ksef invoice send <dir/>` when the path is a directory. I
 #### Scenario: Send directory path detection
 - **WHEN** user provides a path that is a directory (detected via `fs.statSync`)
 - **THEN** CLI MUST automatically use batch mode without requiring a `--batch` flag
+
+#### Scenario: Send batch with form code
+- **WHEN** user runs `ksef invoice send ./invoices/ --form-code FA3`
+- **THEN** CLI SHALL resolve `FA3` to `FORM_CODES.FA_3` and use it as the batch session form code
+
+#### Scenario: Reject PEF for batch
+- **WHEN** user runs `ksef invoice send ./invoices/ --form-code PEF3`
+- **THEN** CLI SHALL display an error explaining that PEF document types are not supported in batch sessions
 
 ### Requirement: Get invoice by KSeF number
 The CLI SHALL provide `ksef invoice get <ksef-number>` to download an invoice XML by its KSeF number.
@@ -117,7 +133,7 @@ The CLI SHALL provide `ksef invoice export-status <ref>` to check the status of 
 - **THEN** CLI outputs the raw `InvoiceExportStatusResponse` as JSON
 
 ### Requirement: Global flags support
-All invoice commands SHALL respect global flags: `--env`, `--json`, `--nip`, `--timeout`.
+All invoice commands SHALL respect global flags: `--env`, `--json`, `--nip`, `--timeout`. The `ksef invoice` command group SHALL include the `export-incremental` subcommand in its help output.
 
 #### Scenario: JSON output on any invoice command
 - **WHEN** any invoice command is run with `--json`
@@ -126,3 +142,7 @@ All invoice commands SHALL respect global flags: `--env`, `--json`, `--nip`, `--
 #### Scenario: Environment override
 - **WHEN** any invoice command is run with `--env demo`
 - **THEN** CLI MUST use the demo environment regardless of stored config
+
+#### Scenario: Help includes export-incremental
+- **WHEN** user runs `ksef invoice --help`
+- **THEN** the help output SHALL list `export-incremental` among available subcommands

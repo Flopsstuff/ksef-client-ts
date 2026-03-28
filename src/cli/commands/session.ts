@@ -7,7 +7,9 @@ import { saveOnlineSessionRef, clearOnlineSessionRef } from '../session-store.js
 import { outputResult, outputKeyValue, outputTable, outputSuccess, outputWarning } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions } from '../types.js';
-import type { SessionType } from '../../models/common.js';
+import type { FormCode, SessionType } from '../../models/common.js';
+import { FORM_CODES, FORM_CODE_KEYS } from '../../models/document-structures/index.js';
+import { parseUpoXml } from '../../xml/index.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -23,6 +25,7 @@ const open = defineCommand({
   meta: { name: 'open', description: 'Open a KSeF session (online or batch)' },
   args: {
     batch: { type: 'boolean', description: 'Open a batch session instead of online' },
+    formCode: { type: 'string', description: 'Document type: FA2, FA3, PEF3, PEFKOR3, FARR1 (default: FA2)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -43,7 +46,15 @@ const open = defineCommand({
       await client.crypto.init();
       const encryptionData = client.crypto.getEncryptionData();
 
-      const formCode = { systemCode: 'FA (2)', schemaVersion: '1-0E', value: 'FA' };
+      const formCodeKey = args.formCode as string | undefined;
+      let formCode: FormCode = FORM_CODES.FA_2;
+      if (formCodeKey) {
+        const resolved = FORM_CODE_KEYS[formCodeKey];
+        if (!resolved) {
+          throw new Error(`Invalid form code "${formCodeKey}". Valid keys: ${Object.keys(FORM_CODE_KEYS).join(', ')}`);
+        }
+        formCode = resolved;
+      }
 
       if (args.batch) {
         // Batch session requires file info — placeholder for now, real batch is via invoice send <dir>
@@ -314,6 +325,7 @@ const upo = defineCommand({
     upoRef: { type: 'string', description: 'UPO reference' },
     ksefNumber: { type: 'string', description: 'KSeF invoice number' },
     invoiceRef: { type: 'string', description: 'Invoice reference' },
+    parsed: { type: 'boolean', description: 'Parse UPO XML and output as JSON' },
     o: { type: 'string', description: 'Output file path' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
@@ -336,6 +348,18 @@ const upo = defineCommand({
         result = await client.sessionStatus.getInvoiceUpoByReference(sessionRef, args.invoiceRef);
       } else {
         throw new Error('Provide one of: --upo-ref, --ksef-number, or --invoice-ref');
+      }
+
+      if (args.parsed) {
+        const parsed = parseUpoXml(result.upo);
+        const json = JSON.stringify(parsed, null, 2);
+        if (args.o) {
+          fs.writeFileSync(args.o, json, 'utf-8');
+          outputSuccess(`Parsed UPO saved to ${args.o}`);
+        } else {
+          console.log(json);
+        }
+        return;
       }
 
       if (args.json) {

@@ -23,19 +23,25 @@ features:
   - title: Complete API Coverage
     details: KSeF API v2.3.0 — auth, sessions, invoices, permissions, tokens, certificates, QR codes, and more. All types aligned with the official OpenAPI spec.
   - title: Full-Featured CLI
-    details: 14 command groups, 60+ subcommands. Config, auth, sessions, invoices, permissions, tokens, certificates, limits, Peppol, QR codes, health checks, and shell completion.
-  - title: Full Documentation
-    details: VitePress site with Quick Start, interactive API reference, and the full OpenAPI spec — everything you need to integrate without guesswork.
+    details: 14 command groups, 60+ subcommands. Auth (token, certificate, external signing), sessions, invoices, batch upload, incremental export, permissions, tokens, certificates, QR codes, health checks, and shell completion.
   - title: High-Level Workflows
     details: Orchestration functions for auth, online/batch sessions, and invoice export. Handle the full lifecycle — polling, encryption, UPO retrieval — in a single call.
-  - title: Comprehensive Test Coverage
-    details: Vitest unit and E2E tests across HTTP, crypto, services, workflows, and builders. CI runs the suite on every change so regressions are caught early.
-  - title: Zero HTTP Dependencies
-    details: Uses native fetch (Node 18+) with no external HTTP libraries. Dual ESM/CJS output via tsup.
   - title: Built-in Cryptography
-    details: AES-256-CBC, RSA-OAEP, ECDH, XAdES-B signatures, and self-signed certificate generation using Node.js native crypto.
+    details: AES-256-CBC encryption/decryption, RSA-OAEP key wrapping, ECDH key agreement, XAdES-B envelope signatures, and self-signed certificate generation — all using Node.js native crypto.
+  - title: External Signing
+    details: Authenticate with externally-signed XAdES XML for HSM, EPUAP, and smart card integration. Callback-based API lets you plug in any signing backend without exposing private keys to the library.
   - title: Automatic Token Management
-    details: AuthManager handles token injection, automatic 401 refresh with dedup, and high-level loginWithToken() / loginWithCertificate() API.
+    details: AuthManager handles access/refresh token injection, automatic 401 refresh with request deduplication, and high-level loginWithToken() / loginWithCertificate() API.
+  - title: Streaming Batch Uploads
+    details: Stream-based batch upload with constant memory usage via Web Streams API. Built-in ZIP bomb protection with configurable limits on file count, total size, and compression ratio.
+  - title: Incremental Export
+    details: HWM-based paginated invoice export that handles truncated responses automatically. File-based state persistence lets you resume exports across process restarts without re-downloading.
+  - title: Multiple Document Structures
+    details: Support for all KSeF document types — FA (2)/(3), PEF (3), PEF_KOR (3), FA_RR (1). Typed FormCode constants, session-type validation, and structured UPO parsing with discriminated unions.
   - title: Typed Errors & Fluent Builders
-    details: KSeFError hierarchy (401, 403, 429, validation) plus request builders that catch mistakes before they hit the network.
+    details: KSeFError hierarchy with specific classes for 401, 403, 429, and validation errors. Fluent request builders catch mistakes at compile time before they hit the network.
+  - title: Comprehensive Test Coverage
+    details: 1200+ Vitest unit and E2E tests across HTTP, crypto, services, workflows, builders, and CLI. CI runs the full suite on every change so regressions are caught early.
+  - title: Zero HTTP Dependencies
+    details: Uses native fetch (Node 18+) with no external HTTP libraries. Dual ESM/CJS output via tsup. Resilient transport with exponential backoff retry, token bucket rate limiting, and presigned URL validation.
 ---

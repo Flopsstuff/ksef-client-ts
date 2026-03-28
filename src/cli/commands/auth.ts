@@ -1,3 +1,6 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
 import { defineCommand } from 'citty';
 import { createClient, requireSession } from '../client-factory.js';
 import { saveSession, clearSession, loadSession, isSessionExpired } from '../session-store.js';
@@ -5,6 +8,37 @@ import { loadConfig, saveConfig } from '../config-store.js';
 import { outputResult, outputKeyValue, outputSuccess, outputWarning } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions, SessionData } from '../types.js';
+import { pollUntil } from '../../workflows/polling.js';
+
+const PENDING_CHALLENGE_FILE = path.join(os.homedir(), '.ksef', 'pending-challenge.json');
+
+interface PendingChallenge {
+  challenge: string;
+  timestamp: string;
+  contextIdentifier: { type: string; value: string };
+  createdAt: string;
+}
+
+function savePendingChallenge(data: PendingChallenge): void {
+  const dir = path.dirname(PENDING_CHALLENGE_FILE);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(PENDING_CHALLENGE_FILE, JSON.stringify(data, null, 2) + '\n', {
+    encoding: 'utf-8',
+    mode: 0o600,
+  });
+}
+
+function clearPendingChallenge(): void {
+  try { fs.unlinkSync(PENDING_CHALLENGE_FILE); } catch { /* ignore */ }
+}
+
+export async function readStdin(stream: AsyncIterable<Buffer> = process.stdin): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks).toString('utf-8');
+}
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -179,7 +213,111 @@ const whoami = defineCommand({
   },
 });
 
+const loginExternal = defineCommand({
+  meta: { name: 'login-external', description: 'Authenticate with externally-signed XAdES XML' },
+  args: {
+    generate: { type: 'boolean', description: 'Generate unsigned auth request XML' },
+    submit: { type: 'boolean', description: 'Submit externally-signed XML' },
+    nip: { type: 'string', description: 'NIP number (or identifier value for non-Nip context types)' },
+    'context-type': { type: 'string', description: 'Context identifier type: Nip, InternalId, NipVatUe, PeppolId (default: Nip)' },
+    output: { type: 'string', description: 'Write unsigned XML to file instead of stdout (--generate)' },
+    input: { type: 'string', description: 'Read signed XML from file instead of stdin (--submit)' },
+    env: { type: 'string', description: 'Environment (test/demo/prod)' },
+    json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
+    timeout: { type: 'string', description: 'Request timeout (ms)' },
+  },
+  run({ args }) {
+    return withErrorHandler(async () => {
+      const globalOpts = getGlobalOpts(args);
+      const config = loadConfig();
+      const nip = args.nip ?? config.nip;
+
+      if (!nip) {
+        throw new Error('NIP/identifier is required. Provide --nip or set it via `ksef config set --nip <nip>`.');
+      }
+
+      const contextType = (args['context-type'] as string) ?? 'Nip';
+      const validTypes = ['Nip', 'InternalId', 'NipVatUe', 'PeppolId'];
+      if (!validTypes.includes(contextType)) {
+        throw new Error(`Invalid --context-type "${contextType}". Must be one of: ${validTypes.join(', ')}`);
+      }
+
+      if (!args.generate && !args.submit) {
+        throw new Error('Specify --generate to create unsigned XML, or --submit to send signed XML.');
+      }
+
+      const client = createClient(globalOpts);
+
+      if (args.generate) {
+        const { buildUnsignedAuthTokenRequestXml } = await import('../../crypto/auth-xml-builder.js');
+        const challengeResult = await client.auth.getChallenge();
+        const unsignedXml = buildUnsignedAuthTokenRequestXml({
+          challenge: challengeResult.challenge,
+          contextIdentifier: { type: contextType as any, value: nip },
+        });
+
+        if (args.output) {
+          fs.writeFileSync(args.output, unsignedXml, 'utf-8');
+          process.stderr.write(`Unsigned XML written to ${args.output}\n`);
+        } else {
+          process.stdout.write(unsignedXml);
+        }
+
+        savePendingChallenge({
+          challenge: challengeResult.challenge,
+          timestamp: challengeResult.timestamp,
+          contextIdentifier: { type: contextType, value: nip },
+          createdAt: new Date().toISOString(),
+        });
+
+        process.stderr.write(`Challenge: ${challengeResult.challenge}\n`);
+        process.stderr.write(`Timestamp: ${challengeResult.timestamp}\n`);
+        process.stderr.write(`Note: Sign this XML and submit with --submit before the challenge expires.\n`);
+      }
+
+      if (args.submit) {
+        let signedXml: string;
+
+        if (args.input) {
+          signedXml = fs.readFileSync(args.input, 'utf-8');
+        } else {
+          signedXml = await readStdin();
+        }
+
+        if (!signedXml.trim()) {
+          throw new Error('No signed XML provided. Pipe signed XML to stdin or use --input <file>.');
+        }
+
+        const submitResult = await client.auth.submitXadesAuthRequest(signedXml);
+        const authToken = submitResult.authenticationToken.token;
+
+        await pollUntil(
+          () => client.auth.getAuthStatus(submitResult.referenceNumber, authToken),
+          (s) => s.status.code !== 100,
+          { intervalMs: 1000, maxAttempts: 30, description: `auth ${submitResult.referenceNumber}` },
+        );
+
+        const tokens = await client.auth.getAccessToken(authToken);
+
+        const session: SessionData = {
+          accessToken: tokens.accessToken.token,
+          refreshToken: tokens.refreshToken.token,
+          expiresAt: tokens.accessToken.validUntil,
+          environment: (args.env ?? config.environment) as SessionData['environment'],
+        };
+        saveSession(session);
+        if (args.env && args.env !== config.environment) {
+          saveConfig({ ...config, environment: session.environment });
+        }
+        clearPendingChallenge();
+        outputSuccess('Logged in successfully via external signature.');
+      }
+    });
+  },
+});
+
 export const authCommand = defineCommand({
   meta: { name: 'auth', description: 'Authentication commands' },
-  subCommands: { challenge, login, status, logout, refresh, whoami },
+  subCommands: { challenge, login, 'login-external': loginExternal, status, logout, refresh, whoami },
 });
