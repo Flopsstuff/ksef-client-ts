@@ -20,8 +20,8 @@ describe('26 - UPO Parsing', { timeout: 300_000 }, () => {
 
   describe('Online session UPO', () => {
     it('should parse UPO with all required fields', async () => {
-      const handle = await openOnlineSession(client, { formCode: getFormCode('FA_2') });
-      await handle.sendInvoice(prepareInvoiceXml('FA_2', { nip }));
+      const handle = await openOnlineSession(client, { formCode: getFormCode('FA_3') });
+      await handle.sendInvoice(prepareInvoiceXml('FA_3', { nip }));
       await handle.close();
       const upo = await handle.waitForUpoParsed(POLL_OPTIONS);
 
@@ -48,9 +48,9 @@ describe('26 - UPO Parsing', { timeout: 300_000 }, () => {
     });
 
     it('should have document count matching sent invoices', async () => {
-      const handle = await openOnlineSession(client, { formCode: getFormCode('FA_2') });
+      const handle = await openOnlineSession(client, { formCode: getFormCode('FA_3') });
       for (let i = 0; i < 3; i++) {
-        await handle.sendInvoice(prepareInvoiceXml('FA_2', { nip }));
+        await handle.sendInvoice(prepareInvoiceXml('FA_3', { nip }));
       }
       await handle.close();
       const upo = await handle.waitForUpoParsed(POLL_OPTIONS);
@@ -62,8 +62,8 @@ describe('26 - UPO Parsing', { timeout: 300_000 }, () => {
     });
 
     it('should have nipSprzedawcy matching authenticated NIP', async () => {
-      const handle = await openOnlineSession(client, { formCode: getFormCode('FA_2') });
-      await handle.sendInvoice(prepareInvoiceXml('FA_2', { nip }));
+      const handle = await openOnlineSession(client, { formCode: getFormCode('FA_3') });
+      await handle.sendInvoice(prepareInvoiceXml('FA_3', { nip }));
       await handle.close();
       const upo = await handle.waitForUpoParsed(POLL_OPTIONS);
 
@@ -78,12 +78,12 @@ describe('26 - UPO Parsing', { timeout: 300_000 }, () => {
   describe('Batch session UPO', () => {
     it('should parse UPO via uploadBatchParsed', async () => {
       const zip = new JSZip();
-      zip.file('invoice-1.xml', prepareInvoiceXml('FA_2', { nip }));
-      zip.file('invoice-2.xml', prepareInvoiceXml('FA_2', { nip }));
+      zip.file('invoice-1.xml', prepareInvoiceXml('FA_3', { nip }));
+      zip.file('invoice-2.xml', prepareInvoiceXml('FA_3', { nip }));
       const zipData = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
 
       const result = await uploadBatchParsed(client, zipData, {
-        formCode: getFormCode('FA_2'),
+        formCode: getFormCode('FA_3'),
         pollOptions: { intervalMs: 5000, maxAttempts: 60 },
       });
 
@@ -103,11 +103,11 @@ describe('26 - UPO Parsing', { timeout: 300_000 }, () => {
 
     it('should have kodFormularza matching the form code', async () => {
       const zip = new JSZip();
-      zip.file('invoice-1.xml', prepareInvoiceXml('FA_2', { nip }));
+      zip.file('invoice-1.xml', prepareInvoiceXml('FA_3', { nip }));
       const zipData = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
 
       const result = await uploadBatchParsed(client, zipData, {
-        formCode: getFormCode('FA_2'),
+        formCode: getFormCode('FA_3'),
         pollOptions: { intervalMs: 5000, maxAttempts: 60 },
       });
 

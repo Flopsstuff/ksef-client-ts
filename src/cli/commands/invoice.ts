@@ -11,7 +11,7 @@ import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions } from '../types.js';
 import type { FormCode } from '../../models/common.js';
 import type { InvoiceQueryFilters, InvoiceSubjectType, InvoiceQueryDateType, AmountType } from '../../models/invoices/types.js';
-import { FORM_CODES, FORM_CODE_KEYS, validateFormCodeForSession } from '../../models/document-structures/index.js';
+import { DEFAULT_FORM_CODE, FORM_CODE_KEYS, validateFormCodeForSession } from '../../models/document-structures/index.js';
 import { exportIncremental } from './export-incremental.js';
 import { normalizeCliDate } from '../date-utils.js';
 
@@ -80,7 +80,7 @@ const send = defineCommand({
     path: { type: 'positional', description: 'Path to XML file, directory of XMLs, or ZIP for batch', required: true },
     sessionRef: { type: 'string', description: 'Override online session reference' },
     stream: { type: 'boolean', description: 'Use stream-based batch upload (for ZIP files, reduces memory usage)' },
-    formCode: { type: 'string', description: 'Document type: FA2, FA3, PEF3, PEFKOR3, FARR1 (default: FA2)' },
+    formCode: { type: 'string', description: 'Document type: FA2, FA3, PEF3, PEFKOR3, FARR1 (default: FA3)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -96,7 +96,7 @@ const send = defineCommand({
       const filePath = args.path;
 
       const formCodeKey = args.formCode as string | undefined;
-      let formCode: FormCode = FORM_CODES.FA_2;
+      let formCode: FormCode = DEFAULT_FORM_CODE;
       if (formCodeKey) {
         const resolved = FORM_CODE_KEYS[formCodeKey];
         if (!resolved) {

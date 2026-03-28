@@ -45,7 +45,7 @@ describe('openOnlineSession', () => {
     expect(client.crypto.getEncryptionData).toHaveBeenCalled();
     expect(client.onlineSession.openSession).toHaveBeenCalledWith(
       expect.objectContaining({
-        formCode: { systemCode: 'FA (2)', schemaVersion: '1-0E', value: 'FA' },
+        formCode: { systemCode: 'FA (3)', schemaVersion: '1-0E', value: 'FA' },
         encryption: expect.any(Object),
       }),
       undefined,

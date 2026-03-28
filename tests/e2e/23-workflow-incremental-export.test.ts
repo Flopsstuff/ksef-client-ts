@@ -22,9 +22,9 @@ describe('23 - Incremental Export Workflow', { timeout: 300_000 }, () => {
     nip = auth.nip;
 
     // Send test invoices to ensure there's data
-    const invoices = Array.from({ length: 3 }, () => prepareInvoiceXml('FA_2', { nip }));
+    const invoices = Array.from({ length: 3 }, () => prepareInvoiceXml('FA_3', { nip }));
     await openSendAndClose(client, invoices, {
-      formCode: getFormCode('FA_2'),
+      formCode: getFormCode('FA_3'),
       pollOptions: { intervalMs: 5000, maxAttempts: 30 },
     });
 

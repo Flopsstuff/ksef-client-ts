@@ -1,7 +1,7 @@
 import type { KSeFClient } from '../client.js';
 import type { UpoVersion } from '../http/ksef-feature.js';
 import type { FormCode } from '../models/common.js';
-import { FORM_CODES } from '../models/document-structures/index.js';
+import { DEFAULT_FORM_CODE } from '../models/document-structures/index.js';
 import type { OnlineSessionHandle, ParsedUpoInfo, PollOptions, UpoInfo } from './types.js';
 import { pollUntil } from './polling.js';
 import { parseUpoXml } from '../xml/index.js';
@@ -21,7 +21,7 @@ export async function openOnlineSession(
 ): Promise<OnlineSessionHandle> {
   await client.crypto.init();
   const encData = client.crypto.getEncryptionData();
-  const formCode = options?.formCode ?? FORM_CODES.FA_2;
+  const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
 
   const openResp = await client.onlineSession.openSession(
     { formCode, encryption: encData.encryptionInfo },

@@ -8,7 +8,7 @@ import { outputResult, outputKeyValue, outputTable, outputSuccess, outputWarning
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions } from '../types.js';
 import type { FormCode, SessionType } from '../../models/common.js';
-import { FORM_CODES, FORM_CODE_KEYS } from '../../models/document-structures/index.js';
+import { DEFAULT_FORM_CODE, FORM_CODE_KEYS } from '../../models/document-structures/index.js';
 import { parseUpoXml } from '../../xml/index.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
@@ -25,7 +25,7 @@ const open = defineCommand({
   meta: { name: 'open', description: 'Open a KSeF session (online or batch)' },
   args: {
     batch: { type: 'boolean', description: 'Open a batch session instead of online' },
-    formCode: { type: 'string', description: 'Document type: FA2, FA3, PEF3, PEFKOR3, FARR1 (default: FA2)' },
+    formCode: { type: 'string', description: 'Document type: FA2, FA3, PEF3, PEFKOR3, FARR1 (default: FA3)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -47,7 +47,7 @@ const open = defineCommand({
       const encryptionData = client.crypto.getEncryptionData();
 
       const formCodeKey = args.formCode as string | undefined;
-      let formCode: FormCode = FORM_CODES.FA_2;
+      let formCode: FormCode = DEFAULT_FORM_CODE;
       if (formCodeKey) {
         const resolved = FORM_CODE_KEYS[formCodeKey];
         if (!resolved) {

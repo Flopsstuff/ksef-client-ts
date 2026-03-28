@@ -13,10 +13,10 @@ describe('24 - Duplicate Invoice Detection', { timeout: 300_000 }, () => {
     const { client, nip, encryptionData } = await authenticateWithCertAndCrypto();
     const { cipherKey, cipherIv, encryptionInfo } = encryptionData;
     const sharedInvoiceNumber = randomUUID();
-    const formCode = getFormCode('FA_2');
+    const formCode = getFormCode('FA_3');
 
     // Step 1: Send invoice in batch session
-    const invoiceXml = prepareInvoiceXml('FA_2', { nip, invoiceNumber: sharedInvoiceNumber });
+    const invoiceXml = prepareInvoiceXml('FA_3', { nip, invoiceNumber: sharedInvoiceNumber });
     const zip = new JSZip();
     zip.file('invoice-1.xml', invoiceXml);
     const zipData = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });

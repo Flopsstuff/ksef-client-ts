@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 - **Encrypted PEM key support** — `--key-password` option for `ksef auth login` to use encrypted PEM private keys without manual decryption.
 - **`whoami` identity context** — `ksef auth whoami` now displays NIP, auth method, permissions, and token type parsed from the JWT access token. Full context available in `--json` mode.
 ### Changed
-- TBD
+- **Default form code switched to FA(3)** — CLI commands, workflows, and E2E tests now default to FA(3), the invoice schema required by KSeF on DEMO and PROD since February 2026. FA(2) remains available via `--form-code FA2` for TEST environment use.
 ### Fixed
 - **CLI date format** — `--from` and `--to` date arguments in `invoice query`, `invoice export`, and `invoice export-incremental` are now normalized to full ISO-8601 datetime, fixing HTTP 400 errors when using short `YYYY-MM-DD` format.
 

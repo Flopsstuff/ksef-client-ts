@@ -22,12 +22,12 @@ describe('06 - Invoice Query & Export', { timeout: 300_000 }, () => {
     const nip = setup.nip;
 
     const openResp = await client.onlineSession.openSession({
-      formCode: getFormCode('FA_2'),
+      formCode: getFormCode('FA_3'),
       encryption: setup.encryptionData.encryptionInfo,
     });
     const sessionRef = openResp.referenceNumber;
 
-    const { sendRequest } = prepareAndEncryptInvoice(client, 'FA_2', nip, cipherKey, cipherIv);
+    const { sendRequest } = prepareAndEncryptInvoice(client, 'FA_3', nip, cipherKey, cipherIv);
     await client.onlineSession.sendInvoice(sessionRef, sendRequest);
 
     await pollUntil(
