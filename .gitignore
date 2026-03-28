@@ -16,6 +16,9 @@ coverage/
 # Plans
 plans/
 
+# OpenSpec archive
+openspec/changes/archive/
+
 # VitePress
 docs/.vitepress/cache
 docs/.vitepress/dist
