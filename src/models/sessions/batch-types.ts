@@ -36,3 +36,9 @@ export interface BatchPartSendingInfo {
   metadata: FileMetadata;
   ordinalNumber: number;
 }
+
+export interface BatchPartStreamSendingInfo {
+  dataStream: ReadableStream<Uint8Array>;
+  metadata: FileMetadata;
+  ordinalNumber: number;
+}

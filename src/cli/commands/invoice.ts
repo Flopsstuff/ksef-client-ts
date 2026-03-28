@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { Readable } from 'node:stream';
 import { defineCommand } from 'citty';
 import { consola } from 'consola';
 import { requireSession } from '../client-factory.js';
@@ -74,8 +75,9 @@ const QUERY_FILTER_ARGS = {
 const send = defineCommand({
   meta: { name: 'send', description: 'Send invoice(s) — single XML file or directory for batch' },
   args: {
-    path: { type: 'positional', description: 'Path to XML file or directory of XMLs', required: true },
+    path: { type: 'positional', description: 'Path to XML file, directory of XMLs, or ZIP for batch', required: true },
     sessionRef: { type: 'string', description: 'Override online session reference' },
+    stream: { type: 'boolean', description: 'Use stream-based batch upload (for ZIP files, reduces memory usage)' },
     formCode: { type: 'string', description: 'Document type: FA2, FA3, PEF3, PEFKOR3, FARR1 (default: FA2)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
@@ -106,6 +108,40 @@ const send = defineCommand({
       }
 
       const stat = fs.statSync(filePath);
+
+      if (args.stream) {
+        // Stream-based batch upload from a ZIP file
+        if (!filePath.endsWith('.zip') || stat.isDirectory()) {
+          throw new Error('--stream requires a .zip file path.');
+        }
+
+        if (!nip) {
+          throw new Error('NIP is required. Provide --nip or set it via `ksef config set --nip <nip>`.');
+        }
+
+        if (!validateFormCodeForSession(formCode, 'batch')) {
+          throw new Error(`Document type "${formCode.systemCode}" is not supported in batch sessions. PEF/PEF_KOR require online sessions.`);
+        }
+
+        const { uploadBatchStream } = await import('../../workflows/batch-session-workflow.js');
+        const zipSize = stat.size;
+        const zipStreamFactory = () =>
+          Readable.toWeb(fs.createReadStream(filePath)) as ReadableStream<Uint8Array>;
+
+        if (!args.json) consola.start(`Sending batch via stream (${(zipSize / 1_000_000).toFixed(1)} MB)...`);
+
+        const result = await uploadBatchStream(client, zipStreamFactory, zipSize, {
+          formCode,
+          pollOptions: { intervalMs: 3000 },
+        });
+
+        if (args.json) {
+          outputResult(result, { json: true });
+        } else {
+          outputSuccess(`Batch sent via stream. Ref: ${result.sessionRef}, invoices: ${result.upo.invoiceCount ?? 'unknown'}`);
+        }
+        return;
+      }
 
       if (stat.isDirectory()) {
         // Batch mode: send all XMLs in directory

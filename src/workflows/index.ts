@@ -2,8 +2,8 @@ export type { PollOptions, OnlineSessionHandle, UpoInfo, ParsedUpoInfo, BatchUpl
 export { pollUntil } from './polling.js';
 export { openOnlineSession, openSendAndClose } from './online-session-workflow.js';
 export type { OpenOnlineSessionOptions, SendAndCloseOptions } from './online-session-workflow.js';
-export { uploadBatch, uploadBatchParsed } from './batch-session-workflow.js';
-export type { BatchUploadOptions } from './batch-session-workflow.js';
+export { uploadBatch, uploadBatchParsed, uploadBatchStream, uploadBatchStreamParsed } from './batch-session-workflow.js';
+export type { BatchUploadOptions, BatchStreamBuildResult } from './batch-session-workflow.js';
 export { exportInvoices, exportAndDownload } from './invoice-export-workflow.js';
 export type { ExportOptions, ExportAndDownloadOptions } from './invoice-export-workflow.js';
 export { incrementalExportAndDownload } from './incremental-export-workflow.js';

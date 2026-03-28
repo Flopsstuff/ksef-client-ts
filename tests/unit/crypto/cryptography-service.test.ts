@@ -269,6 +269,146 @@ describe('CryptographyService', () => {
   });
 
   // -------------------------------------------------------------------
+  // encryptAES256Stream()
+  // -------------------------------------------------------------------
+  describe('encryptAES256Stream()', () => {
+    const key = crypto.randomBytes(32);
+    const iv = crypto.randomBytes(16);
+
+    function toStream(data: Uint8Array): ReadableStream<Uint8Array> {
+      return new ReadableStream({
+        start(controller) {
+          controller.enqueue(data);
+          controller.close();
+        },
+      });
+    }
+
+    function toChunkedStream(data: Uint8Array, chunkSize: number): ReadableStream<Uint8Array> {
+      return new ReadableStream({
+        start(controller) {
+          for (let i = 0; i < data.length; i += chunkSize) {
+            controller.enqueue(data.subarray(i, Math.min(i + chunkSize, data.length)));
+          }
+          controller.close();
+        },
+      });
+    }
+
+    async function collectStream(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
+      const chunks: Uint8Array[] = [];
+      const reader = stream.getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+      return new Uint8Array(Buffer.concat(chunks));
+    }
+
+    it('output matches buffer-based encryption for same input', async () => {
+      const plaintext = new Uint8Array(Buffer.from('Hello KSeF stream!'));
+      const bufferResult = service.encryptAES256(plaintext, key, iv);
+      const streamResult = await collectStream(
+        service.encryptAES256Stream(toStream(plaintext), key, iv),
+      );
+      expect(Buffer.from(streamResult).equals(Buffer.from(bufferResult))).toBe(true);
+    });
+
+    it('output matches buffer-based encryption for multi-chunk input', async () => {
+      const plaintext = new Uint8Array(crypto.randomBytes(10_000));
+      const bufferResult = service.encryptAES256(plaintext, key, iv);
+      const streamResult = await collectStream(
+        service.encryptAES256Stream(toChunkedStream(plaintext, 1000), key, iv),
+      );
+      expect(Buffer.from(streamResult).equals(Buffer.from(bufferResult))).toBe(true);
+    });
+
+    it('handles single AES block (16 bytes)', async () => {
+      const plaintext = new Uint8Array(16);
+      const bufferResult = service.encryptAES256(plaintext, key, iv);
+      const streamResult = await collectStream(
+        service.encryptAES256Stream(toStream(plaintext), key, iv),
+      );
+      expect(Buffer.from(streamResult).equals(Buffer.from(bufferResult))).toBe(true);
+    });
+
+    it('handles empty input', async () => {
+      const plaintext = new Uint8Array(0);
+      const bufferResult = service.encryptAES256(plaintext, key, iv);
+      const streamResult = await collectStream(
+        service.encryptAES256Stream(toStream(plaintext), key, iv),
+      );
+      expect(Buffer.from(streamResult).equals(Buffer.from(bufferResult))).toBe(true);
+    });
+
+    it('encrypted stream can be decrypted', async () => {
+      const plaintext = new Uint8Array(Buffer.from('Decrypt me!'));
+      const streamResult = await collectStream(
+        service.encryptAES256Stream(toStream(plaintext), key, iv),
+      );
+      const decrypted = service.decryptAES256(streamResult, key, iv);
+      expect(Buffer.from(decrypted).toString()).toBe('Decrypt me!');
+    });
+  });
+
+  // -------------------------------------------------------------------
+  // getFileMetadataFromStream()
+  // -------------------------------------------------------------------
+  describe('getFileMetadataFromStream()', () => {
+    function toStream(data: Uint8Array): ReadableStream<Uint8Array> {
+      return new ReadableStream({
+        start(controller) {
+          controller.enqueue(data);
+          controller.close();
+        },
+      });
+    }
+
+    function toChunkedStream(data: Uint8Array, chunkSize: number): ReadableStream<Uint8Array> {
+      return new ReadableStream({
+        start(controller) {
+          for (let i = 0; i < data.length; i += chunkSize) {
+            controller.enqueue(data.subarray(i, Math.min(i + chunkSize, data.length)));
+          }
+          controller.close();
+        },
+      });
+    }
+
+    it('output matches buffer-based hashing', async () => {
+      const data = new Uint8Array(Buffer.from('hello world'));
+      const bufferResult = service.getFileMetadata(data);
+      const streamResult = await service.getFileMetadataFromStream(toStream(data));
+      expect(streamResult.hashSHA).toBe(bufferResult.hashSHA);
+      expect(streamResult.fileSize).toBe(bufferResult.fileSize);
+    });
+
+    it('output matches for multi-chunk stream', async () => {
+      const data = new Uint8Array(crypto.randomBytes(10_000));
+      const bufferResult = service.getFileMetadata(data);
+      const streamResult = await service.getFileMetadataFromStream(toChunkedStream(data, 1000));
+      expect(streamResult.hashSHA).toBe(bufferResult.hashSHA);
+      expect(streamResult.fileSize).toBe(bufferResult.fileSize);
+    });
+
+    it('handles empty stream', async () => {
+      const result = await service.getFileMetadataFromStream(toStream(new Uint8Array(0)));
+      expect(result.fileSize).toBe(0);
+      expect(result.hashSHA).toBe('47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=');
+    });
+
+    it('stream is consumed after call', async () => {
+      const stream = toStream(new Uint8Array(Buffer.from('test')));
+      await service.getFileMetadataFromStream(stream);
+      // Stream should be locked/consumed — getting reader again should fail or return done
+      const reader = stream.getReader();
+      const { done } = await reader.read();
+      expect(done).toBe(true);
+    });
+  });
+
+  // -------------------------------------------------------------------
   // getFileMetadata()
   // -------------------------------------------------------------------
   describe('getFileMetadata()', () => {

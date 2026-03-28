@@ -33,6 +33,33 @@ export class CryptographyService {
     return new Uint8Array(Buffer.concat([cipher.update(content), cipher.final()]));
   }
 
+  /**
+   * Encrypt with AES-256-CBC as a streaming transform.
+   * Returns a ReadableStream that yields encrypted chunks as the input is read.
+   */
+  encryptAES256Stream(
+    input: ReadableStream<Uint8Array>,
+    key: Uint8Array,
+    iv: Uint8Array,
+  ): ReadableStream<Uint8Array> {
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    const transform = new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        const encrypted = cipher.update(chunk);
+        if (encrypted.length > 0) {
+          controller.enqueue(new Uint8Array(encrypted));
+        }
+      },
+      flush(controller) {
+        const final = cipher.final();
+        if (final.length > 0) {
+          controller.enqueue(new Uint8Array(final));
+        }
+      },
+    });
+    return input.pipeThrough(transform);
+  }
+
   /** Decrypt with AES-256-CBC. */
   decryptAES256(content: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array {
     const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
@@ -117,6 +144,24 @@ export class CryptographyService {
   getFileMetadata(file: Uint8Array): FileMetadata {
     const hash = crypto.createHash('sha256').update(file).digest('base64');
     return { hashSHA: hash, fileSize: file.length };
+  }
+
+  /** Compute SHA-256 hash (base64) and byte length from a ReadableStream. */
+  async getFileMetadataFromStream(stream: ReadableStream<Uint8Array>): Promise<FileMetadata> {
+    const hash = crypto.createHash('sha256');
+    let fileSize = 0;
+    const reader = stream.getReader();
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        hash.update(value);
+        fileSize += value.byteLength;
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    return { hashSHA: hash.digest('base64'), fileSize };
   }
 
   // ---------------------------------------------------------------------------

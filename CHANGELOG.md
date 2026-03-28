@@ -5,13 +5,14 @@ All notable changes to this project will be documented in this file.
 ## [0.4.0] - 2026-03-28
 
 ### Added
-- **E2E test expansion** — 6 new E2E tests across 4 files
-- **ZIP bomb protection** — safe `unzip()` / `createZip()` with configurable limits (file count, total/per-file size, compression ratio). Export workflow supports opt-in extraction via `extract` option.
-- **UPO XML parsing** — parse official KSeF receipt confirmations (UPO) into structured typed objects. Supports all authentication context variants and multi-document session receipts. Integrated into online and batch session workflows, with `--parsed` CLI option for JSON output.
-- **Incremental export (HWM)** — iterative export of invoices with automatic high-water-mark tracking. Resumes from the last processed date across runs, handles truncated results with multiple iterations, and saves state to a JSON file for reliable long-running syncs. Includes CLI command and pluggable storage for custom integrations.
 - **External signing support** — `buildUnsignedAuthTokenRequestXml()` generates unsigned KSeF auth XML for external signing (HSM, EPUAP, smart cards). Supports all 4 context identifier types. Includes `authenticateWithExternalSignature()` callback-based workflow and CLI `ksef auth login-external` with two-phase `--generate` / `--submit` flow.
 - **Multiple document structures** — `SystemCode` enum (FA v2/v3, PEF, PEF_KOR, FA_RR), typed `FORM_CODES` constants (7 variants), session-type constrained unions, helper functions (`getFormCode`, `parseFormCode`, `validateFormCodeForSession`), InvoiceType mapping per document type. CLI `--form-code` option on `ksef session open` and `ksef invoice send` with PEF batch rejection.
+- **Stream-based batch upload** — `uploadBatchStream()` workflow with constant memory usage via Web Streams API. Stream-based AES-256-CBC encryption, SHA-256 hashing, and ZIP splitting with two-pass stream factory pattern. Sequential part upload for O(max_part_size) memory. CLI `--stream` flag on `ksef invoice send` for .zip files.
+- **Incremental export (HWM)** — iterative export of invoices with automatic high-water-mark tracking. Resumes from the last processed date across runs, handles truncated results with multiple iterations, and saves state to a JSON file for reliable long-running syncs. Includes CLI command and pluggable storage for custom integrations.
+- **UPO XML parsing** — parse official KSeF receipt confirmations (UPO) into structured typed objects. Supports all authentication context variants and multi-document session receipts. Integrated into online and batch session workflows, with `--parsed` CLI option for JSON output.
+- **ZIP bomb protection** — safe `unzip()` / `createZip()` with configurable limits (file count, total/per-file size, compression ratio). Export workflow supports opt-in extraction via `extract` option.
 - **Documentation** — 6 new VitePress pages: Workflows, Batch Processing, HTTP Resilience, Cryptography, QR Codes, Validation & Data Integrity.
+- **E2E test expansion** — 6 new E2E tests across 4 files
 ### Changed
 - TBD
 ### Fixed

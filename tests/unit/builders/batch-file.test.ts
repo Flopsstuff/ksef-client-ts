@@ -5,6 +5,7 @@ import {
   BATCH_MAX_PART_SIZE,
   BATCH_MAX_TOTAL_SIZE,
   BATCH_MAX_PARTS,
+  type BatchStreamBuildResult,
 } from '../../../src/builders/batch-file.js';
 import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
 
@@ -170,6 +171,121 @@ describe('BatchFileBuilder', () => {
       const data = randomBytes(100);
       expect(() => BatchFileBuilder.build(data, identityEncrypt, { maxPartSize: -1 }))
         .toThrow(KSeFValidationError);
+    });
+  });
+
+  // -------------------------------------------------------------------
+  // buildFromStream()
+  // -------------------------------------------------------------------
+  describe('buildFromStream()', () => {
+    function makeStreamFactory(data: Uint8Array): () => ReadableStream<Uint8Array> {
+      return () => new ReadableStream({
+        start(controller) {
+          // Feed in small chunks to simulate streaming
+          const chunkSize = 1000;
+          for (let i = 0; i < data.length; i += chunkSize) {
+            controller.enqueue(data.subarray(i, Math.min(i + chunkSize, data.length)));
+          }
+          controller.close();
+        },
+      });
+    }
+
+    // Identity stream encrypt — passes data through unchanged
+    const identityStreamEncrypt = (stream: ReadableStream<Uint8Array>) => stream;
+
+    // Hash function using node:crypto
+    async function hashStream(stream: ReadableStream<Uint8Array>) {
+      const hash = crypto.createHash('sha256');
+      let fileSize = 0;
+      const reader = stream.getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        hash.update(value);
+        fileSize += value.byteLength;
+      }
+      return { hashSHA: hash.digest('base64'), fileSize };
+    }
+
+    it('produces correct part count for data that fits in one part', async () => {
+      const data = randomBytes(1000);
+      const result = await BatchFileBuilder.buildFromStream(
+        makeStreamFactory(data), data.length, identityStreamEncrypt, hashStream, { maxPartSize: 5000 },
+      );
+      expect(result.streamParts).toHaveLength(1);
+      expect(result.batchFile.fileParts).toHaveLength(1);
+    });
+
+    it('produces correct part count for multi-part data', async () => {
+      const data = randomBytes(12000);
+      const result = await BatchFileBuilder.buildFromStream(
+        makeStreamFactory(data), data.length, identityStreamEncrypt, hashStream, { maxPartSize: 5000 },
+      );
+      expect(result.streamParts).toHaveLength(3);
+      expect(result.batchFile.fileParts).toHaveLength(3);
+    });
+
+    it('hashes match buffer-based build with identity encrypt', async () => {
+      const data = randomBytes(12000);
+      const bufferResult = BatchFileBuilder.build(data, identityEncrypt, { maxPartSize: 5000 });
+      const streamResult = await BatchFileBuilder.buildFromStream(
+        makeStreamFactory(data), data.length, identityStreamEncrypt, hashStream, { maxPartSize: 5000 },
+      );
+      expect(streamResult.batchFile.fileHash).toBe(bufferResult.batchFile.fileHash);
+      expect(streamResult.batchFile.fileSize).toBe(bufferResult.batchFile.fileSize);
+      for (let i = 0; i < bufferResult.batchFile.fileParts.length; i++) {
+        expect(streamResult.batchFile.fileParts[i]!.fileHash).toBe(bufferResult.batchFile.fileParts[i]!.fileHash);
+        expect(streamResult.batchFile.fileParts[i]!.fileSize).toBe(bufferResult.batchFile.fileParts[i]!.fileSize);
+        expect(streamResult.batchFile.fileParts[i]!.ordinalNumber).toBe(bufferResult.batchFile.fileParts[i]!.ordinalNumber);
+      }
+    });
+
+    it('ordinal numbers are 1-based and sequential', async () => {
+      const data = randomBytes(10000);
+      const result = await BatchFileBuilder.buildFromStream(
+        makeStreamFactory(data), data.length, identityStreamEncrypt, hashStream, { maxPartSize: 3000 },
+      );
+      const ordinals = result.streamParts.map((p) => p.ordinalNumber);
+      expect(ordinals).toEqual([1, 2, 3, 4]);
+    });
+
+    it('streamParts metadata matches batchFile fileParts', async () => {
+      const data = randomBytes(8000);
+      const result = await BatchFileBuilder.buildFromStream(
+        makeStreamFactory(data), data.length, identityStreamEncrypt, hashStream, { maxPartSize: 3000 },
+      );
+      for (let i = 0; i < result.streamParts.length; i++) {
+        expect(result.streamParts[i]!.metadata.hashSHA).toBe(result.batchFile.fileParts[i]!.fileHash);
+        expect(result.streamParts[i]!.metadata.fileSize).toBe(result.batchFile.fileParts[i]!.fileSize);
+      }
+    });
+
+    it('throws on empty data (zipSize = 0)', async () => {
+      await expect(BatchFileBuilder.buildFromStream(
+        () => new ReadableStream({ start(c) { c.close(); } }), 0, identityStreamEncrypt, hashStream,
+      )).rejects.toThrow(KSeFValidationError);
+    });
+
+    it('throws when zipSize exceeds 5 GB', async () => {
+      await expect(BatchFileBuilder.buildFromStream(
+        () => new ReadableStream({ start(c) { c.close(); } }),
+        BATCH_MAX_TOTAL_SIZE + 1, identityStreamEncrypt, hashStream,
+      )).rejects.toThrow('exceeds maximum');
+    });
+
+    it('throws when parts exceed maximum of 50', async () => {
+      await expect(BatchFileBuilder.buildFromStream(
+        makeStreamFactory(randomBytes(5100)), 5100, identityStreamEncrypt, hashStream, { maxPartSize: 100 },
+      )).rejects.toThrow(`${BATCH_MAX_PARTS}`);
+    });
+
+    it('respects custom maxPartSize', async () => {
+      const data = randomBytes(300);
+      const result = await BatchFileBuilder.buildFromStream(
+        makeStreamFactory(data), data.length, identityStreamEncrypt, hashStream, { maxPartSize: 100 },
+      );
+      expect(result.streamParts).toHaveLength(3);
     });
   });
 
