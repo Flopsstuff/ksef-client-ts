@@ -38,7 +38,8 @@
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "check-api": "node scripts/check-openapi-coverage.mjs",
-    "split-openapi": "node scripts/split-openapi.mjs"
+    "split-openapi": "node scripts/split-openapi.mjs",
+    "sync-schemas": "node scripts/sync-xsd-schemas.mjs"
   },
   "keywords": [
     "ksef",

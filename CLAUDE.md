@@ -18,6 +18,7 @@ yarn docs:dev         # VitePress dev server
 yarn docs:build       # Build docs site
 yarn check-api        # Check OpenAPI coverage
 yarn split-openapi    # Split open-api.json into per-domain chunks
+yarn sync-schemas     # Download XSD schemas from CIRFMF/ksef-docs
 ```
 
 Run a single test file: `yarn vitest run tests/unit/foo.test.ts`
@@ -85,6 +86,10 @@ CLI (src/cli/) — 14 command groups via commander.js
 ### OpenAPI spec
 
 `docs/open-api.json` is the KSeF API OpenAPI specification (source of truth, v2.3.0-te). Per-domain chunks in `docs/openapi-chunks/` (16 files). Regenerate with `yarn split-openapi`. Validate coverage with `yarn check-api`.
+
+### XSD schemas
+
+`docs/schemas/` contains official KSeF invoice XSD schemas from [CIRFMF/ksef-docs](https://github.com/CIRFMF/ksef-docs). Organized by type: `FA/` (standard invoices), `PEF/` (Peppol), `RR/` (farmer invoices), each with `bazowe/` base types. Update with `yarn sync-schemas`.
 
 ### Error hierarchy
 
