@@ -9,6 +9,7 @@ import { outputResult, outputTable, outputSuccess } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions } from '../types.js';
 import type { InvoiceQueryFilters, InvoiceSubjectType, InvoiceQueryDateType, AmountType } from '../../models/invoices/types.js';
+import { exportIncremental } from './export-incremental.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -373,5 +374,5 @@ const exportStatus = defineCommand({
 
 export const invoiceCommand = defineCommand({
   meta: { name: 'invoice', description: 'Invoice commands' },
-  subCommands: { send, get, query, export: exportCmd, 'export-status': exportStatus },
+  subCommands: { send, get, query, export: exportCmd, 'export-status': exportStatus, 'export-incremental': exportIncremental },
 });

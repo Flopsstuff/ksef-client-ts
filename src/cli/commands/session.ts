@@ -8,6 +8,7 @@ import { outputResult, outputKeyValue, outputTable, outputSuccess, outputWarning
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions } from '../types.js';
 import type { SessionType } from '../../models/common.js';
+import { parseUpoXml } from '../../xml/index.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -314,6 +315,7 @@ const upo = defineCommand({
     upoRef: { type: 'string', description: 'UPO reference' },
     ksefNumber: { type: 'string', description: 'KSeF invoice number' },
     invoiceRef: { type: 'string', description: 'Invoice reference' },
+    parsed: { type: 'boolean', description: 'Parse UPO XML and output as JSON' },
     o: { type: 'string', description: 'Output file path' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
@@ -336,6 +338,18 @@ const upo = defineCommand({
         result = await client.sessionStatus.getInvoiceUpoByReference(sessionRef, args.invoiceRef);
       } else {
         throw new Error('Provide one of: --upo-ref, --ksef-number, or --invoice-ref');
+      }
+
+      if (args.parsed) {
+        const parsed = parseUpoXml(result.upo);
+        const json = JSON.stringify(parsed, null, 2);
+        if (args.o) {
+          fs.writeFileSync(args.o, json, 'utf-8');
+          outputSuccess(`Parsed UPO saved to ${args.o}`);
+        } else {
+          console.log(json);
+        }
+        return;
       }
 
       if (args.json) {

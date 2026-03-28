@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { uploadBatch } from '../../../src/workflows/batch-session-workflow.js';
+import { uploadBatch, uploadBatchParsed } from '../../../src/workflows/batch-session-workflow.js';
+import type { UpoPotwierdzenie } from '../../../src/xml/index.js';
 
 function createMockClient() {
   return {
@@ -122,6 +123,43 @@ describe('uploadBatch', () => {
 
     const sentParts = client.batchSession.sendParts.mock.calls[0][1];
     expect(sentParts).toHaveLength(3);
+  });
+
+  it('uploadBatchParsed fetches and parses UPO pages', async () => {
+    const SAMPLE_UPO_XML = `<?xml version="1.0" encoding="utf-8"?>
+<Potwierdzenie xmlns="http://upo.schematy.mf.gov.pl/KSeF/v4-3">
+  <NazwaPodmiotuPrzyjmujacego>Ministerstwo Finansów</NazwaPodmiotuPrzyjmujacego>
+  <NumerReferencyjnySesji>batch-ref-1</NumerReferencyjnySesji>
+  <Uwierzytelnienie>
+    <IdKontekstu><Nip>1234567890</Nip></IdKontekstu>
+    <SkrotDokumentuUwierzytelniajacego>abc123=</SkrotDokumentuUwierzytelniajacego>
+  </Uwierzytelnienie>
+  <NazwaStrukturyLogicznej>Schemat_FA(3)_v1-0E.xsd</NazwaStrukturyLogicznej>
+  <KodFormularza>FA (3)</KodFormularza>
+  <Dokument>
+    <NipSprzedawcy>1234567890</NipSprzedawcy>
+    <NumerKSeFDokumentu>1234567890-20250916-AABB-01</NumerKSeFDokumentu>
+    <NumerFaktury>FA/001/2025</NumerFaktury>
+    <DataWystawieniaFaktury>2025-09-16</DataWystawieniaFaktury>
+    <DataPrzeslaniaDokumentu>2025-09-16T10:00:00.000+02:00</DataPrzeslaniaDokumentu>
+    <DataNadaniaNumeruKSeF>2025-09-16T10:00:01.000+02:00</DataNadaniaNumeruKSeF>
+    <SkrotDokumentu>hash=</SkrotDokumentu>
+    <TrybWysylki>Online</TrybWysylki>
+  </Dokument>
+</Potwierdzenie>`;
+
+    client.sessionStatus.getSessionUpo = vi.fn().mockResolvedValue({ upo: SAMPLE_UPO_XML });
+    const result = await uploadBatchParsed(client, zipData, { pollOptions: { intervalMs: 1 } });
+
+    expect(result.sessionRef).toBe('batch-ref-1');
+    expect(result.upo.pages).toHaveLength(1);
+    expect(result.upo.parsed).toHaveLength(1);
+
+    const parsed: UpoPotwierdzenie = result.upo.parsed[0];
+    expect(parsed.numerReferencyjnySesji).toBe('batch-ref-1');
+    expect(parsed.dokumenty[0].numerKSeFDokumentu).toBe('1234567890-20250916-AABB-01');
+
+    expect(client.sessionStatus.getSessionUpo).toHaveBeenCalledWith('batch-ref-1', 'upo-batch-1');
   });
 
   it('returns empty pages when upo is undefined', async () => {

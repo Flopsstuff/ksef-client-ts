@@ -60,6 +60,9 @@ export default defineConfig({
         items: [
           { text: 'CLI', link: '/cli' },
           { text: 'Configuration', link: '/configuration' },
+          { text: 'Workflows', link: '/workflows' },
+          { text: 'Batch Processing', link: '/batch-processing' },
+          { text: 'HTTP Resilience', link: '/http-resilience' },
           { text: 'Examples', link: '/examples' },
           { text: 'API Reference', link: '/api-reference' },
           { text: 'OpenAPI', link: '/openapi' },

@@ -2,9 +2,10 @@ import type { KSeFClient } from '../client.js';
 import type { UpoVersion } from '../http/ksef-feature.js';
 import type { FormCode } from '../models/common.js';
 import type { BatchPartSendingInfo } from '../models/sessions/batch-types.js';
-import type { BatchUploadResult, PollOptions } from './types.js';
+import type { BatchUploadResult, ParsedBatchUploadResult, PollOptions } from './types.js';
 import { BatchFileBuilder } from '../builders/batch-file.js';
 import { pollUntil } from './polling.js';
+import { parseUpoXml } from '../xml/index.js';
 
 export interface BatchUploadOptions {
   formCode?: FormCode;
@@ -74,5 +75,22 @@ export async function uploadBatch(
       successfulInvoiceCount: result.successfulInvoiceCount,
       failedInvoiceCount: result.failedInvoiceCount,
     },
+  };
+}
+
+export async function uploadBatchParsed(
+  client: KSeFClient,
+  zipData: Uint8Array,
+  options?: BatchUploadOptions,
+): Promise<ParsedBatchUploadResult> {
+  const result = await uploadBatch(client, zipData, options);
+  const parsed = [];
+  for (const page of result.upo.pages) {
+    const upoResult = await client.sessionStatus.getSessionUpo(result.sessionRef, page.referenceNumber);
+    parsed.push(parseUpoXml(upoResult.upo));
+  }
+  return {
+    sessionRef: result.sessionRef,
+    upo: { ...result.upo, parsed },
   };
 }

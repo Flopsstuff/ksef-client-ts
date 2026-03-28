@@ -2,10 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.4.0] - 2026-03-26
+## [0.4.0] - 2026-03-28
 
 ### Added
 - **E2E test expansion** — 6 new E2E tests across 4 files
+- **ZIP bomb protection** — safe `unzip()` / `createZip()` with configurable limits (file count, total/per-file size, compression ratio). Export workflow supports opt-in extraction via `extract` option.
+- **UPO XML parsing** — parse official KSeF receipt confirmations (UPO) into structured typed objects. Supports all authentication context variants and multi-document session receipts. Integrated into online and batch session workflows, with `--parsed` CLI option for JSON output.
+- **Incremental export (HWM)** — iterative export of invoices with automatic high-water-mark tracking. Resumes from the last processed date across runs, handles truncated results with multiple iterations, and saves state to a JSON file for reliable long-running syncs. Includes CLI command and pluggable storage for custom integrations.
 ### Changed
 - TBD
 ### Fixed

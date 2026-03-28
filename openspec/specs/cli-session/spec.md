@@ -92,7 +92,7 @@ The CLI SHALL provide `ksef session failed [ref]` to list failed invoices in a s
 - **THEN** CLI displays a message indicating no failed invoices
 
 ### Requirement: Download UPO
-The CLI SHALL provide `ksef session upo <session-ref>` to download UPO (Urzedowe Poswiadczenie Odbioru). It MUST support three retrieval modes via flags.
+The CLI SHALL provide `ksef session upo <session-ref>` to download UPO (Urzedowe Poswiadczenie Odbioru). It MUST support three retrieval modes via flags. It MUST support a `--parsed` flag that outputs the UPO as a structured JSON object instead of raw XML.
 
 #### Scenario: Download UPO by session UPO reference
 - **WHEN** user runs `ksef session upo <session-ref> --upo-ref <upo-ref>`
@@ -113,6 +113,18 @@ The CLI SHALL provide `ksef session upo <session-ref>` to download UPO (Urzedowe
 #### Scenario: No retrieval mode specified
 - **WHEN** user runs `ksef session upo <session-ref>` without `--upo-ref`, `--ksef-number`, or `--invoice-ref`
 - **THEN** CLI SHALL display an error requesting one of the three flags
+
+#### Scenario: Parsed UPO output as JSON
+- **WHEN** user runs `ksef session upo <session-ref> --ksef-number <num> --parsed`
+- **THEN** CLI fetches the UPO XML, parses it with `parseUpoXml()`, and outputs the `UpoPotwierdzenie` object as formatted JSON to stdout
+
+#### Scenario: Parsed UPO saved to file
+- **WHEN** user runs `ksef session upo <session-ref> --ksef-number <num> --parsed -o upo.json`
+- **THEN** CLI writes the parsed `UpoPotwierdzenie` as formatted JSON to the specified file path
+
+#### Scenario: Parsed flag implies JSON format
+- **WHEN** user runs `ksef session upo <session-ref> --upo-ref <ref> --parsed`
+- **THEN** output MUST be JSON regardless of whether `--json` flag is also provided
 
 ### Requirement: Global flags support
 All session commands SHALL respect global flags: `--env`, `--json`, `--nip`, `--timeout`.
