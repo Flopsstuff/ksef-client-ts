@@ -1,5 +1,6 @@
 import type { KSeFClient } from '../client.js';
 import type { AuthorizationPolicy } from '../models/auth/types.js';
+import type { ContextIdentifier } from '../models/common.js';
 import type { PollOptions } from './types.js';
 import { pollUntil } from './polling.js';
 
@@ -81,6 +82,55 @@ export async function authenticateWithCertificate(
   const { SignatureService } = await import('../crypto/signature-service.js');
   const authRequestXml = buildAuthTokenRequestXml(challenge.challenge, options.nip);
   const signedXml = SignatureService.sign(authRequestXml, options.certPem, options.keyPem);
+
+  const submitResult = await client.auth.submitXadesAuthRequest(
+    signedXml,
+    options.verifyCertificateChain ?? false,
+    options.enforceXadesCompliance ?? false,
+  );
+
+  const authToken = submitResult.authenticationToken.token;
+
+  await pollUntil(
+    () => client.auth.getAuthStatus(submitResult.referenceNumber, authToken),
+    (s) => s.status.code !== 100,
+    { ...options.pollOptions, description: `auth ${submitResult.referenceNumber}` },
+  );
+
+  const tokens = await client.auth.getAccessToken(authToken);
+
+  client.authManager.setAccessToken(tokens.accessToken.token);
+  client.authManager.setRefreshToken(tokens.refreshToken.token);
+
+  return {
+    accessToken: tokens.accessToken.token,
+    accessTokenValidUntil: tokens.accessToken.validUntil,
+    refreshToken: tokens.refreshToken.token,
+    refreshTokenValidUntil: tokens.refreshToken.validUntil,
+  };
+}
+
+export interface ExternalSignatureAuthOptions {
+  contextIdentifier: ContextIdentifier;
+  signXml: (unsignedXml: string) => Promise<string> | string;
+  verifyCertificateChain?: boolean;
+  enforceXadesCompliance?: boolean;
+  pollOptions?: PollOptions;
+}
+
+export async function authenticateWithExternalSignature(
+  client: KSeFClient,
+  options: ExternalSignatureAuthOptions,
+): Promise<AuthResult> {
+  const challenge = await client.auth.getChallenge();
+
+  const { buildUnsignedAuthTokenRequestXml } = await import('../crypto/auth-xml-builder.js');
+  const unsignedXml = buildUnsignedAuthTokenRequestXml({
+    challenge: challenge.challenge,
+    contextIdentifier: options.contextIdentifier,
+  });
+
+  const signedXml = await options.signXml(unsignedXml);
 
   const submitResult = await client.auth.submitXadesAuthRequest(
     signedXml,

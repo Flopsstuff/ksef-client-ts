@@ -12,5 +12,5 @@ export { updateContinuationPoint, getEffectiveStartDate, deduplicateByKsefNumber
 export type { ContinuationPoints } from './hwm-coordinator.js';
 export { InMemoryHwmStore, FileHwmStore } from './hwm-storage.js';
 export type { HwmStore } from './hwm-storage.js';
-export { authenticateWithToken, authenticateWithCertificate, authenticateWithPkcs12 } from './auth-workflow.js';
-export type { AuthResult, TokenAuthOptions, CertificateAuthOptions, Pkcs12AuthOptions } from './auth-workflow.js';
+export { authenticateWithToken, authenticateWithCertificate, authenticateWithPkcs12, authenticateWithExternalSignature } from './auth-workflow.js';
+export type { AuthResult, TokenAuthOptions, CertificateAuthOptions, Pkcs12AuthOptions, ExternalSignatureAuthOptions } from './auth-workflow.js';

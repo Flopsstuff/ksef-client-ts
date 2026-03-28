@@ -130,32 +130,18 @@ export class KSeFClient {
   }
 }
 
-const AUTH_TOKEN_REQUEST_NS = 'http://ksef.mf.gov.pl/auth/token/2.0';
+import { buildUnsignedAuthTokenRequestXml } from './crypto/auth-xml-builder.js';
 
 export function buildAuthTokenRequestXml(
   challenge: string,
   nip: string,
   subjectIdentifierType = 'certificateSubject',
 ): string {
-  return [
-    '<?xml version="1.0" encoding="utf-8"?>',
-    `<AuthTokenRequest xmlns="${AUTH_TOKEN_REQUEST_NS}">`,
-    `<Challenge>${xmlEscape(challenge)}</Challenge>`,
-    `<ContextIdentifier>`,
-    `<Nip>${xmlEscape(nip)}</Nip>`,
-    `</ContextIdentifier>`,
-    `<SubjectIdentifierType>${xmlEscape(subjectIdentifierType)}</SubjectIdentifierType>`,
-    `</AuthTokenRequest>`,
-  ].join('');
-}
-
-function xmlEscape(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+  return buildUnsignedAuthTokenRequestXml({
+    challenge,
+    contextIdentifier: { type: 'Nip', value: nip },
+    subjectIdentifierType,
+  });
 }
 
 function buildRestClientConfig(options: KSeFClientOptions | undefined, authManager: AuthManager): RestClientConfig {
