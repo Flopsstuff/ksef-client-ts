@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - **Official XSD invoice schemas** — all KSeF invoice XSD schemas (FA, PEF, RR) bundled in `docs/schemas/` with `yarn sync-schemas` to update from the official Ministry of Finance repository.
 - **Encrypted PEM key support** — `--key-password` option for `ksef auth login` to use encrypted PEM private keys without manual decryption.
+- **`whoami` identity context** — `ksef auth whoami` now displays NIP, auth method, permissions, and token type parsed from the JWT access token. Full context available in `--json` mode.
 ### Changed
 - TBD
 ### Fixed

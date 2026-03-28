@@ -9,6 +9,7 @@ import { outputResult, outputKeyValue, outputSuccess, outputWarning } from '../o
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions, SessionData } from '../types.js';
 import { pollUntil } from '../../workflows/polling.js';
+import { parseKSeFTokenContext } from '../../utils/jwt.js';
 
 const PENDING_CHALLENGE_FILE = path.join(os.homedir(), '.ksef', 'pending-challenge.json');
 
@@ -197,13 +198,22 @@ const whoami = defineCommand({
       }
 
       const expired = isSessionExpired(session);
+      const context = parseKSeFTokenContext(session.accessToken);
       const info: Record<string, unknown> = {
         environment: session.environment,
+        ...(context?.contextIdentifierValue && { nip: context.contextIdentifierValue }),
+        ...(context?.authMethod && { authMethod: context.authMethod }),
+        ...(context?.permissions && { permissions: context.permissions.join(', ') }),
+        ...(context?.type && { tokenType: context.type }),
         sessionRef: session.sessionRef ?? 'N/A',
         expiresAt: session.expiresAt ?? 'N/A',
         status: expired ? 'EXPIRED' : 'ACTIVE',
         accessToken: session.accessToken.slice(0, 12) + '...',
       };
+
+      if (args.json && context) {
+        info.context = context;
+      }
 
       outputKeyValue(info, { json: args.json });
 
