@@ -7,14 +7,17 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 ## Features
 
 - **Complete API coverage** — KSeF API v2.3.0, types aligned with the official OpenAPI spec
-- **Full-featured CLI** — `ksef` with many command groups and subcommands for day-to-day KSeF workflows
-- **Full documentation** — VitePress site: Quick Start, API reference, OpenAPI spec
-- **Comprehensive test coverage** — Vitest across HTTP, crypto, services, builders; CI on every change
-- **Zero HTTP dependencies** — native `fetch` (Node 18+); dual ESM/CJS via tsup
-- **Built-in cryptography** — AES-256-CBC, RSA-OAEP, ECDH, XAdES-B, self-signed certs (Node crypto)
-- **Automatic token management** — AuthManager: token injection, 401 refresh with dedup, `loginWithToken` / `loginWithCertificate`
-- **High-level workflows** — orchestration functions for auth, online/batch sessions, invoice export with polling and decryption
+- **Full-featured CLI** — `ksef` with 14 command groups for auth, sessions, invoices, batch upload, export, and more
+- **High-level workflows** — auth, online/batch sessions, invoice export — full lifecycle in a single call
+- **Built-in cryptography** — AES-256-CBC, RSA-OAEP, ECDH, XAdES-B signatures, self-signed certs (Node crypto)
+- **External signing** — HSM, EPUAP, and smart card authentication via callback-based signing
+- **Automatic token management** — AuthManager: token injection, 401 refresh with dedup
+- **Streaming batch uploads** — constant-memory batch upload via Web Streams API with ZIP bomb protection
+- **Incremental export** — HWM-based paginated export with file-based state persistence
+- **Multiple document structures** — FA, PEF, PEF_KOR, FA_RR with typed FormCode constants and UPO parsing
 - **Typed errors & fluent builders** — `KSeFError` hierarchy (401, 403, 429, validation) and request builders
+- **Comprehensive test coverage** — unit + E2E tests across HTTP, crypto, services, workflows; CI on every change
+- **Zero HTTP dependencies** — native `fetch` (Node 18+); dual ESM/CJS via tsup
 
 Requires **Node.js 18+**.
 
