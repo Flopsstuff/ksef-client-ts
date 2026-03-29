@@ -22,9 +22,7 @@ export async function recoverSession(globalOpts: GlobalOptions): Promise<{ clien
       session.expiresAt = result.accessToken.validUntil;
       saveSession(session);
       client.authManager.setAccessToken(session.accessToken);
-      if (session.refreshToken) {
-        client.authManager.setRefreshToken(session.refreshToken);
-      }
+      client.authManager.setRefreshToken(session.refreshToken);
       return { client, session };
     } catch {
       // Refresh failed, fall through to full login

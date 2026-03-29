@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import * as os from 'node:os';
 import { defineCommand } from 'citty';
 import { consola } from 'consola';
-import { createClient } from '../client-factory.js';
+import { createClient, requireSession } from '../client-factory.js';
 import { saveSession, loadSession } from '../session-store.js';
 import { loadConfig, saveConfig } from '../config-store.js';
 import { loadCredentials, saveCredentials } from '../credentials-store.js';
@@ -250,7 +250,7 @@ export const setupCommand = defineCommand({
               cancel: 'reject',
             }) as string;
 
-            const { client: sessionClient } = await getSessionClient(env);
+            const { client: sessionClient } = await requireSession({ env });
             const request: KsefTokenRequest = {
               description: description.trim() || defaultDescription,
               permissions: selectedPermissions,
@@ -301,8 +301,3 @@ export const setupCommand = defineCommand({
     });
   },
 });
-
-async function getSessionClient(env: string) {
-  const { requireSession } = await import('../client-factory.js');
-  return await requireSession({ env });
-}

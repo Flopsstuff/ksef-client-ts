@@ -13,8 +13,10 @@ export function loadCredentials(): CliCredentials | null {
   try {
     const raw = fs.readFileSync(CREDENTIALS_FILE, 'utf-8');
     return JSON.parse(raw) as CliCredentials;
-  } catch {
-    return null;
+  } catch (err: unknown) {
+    if (err instanceof SyntaxError) return null;
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw err;
   }
 }
 

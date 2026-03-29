@@ -27,9 +27,19 @@ describe('loadCredentials', () => {
   });
 
   it('returns null when file does not exist', () => {
-    mockedFs.readFileSync.mockImplementation(() => { throw new Error('ENOENT'); });
+    mockedFs.readFileSync.mockImplementation(() => {
+      throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+    });
 
     expect(loadCredentials()).toBeNull();
+  });
+
+  it('throws on permission denied', () => {
+    mockedFs.readFileSync.mockImplementation(() => {
+      throw Object.assign(new Error('EACCES'), { code: 'EACCES' });
+    });
+
+    expect(() => loadCredentials()).toThrow('EACCES');
   });
 
   it('returns null when file contains invalid JSON', () => {
