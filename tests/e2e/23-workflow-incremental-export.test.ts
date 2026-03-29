@@ -6,7 +6,7 @@ import { authenticateWithCertWorkflow } from './helpers/auth.js';
 import { prepareInvoiceXml, getFormCode } from './helpers/invoices.js';
 import { unzip } from '../../src/utils/zip.js';
 import type { KSeFClient } from '../../src/client.js';
-import type { ContinuationPoints } from '../../src/workflows/hwm-coordinator.js';
+import { deduplicateByKsefNumber, type ContinuationPoints } from '../../src/workflows/hwm-coordinator.js';
 import type { ExportResult } from '../../src/workflows/types.js';
 import { InMemoryHwmStore } from '../../src/workflows/hwm-storage.js';
 
@@ -28,17 +28,17 @@ describe('23 - Incremental Export Workflow', { timeout: 300_000 }, () => {
       pollOptions: { intervalMs: 5000, maxAttempts: 30 },
     });
 
-    // Wait for invoice to be indexed
+    // Wait for invoices to reach PermanentStorage index (used by incremental export)
     const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
-    const filters = new InvoiceQueryFilterBuilder()
+    const permStorageFilters = new InvoiceQueryFilterBuilder()
       .withSubjectType('Subject1')
-      .withDateRange('Invoicing', yesterday)
+      .withDateRange('PermanentStorage', yesterday)
       .build();
 
-    for (let i = 0; i < 30; i++) {
-      const meta = await client.invoices.queryInvoiceMetadata(filters);
+    for (let i = 0; i < 60; i++) {
+      const meta = await client.invoices.queryInvoiceMetadata(permStorageFilters);
       if (meta.invoices.length > 0) break;
-      await new Promise((r) => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 3000));
     }
   }, 180_000);
 
@@ -142,6 +142,62 @@ describe('23 - Incremental Export Workflow', { timeout: 300_000 }, () => {
       }
     }
     expect(foundXml).toBe(true);
+  });
+
+  it('should deduplicate invoices from overlapping exports', async () => {
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+
+    // Run two exports with the same date window — both will return the same invoices
+    const [resultA, resultB] = await Promise.all([
+      incrementalExportAndDownload(client, {
+        subjectType: 'Subject1',
+        windowFrom: yesterday,
+        windowTo: tomorrow,
+        continuationPoints: {},
+        maxIterations: 3,
+        pollOptions: EXPORT_POLL,
+      }),
+      incrementalExportAndDownload(client, {
+        subjectType: 'Subject1',
+        windowFrom: yesterday,
+        windowTo: tomorrow,
+        continuationPoints: {},
+        maxIterations: 3,
+        pollOptions: EXPORT_POLL,
+      }),
+    ]);
+
+    // Extract ksefNumbers from ZIP file names (KSeF packages as {ksefNumber}.xml)
+    const allEntries: Array<{ ksefNumber: string; source: string }> = [];
+
+    for (const [label, result] of [['A', resultA], ['B', resultB]] as const) {
+      for (const part of result.decryptedParts) {
+        const files = await unzip(Buffer.from(part));
+        for (const [name] of files) {
+          if (name.endsWith('.xml')) {
+            const ksefNumber = name.replace(/\.xml$/, '');
+            allEntries.push({ ksefNumber, source: label });
+          }
+        }
+      }
+    }
+
+    // Both exports should have returned invoices
+    const entriesFromA = allEntries.filter((e) => e.source === 'A');
+    const entriesFromB = allEntries.filter((e) => e.source === 'B');
+    expect(entriesFromA.length).toBeGreaterThan(0);
+    expect(entriesFromB.length).toBeGreaterThan(0);
+
+    // Combined has duplicates, dedup removes them
+    const combined = allEntries.map((e) => ({ ksefNumber: e.ksefNumber }));
+    const deduplicated = deduplicateByKsefNumber(combined);
+
+    expect(combined.length).toBeGreaterThan(deduplicated.length);
+
+    // All unique ksefNumbers are preserved
+    const uniqueNumbers = new Set(combined.map((e) => e.ksefNumber.toLowerCase()));
+    expect(deduplicated.length).toBe(uniqueNumbers.size);
   });
 
   it('should invoke onIterationComplete callback', async () => {

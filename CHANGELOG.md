@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - **Official XSD invoice schemas** — all KSeF invoice XSD schemas (FA, PEF, RR) bundled in `docs/schemas/` with `yarn sync-schemas` to update from the official Ministry of Finance repository.
 - **Encrypted PEM key support** — `--key-password` option for `ksef auth login` to use encrypted PEM private keys without manual decryption.
 - **`whoami` identity context** — `ksef auth whoami` now displays NIP, auth method, permissions, and token type parsed from the JWT access token. Full context available in `--json` mode.
+- **Advanced E2E scenarios** — RR invoicing (FA-RR agricultural invoice lifecycle), self-invoicing (buyer-seller cross-entity flow with seller verification), enforcement operations, technical corrections, incremental export with HWM, and duplicate invoice detection.
 ### Changed
 - **Default form code switched to FA(3)** — CLI commands, workflows, and E2E tests now default to FA(3), the invoice schema required by KSeF on DEMO and PROD since February 2026. FA(2) remains available via `--form-code FA2` for TEST environment use.
 ### Fixed

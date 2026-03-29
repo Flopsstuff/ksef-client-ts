@@ -5,7 +5,7 @@ import { generateRandomNip, generateRandomPesel } from './helpers/identifiers.js
 import { pollUntil } from './helpers/polling.js';
 import type { KSeFClient } from '../../src/client.js';
 
-describe('25 - Enforcement Operations', { timeout: 120_000 }, () => {
+describe('27 - Enforcement Operations', { timeout: 120_000 }, () => {
   let adminClient: KSeFClient;
 
   beforeAll(async () => {

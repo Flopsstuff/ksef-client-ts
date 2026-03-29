@@ -8,7 +8,7 @@ import { uploadBatch } from '../../src/workflows/batch-session-workflow.js';
 
 const POLL_OPTIONS = { intervalMs: 5000, maxAttempts: 60 };
 
-describe('24 - Duplicate Invoice Detection', { timeout: 300_000 }, () => {
+describe('26 - Duplicate Invoice Detection', { timeout: 300_000 }, () => {
   it('should detect duplicate when same invoice sent in batch then online', async () => {
     const { client, nip, encryptionData } = await authenticateWithCertAndCrypto();
     const { cipherKey, cipherIv, encryptionInfo } = encryptionData;

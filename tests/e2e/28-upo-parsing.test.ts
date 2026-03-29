@@ -8,7 +8,7 @@ import type { KSeFClient } from '../../src/client.js';
 
 const POLL_OPTIONS = { intervalMs: 5000, maxAttempts: 30 };
 
-describe('26 - UPO Parsing', { timeout: 300_000 }, () => {
+describe('28 - UPO Parsing', { timeout: 300_000 }, () => {
   let client: KSeFClient;
   let nip: string;
 
