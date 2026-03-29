@@ -2197,6 +2197,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/xmldom@npm:^0.1.34":
+  version: 0.1.34
+  resolution: "@types/xmldom@npm:0.1.34"
+  checksum: 10c0/9cd8428f2fbdedb3003d48841b62000fc218a15d9ce2129f47a768f0d0ec840b942a4dcec0ce567a35d314feb86bfc1f86bca23e180bf87f8dd52ef982f06e45
+  languageName: node
+  linkType: hard
+
 "@types/yauzl@npm:^2.10.3":
   version: 2.10.3
   resolution: "@types/yauzl@npm:2.10.3"
@@ -2791,7 +2798,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@xmldom/xmldom@npm:^0.8.10":
+"@xmldom/xmldom@npm:^0.8.10, @xmldom/xmldom@npm:^0.8.11":
   version: 0.8.11
   resolution: "@xmldom/xmldom@npm:0.8.11"
   checksum: 10c0/e768623de72c95d3dae6b5da8e33dda0d81665047811b5498d23a328d45b13feb5536fe921d0308b96a4a8dd8addf80b1f6ef466508051c0b581e63e0dc74ed5
@@ -4402,9 +4409,11 @@ __metadata:
     "@types/node": "npm:^22.13.10"
     "@types/node-forge": "npm:^1.3.11"
     "@types/qrcode": "npm:^1.5.5"
+    "@types/xmldom": "npm:^0.1.34"
     "@types/yauzl": "npm:^2.10.3"
     "@types/yazl": "npm:^3"
     "@vitest/coverage-v8": "npm:^3.0.0"
+    "@xmldom/xmldom": "npm:^0.8.11"
     citty: "npm:^0.2.1"
     cli-table3: "npm:^0.6.5"
     consola: "npm:^3.4.2"
@@ -4419,6 +4428,7 @@ __metadata:
     xml-crypto: "npm:^6.0.0"
     yauzl: "npm:^3.2.1"
     yazl: "npm:^3.3.1"
+    zod: "npm:^4.3.6"
   bin:
     ksef: ./dist/cli.js
   languageName: unknown
@@ -7308,7 +7318,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^4.3.5":
+"zod@npm:^4.3.5, zod@npm:^4.3.6":
   version: 4.3.6
   resolution: "zod@npm:4.3.6"
   checksum: 10c0/860d25a81ab41d33aa25f8d0d07b091a04acb426e605f396227a796e9e800c44723ed96d0f53a512b57be3d1520f45bf69c0cb3b378a232a00787a2609625307
