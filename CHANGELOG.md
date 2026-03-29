@@ -9,6 +9,10 @@ All notable changes to this project will be documented in this file.
 - **Credentials store** — persistent storage for long-lived API tokens in `~/.ksef/credentials.json`, separate from session and config files. Tokens saved during setup or manually are automatically used by `ksef auth login` as a fallback when `--token` is not provided.
 - **Cross-platform folder opener** — `ksef setup` opens the `~/.ksef/` folder in the system file manager during external signing to streamline the workflow.
 - **Automatic session recovery** — all CLI commands automatically restore expired sessions by refreshing the token or re-authenticating with stored credentials. No more manual `ksef auth login` after session expiry.
+- **Future invoice date validation** — invoice validator now rejects P_1 (invoice issue date) set in the future, which KSeF silently rejects with a 445 error.
+
+### Fixed
+- **Encryption key mismatch on invoice send** — `ksef session open` and `ksef invoice send` each generated independent AES-256 keys, causing KSeF to reject every invoice with status 445. Encryption keys are now persisted in the session store and reused across commands.
 
 ## [0.5.0] - 2026-03-29
 
