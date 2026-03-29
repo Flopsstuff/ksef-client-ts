@@ -70,3 +70,19 @@ The `tokenCommand` SHALL be exported from `src/cli/commands/token.ts` and regist
 #### Scenario: Help output
 - **WHEN** user runs `ksef token --help`
 - **THEN** the CLI SHALL list subcommands: generate, list, get, revoke
+
+### Requirement: Auth login credentials fallback
+
+The `ksef auth login` command SHALL fall back to the credentials store when `--token` is not provided. If a stored token exists in the credentials store, it SHALL be used automatically for token-based authentication.
+
+#### Scenario: Login with stored credentials
+- **WHEN** user runs `ksef auth login --nip 1234567890` without `--token`, and a token exists in the credentials store
+- **THEN** the CLI SHALL use the stored token for authentication
+
+#### Scenario: Explicit token takes precedence
+- **WHEN** user runs `ksef auth login --token explicit-token --nip 1234567890`, and a different token exists in the credentials store
+- **THEN** the CLI SHALL use `explicit-token`, not the stored one
+
+#### Scenario: No token available
+- **WHEN** user runs `ksef auth login --nip 1234567890` without `--token`, and no token exists in the credentials store
+- **THEN** the CLI SHALL display the existing error requiring `--token`, `--p12`, or `--cert`/`--key`

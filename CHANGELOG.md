@@ -2,14 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.5.1] - Unreleased
+## [0.5.1] - 2026-03-30
 
 ### Added
-- TBD
-### Changed
-- TBD
-### Fixed
-- TBD
+- **Interactive setup wizard** — `ksef setup` guides users through NIP configuration, authentication, and optional API token generation in a single interactive session. Supports self-signed certificate quick auth on the test environment and external signature flow for demo/production.
+- **Credentials store** — persistent storage for long-lived API tokens in `~/.ksef/credentials.json`, separate from session and config files. Tokens saved during setup or manually are automatically used by `ksef auth login` as a fallback when `--token` is not provided.
+- **Cross-platform folder opener** — `ksef setup` opens the `~/.ksef/` folder in the system file manager during external signing to streamline the workflow.
 
 ## [0.5.0] - 2026-03-29
 

@@ -1,8 +1,6 @@
-## ADDED Requirements
-
 ### Requirement: Interactive setup wizard command
 
-The CLI SHALL provide a `ksef setup` command that guides users through initial KSeF configuration via interactive prompts. The command SHALL require a TTY-attached stdin. The wizard SHALL consist of two phases: external signature authentication (mandatory) and token generation (optional).
+The CLI SHALL provide a `ksef setup` command that guides users through initial KSeF configuration via interactive prompts. The command SHALL require a TTY-attached stdin. The wizard SHALL consist of two phases: authentication (mandatory) and token generation (optional).
 
 #### Scenario: Non-interactive terminal rejection
 - **WHEN** `ksef setup` is run in a non-interactive terminal (`process.stdin.isTTY` is falsy)
@@ -40,9 +38,18 @@ The wizard SHALL prompt the user for their NIP (validated with `isValidNip()`). 
 - **WHEN** the user has an existing session or stored token
 - **THEN** the wizard SHALL inform the user and ask for confirmation to overwrite before proceeding
 
-### Requirement: Phase 1 — External signature authentication flow
+### Requirement: Phase 1 — Authentication flow
 
-After configuration, the wizard SHALL get a challenge from KSeF API, build unsigned XML via `buildUnsignedAuthTokenRequestXml()`, save it to `~/.ksef/auth.xml`, save the pending challenge metadata, open the `~/.ksef/` folder, print signing instructions with the podpis.gov.pl URL, and prompt the user for the path to the signed XML file.
+After configuration, the wizard SHALL authenticate with KSeF. In the test environment, the wizard SHALL offer a quick path via a self-signed certificate. Otherwise (or if declined), the wizard SHALL use the external signature flow: get a challenge from KSeF API, build unsigned XML via `buildUnsignedAuthTokenRequestXml()`, save it to `~/.ksef/auth.xml`, save the pending challenge metadata, open the `~/.ksef/` folder, print signing instructions with the podpis.gov.pl URL, and prompt the user for the path to the signed XML file.
+
+#### Scenario: Self-signed certificate auth in test environment
+- **WHEN** the environment is `test`
+- **THEN** the wizard SHALL prompt the user to use a self-signed certificate for quick authentication
+- **AND** if accepted, SHALL generate a company seal certificate via `CertificateService.generateCompanySeal()`, authenticate with `loginWithCertificate()`, and save the session — without any external signing steps
+
+#### Scenario: Self-signed certificate not offered outside test
+- **WHEN** the environment is `demo` or `prod`
+- **THEN** the wizard SHALL NOT offer self-signed certificate authentication and SHALL proceed directly to external signature flow
 
 #### Scenario: Unsigned XML saved and folder opened
 - **WHEN** the challenge is received and unsigned XML is built
@@ -66,7 +73,7 @@ After configuration, the wizard SHALL get a challenge from KSeF API, build unsig
 
 ### Requirement: Phase 2 — Optional token generation
 
-After successful authentication, the wizard SHALL ask if the user wants to generate a long-lived API token. If yes, it SHALL prompt for permissions (multiselect) and description (text, default: "CLI setup token"), generate the token via the API, and save it to the credentials store.
+After successful authentication, the wizard SHALL ask if the user wants to generate a long-lived API token. If yes, it SHALL prompt for permissions (multiselect) and description (text, default: "KSeF CLI API Token {YYYY-MM-DD}"), generate the token via the API, and save it to the credentials store.
 
 #### Scenario: User opts into token generation
 - **WHEN** the user confirms token generation

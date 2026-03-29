@@ -1,38 +1,16 @@
 import * as fs from 'node:fs';
-import * as path from 'node:path';
-import * as os from 'node:os';
 import { defineCommand } from 'citty';
 import { consola } from 'consola';
 import { createClient, requireSession } from '../client-factory.js';
 import { saveSession, clearSession, loadSession, isSessionExpired } from '../session-store.js';
 import { loadConfig, saveConfig } from '../config-store.js';
+import { loadCredentials } from '../credentials-store.js';
+import { savePendingChallenge, clearPendingChallenge } from '../pending-challenge-store.js';
 import { outputResult, outputKeyValue, outputSuccess, outputWarning } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions, SessionData } from '../types.js';
 import { pollUntil } from '../../workflows/polling.js';
 import { parseKSeFTokenContext } from '../../utils/jwt.js';
-
-const PENDING_CHALLENGE_FILE = path.join(os.homedir(), '.ksef', 'pending-challenge.json');
-
-interface PendingChallenge {
-  challenge: string;
-  timestamp: string;
-  contextIdentifier: { type: string; value: string };
-  createdAt: string;
-}
-
-function savePendingChallenge(data: PendingChallenge): void {
-  const dir = path.dirname(PENDING_CHALLENGE_FILE);
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(PENDING_CHALLENGE_FILE, JSON.stringify(data, null, 2) + '\n', {
-    encoding: 'utf-8',
-    mode: 0o600,
-  });
-}
-
-function clearPendingChallenge(): void {
-  try { fs.unlinkSync(PENDING_CHALLENGE_FILE); } catch { /* ignore */ }
-}
 
 export async function readStdin(stream: AsyncIterable<Buffer> = process.stdin): Promise<string> {
   const chunks: Buffer[] = [];
@@ -101,8 +79,9 @@ const login = defineCommand({
         throw new Error('NIP is required. Provide --nip or set it via `ksef config set --nip <nip>`.');
       }
 
-      if (args.token) {
-        await client.loginWithToken(args.token, nip);
+      const token = args.token ?? loadCredentials()?.token;
+      if (token) {
+        await client.loginWithToken(token, nip);
       } else if (args.p12) {
         const fs = await import('node:fs');
         const p12Buffer = fs.readFileSync(args.p12);

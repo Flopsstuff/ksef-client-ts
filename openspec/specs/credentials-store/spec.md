@@ -1,5 +1,3 @@
-## ADDED Requirements
-
 ### Requirement: Persistent credentials storage
 
 The system SHALL provide a credentials store that persists long-lived CLI credentials (API tokens) in `~/.ksef/credentials.json`, separate from config and session files. The file SHALL be created with mode `0o600` (owner read/write only).

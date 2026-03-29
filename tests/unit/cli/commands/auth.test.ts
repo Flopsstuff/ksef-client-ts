@@ -37,7 +37,16 @@ vi.mock('../../../../src/cli/output.js', () => ({
   outputTable: vi.fn(),
 }));
 
-// Mock node:fs (static import in auth.ts for pending challenge + dynamic import in login cert path)
+vi.mock('../../../../src/cli/credentials-store.js', () => ({
+  loadCredentials: vi.fn().mockReturnValue(null),
+}));
+
+vi.mock('../../../../src/cli/pending-challenge-store.js', () => ({
+  savePendingChallenge: vi.fn(),
+  clearPendingChallenge: vi.fn(),
+}));
+
+// Mock node:fs (dynamic import in login cert path)
 vi.mock('node:fs', () => ({
   readFileSync: vi.fn(),
   writeFileSync: vi.fn(),
@@ -126,6 +135,26 @@ describe('auth', () => {
       vi.mocked(fs.readFileSync).mockReturnValueOnce(Buffer.from('mock') as any);
       await runLogin({ p12: '/cert.p12', nip: '1234567890' });
       expect(mockClient.loginWithPkcs12).toHaveBeenCalledWith(expect.any(Buffer), '', '1234567890');
+    });
+
+    it('falls back to credentials store when --token not provided', async () => {
+      const { loadCredentials } = await import('../../../../src/cli/credentials-store.js');
+      vi.mocked(loadCredentials).mockReturnValue({ token: 'stored-tok' });
+      await runLogin({ nip: '1234567890' });
+      expect(mockClient.loginWithToken).toHaveBeenCalledWith('stored-tok', '1234567890');
+    });
+
+    it('explicit --token takes precedence over credentials store', async () => {
+      const { loadCredentials } = await import('../../../../src/cli/credentials-store.js');
+      vi.mocked(loadCredentials).mockReturnValue({ token: 'stored-tok' });
+      await runLogin({ token: 'explicit-tok', nip: '1234567890' });
+      expect(mockClient.loginWithToken).toHaveBeenCalledWith('explicit-tok', '1234567890');
+    });
+
+    it('throws when no token available anywhere', async () => {
+      const { loadCredentials } = await import('../../../../src/cli/credentials-store.js');
+      vi.mocked(loadCredentials).mockReturnValue(null);
+      await expect(runLogin({ nip: '1234567890' })).rejects.toThrow('Provide --token, --p12, or both --cert and --key');
     });
 
     it('saves session after login', async () => {
@@ -381,17 +410,15 @@ describe('auth', () => {
       const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
       mockClient.auth.getChallenge.mockResolvedValue({ challenge: 'ch-save', timestamp: '2026-01-01T00:00:00Z', timestampMs: 0, clientIp: '127.0.0.1' });
 
-      const fsModule = await import('node:fs');
+      const { savePendingChallenge } = await import('../../../../src/cli/pending-challenge-store.js');
       await runLoginExternal({ generate: true, nip: '1234567890' });
 
-      // Verify pending challenge was saved (writeFileSync called with pending-challenge.json content)
-      const writeCalls = vi.mocked(fsModule.writeFileSync).mock.calls;
-      const pendingCall = writeCalls.find((c) => String(c[0]).includes('pending-challenge'));
-      expect(pendingCall).toBeDefined();
-      const saved = JSON.parse(pendingCall![1] as string);
-      expect(saved.challenge).toBe('ch-save');
-      expect(saved.timestamp).toBe('2026-01-01T00:00:00Z');
-      expect(saved.contextIdentifier).toEqual({ type: 'Nip', value: '1234567890' });
+      expect(vi.mocked(savePendingChallenge)).toHaveBeenCalledWith({
+        challenge: 'ch-save',
+        timestamp: '2026-01-01T00:00:00Z',
+        contextIdentifier: { type: 'Nip', value: '1234567890' },
+        createdAt: expect.any(String),
+      });
       expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('Timestamp:'));
       stdoutSpy.mockRestore();
       stderrSpy.mockRestore();

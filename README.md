@@ -18,6 +18,7 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 - **Invoice XML validation** — three-level client-side validation (well-formedness, XSD schema via Zod, NIP/PESEL checksums) with auto-detection for all 6 invoice types
 - **Typed errors & fluent builders** — `KSeFError` hierarchy (401, 403, 429, validation) and request builders
 - **Comprehensive test coverage** — unit + E2E tests across HTTP, crypto, services, workflows; CI on every change
+- **Interactive setup wizard** — `ksef setup` guides through environment selection, authentication, and token generation in one flow
 - **Zero HTTP dependencies** — native `fetch` (Node 18+); dual ESM/CJS via tsup
 
 Requires **Node.js 18+**.

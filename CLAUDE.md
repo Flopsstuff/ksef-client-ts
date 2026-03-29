@@ -118,6 +118,7 @@ The web portal is used for token generation, permission management, and invoice 
 ### Documentation
 
 VitePress site in `docs/` with Scalar API reference. Config: `docs/.vitepress/config.ts`.
+Feature descriptions live in two places that must be kept in sync: `README.md` (bullet list) and `docs/index.md` (VitePress homepage cards).
 
 ### Plans
 

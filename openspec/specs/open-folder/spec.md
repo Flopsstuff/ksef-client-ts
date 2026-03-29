@@ -1,5 +1,3 @@
-## ADDED Requirements
-
 ### Requirement: Cross-platform folder opener
 
 The system SHALL provide an `openFolder(folderPath)` utility that opens a folder in the system file manager. The function SHALL use `open` on macOS, `xdg-open` on Linux, and `start` on Windows. The function SHALL return a boolean indicating success and SHALL NOT throw on failure.

@@ -20,6 +20,7 @@ import { limitsCommand } from './commands/limits.js';
 import { peppolCommand } from './commands/peppol.js';
 import { doctorCommand } from './commands/doctor.js';
 import { completionCommand } from './commands/completion.js';
+import { setupCommand } from './commands/setup.js';
 
 const main = defineCommand({
   meta: {
@@ -42,6 +43,7 @@ const main = defineCommand({
     'test-data': testDataCommand,
     doctor: doctorCommand,
     completion: completionCommand,
+    setup: setupCommand,
   },
 });
 

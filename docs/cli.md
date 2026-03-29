@@ -401,11 +401,16 @@ The CLI provides contextual hints after common errors:
 | Network error | Run `ksef doctor` to diagnose connectivity issues. |
 | Rate limited | Retry after N seconds. |
 
+## Setup Wizard
+
+Run `ksef setup` for an interactive guided setup — see [Setup Wizard](/setup-wizard) for details.
+
 ## Storage
 
 | File | Purpose |
 |------|---------|
 | `~/.ksef/config.json` | Environment, NIP, output format, timeout |
 | `~/.ksef/session.json` | Access token, refresh token, session refs, expiry |
+| `~/.ksef/credentials.json` | Long-lived API token (created by setup wizard or manually) |
 
-Both files are created automatically on first use.
+All files are created automatically on first use. Files containing secrets are written with mode `0600`.
