@@ -15,6 +15,7 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 - **Streaming batch uploads** — constant-memory batch upload via Web Streams API with ZIP bomb protection
 - **Incremental export** — HWM-based paginated export with file-based state persistence
 - **Multiple document structures** — FA, PEF, PEF_KOR, FA_RR with typed FormCode constants and UPO parsing
+- **Invoice XML validation** — three-level client-side validation (well-formedness, XSD schema via Zod, NIP/PESEL checksums) with auto-detection for all 6 invoice types
 - **Typed errors & fluent builders** — `KSeFError` hierarchy (401, 403, 429, validation) and request builders
 - **Comprehensive test coverage** — unit + E2E tests across HTTP, crypto, services, workflows; CI on every change
 - **Zero HTTP dependencies** — native `fetch` (Node 18+); dual ESM/CJS via tsup
@@ -80,6 +81,7 @@ yarn test         # Run all tests (vitest)
 
 ## Related
 
+- [KSeF Web Portal](https://ap.ksef.mf.gov.pl/web/) — official KSeF web application (token management, permissions, invoices)
 - [KSeF official docs](https://github.com/CIRFMF/ksef-docs) — official documentation (Polish)
 - [KSeF docs translated](https://flopsstuff.github.io/ksef-docs/) — translated documentation (EN/RU/UK)
 - [ksef-client-csharp](https://github.com/CIRFMF/ksef-client-csharp) — official C# reference client

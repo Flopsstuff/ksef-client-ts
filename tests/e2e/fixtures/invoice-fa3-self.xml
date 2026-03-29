@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Faktura
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+        xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/"
+        xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+    <Naglowek>
+        <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+        <WariantFormularza>3</WariantFormularza>
+        <DataWytworzeniaFa>2026-06-05T02:45:33.422866Z</DataWytworzeniaFa>
+        <SystemInfo>ksef-client-ts e2e</SystemInfo>
+    </Naglowek>
+    <Podmiot1>
+        <DaneIdentyfikacyjne>
+            <NIP>#nip#</NIP>
+            <Nazwa>Firma Testowa sp. z o.o.</Nazwa>
+        </DaneIdentyfikacyjne>
+        <Adres>
+            <KodKraju>PL</KodKraju>
+            <AdresL1>ul. Testowa 1</AdresL1>
+            <AdresL2>00-001 Warszawa</AdresL2>
+        </Adres>
+    </Podmiot1>
+    <Podmiot2>
+        <DaneIdentyfikacyjne>
+            <NIP>#buyer_nip#</NIP>
+            <Nazwa>Kontrahent Testowy</Nazwa>
+        </DaneIdentyfikacyjne>
+        <Adres>
+            <KodKraju>PL</KodKraju>
+            <AdresL1>ul. Kontrahentowa 2</AdresL1>
+            <AdresL2>00-002 Warszawa</AdresL2>
+        </Adres>
+        <JST>2</JST>
+        <GV>2</GV>
+    </Podmiot2>
+    <Fa>
+        <KodWaluty>PLN</KodWaluty>
+        <P_1>#invoicing_date#</P_1>
+        <P_1M>Warszawa</P_1M>
+        <P_2>FA/#invoice_number#</P_2>
+        <P_6>#invoicing_date#</P_6>
+        <P_13_1>500.00</P_13_1>
+        <P_14_1>115.00</P_14_1>
+        <P_15>615.00</P_15>
+        <Adnotacje>
+            <P_16>2</P_16>
+            <P_17>1</P_17>
+            <P_18>2</P_18>
+            <P_18A>2</P_18A>
+            <Zwolnienie>
+                <P_19N>1</P_19N>
+            </Zwolnienie>
+            <NoweSrodkiTransportu>
+                <P_22N>1</P_22N>
+            </NoweSrodkiTransportu>
+            <P_23>2</P_23>
+            <PMarzy>
+                <P_PMarzyN>1</P_PMarzyN>
+            </PMarzy>
+        </Adnotacje>
+        <RodzajFaktury>VAT</RodzajFaktury>
+        <FaWiersz>
+            <NrWierszaFa>1</NrWierszaFa>
+            <UU_ID>e2e00003-0000-0000-0000-000000000001</UU_ID>
+            <P_7>Usluga testowa FA3 self-invoicing</P_7>
+            <P_8A>szt.</P_8A>
+            <P_8B>5</P_8B>
+            <P_9A>100.00</P_9A>
+            <P_11>500.00</P_11>
+            <P_12>23</P_12>
+        </FaWiersz>
+        <Platnosc>
+            <Zaplacono>1</Zaplacono>
+            <DataZaplaty>#invoicing_date#</DataZaplaty>
+            <FormaPlatnosci>6</FormaPlatnosci>
+        </Platnosc>
+    </Fa>
+</Faktura>

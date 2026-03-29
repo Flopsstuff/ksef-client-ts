@@ -1,6 +1,7 @@
 import { defineCommand } from 'citty';
 import { loadConfig, saveConfig, resetConfig } from '../config-store.js';
-import { outputKeyValue, outputSuccess } from '../output.js';
+import { outputKeyValue, outputSuccess, outputWarning } from '../output.js';
+import { loadSession, clearSession } from '../session-store.js';
 import { withErrorHandler } from '../error-handler.js';
 import { CLI_ENV_CHOICES, type CliConfig, type OutputFormat } from '../types.js';
 
@@ -19,6 +20,10 @@ const set = defineCommand({
       if (args.env) {
         if (!CLI_ENV_CHOICES.includes(args.env as CliConfig['environment'])) {
           throw new Error(`Invalid environment: ${args.env}. Use: ${CLI_ENV_CHOICES.join(', ')}`);
+        }
+        if (args.env !== config.environment && loadSession()) {
+          clearSession();
+          outputWarning(`Session cleared (environment changed from ${config.environment} to ${args.env}).`);
         }
         config.environment = args.env as CliConfig['environment'];
       }
@@ -65,6 +70,10 @@ const reset = defineCommand({
   meta: { name: 'reset', description: 'Reset configuration to defaults' },
   run() {
     return withErrorHandler(async () => {
+      if (loadSession()) {
+        clearSession();
+        outputWarning('Session cleared (configuration reset to defaults).');
+      }
       resetConfig();
       outputSuccess('Configuration reset to defaults.');
     });

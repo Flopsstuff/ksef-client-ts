@@ -5,7 +5,7 @@ import { KSeFApiError } from '../../src/errors/ksef-api-error.js';
 import { KSeFValidationError } from '../../src/errors/ksef-validation-error.js';
 import { EntityPermissionGrantBuilder } from '../../src/builders/permissions/entity-permission.js';
 
-describe('23 - Error Handling E2E', { timeout: 60_000 }, () => {
+describe('25 - Error Handling E2E', { timeout: 60_000 }, () => {
   it('should throw KSeFUnauthorizedError for unauthenticated request', async () => {
     const client = createTestClient();
 

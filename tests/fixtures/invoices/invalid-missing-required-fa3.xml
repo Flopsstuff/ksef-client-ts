@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/"
+         xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/">
+    <Naglowek>
+        <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+        <WariantFormularza>3</WariantFormularza>
+        <DataWytworzeniaFa>2025-01-15T10:00:00Z</DataWytworzeniaFa>
+        <SystemInfo>invalid fixture</SystemInfo>
+    </Naglowek>
+    <!-- Podmiot1 missing (required) -->
+    <!-- Podmiot2 missing (required) -->
+    <!-- Fa missing (required) -->
+</Faktura>

@@ -42,9 +42,10 @@ export class SignatureService {
    * @param xml          - The XML document to sign (string).
    * @param certPem      - The signing certificate in PEM format.
    * @param privateKeyPem - The private key in PEM format.
+   * @param passphrase   - Optional passphrase for encrypted PEM private keys.
    * @returns The signed XML document as a string.
    */
-  static sign(xml: string, certPem: string, privateKeyPem: string): string {
+  static sign(xml: string, certPem: string, privateKeyPem: string, passphrase?: string): string {
     if (!xml || !certPem || !privateKeyPem) {
       throw new Error('xml, certPem, and privateKeyPem are required');
     }
@@ -59,7 +60,9 @@ export class SignatureService {
     const serialNumber = hexSerialToDecimal(x509.serialNumber);
 
     // -- Determine signature algorithm from private key ----------------------
-    const privateKey = crypto.createPrivateKey(privateKeyPem);
+    const privateKey = crypto.createPrivateKey(
+      passphrase ? { key: privateKeyPem, format: 'pem', passphrase } : privateKeyPem,
+    );
     const isEc = privateKey.asymmetricKeyType === 'ec';
     const signatureAlgorithm = isEc ? ECDSA_SHA256_SIGNATURE : RSA_SHA256_SIGNATURE;
 
@@ -104,7 +107,7 @@ export class SignatureService {
     const canonicalSignedInfo = canonicalize(signedInfoDoc.documentElement!);
     const signatureValue = computeSignatureValue(
       canonicalSignedInfo,
-      privateKeyPem,
+      privateKey,
       isEc,
     );
 
@@ -247,7 +250,7 @@ function buildSignedInfo(
  */
 function computeSignatureValue(
   canonicalSignedInfo: string,
-  privateKeyPem: string,
+  privateKey: crypto.KeyObject,
   isEc: boolean,
 ): string {
   const data = Buffer.from(canonicalSignedInfo, 'utf-8');
@@ -255,11 +258,11 @@ function computeSignatureValue(
   let signature: Buffer;
   if (isEc) {
     signature = crypto.sign('sha256', data, {
-      key: privateKeyPem,
+      key: privateKey,
       dsaEncoding: 'ieee-p1363',
     });
   } else {
-    signature = crypto.sign('sha256', data, privateKeyPem);
+    signature = crypto.sign('sha256', data, privateKey);
   }
 
   return signature.toString('base64');

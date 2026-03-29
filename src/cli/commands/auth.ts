@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { defineCommand } from 'citty';
+import { consola } from 'consola';
 import { createClient, requireSession } from '../client-factory.js';
 import { saveSession, clearSession, loadSession, isSessionExpired } from '../session-store.js';
 import { loadConfig, saveConfig } from '../config-store.js';
@@ -9,6 +10,7 @@ import { outputResult, outputKeyValue, outputSuccess, outputWarning } from '../o
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions, SessionData } from '../types.js';
 import { pollUntil } from '../../workflows/polling.js';
+import { parseKSeFTokenContext } from '../../utils/jwt.js';
 
 const PENDING_CHALLENGE_FILE = path.join(os.homedir(), '.ksef', 'pending-challenge.json');
 
@@ -76,6 +78,7 @@ const login = defineCommand({
     key: { type: 'string', description: 'Path to PEM private key file (XAdES auth)' },
     p12: { type: 'string', description: 'Path to PKCS#12 (.p12/.pfx) certificate file' },
     'p12-password': { type: 'string', description: 'Password for the PKCS#12 file (default: empty)' },
+    'key-password': { type: 'string', description: 'Password for encrypted PEM private key' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -85,8 +88,13 @@ const login = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const client = createClient(globalOpts);
       const config = loadConfig();
+
+      if (!args.env) {
+        consola.info(`Using default environment: ${config.environment}`);
+      }
+
+      const client = createClient(globalOpts);
       const nip = args.nip ?? config.nip;
 
       if (!nip) {
@@ -103,7 +111,7 @@ const login = defineCommand({
         const fs = await import('node:fs');
         const certPem = fs.readFileSync(args.cert, 'utf-8');
         const keyPem = fs.readFileSync(args.key, 'utf-8');
-        await client.loginWithCertificate(certPem, keyPem, nip);
+        await client.loginWithCertificate(certPem, keyPem, nip, args['key-password'] as string | undefined);
       } else {
         throw new Error('Provide --token, --p12, or both --cert and --key for authentication.');
       }
@@ -196,13 +204,22 @@ const whoami = defineCommand({
       }
 
       const expired = isSessionExpired(session);
+      const context = parseKSeFTokenContext(session.accessToken);
       const info: Record<string, unknown> = {
         environment: session.environment,
+        ...(context?.contextIdentifierValue && { nip: context.contextIdentifierValue }),
+        ...(context?.authMethod && { authMethod: context.authMethod }),
+        ...(context?.permissions && { permissions: context.permissions.join(', ') }),
+        ...(context?.type && { tokenType: context.type }),
         sessionRef: session.sessionRef ?? 'N/A',
         expiresAt: session.expiresAt ?? 'N/A',
         status: expired ? 'EXPIRED' : 'ACTIVE',
         accessToken: session.accessToken.slice(0, 12) + '...',
       };
+
+      if (args.json && context) {
+        info.context = context;
+      }
 
       outputKeyValue(info, { json: args.json });
 

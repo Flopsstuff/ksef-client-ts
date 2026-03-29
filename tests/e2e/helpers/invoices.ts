@@ -6,10 +6,11 @@ import type { KSeFClient } from '../../../src/client.js';
 import type { SendInvoiceRequest } from '../../../src/models/sessions/online-types.js';
 import type { FormCode } from '../../../src/models/common.js';
 
-export type InvoiceFormVersion = 'FA_2' | 'FA_3';
+export type InvoiceFormVersion = 'FA_2' | 'FA_3' | 'FA_3_SELF' | 'FA_RR';
 
 export interface InvoicePlaceholders {
   nip: string;
+  buyerNip?: string;
   invoicingDate?: string;
   invoiceNumber?: string;
 }
@@ -17,6 +18,8 @@ export interface InvoicePlaceholders {
 const TEMPLATE_FILES: Record<InvoiceFormVersion, string> = {
   FA_2: 'invoice-fa2.xml',
   FA_3: 'invoice-fa3.xml',
+  FA_3_SELF: 'invoice-fa3-self.xml',
+  FA_RR: 'invoice-rr.xml',
 };
 
 function todayString(): string {
@@ -27,12 +30,18 @@ export function loadInvoiceTemplate(version: InvoiceFormVersion): string {
   return readFileSync(join(FIXTURE_DIR, TEMPLATE_FILES[version]), 'utf-8');
 }
 
+const TEMPLATES_REQUIRING_BUYER_NIP: ReadonlySet<InvoiceFormVersion> = new Set(['FA_RR', 'FA_3_SELF']);
+
 export function prepareInvoiceXml(
   version: InvoiceFormVersion,
   placeholders: InvoicePlaceholders,
 ): string {
+  if (TEMPLATES_REQUIRING_BUYER_NIP.has(version) && !placeholders.buyerNip) {
+    throw new Error(`buyerNip is required for template ${version}`);
+  }
   let xml = loadInvoiceTemplate(version);
   xml = xml.replace(/#nip#/g, placeholders.nip);
+  xml = xml.replace(/#buyer_nip#/g, placeholders.buyerNip ?? '');
   xml = xml.replace(/#invoicing_date#/g, placeholders.invoicingDate ?? todayString());
   xml = xml.replace(/#invoice_number#/g, placeholders.invoiceNumber ?? randomUUID());
   return xml;
@@ -43,7 +52,10 @@ export function getFormCode(version: InvoiceFormVersion): FormCode {
     case 'FA_2':
       return { systemCode: 'FA (2)', schemaVersion: '1-0E', value: 'FA' };
     case 'FA_3':
+    case 'FA_3_SELF':
       return { systemCode: 'FA (3)', schemaVersion: '1-0E', value: 'FA' };
+    case 'FA_RR':
+      return { systemCode: 'FA_RR (1)', schemaVersion: '1-1E', value: 'FA_RR' };
   }
 }
 
@@ -53,8 +65,9 @@ export function prepareAndEncryptInvoice(
   nip: string,
   cipherKey: Uint8Array,
   cipherIv: Uint8Array,
+  overrides?: Omit<InvoicePlaceholders, 'nip'>,
 ): { invoiceXml: string; sendRequest: SendInvoiceRequest } {
-  const invoiceXml = prepareInvoiceXml(version, { nip });
+  const invoiceXml = prepareInvoiceXml(version, { nip, ...overrides });
   const plainBytes = new TextEncoder().encode(invoiceXml);
   const encryptedBytes = client.crypto.encryptAES256(plainBytes, cipherKey, cipherIv);
 

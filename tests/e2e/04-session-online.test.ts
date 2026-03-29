@@ -6,12 +6,12 @@ import { pollUntil } from './helpers/polling.js';
 import { QrCodeService } from '../../src/qr/qrcode-service.js';
 
 describe('04 - Online Session E2E', { timeout: 180_000 }, () => {
-  it('should complete full online session lifecycle with FA_2', async () => {
+  it('should complete full online session lifecycle with FA_3', async () => {
     const { client, nip, encryptionData } = await authenticateWithCertAndCrypto();
     const { cipherKey, cipherIv, encryptionInfo } = encryptionData;
 
     // Step 1: Open session
-    const formCode = getFormCode('FA_2');
+    const formCode = getFormCode('FA_3');
     const openResponse = await client.onlineSession.openSession({
       formCode,
       encryption: encryptionInfo,
@@ -21,7 +21,7 @@ describe('04 - Online Session E2E', { timeout: 180_000 }, () => {
     expect(openResponse.validUntil).toBeTruthy();
 
     // Step 2: Prepare and send invoice
-    const { sendRequest } = prepareAndEncryptInvoice(client, 'FA_2', nip, cipherKey, cipherIv);
+    const { sendRequest } = prepareAndEncryptInvoice(client, 'FA_3', nip, cipherKey, cipherIv);
     const sendResponse = await client.onlineSession.sendInvoice(sessionRef, sendRequest);
     const invoiceRef = sendResponse.referenceNumber;
     expect(invoiceRef).toBeTruthy();
@@ -115,13 +115,13 @@ describe('04 - Online Session E2E', { timeout: 180_000 }, () => {
 
     // Open session
     const openResponse = await client.onlineSession.openSession({
-      formCode: getFormCode('FA_2'),
+      formCode: getFormCode('FA_3'),
       encryption: encryptionInfo,
     });
     const sessionRef = openResponse.referenceNumber;
 
     // Send invoice with wrong NIP (not matching context)
-    const { sendRequest } = prepareAndEncryptInvoice(client, 'FA_2', '0000000000', cipherKey, cipherIv);
+    const { sendRequest } = prepareAndEncryptInvoice(client, 'FA_3', '0000000000', cipherKey, cipherIv);
     await client.onlineSession.sendInvoice(sessionRef, sendRequest);
 
     // Poll for failure detection

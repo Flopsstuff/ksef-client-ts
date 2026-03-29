@@ -11,8 +11,12 @@ import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions } from '../types.js';
 import type { FormCode } from '../../models/common.js';
 import type { InvoiceQueryFilters, InvoiceSubjectType, InvoiceQueryDateType, AmountType } from '../../models/invoices/types.js';
-import { FORM_CODES, FORM_CODE_KEYS, validateFormCodeForSession } from '../../models/document-structures/index.js';
+import { DEFAULT_FORM_CODE, FORM_CODE_KEYS, validateFormCodeForSession } from '../../models/document-structures/index.js';
 import { exportIncremental } from './export-incremental.js';
+import { normalizeCliDate } from '../date-utils.js';
+import { validate as validateInvoice } from '../../validation/invoice-validator.js';
+import { KSeFValidationError } from '../../errors/ksef-validation-error.js';
+import { type SchemaType, SCHEMA_TYPES } from '../../validation/schemas/index.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -30,12 +34,13 @@ function buildQueryFilters(args: Record<string, unknown>): InvoiceQueryFilters {
     throw new Error('--from is required for invoice queries.');
   }
 
+  const to = args.to as string | undefined;
   const filters: InvoiceQueryFilters = {
     subjectType: (args.subjectType as InvoiceSubjectType) ?? 'Subject1',
     dateRange: {
       dateType: (args.dateType as InvoiceQueryDateType) ?? 'Invoicing',
-      from,
-      to: args.to as string | undefined,
+      from: normalizeCliDate(from, 'from'),
+      to: to ? normalizeCliDate(to, 'to') : undefined,
     },
   };
 
@@ -78,7 +83,8 @@ const send = defineCommand({
     path: { type: 'positional', description: 'Path to XML file, directory of XMLs, or ZIP for batch', required: true },
     sessionRef: { type: 'string', description: 'Override online session reference' },
     stream: { type: 'boolean', description: 'Use stream-based batch upload (for ZIP files, reduces memory usage)' },
-    formCode: { type: 'string', description: 'Document type: FA2, FA3, PEF3, PEFKOR3, FARR1 (default: FA2)' },
+    formCode: { type: 'string', description: 'Document type: FA2, FA3, PEF3, PEFKOR3, FARR1 (default: FA3)' },
+    validate: { type: 'boolean', description: 'Validate XML before sending' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -94,7 +100,7 @@ const send = defineCommand({
       const filePath = args.path;
 
       const formCodeKey = args.formCode as string | undefined;
-      let formCode: FormCode = FORM_CODES.FA_2;
+      let formCode: FormCode = DEFAULT_FORM_CODE;
       if (formCodeKey) {
         const resolved = FORM_CODE_KEYS[formCodeKey];
         if (!resolved) {
@@ -111,6 +117,10 @@ const send = defineCommand({
 
       if (args.stream) {
         // Stream-based batch upload from a ZIP file
+        if (args.validate) {
+          consola.warn('--validate is only supported for single-file sends, skipping validation.');
+        }
+
         if (!filePath.endsWith('.zip') || stat.isDirectory()) {
           throw new Error('--stream requires a .zip file path.');
         }
@@ -145,6 +155,10 @@ const send = defineCommand({
 
       if (stat.isDirectory()) {
         // Batch mode: send all XMLs in directory
+        if (args.validate) {
+          consola.warn('--validate is only supported for single-file sends, skipping validation.');
+        }
+
         const xmlFiles = fs.readdirSync(filePath)
           .filter((f) => f.endsWith('.xml'))
           .map((f) => path.join(filePath, f));
@@ -210,11 +224,26 @@ const send = defineCommand({
           throw new Error('No active online session. Run `ksef session open` or provide --session-ref.');
         }
 
+        // Read file once — reused for both validation and sending
+        const xmlContent = fs.readFileSync(filePath);
+
+        // Validate before send if --validate flag is set
+        if (args.validate) {
+          const xmlStr = xmlContent.toString('utf-8');
+          const validationResult = await validateInvoice(xmlStr);
+          if (!validationResult.valid) {
+            throw new KSeFValidationError(
+              `Validation failed for ${filePath}`,
+              validationResult.errors.map(e => ({ field: e.path, message: e.message })),
+            );
+          }
+          if (!args.json) consola.success('Validation passed.');
+        }
+
         if (!args.json) consola.start('Sending invoice...');
         await client.crypto.init();
         const encryptionData = client.crypto.getEncryptionData();
 
-        const xmlContent = fs.readFileSync(filePath);
         const xmlBytes = new Uint8Array(xmlContent);
         const plainMetadata = client.crypto.getFileMetadata(xmlBytes);
         const encrypted = client.crypto.encryptAES256(xmlBytes, encryptionData.cipherKey, encryptionData.cipherIv);
@@ -424,7 +453,91 @@ const exportStatus = defineCommand({
   },
 });
 
+const VALID_SCHEMA_TYPES = SCHEMA_TYPES;
+
+const validateCmd = defineCommand({
+  meta: { name: 'validate', description: 'Validate invoice XML against KSeF schema' },
+  args: {
+    files: { type: 'positional', description: 'XML file(s) or directory to validate', required: true },
+    schema: { type: 'string', description: `Schema override: ${VALID_SCHEMA_TYPES.join(', ')}` },
+    json: { type: 'boolean', description: 'Output as JSON' },
+  },
+  run({ args }) {
+    return withErrorHandler(async () => {
+      const schemaOverride = args.schema as string | undefined;
+      if (schemaOverride && !VALID_SCHEMA_TYPES.includes(schemaOverride as SchemaType)) {
+        throw new Error(`Invalid schema "${schemaOverride}". Valid: ${VALID_SCHEMA_TYPES.join(', ')}`);
+      }
+
+      // Collect files: single file, multiple positional args, or directory
+      const inputPath = args.files;
+      const filePaths: string[] = [];
+
+      if (fs.existsSync(inputPath) && fs.statSync(inputPath).isDirectory()) {
+        const xmlFiles = fs.readdirSync(inputPath)
+          .filter(f => f.endsWith('.xml'))
+          .sort()
+          .map(f => path.join(inputPath, f));
+        if (xmlFiles.length === 0) {
+          throw new Error(`No XML files found in ${inputPath}`);
+        }
+        filePaths.push(...xmlFiles);
+      } else if (fs.existsSync(inputPath)) {
+        filePaths.push(inputPath);
+      } else {
+        throw new Error(`File not found: ${inputPath}`);
+      }
+
+      let validCount = 0;
+      let invalidCount = 0;
+      const allResults: Array<{ file: string; valid: boolean; schemaType: string | null; errors: unknown[] }> = [];
+
+      for (const file of filePaths) {
+        const xml = fs.readFileSync(file, 'utf-8');
+        const result = await validateInvoice(xml, schemaOverride ? { schema: schemaOverride as SchemaType } : undefined);
+
+        if (result.valid) {
+          validCount++;
+          if (!args.json) {
+            consola.success(`${path.basename(file)}: valid (${result.schemaType})`);
+            if (result.schemaType === 'PEF3' || result.schemaType === 'PEF_KOR3') {
+              consola.warn('PEF validation covers wrapper structure only — UBL content is not validated.');
+            }
+          }
+        } else {
+          invalidCount++;
+          if (!args.json) {
+            consola.error(`${path.basename(file)}: INVALID (${result.schemaType ?? 'unknown schema'})`);
+            for (const err of result.errors) {
+              const loc = err.path ? ` at ${err.path}` : '';
+              consola.log(`  [${err.code}]${loc}: ${err.message}`);
+            }
+          }
+        }
+
+        allResults.push({
+          file: path.basename(file),
+          valid: result.valid,
+          schemaType: result.schemaType,
+          errors: result.errors,
+        });
+      }
+
+      if (args.json) {
+        outputResult({ files: allResults, summary: { total: filePaths.length, valid: validCount, invalid: invalidCount } }, { json: true });
+      } else if (filePaths.length > 1) {
+        consola.log('');
+        consola.info(`Summary: ${validCount} valid, ${invalidCount} invalid, ${filePaths.length} total`);
+      }
+
+      if (invalidCount > 0) {
+        process.exitCode = 1;
+      }
+    });
+  },
+});
+
 export const invoiceCommand = defineCommand({
   meta: { name: 'invoice', description: 'Invoice commands' },
-  subCommands: { send, get, query, export: exportCmd, 'export-status': exportStatus, 'export-incremental': exportIncremental },
+  subCommands: { send, get, query, validate: validateCmd, export: exportCmd, 'export-status': exportStatus, 'export-incremental': exportIncremental },
 });

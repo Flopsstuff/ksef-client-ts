@@ -10,6 +10,7 @@ import type { InvoiceSubjectType } from '../../models/invoices/types.js';
 import { FileHwmStore } from '../../workflows/hwm-storage.js';
 import { incrementalExportAndDownload } from '../../workflows/incremental-export-workflow.js';
 import type { ContinuationPoints } from '../../workflows/hwm-coordinator.js';
+import { normalizeCliDate } from '../date-utils.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -41,8 +42,8 @@ export const exportIncremental = defineCommand({
       const globalOpts = getGlobalOpts(args);
       const { client } = requireSession(globalOpts);
 
-      const from = args.from as string;
-      const to = (args.to as string | undefined) ?? new Date().toISOString().slice(0, 10);
+      const from = normalizeCliDate(args.from as string, 'from');
+      const to = normalizeCliDate((args.to as string | undefined) ?? new Date().toISOString().slice(0, 10), 'to');
       const subjectType = (args.subjectType as InvoiceSubjectType | undefined) ?? 'Subject1';
       const stateFile = (args.stateFile as string | undefined) ?? './ksef-hwm-state.json';
       const outputDir = (args.outputDir as string | undefined) ?? './ksef-exports';

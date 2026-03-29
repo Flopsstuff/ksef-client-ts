@@ -8,10 +8,13 @@ Deep dive into the validation layer that ensures data correctness before it reac
 
 The Polish National e-Invoice System (KSeF) enforces strict format and checksum rules on identifiers like NIP (tax ID), PESEL (personal ID), and KSeF invoice numbers. Submitting malformed data results in cryptic API errors or silent rejection. The validation layer catches these problems client-side, before any network I/O, producing clear error messages with field-level detail.
 
-The layer has four components:
+The layer has six components:
 
 | Component | File | Role |
 |-----------|------|------|
+| **Invoice XML validator** | `src/validation/invoice-validator.ts` | Three-level invoice validation (well-formedness, schema, business rules) |
+| **Schema registry** | `src/validation/schema-registry.ts` | Lazy-loading registry with namespace-based auto-detection |
+| **Generated Zod schemas** | `src/validation/schemas/*.ts` | Build-time XSD-to-Zod schemas for all 6 invoice types |
 | Regex patterns | `src/validation/patterns.ts` | Format validation for 17 identifier/data types |
 | Checksum validators | `src/validation/patterns.ts` | Algorithmic validation (NIP, PESEL, KSeF Number CRC-8) |
 | Constraint constants | `src/validation/constraints.ts` | Length limits and size bounds used by builders |
@@ -28,6 +31,235 @@ import {
 
 import { unzip, createZip } from 'ksef-client-ts';
 import type { UnzipOptions, ZipEntryInput } from 'ksef-client-ts';
+```
+
+---
+
+## Invoice XML Validation
+
+**Files:** `src/validation/invoice-validator.ts`, `src/validation/schema-registry.ts`, `src/validation/xml-to-object.ts`, `src/validation/schemas/*.ts`
+
+KSeF rejects invalid invoice XML at submission time with cryptic server-side errors, wasting API quota. The invoice XML validator catches structural and constraint errors client-side before any network I/O.
+
+### How it works
+
+The validation pipeline has two phases: **build-time** schema generation and **runtime** validation.
+
+```
+BUILD-TIME (one-time setup, output committed to git)
+
+  CIRFMF/ksef-docs (GitHub)        Official KSeF XSD schemas
+          │
+          │  yarn sync-schemas
+          ▼
+  docs/schemas/**/*.xsd             Local copy of XSD files (FA, PEF, RR)
+          │
+          │  yarn generate-schemas
+          ▼
+  src/validation/schemas/*.ts       Zod schemas (6 files + index.ts)
+
+
+RUNTIME (every validate() call)
+
+  Invoice XML string
+          │
+          │  @xmldom/xmldom DOMParser
+          ▼
+  Level 1: Well-formedness check    Rejects malformed XML
+          │
+          │  xmlToObject()
+          ▼
+  Plain JS object                   Elements → properties, arrays, @attributes
+          │
+          │  SchemaRegistry.detect() → namespace URI → schema type
+          │  schema.safeParse(object)
+          ▼
+  Level 2: Schema validation        Required elements, enums, patterns, occurrences
+          │
+          │  collectNipPeselErrors()
+          ▼
+  Level 3: Business rules           NIP/PESEL checksum verification
+          │
+          ▼
+  InvoiceValidationResult           { valid, schemaType, errors[] }
+```
+
+Each level short-circuits: if Level 1 fails, Levels 2-3 are skipped. See [Generated schemas](#generated-schemas) for details on the build-time pipeline and how to update schemas when KSeF publishes new versions.
+
+### Three validation levels
+
+The validator runs three independent levels, each callable separately or combined:
+
+| Level | Function | What it checks |
+|-------|----------|---------------|
+| 1 | `validateWellFormedness(xml)` | XML is parseable (no unclosed tags, no encoding errors) |
+| 2 | `validateSchema(xml, options?)` | Structure matches the KSeF XSD schema (required elements, patterns, enums, occurrence limits) |
+| 3 | `validateBusinessRules(xml)` | Business logic beyond XSD (NIP/PESEL checksum verification) |
+| All | `validate(xml, options?)` | Runs all three levels, short-circuits on first failure |
+
+### CLI usage
+
+Validate a single file:
+
+```bash
+ksef invoice validate invoice.xml
+# ✓ invoice.xml: valid (FA3)
+
+ksef invoice validate invoice.xml --json
+# {"files":[{"file":"invoice.xml","valid":true,"schemaType":"FA3","errors":[]}],"summary":{"total":1,"valid":1,"invalid":0}}
+```
+
+Validate a directory of invoices:
+
+```bash
+ksef invoice validate ./invoices/
+# ✓ inv-001.xml: valid (FA3)
+# ✓ inv-002.xml: valid (FA3)
+# ✗ inv-003.xml: INVALID (FA3)
+#   [MISSING_REQUIRED_ELEMENT] at /Faktura/Podmiot1: Required
+#
+# Summary: 2 valid, 1 invalid, 3 total
+```
+
+Override schema auto-detection:
+
+```bash
+ksef invoice validate invoice.xml --schema FA2
+```
+
+Validate before sending (CLI):
+
+```bash
+ksef invoice send invoice.xml --validate
+# ✓ Validation passed.
+# ✓ Invoice sent. Ref: 20240115-AB-...
+```
+
+### Programmatic API
+
+```typescript
+import {
+  validate, validateWellFormedness, validateSchema, validateBusinessRules,
+  SchemaRegistry,
+} from 'ksef-client-ts';
+
+// Full validation (all three levels)
+const result = await validate(invoiceXml);
+if (!result.valid) {
+  for (const error of result.errors) {
+    console.error(`[${error.code}] ${error.path}: ${error.message}`);
+  }
+}
+
+// Individual levels
+const l1 = validateWellFormedness(xml);          // sync
+const l2 = await validateSchema(xml);            // async (lazy schema loading)
+const l3 = validateBusinessRules(xml);           // sync
+
+// Explicit schema override (skip auto-detection)
+const l2fa2 = await validateSchema(xml, { schema: 'FA2' });
+```
+
+### Validate-before-send (programmatic)
+
+The `openOnlineSession` workflow accepts a `validate` option. When enabled, every `sendInvoice()` call validates the XML before encryption. On failure, it throws `KSeFValidationError`:
+
+```typescript
+import { openOnlineSession } from 'ksef-client-ts';
+import { KSeFValidationError } from 'ksef-client-ts';
+
+const handle = await openOnlineSession(client, { validate: true });
+
+try {
+  await handle.sendInvoice(invoiceXml);
+} catch (err) {
+  if (err instanceof KSeFValidationError) {
+    console.error('Validation failed:', err.message);
+    for (const detail of err.details) {
+      console.error(`  ${detail.field}: ${detail.message}`);
+    }
+  }
+}
+```
+
+Validation is opt-in (default: `false`) to avoid adding latency for systems that trust their XML generation.
+
+### Schema auto-detection
+
+The validator detects the invoice schema type from the root element's XML namespace URI:
+
+| Namespace | Schema | Root element |
+|-----------|--------|-------------|
+| `http://crd.gov.pl/wzor/2025/06/25/13775/` | FA3 | `Faktura` |
+| `http://crd.gov.pl/wzor/2023/06/29/12648/` | FA2 | `Faktura` |
+| `http://crd.gov.pl/wzor/2026/03/06/14189/` | RR1_V11E | `Faktura` |
+| `http://crd.gov.pl/wzor/2026/02/17/14164/` | RR1_V10E | `Faktura` |
+| `urn:oasis:names:specification:ubl:schema:xsd:Invoice-2` | PEF3 | `Invoice` |
+| `urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2` | PEF_KOR3 | `CreditNote` |
+
+For PEF schemas, the root element name disambiguates `Invoice` (PEF3) from `CreditNote` (PEF_KOR3).
+
+### Schema registry
+
+`SchemaRegistry` manages lazy-loading of generated Zod schemas:
+
+```typescript
+import { SchemaRegistry } from 'ksef-client-ts';
+
+// List all available schemas
+SchemaRegistry.availableSchemas();
+// ['FA3', 'FA2', 'RR1_V11E', 'RR1_V10E', 'PEF3', 'PEF_KOR3']
+
+// Load a schema (lazy, cached after first load)
+const schema = await SchemaRegistry.get('FA3');
+
+// Auto-detect from namespace and root element
+const type = SchemaRegistry.detect(
+  'http://crd.gov.pl/wzor/2025/06/25/13775/', 'Faktura'
+);
+// 'FA3'
+```
+
+### Error codes
+
+| Code | Level | Meaning |
+|------|-------|---------|
+| `MALFORMED_XML` | 1 | XML cannot be parsed (unclosed tags, encoding errors, empty input) |
+| `MISSING_REQUIRED_ELEMENT` | 2 | A required element is absent |
+| `INVALID_ENUM_VALUE` | 2 | Value not in the allowed enumeration |
+| `PATTERN_MISMATCH` | 2 | String doesn't match the XSD pattern restriction |
+| `MAX_OCCURS_EXCEEDED` | 2 | More occurrences than `maxOccurs` allows |
+| `UNKNOWN_SCHEMA` | 2 | Namespace doesn't match any known invoice schema |
+| `SCHEMA_VALIDATION_ERROR` | 2 | Other schema constraint violation |
+| `INVALID_NIP_CHECKSUM` | 3 | NIP value fails weighted checksum |
+| `INVALID_PESEL_CHECKSUM` | 3 | PESEL value fails weighted checksum |
+
+Each error includes:
+- `code` -- classification from the table above
+- `message` -- human-readable description
+- `path` -- XPath-like location, e.g. `/Faktura/Podmiot1/DaneIdentyfikacyjne/NIP`
+
+### Generated schemas
+
+This is the build-time half of the [validation pipeline](#how-it-works). The generator script (`scripts/generate-invoice-schemas.mjs`) parses official KSeF XSD files from `docs/schemas/`, resolves cross-file imports (base types, country codes), and emits self-contained Zod TypeScript files. Each schema type gets its own file:
+
+| File | Source XSD | Types |
+|------|-----------|-------|
+| `fa3.ts` | `FA/schemat_FA(3)_v1-0E.xsd` | ~113 Zod types |
+| `fa2.ts` | `FA/schemat_FA(2)_v1-0E.xsd` | ~111 Zod types |
+| `rr1-v11e.ts` | `RR/schemat_FA_RR(1)_v1-1E.xsd` | ~102 Zod types |
+| `rr1-v10e.ts` | `RR/schemat_FA_RR(1)_v1-0E.xsd` | ~102 Zod types |
+| `pef3.ts` | `PEF/Schemat_PEF(3)_v2-1.xsd` | Wrapper-level validation |
+| `pef-kor3.ts` | `PEF/Schemat_PEF_KOR(3)_v2-1.xsd` | Wrapper-level validation |
+
+PEF schemas validate the KSeF wrapper structure but not the full UBL body (UBL base schemas are 2.3MB; nested types use `z.any()`).
+
+To regenerate after updating XSD files:
+
+```bash
+yarn sync-schemas          # download latest XSD from CIRFMF/ksef-docs
+yarn generate-schemas      # regenerate Zod schemas
+yarn lint                  # verify generated code compiles
 ```
 
 ---

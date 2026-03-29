@@ -40,7 +40,7 @@ export function toEnvironmentName(env: CliConfig['environment']): EnvironmentNam
 export const CLI_ENV_CHOICES = ['test', 'demo', 'prod'] as const;
 
 export const DEFAULT_CONFIG: CliConfig = {
-  environment: 'test',
+  environment: 'prod',
   output: 'pretty',
   timeout: 30_000,
 };

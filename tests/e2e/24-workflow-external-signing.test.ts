@@ -14,7 +14,7 @@ async function generateCertAndClient() {
   return { client, nip, cert };
 }
 
-describe('25 - External Signing Workflow', { timeout: 120_000 }, () => {
+describe('24 - External Signing Workflow', { timeout: 120_000 }, () => {
   it('should authenticate via external signing with sync callback', async () => {
     const { client, nip, cert } = await generateCertAndClient();
 

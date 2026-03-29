@@ -8,7 +8,7 @@ import { uploadBatch, uploadBatchStream } from '../../src/workflows/batch-sessio
 async function createInvoiceZip(
   nip: string,
   count: number,
-  version: InvoiceFormVersion = 'FA_2',
+  version: InvoiceFormVersion = 'FA_3',
 ): Promise<Uint8Array> {
   const zip = new JSZip();
   for (let i = 0; i < count; i++) {
@@ -26,7 +26,7 @@ describe('05 - Batch Session E2E', { timeout: 300_000 }, () => {
     const zipData = await createInvoiceZip(nip, INVOICE_COUNT);
 
     const result = await uploadBatch(client, zipData, {
-      formCode: getFormCode('FA_2'),
+      formCode: getFormCode('FA_3'),
       pollOptions: POLL_OPTIONS,
     });
 
@@ -49,7 +49,7 @@ describe('05 - Batch Session E2E', { timeout: 300_000 }, () => {
     const zipData = await createInvoiceZip(nip, INVOICE_COUNT);
 
     const result = await uploadBatch(client, zipData, {
-      formCode: getFormCode('FA_2'),
+      formCode: getFormCode('FA_3'),
       maxPartSize: 1000, // ~1KB — forces ZIP (~15KB) into ~15 parts
       pollOptions: POLL_OPTIONS,
     });
@@ -79,7 +79,7 @@ describe('05 - Batch Session E2E', { timeout: 300_000 }, () => {
     });
 
     const result = await uploadBatchStream(client, zipStreamFactory, zipData.byteLength, {
-      formCode: getFormCode('FA_2'),
+      formCode: getFormCode('FA_3'),
       pollOptions: POLL_OPTIONS,
     });
 
@@ -112,7 +112,7 @@ describe('05 - Batch Session E2E', { timeout: 300_000 }, () => {
     });
 
     const result = await uploadBatchStream(client, zipStreamFactory, zipData.byteLength, {
-      formCode: getFormCode('FA_2'),
+      formCode: getFormCode('FA_3'),
       maxPartSize: 1000, // ~1KB — forces multi-part
       pollOptions: POLL_OPTIONS,
     });
@@ -141,7 +141,7 @@ describe('05 - Batch Session E2E', { timeout: 300_000 }, () => {
     // Open session with CORRUPTED part hash
     const corruptHash = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
     const openResp = await client.batchSession.openSession({
-      formCode: getFormCode('FA_2'),
+      formCode: getFormCode('FA_3'),
       batchFile: {
         fileSize: zipMeta.fileSize,
         fileHash: zipMeta.hashSHA,
@@ -196,7 +196,7 @@ describe('05 - Batch Session E2E', { timeout: 300_000 }, () => {
 
     // Open session with CORRECT metadata
     const openResp = await client.batchSession.openSession({
-      formCode: getFormCode('FA_2'),
+      formCode: getFormCode('FA_3'),
       batchFile: {
         fileSize: zipMeta.fileSize,
         fileHash: zipMeta.hashSHA,

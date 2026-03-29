@@ -15,12 +15,12 @@ describe('21 - Online Session Workflow', { timeout: 180_000 }, () => {
   }, 60_000);
 
   it('should complete handle lifecycle — send, close, waitForUpo', async () => {
-    const handle = await openOnlineSession(client, { formCode: getFormCode('FA_2') });
+    const handle = await openOnlineSession(client, { formCode: getFormCode('FA_3') });
 
     expect(handle.sessionRef).toBeTruthy();
     expect(handle.validUntil).toBeTruthy();
 
-    const invoiceXml = prepareInvoiceXml('FA_2', { nip });
+    const invoiceXml = prepareInvoiceXml('FA_3', { nip });
     const invoiceRef = await handle.sendInvoice(invoiceXml);
     expect(invoiceRef).toBeTruthy();
 
@@ -34,10 +34,10 @@ describe('21 - Online Session Workflow', { timeout: 180_000 }, () => {
   });
 
   it('should openSendAndClose with single invoice', async () => {
-    const invoiceXml = prepareInvoiceXml('FA_2', { nip });
+    const invoiceXml = prepareInvoiceXml('FA_3', { nip });
 
     const upo = await openSendAndClose(client, [invoiceXml], {
-      formCode: getFormCode('FA_2'),
+      formCode: getFormCode('FA_3'),
       pollOptions: POLL_OPTIONS,
     });
 
@@ -48,11 +48,11 @@ describe('21 - Online Session Workflow', { timeout: 180_000 }, () => {
 
   it('should openSendAndClose with multiple invoices', async () => {
     const invoices = Array.from({ length: 3 }, () =>
-      prepareInvoiceXml('FA_2', { nip }),
+      prepareInvoiceXml('FA_3', { nip }),
     );
 
     const upo = await openSendAndClose(client, invoices, {
-      formCode: getFormCode('FA_2'),
+      formCode: getFormCode('FA_3'),
       pollOptions: POLL_OPTIONS,
     });
 

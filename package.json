@@ -1,6 +1,6 @@
 {
   "name": "ksef-client-ts",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "TypeScript client for the Polish National e-Invoice System (KSeF) API",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -38,14 +38,26 @@
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "check-api": "node scripts/check-openapi-coverage.mjs",
-    "split-openapi": "node scripts/split-openapi.mjs"
+    "split-openapi": "node scripts/split-openapi.mjs",
+    "sync-schemas": "node scripts/sync-xsd-schemas.mjs",
+    "generate-schemas": "node --stack-size=16384 scripts/generate-invoice-schemas.mjs"
   },
   "keywords": [
     "ksef",
     "e-invoice",
+    "e-faktura",
+    "invoice",
+    "faktura",
+    "fa3",
+    "xml",
+    "xsd",
+    "validation",
     "poland",
     "tax",
-    "faktura"
+    "typescript",
+    "node",
+    "sdk",
+    "cli"
   ],
   "author": "Flop",
   "license": "MIT",
@@ -58,6 +70,7 @@
   },
   "dependencies": {
     "@peculiar/x509": "^1.12.3",
+    "@xmldom/xmldom": "^0.8.11",
     "citty": "^0.2.1",
     "cli-table3": "^0.6.5",
     "consola": "^3.4.2",
@@ -66,7 +79,8 @@
     "qrcode": "^1.5.4",
     "xml-crypto": "^6.0.0",
     "yauzl": "^3.2.1",
-    "yazl": "^3.3.1"
+    "yazl": "^3.3.1",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@scalar/api-reference": "^1.49.3",

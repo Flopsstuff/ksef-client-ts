@@ -29,6 +29,9 @@ export const FORM_CODES = {
   FA_RR_1:            { systemCode: 'FA_RR (1)',   schemaVersion: '1-1E', value: 'FA_RR' },
 } as const satisfies Record<string, FormCode>;
 
+/** Default form code for sessions and CLI commands (FA(3) since 2026-02-01). */
+export const DEFAULT_FORM_CODE = FORM_CODES.FA_3;
+
 // ---------------------------------------------------------------------------
 // Session-type constrained unions
 // ---------------------------------------------------------------------------

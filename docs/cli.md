@@ -14,8 +14,8 @@ yarn install && yarn build && yarn link
 ## Quick Start
 
 ```bash
-# 1. Configure environment and NIP
-ksef config set --env test --nip 1234567890
+# 1. Configure NIP (environment defaults to prod)
+ksef config set --nip 1234567890
 
 # 2. Authenticate with a KSeF token
 ksef auth login --token "$KSEF_TOKEN"
@@ -51,7 +51,7 @@ ksef config show                    # Show current config
 ksef config reset                   # Reset to defaults
 ```
 
-Default values: `environment=test`, `output=pretty`, `timeout=30000`.
+Default values: `environment=prod`, `output=pretty`, `timeout=30000`.
 
 ## Authentication
 
@@ -158,27 +158,35 @@ ksef invoice export-status <ref>                 # Check export status
 ### Grant Permissions
 
 ```bash
-# Grant to a person
-ksef permission grant person \
+# Grant to a physical person (osoba fizyczna, identified by PESEL)
+ksef permission grant --type person \
   --identifier <pesel> --identifierType Pesel \
   --permissions InvoiceRead,InvoiceWrite \
   --firstName Jan --lastName Kowalski \
   --description "Accountant access"
 
-# Grant to an entity
-ksef permission grant entity \
+# Grant to a legal entity (podmiot, identified by NIP)
+ksef permission grant --type entity \
   --targetNip <nip> --permissions InvoiceRead \
   --fullName "Firma Sp. z o.o." \
   --description "Partner access"
 
-# Grant authorization
-ksef permission grant authorization \
+# Grant to an entity with delegation rights (zakres uprawnień)
+ksef permission grant --type entity \
   --targetNip <nip> --permissions InvoiceRead,InvoiceWrite \
+  --fullName "Biuro Rachunkowe Sp. z o.o." \
+  --description "Accounting office" --canDelegate
+
+# Grant authorization scope (upoważnienie — SelfInvoicing, TaxRepresentative, etc.)
+ksef permission grant --type authorization \
+  --targetNip <nip> --permissions SelfInvoicing \
   --fullName "Biuro Rachunkowe" \
-  --description "Accounting office"
+  --description "Self-invoicing authorization"
 ```
 
 Supported grant types: `person`, `entity`, `authorization`, `indirect`, `subunit`, `eu-entity-admin`, `eu-entity-representative`. Each type requires specific flags — the CLI will report missing fields.
+
+Add `--canDelegate` to allow the subject to further delegate permissions to their own employees (corresponds to "Zakres uprawnień" in the KSeF web portal).
 
 ### Other Permission Commands
 
@@ -186,8 +194,8 @@ Supported grant types: `person`, `entity`, `authorization`, `indirect`, `subunit
 ksef permission revoke <grantId>                              # Revoke a grant
 ksef permission revoke <grantId> --authorization              # Revoke an authorization grant
 ksef permission search --type personal                        # Search own permissions
-ksef permission search --type persons [--identifier <val>]    # Search person permissions
-ksef permission search --type entities                        # Search entity permissions
+ksef permission search --type persons [--identifier <val>]    # Search granted permissions (persons AND entities)
+ksef permission search --type entities                        # Search entity roles (CourtBailiff, etc.)
 ksef permission status <ref>                                  # Check operation status
 ksef permission attachment-status                              # Check if attachments are allowed
 ```

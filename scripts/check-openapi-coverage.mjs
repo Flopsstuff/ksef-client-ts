@@ -5,11 +5,11 @@
  * and that no extra endpoints exist in the client that aren't in the spec.
  *
  * Steps:
- *   1. Fetch the latest open-api.json from CIRFMF/ksef-docs
+ *   1. Fetch the latest openapi.json from KSeF API (default: test env)
  *   2. Compare with the local docs/open-api.json — exit with error if they differ
  *   3. Check that every spec endpoint is implemented in services/crypto
  *
- * Usage: node scripts/check-openapi-coverage.mjs [--skip-fetch] [--openapi <path>] [--services <path>] [--routes <path>]
+ * Usage: node scripts/check-openapi-coverage.mjs [--skip-fetch] [--save] [--env test|demo|prod] [--openapi <path>] [--services <path>] [--routes <path>]
  */
 
 import crypto from 'node:crypto';
@@ -20,7 +20,11 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(scriptDir, '..');
 
-const UPSTREAM_URL = 'https://raw.githubusercontent.com/CIRFMF/ksef-docs/main/open-api.json';
+const UPSTREAM_URLS = {
+  test: 'https://api-test.ksef.mf.gov.pl/docs/v2/openapi.json',
+  demo: 'https://api-demo.ksef.mf.gov.pl/docs/v2/openapi.json',
+  prod: 'https://api.ksef.mf.gov.pl/docs/v2/openapi.json',
+};
 
 const defaults = {
   openapi: path.resolve(root, 'docs', 'open-api.json'),
@@ -37,6 +41,11 @@ function parseArgs(argv) {
     const arg = argv[i];
     if (arg === '--help' || arg === '-h') { args.help = true; continue; }
     if (arg === '--skip-fetch') { args.skipFetch = true; continue; }
+    if (arg === '--save') { args.save = true; continue; }
+    if (arg === '--env' || arg.startsWith('--env=')) {
+      args.env = arg.includes('=') ? arg.split('=')[1] : argv[++i];
+      continue;
+    }
     for (const key of ['openapi', 'services', 'routes']) {
       if (arg === `--${key}` || arg.startsWith(`--${key}=`)) {
         args[key] = arg.includes('=') ? arg.split('=')[1] : argv[++i];
@@ -142,9 +151,10 @@ function extractClientOperations(dirs, routeMap) {
 
 // --- 4. Fetch upstream spec and compare with local ---
 
-async function fetchUpstreamSpec() {
-  console.log(`Fetching upstream spec from CIRFMF/ksef-docs...`);
-  const res = await fetch(UPSTREAM_URL);
+async function fetchUpstreamSpec(env) {
+  const url = UPSTREAM_URLS[env];
+  console.log(`Fetching upstream spec from ${env} (${url})...`);
+  const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`Failed to fetch upstream spec: ${res.status} ${res.statusText}`);
   }
@@ -155,22 +165,40 @@ function sha256(text) {
   return crypto.createHash('sha256').update(text).digest('hex');
 }
 
-function compareSpecs(localPath, upstreamText) {
+function compareSpecs(localPath, upstreamText, env) {
   const localText = fs.readFileSync(localPath, 'utf8');
-  const localHash = sha256(localText);
-  const upstreamHash = sha256(upstreamText);
+  const local = JSON.parse(localText);
+  const upstream = JSON.parse(upstreamText);
 
-  if (localHash === upstreamHash) {
-    console.log(`Local spec is up to date with upstream (sha256: ${localHash.slice(0, 12)}...).`);
+  // Compare paths (ignoring info/servers metadata that differs per environment)
+  const localPaths = Object.keys(local.paths ?? {}).sort().join('\n');
+  const upstreamPaths = Object.keys(upstream.paths ?? {}).sort().join('\n');
+  const localPathCount = Object.keys(local.paths ?? {}).length;
+  const upstreamPathCount = Object.keys(upstream.paths ?? {}).length;
+
+  if (localPaths === upstreamPaths) {
+    console.log(`Local spec paths match ${env} (${localPathCount} paths).`);
     return true;
   }
 
-  console.error('Local spec differs from upstream (CIRFMF/ksef-docs)!');
-  console.error(`  Local:    sha256=${localHash}`);
-  console.error(`  Upstream: sha256=${upstreamHash}`);
+  const localSet = new Set(Object.keys(local.paths ?? {}));
+  const upstreamSet = new Set(Object.keys(upstream.paths ?? {}));
+  const missing = [...upstreamSet].filter(p => !localSet.has(p)).sort();
+  const extra = [...localSet].filter(p => !upstreamSet.has(p)).sort();
+
+  console.error(`Local spec paths differ from ${env}!`);
+  console.error(`  Local: ${localPathCount} paths, Upstream: ${upstreamPathCount} paths`);
+  if (missing.length) {
+    console.error(`  Missing locally (${missing.length}):`);
+    for (const p of missing) console.error(`    - ${p}`);
+  }
+  if (extra.length) {
+    console.error(`  Extra locally (${extra.length}):`);
+    for (const p of extra) console.error(`    - ${p}`);
+  }
   console.error();
   console.error('To update, run:');
-  console.error('  curl -L -o docs/open-api.json ' + UPSTREAM_URL);
+  console.error(`  curl -sL '${UPSTREAM_URLS[env]}' -o docs/open-api.json`);
   console.error('  node scripts/split-openapi.mjs');
   return false;
 }
@@ -181,7 +209,17 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
 
   if (args.help) {
-    console.log('Usage: node scripts/check-openapi-coverage.mjs [--skip-fetch] [--openapi <path>] [--services <path>] [--routes <path>]');
+    console.log('Usage: node scripts/check-openapi-coverage.mjs [--skip-fetch] [--save] [--env test|demo|prod] [--openapi <path>] [--services <path>] [--routes <path>]');
+    console.log();
+    console.log('Options:');
+    console.log('  --env <env>    Environment to fetch from (default: test)');
+    console.log('  --save         Save fetched spec to docs/open-api.json');
+    console.log('  --skip-fetch   Skip fetching upstream spec');
+    console.log();
+    console.log('Environments:');
+    for (const [name, url] of Object.entries(UPSTREAM_URLS)) {
+      console.log(`  ${name.padEnd(6)} ${url}`);
+    }
     return;
   }
 
@@ -194,9 +232,23 @@ async function main() {
   const cryptoDir = resolve(args.crypto, defaults.crypto);
 
   // Step 1: Check upstream freshness
+  const env = args.env ?? 'test';
+  if (!UPSTREAM_URLS[env]) {
+    console.error(`Unknown environment: ${env}. Use test, demo, or prod.`);
+    process.exitCode = 1;
+    return;
+  }
+
   if (!args.skipFetch) {
-    const upstreamText = await fetchUpstreamSpec();
-    if (!compareSpecs(specPath, upstreamText)) {
+    const upstreamText = await fetchUpstreamSpec(env);
+    const specsMatch = compareSpecs(specPath, upstreamText, env);
+
+    if (args.save) {
+      fs.writeFileSync(specPath, upstreamText, 'utf8');
+      console.log(`Saved upstream spec to ${path.relative(root, specPath)}`);
+    }
+
+    if (!specsMatch && !args.save) {
       process.exitCode = 1;
       return;
     }

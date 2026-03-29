@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FakturaRRStrukt xmlns="http://crd.gov.pl/wzor/2026/03/06/14189/">
+    <Naglowek>
+        <KodFormularza kodSystemowy="FA_RR (1)" wersjaSchemy="1-1E">FA_RR</KodFormularza>
+        <WariantFormularza>1</WariantFormularza>
+        <DataWytworzeniaFa>2025-01-15T10:00:00Z</DataWytworzeniaFa>
+    </Naglowek>
+    <Podmiot1>
+        <DaneIdentyfikacyjne>
+            <NIP>5213003700</NIP>
+            <Nazwa>Firma Testowa sp. z o.o.</Nazwa>
+        </DaneIdentyfikacyjne>
+        <Adres>
+            <KodKraju>PL</KodKraju>
+            <AdresL1>ul. Testowa 1</AdresL1>
+            <AdresL2>00-001 Warszawa</AdresL2>
+        </Adres>
+    </Podmiot1>
+    <Podmiot2>
+        <DaneIdentyfikacyjne>
+            <NIP>3861610227</NIP>
+            <Nazwa>Rolnik Testowy</Nazwa>
+        </DaneIdentyfikacyjne>
+        <Adres>
+            <KodKraju>PL</KodKraju>
+            <AdresL1>ul. Rolnicza 5</AdresL1>
+            <AdresL2>00-100 Warszawa</AdresL2>
+        </Adres>
+    </Podmiot2>
+    <FakturaRR>
+        <KodWaluty>PLN</KodWaluty>
+        <P_4B>2025-01-15</P_4B>
+        <P_4C>RR/2025/001</P_4C>
+        <P_11_1>500.00</P_11_1>
+        <P_11_2>35.00</P_11_2>
+        <P_12_1>535.00</P_12_1>
+        <P_12_2>7</P_12_2>
+        <RodzajFaktury>VAT_RR</RodzajFaktury>
+        <FakturaRRWiersz>
+            <NrWierszaFa>1</NrWierszaFa>
+            <P_5>Ziemniaki</P_5>
+            <P_7>100.00</P_7>
+            <P_8>kg</P_8>
+            <P_9A>5.00</P_9A>
+            <P_10>500.00</P_10>
+            <P_11>7</P_11>
+        </FakturaRRWiersz>
+    </FakturaRR>
+</FakturaRRStrukt>

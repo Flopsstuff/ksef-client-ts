@@ -6,7 +6,7 @@ import * as sessionStore from '../../../../src/cli/session-store.js';
 import * as output from '../../../../src/cli/output.js';
 import { createMockClient, defaultConfig, validSession } from './_helpers.js';
 
-vi.mock('consola', () => ({ consola: { level: 0 } }));
+vi.mock('consola', () => ({ consola: { level: 0, info: vi.fn(), warn: vi.fn() } }));
 
 vi.mock('../../../../src/cli/error-handler.js', () => ({
   withErrorHandler: vi.fn((fn) => fn()),
@@ -110,7 +110,7 @@ describe('auth', () => {
       const fs = await import('node:fs');
       vi.mocked(fs.readFileSync).mockReturnValueOnce('CERT-PEM' as any).mockReturnValueOnce('KEY-PEM' as any);
       await runLogin({ cert: '/cert.pem', key: '/key.pem', nip: '1234567890' });
-      expect(mockClient.loginWithCertificate).toHaveBeenCalledWith('CERT-PEM', 'KEY-PEM', '1234567890');
+      expect(mockClient.loginWithCertificate).toHaveBeenCalledWith('CERT-PEM', 'KEY-PEM', '1234567890', undefined);
     });
 
     it('p12 path — reads file as buffer and calls loginWithPkcs12', async () => {
@@ -172,10 +172,60 @@ describe('auth', () => {
   });
 
   describe('whoami', () => {
+    function buildTestJwt(payload: Record<string, unknown>): string {
+      const header = Buffer.from(JSON.stringify({ alg: 'none' })).toString('base64url');
+      const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+      return `${header}.${body}.signature`;
+    }
+
     it('shows truncated token', async () => {
       await runWhoami();
       expect(mockOutputKeyValue).toHaveBeenCalledWith(
         expect.objectContaining({ accessToken: expect.stringContaining('...') }),
+        expect.anything(),
+      );
+    });
+
+    it('includes JWT context fields when token is a valid JWT', async () => {
+      const jwtToken = buildTestJwt({
+        typ: 'ContextToken',
+        cit: 'Nip',
+        civ: '8952265388',
+        aum: 'TrustedProfile',
+        per: '["InvoiceRead"]',
+      });
+      mockLoadSession.mockReturnValue({ ...validSession, accessToken: jwtToken });
+      await runWhoami();
+      expect(mockOutputKeyValue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nip: '8952265388',
+          authMethod: 'TrustedProfile',
+          permissions: 'InvoiceRead',
+          tokenType: 'ContextToken',
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('omits context fields when token is not a JWT', async () => {
+      mockLoadSession.mockReturnValue({ ...validSession, accessToken: 'not-a-jwt' });
+      await runWhoami();
+      const info = mockOutputKeyValue.mock.calls[0]![0] as Record<string, unknown>;
+      expect(info).not.toHaveProperty('nip');
+      expect(info).not.toHaveProperty('authMethod');
+      expect(info).not.toHaveProperty('permissions');
+      expect(info).toHaveProperty('environment');
+      expect(info).toHaveProperty('status');
+    });
+
+    it('includes full context object in JSON mode', async () => {
+      const jwtToken = buildTestJwt({ typ: 'ContextToken', civ: '1234567890' });
+      mockLoadSession.mockReturnValue({ ...validSession, accessToken: jwtToken });
+      await runWhoami({ json: true });
+      expect(mockOutputKeyValue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          context: expect.objectContaining({ type: 'ContextToken', contextIdentifierValue: '1234567890' }),
+        }),
         expect.anything(),
       );
     });

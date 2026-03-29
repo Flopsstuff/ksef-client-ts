@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { openOnlineSession, openSendAndClose } from '../../../src/workflows/online-session-workflow.js';
+import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
+import { validate as validateInvoice } from '../../../src/validation/invoice-validator.js';
 import type { UpoPotwierdzenie } from '../../../src/xml/index.js';
+
+vi.mock('../../../src/validation/invoice-validator.js', () => ({
+  validate: vi.fn(),
+}));
+
+const mockValidateInvoice = vi.mocked(validateInvoice);
 
 function createMockClient() {
   return {
@@ -45,7 +53,7 @@ describe('openOnlineSession', () => {
     expect(client.crypto.getEncryptionData).toHaveBeenCalled();
     expect(client.onlineSession.openSession).toHaveBeenCalledWith(
       expect.objectContaining({
-        formCode: { systemCode: 'FA (2)', schemaVersion: '1-0E', value: 'FA' },
+        formCode: { systemCode: 'FA (3)', schemaVersion: '1-0E', value: 'FA' },
         encryption: expect.any(Object),
       }),
       undefined,
@@ -204,5 +212,41 @@ describe('openSendAndClose', () => {
     expect(client.onlineSession.sendInvoice).toHaveBeenCalledTimes(2);
     expect(client.onlineSession.closeSession).toHaveBeenCalledWith('sess-ref-1');
     expect(upo.pages).toHaveLength(1);
+  });
+});
+
+describe('validate-before-send', () => {
+  it('validates invoice when validate option is true', async () => {
+    mockValidateInvoice.mockResolvedValue({ valid: true, schemaType: 'FA3', errors: [] });
+    const handle = await openOnlineSession(client, { validate: true });
+    await handle.sendInvoice('<invoice>valid</invoice>');
+    expect(mockValidateInvoice).toHaveBeenCalledWith('<invoice>valid</invoice>');
+    expect(client.onlineSession.sendInvoice).toHaveBeenCalled();
+  });
+
+  it('throws KSeFValidationError when invoice is invalid', async () => {
+    mockValidateInvoice.mockResolvedValue({
+      valid: false,
+      schemaType: null,
+      errors: [{ code: 'MALFORMED_XML', message: 'Bad XML' }],
+    });
+    const handle = await openOnlineSession(client, { validate: true });
+    await expect(handle.sendInvoice('<bad/>')).rejects.toThrow(KSeFValidationError);
+    expect(client.onlineSession.sendInvoice).not.toHaveBeenCalled();
+  });
+
+  it('skips validation when validate option is not set', async () => {
+    const handle = await openOnlineSession(client);
+    await handle.sendInvoice('<invoice>test</invoice>');
+    expect(mockValidateInvoice).not.toHaveBeenCalled();
+    expect(client.onlineSession.sendInvoice).toHaveBeenCalled();
+  });
+
+  it('validates Uint8Array input by decoding to string', async () => {
+    mockValidateInvoice.mockResolvedValue({ valid: true, schemaType: 'FA3', errors: [] });
+    const handle = await openOnlineSession(client, { validate: true });
+    const bytes = new TextEncoder().encode('<invoice>bytes</invoice>');
+    await handle.sendInvoice(bytes);
+    expect(mockValidateInvoice).toHaveBeenCalledWith('<invoice>bytes</invoice>');
   });
 });

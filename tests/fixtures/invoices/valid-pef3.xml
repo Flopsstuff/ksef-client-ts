@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+    <cbc:ID>PEF/2025/001</cbc:ID>
+    <cbc:IssueDate>2025-01-15</cbc:IssueDate>
+    <cbc:DocumentCurrencyCode>PLN</cbc:DocumentCurrencyCode>
+    <cac:AccountingSupplierParty>
+        <cac:Party>
+            <cac:PartyName>
+                <cbc:Name>Firma Testowa sp. z o.o.</cbc:Name>
+            </cac:PartyName>
+        </cac:Party>
+    </cac:AccountingSupplierParty>
+    <cac:AccountingCustomerParty>
+        <cac:Party>
+            <cac:PartyName>
+                <cbc:Name>Kontrahent Testowy</cbc:Name>
+            </cac:PartyName>
+        </cac:Party>
+    </cac:AccountingCustomerParty>
+    <cac:LegalMonetaryTotal>
+        <cbc:PayableAmount currencyID="PLN">615.00</cbc:PayableAmount>
+    </cac:LegalMonetaryTotal>
+    <cac:InvoiceLine>
+        <cbc:ID>1</cbc:ID>
+        <cbc:InvoicedQuantity unitCode="C62">5</cbc:InvoicedQuantity>
+        <cbc:LineExtensionAmount currencyID="PLN">500.00</cbc:LineExtensionAmount>
+        <cac:Item>
+            <cbc:Name>Usluga testowa</cbc:Name>
+        </cac:Item>
+    </cac:InvoiceLine>
+</Invoice>

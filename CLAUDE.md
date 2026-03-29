@@ -18,6 +18,7 @@ yarn docs:dev         # VitePress dev server
 yarn docs:build       # Build docs site
 yarn check-api        # Check OpenAPI coverage
 yarn split-openapi    # Split open-api.json into per-domain chunks
+yarn sync-schemas     # Download XSD schemas from CIRFMF/ksef-docs
 ```
 
 Run a single test file: `yarn vitest run tests/unit/foo.test.ts`
@@ -78,6 +79,16 @@ CLI (src/cli/) — 14 command groups via commander.js
 - `InvoiceFilterInvoicingMode` (not `InvoicingMode`) — avoids collision with session types.
 - `PermissionSubjectIdentifierType` (not `SubjectIdentifierType`) — avoids collision with auth types. Note: both now use `'Nip' | 'Pesel' | 'Fingerprint'` values (aligned with OpenAPI spec).
 
+### KSeF environments and portals
+
+| Env | API | Web Portal |
+|-----|-----|------------|
+| PROD | `https://api.ksef.mf.gov.pl` | `https://ap.ksef.mf.gov.pl/web/` |
+| TEST | `https://api-test.ksef.mf.gov.pl` | — |
+| DEMO | `https://api-demo.ksef.mf.gov.pl` | — |
+
+The web portal is used for token generation, permission management, and invoice browsing via browser (requires qualified signature or trusted profile).
+
 ### Environment variables
 
 `KSEF_TOKEN` and `KSEF_NIP` are set in the current shell environment. Use them for CLI login: `ksef auth login --token "$KSEF_TOKEN" --nip "$KSEF_NIP" --env prod`.
@@ -85,6 +96,10 @@ CLI (src/cli/) — 14 command groups via commander.js
 ### OpenAPI spec
 
 `docs/open-api.json` is the KSeF API OpenAPI specification (source of truth, v2.3.0-te). Per-domain chunks in `docs/openapi-chunks/` (16 files). Regenerate with `yarn split-openapi`. Validate coverage with `yarn check-api`.
+
+### XSD schemas
+
+`docs/schemas/` contains official KSeF invoice XSD schemas from [CIRFMF/ksef-docs](https://github.com/CIRFMF/ksef-docs). Organized by type: `FA/` (standard invoices), `PEF/` (Peppol), `RR/` (farmer invoices), each with `bazowe/` base types. Update with `yarn sync-schemas`.
 
 ### Error hierarchy
 
@@ -115,3 +130,10 @@ VitePress site in `docs/` with Scalar API reference. Config: `docs/.vitepress/co
 ### WebCrypto typing quirk
 
 `crypto.webcrypto.subtle.generateKey()` returns `CryptoKeyPair | CryptoKey`. Cast to `crypto.webcrypto.CryptoKeyPair` when generating key pairs — TypeScript cannot narrow this union.
+
+## Rules
+
+- Do not push commits or create files unless explicitly asked. Do not assume the user wants additional actions beyond what was requested.
+- When writing CHANGELOG entries, describe the feature's purpose and user-facing impact, NOT implementation details like method names, parameters, or internal references. Keep entries concise.
+- Always run the full test suite (unit + e2e) before committing. Ensure all tests pass before creating commits.
+- When debugging issues, investigate root causes before suggesting surface-level fixes. Don't suggest simple retries or config changes without first checking if the value is hardcoded or the real problem is deeper.

@@ -92,12 +92,12 @@ export class KSeFClient {
     this.authManager.setRefreshToken(tokens.refreshToken.token);
   }
 
-  async loginWithCertificate(certPem: string, keyPem: string, nip: string): Promise<void> {
+  async loginWithCertificate(certPem: string, keyPem: string, nip: string, keyPassword?: string): Promise<void> {
     const challenge = await this.auth.getChallenge();
     const authRequestXml = buildAuthTokenRequestXml(challenge.challenge, nip);
 
     const { SignatureService } = await import('./crypto/signature-service.js');
-    const signedXml = SignatureService.sign(authRequestXml, certPem, keyPem);
+    const signedXml = SignatureService.sign(authRequestXml, certPem, keyPem, keyPassword);
 
     const submitResult = await this.auth.submitXadesAuthRequest(signedXml);
     const authToken = submitResult.authenticationToken.token;

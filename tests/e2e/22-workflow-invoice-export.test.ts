@@ -18,9 +18,9 @@ describe('22 - Invoice Export Workflow', { timeout: 300_000 }, () => {
     client = auth.client;
 
     // Send an invoice so there's data to export
-    const invoiceXml = prepareInvoiceXml('FA_2', { nip: auth.nip });
+    const invoiceXml = prepareInvoiceXml('FA_3', { nip: auth.nip });
     await openSendAndClose(client, [invoiceXml], {
-      formCode: getFormCode('FA_2'),
+      formCode: getFormCode('FA_3'),
       pollOptions: { intervalMs: 5000, maxAttempts: 30 },
     });
 

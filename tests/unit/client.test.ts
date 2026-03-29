@@ -262,6 +262,7 @@ describe('KSeFClient', () => {
         expect.any(String),
         FIXTURES.certPem,
         FIXTURES.keyPem,
+        undefined,
       );
     });
 
