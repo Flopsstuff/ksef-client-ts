@@ -39,11 +39,13 @@ features:
   - title: Multiple Document Structures
     details: Support for all KSeF document types — FA (2)/(3), PEF (3), PEF_KOR (3), FA_RR (1). Typed FormCode constants, session-type validation, and structured UPO parsing with discriminated unions.
   - title: Invoice XML Validation
-    details: Three-level client-side validation against official KSeF XSD schemas — well-formedness, schema structure (via generated Zod validators), and business rules (NIP/PESEL checksums). Supports all 6 invoice types with auto-detection. CLI batch validation, programmatic API, and opt-in pre-send validation in workflows.
+    details: Three-level client-side validation against official KSeF XSD schemas — well-formedness, schema structure (via generated Zod validators), and business rules (NIP/PESEL checksums, future date rejection). Supports all 6 invoice types with auto-detection. CLI batch validation, programmatic API, and opt-in pre-send validation in workflows.
   - title: Typed Errors & Fluent Builders
     details: KSeFError hierarchy with specific classes for 401, 403, 429, and validation errors. Fluent request builders catch mistakes at compile time before they hit the network.
   - title: Comprehensive Test Coverage
     details: 1200+ Vitest unit and E2E tests across HTTP, crypto, services, workflows, builders, and CLI. CI runs the full suite on every change so regressions are caught early.
+  - title: Interactive Setup Wizard
+    details: Get started in one command — ksef setup walks you through environment selection, NIP configuration, external signature authentication, and API token generation. Credentials are securely stored in ~/.ksef/credentials.json.
   - title: Zero HTTP Dependencies
     details: Uses native fetch (Node 18+) with no external HTTP libraries. Dual ESM/CJS output via tsup. Resilient transport with exponential backoff retry, token bucket rate limiting, and presigned URL validation.
 ---

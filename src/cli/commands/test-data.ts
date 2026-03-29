@@ -293,7 +293,7 @@ const changeSessionLimits = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const request: SetSessionLimitsRequest = {
         onlineSession: {
@@ -328,7 +328,7 @@ const restoreSessionLimits = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
       await client.testData.restoreDefaultSessionLimits();
       outputDone(args.json);
     });
@@ -352,7 +352,7 @@ const changeCertLimits = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const request: SetSubjectLimitsRequest = {
         subjectIdentifierType: args['identifier-type'] as PermissionSubjectIdentifierType | undefined,
@@ -384,7 +384,7 @@ const restoreCertLimits = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
       await client.testData.restoreDefaultCertificatesLimit();
       outputDone(args.json);
     });
@@ -406,7 +406,7 @@ const setRateLimits = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const request: SetRateLimitsRequest = {
         rateLimits: JSON.parse(args.limits as string),
@@ -432,7 +432,7 @@ const restoreRateLimits = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
       await client.testData.restoreDefaultRateLimits();
       outputDone(args.json);
     });
@@ -453,7 +453,7 @@ const setProductionRateLimits = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       await client.testData.setProductionRateLimits();
       outputDone(args.json);
@@ -478,7 +478,7 @@ const blockContext = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const request: BlockContextAuthenticationRequest = {
         contextIdentifier: {
@@ -509,7 +509,7 @@ const unblockContext = defineCommand({
       const globalOpts = getGlobalOpts(args);
       requireNonProd(globalOpts);
 
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const request: UnblockContextAuthenticationRequest = {
         contextIdentifier: {

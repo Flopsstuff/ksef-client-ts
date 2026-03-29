@@ -4,6 +4,7 @@ import * as clientFactory from '../../../../src/cli/client-factory.js';
 import * as configStore from '../../../../src/cli/config-store.js';
 import * as sessionStore from '../../../../src/cli/session-store.js';
 import * as output from '../../../../src/cli/output.js';
+import * as sessionRecovery from '../../../../src/cli/session-recovery.js';
 import { createMockClient, defaultConfig, validSession } from './_helpers.js';
 
 vi.mock('consola', () => ({ consola: { level: 0, info: vi.fn(), warn: vi.fn() } }));
@@ -37,7 +38,20 @@ vi.mock('../../../../src/cli/output.js', () => ({
   outputTable: vi.fn(),
 }));
 
-// Mock node:fs (static import in auth.ts for pending challenge + dynamic import in login cert path)
+vi.mock('../../../../src/cli/credentials-store.js', () => ({
+  loadCredentials: vi.fn().mockReturnValue(null),
+}));
+
+vi.mock('../../../../src/cli/pending-challenge-store.js', () => ({
+  savePendingChallenge: vi.fn(),
+  clearPendingChallenge: vi.fn(),
+}));
+
+vi.mock('../../../../src/cli/session-recovery.js', () => ({
+  recoverSession: vi.fn(),
+}));
+
+// Mock node:fs (dynamic import in login cert path)
 vi.mock('node:fs', () => ({
   readFileSync: vi.fn(),
   writeFileSync: vi.fn(),
@@ -60,6 +74,7 @@ const mockIsSessionExpired = vi.mocked(sessionStore.isSessionExpired);
 const mockOutputSuccess = vi.mocked(output.outputSuccess);
 const mockOutputWarning = vi.mocked(output.outputWarning);
 const mockOutputKeyValue = vi.mocked(output.outputKeyValue);
+const mockRecoverSession = vi.mocked(sessionRecovery.recoverSession);
 const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
 let mockClient: ReturnType<typeof createMockClient>;
@@ -68,7 +83,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockClient = createMockClient();
   mockCreateClient.mockReturnValue(mockClient as any);
-  mockRequireSession.mockReturnValue({ client: mockClient as any, session: { ...validSession } });
+  mockRequireSession.mockResolvedValue({ client: mockClient as any, session: { ...validSession } });
   mockLoadConfig.mockReturnValue({ ...defaultConfig });
   mockLoadSession.mockReturnValue({ ...validSession });
   mockIsSessionExpired.mockReturnValue(false);
@@ -128,6 +143,26 @@ describe('auth', () => {
       expect(mockClient.loginWithPkcs12).toHaveBeenCalledWith(expect.any(Buffer), '', '1234567890');
     });
 
+    it('falls back to credentials store when --token not provided', async () => {
+      const { loadCredentials } = await import('../../../../src/cli/credentials-store.js');
+      vi.mocked(loadCredentials).mockReturnValue({ token: 'stored-tok' });
+      await runLogin({ nip: '1234567890' });
+      expect(mockClient.loginWithToken).toHaveBeenCalledWith('stored-tok', '1234567890');
+    });
+
+    it('explicit --token takes precedence over credentials store', async () => {
+      const { loadCredentials } = await import('../../../../src/cli/credentials-store.js');
+      vi.mocked(loadCredentials).mockReturnValue({ token: 'stored-tok' });
+      await runLogin({ token: 'explicit-tok', nip: '1234567890' });
+      expect(mockClient.loginWithToken).toHaveBeenCalledWith('explicit-tok', '1234567890');
+    });
+
+    it('throws when no token available anywhere', async () => {
+      const { loadCredentials } = await import('../../../../src/cli/credentials-store.js');
+      vi.mocked(loadCredentials).mockReturnValue(null);
+      await expect(runLogin({ nip: '1234567890' })).rejects.toThrow('Provide --token, --p12, or both --cert and --key');
+    });
+
     it('saves session after login', async () => {
       await runLogin({ token: 'tok-123', nip: '1234567890' });
       expect(mockSaveSession).toHaveBeenCalledWith(
@@ -178,10 +213,13 @@ describe('auth', () => {
       return `${header}.${body}.signature`;
     }
 
-    it('shows truncated token', async () => {
+    it('shows truncated token and ACTIVE status for valid session', async () => {
       await runWhoami();
       expect(mockOutputKeyValue).toHaveBeenCalledWith(
-        expect.objectContaining({ accessToken: expect.stringContaining('...') }),
+        expect.objectContaining({
+          accessToken: expect.stringContaining('...'),
+          status: 'ACTIVE',
+        }),
         expect.anything(),
       );
     });
@@ -230,17 +268,50 @@ describe('auth', () => {
       );
     });
 
-    it('expired — calls process.exit(1)', async () => {
+    it('restores expired session and shows ACTIVE (restored)', async () => {
+      mockLoadSession.mockReturnValue({ ...validSession });
       mockIsSessionExpired.mockReturnValue(true);
+      const restoredSession = { ...validSession, accessToken: 'restored-token-123' };
+      mockRecoverSession.mockResolvedValue({ client: mockClient as any, session: restoredSession });
+
       await runWhoami();
+
+      expect(mockRecoverSession).toHaveBeenCalled();
+      expect(mockOutputKeyValue).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'ACTIVE (restored)' }),
+        expect.anything(),
+      );
+    });
+
+    it('logs info message when session is restored', async () => {
+      const { consola } = await import('consola');
+      mockLoadSession.mockReturnValue({ ...validSession });
+      mockIsSessionExpired.mockReturnValue(true);
+      mockRecoverSession.mockResolvedValue({ client: mockClient as any, session: validSession });
+
+      await runWhoami();
+
+      expect(consola.info).toHaveBeenCalledWith('Session restored from stored credentials.');
+    });
+
+    it('no session — shows warning and exits', async () => {
+      mockLoadSession.mockReturnValue(null);
+      mockRecoverSession.mockRejectedValue(new Error('No stored credentials'));
+
+      await runWhoami();
+
+      expect(mockOutputWarning).toHaveBeenCalledWith(expect.stringContaining('No active session'));
       expect(mockExit).toHaveBeenCalledWith(1);
     });
 
-    it('no session — outputs warning and exits', async () => {
-      mockLoadSession.mockReturnValue(null);
-      mockExit.mockImplementationOnce(() => { throw new Error('process.exit'); });
-      await expect(runWhoami()).rejects.toThrow('process.exit');
-      expect(mockOutputWarning).toHaveBeenCalledWith('No active session.');
+    it('expired session + recovery failure — shows warning and exits', async () => {
+      mockLoadSession.mockReturnValue({ ...validSession });
+      mockIsSessionExpired.mockReturnValue(true);
+      mockRecoverSession.mockRejectedValue(new Error('Auto-login failed'));
+
+      await runWhoami();
+
+      expect(mockOutputWarning).toHaveBeenCalledWith(expect.stringContaining('expired and could not be restored'));
       expect(mockExit).toHaveBeenCalledWith(1);
     });
   });
@@ -381,17 +452,15 @@ describe('auth', () => {
       const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
       mockClient.auth.getChallenge.mockResolvedValue({ challenge: 'ch-save', timestamp: '2026-01-01T00:00:00Z', timestampMs: 0, clientIp: '127.0.0.1' });
 
-      const fsModule = await import('node:fs');
+      const { savePendingChallenge } = await import('../../../../src/cli/pending-challenge-store.js');
       await runLoginExternal({ generate: true, nip: '1234567890' });
 
-      // Verify pending challenge was saved (writeFileSync called with pending-challenge.json content)
-      const writeCalls = vi.mocked(fsModule.writeFileSync).mock.calls;
-      const pendingCall = writeCalls.find((c) => String(c[0]).includes('pending-challenge'));
-      expect(pendingCall).toBeDefined();
-      const saved = JSON.parse(pendingCall![1] as string);
-      expect(saved.challenge).toBe('ch-save');
-      expect(saved.timestamp).toBe('2026-01-01T00:00:00Z');
-      expect(saved.contextIdentifier).toEqual({ type: 'Nip', value: '1234567890' });
+      expect(vi.mocked(savePendingChallenge)).toHaveBeenCalledWith({
+        challenge: 'ch-save',
+        timestamp: '2026-01-01T00:00:00Z',
+        contextIdentifier: { type: 'Nip', value: '1234567890' },
+        createdAt: expect.any(String),
+      });
       expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('Timestamp:'));
       stdoutSpy.mockRestore();
       stderrSpy.mockRestore();

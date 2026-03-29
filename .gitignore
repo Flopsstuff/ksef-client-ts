@@ -19,6 +19,9 @@ coverage/
 # Plans
 plans/
 
+# Invoices
+invoices/
+
 # OpenSpec archive
 openspec/changes/archive/
 

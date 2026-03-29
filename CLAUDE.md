@@ -61,8 +61,10 @@ QR layer (src/qr/)
   └── QrCodeService — generates QR codes (PNG, SVG, SVG+label)
 
 CLI (src/cli/) — 14 command groups via commander.js
-  └── auth, session, invoice, permission, token, cert, lighthouse, limits,
-      peppol, test-data, qr, config, doctor, completion
+  ├── auth, session, invoice, permission, token, cert, lighthouse, limits,
+  │   peppol, test-data, qr, config, doctor, completion
+  ├── requireSession() — auto-recovers via refresh or re-login from stored credentials
+  └── session-recovery — cascade: refresh token → loginWithToken from credentials → error
 ```
 
 ### Key conventions
@@ -118,6 +120,7 @@ The web portal is used for token generation, permission management, and invoice 
 ### Documentation
 
 VitePress site in `docs/` with Scalar API reference. Config: `docs/.vitepress/config.ts`.
+Feature descriptions live in two places that must be kept in sync: `README.md` (bullet list) and `docs/index.md` (VitePress homepage cards).
 
 ### Plans
 

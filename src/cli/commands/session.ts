@@ -35,7 +35,7 @@ const open = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
       const config = loadConfig();
       const nip = args.nip ?? config.nip;
 
@@ -66,7 +66,10 @@ const open = defineCommand({
         { formCode, encryption: encryptionData.encryptionInfo },
       );
 
-      saveOnlineSessionRef(result.referenceNumber);
+      saveOnlineSessionRef(result.referenceNumber, {
+        cipherKey: Buffer.from(encryptionData.cipherKey).toString('base64'),
+        cipherIv: Buffer.from(encryptionData.cipherIv).toString('base64'),
+      });
 
       if (args.json) {
         outputResult(result, { json: true });
@@ -93,7 +96,7 @@ const close = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client, session } = await requireSession(globalOpts);
       const ref = args.ref ?? session.onlineSessionRef;
 
       if (!ref) {
@@ -120,7 +123,7 @@ const status = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client, session } = await requireSession(globalOpts);
       const ref = args.ref ?? session.onlineSessionRef;
 
       if (!ref) {
@@ -159,7 +162,7 @@ const list = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
       const sessionType: SessionType = args.type === 'batch' ? 'Batch' : 'Online';
       const pageSize = args.pageSize ? parseInt(args.pageSize, 10) : undefined;
 
@@ -215,7 +218,7 @@ const invoices = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client, session } = await requireSession(globalOpts);
       const ref = args.ref ?? session.onlineSessionRef;
 
       if (!ref) {
@@ -273,7 +276,7 @@ const failed = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client, session } = await requireSession(globalOpts);
       const ref = args.ref ?? session.onlineSessionRef;
 
       if (!ref) {
@@ -335,7 +338,7 @@ const upo = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
       const sessionRef = args.sessionRef;
 
       let result: { upo: string; hash?: string };
@@ -389,7 +392,7 @@ const active = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
       const pageSize = args.pageSize ? parseInt(args.pageSize, 10) : undefined;
 
       const result = await client.activeSessions.getActiveSessions(pageSize);
@@ -442,7 +445,7 @@ const revoke = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       if (args.current) {
         await client.activeSessions.revokeCurrentSession();
@@ -478,7 +481,7 @@ const invoice = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client, session } = await requireSession(globalOpts);
       const sessionRef = args.ref ?? session.onlineSessionRef;
 
       if (!sessionRef) {

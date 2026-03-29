@@ -36,19 +36,34 @@ export function isSessionExpired(session: SessionData): boolean {
   return new Date(session.expiresAt).getTime() <= Date.now();
 }
 
-export function saveOnlineSessionRef(ref: string): void {
+export function saveOnlineSessionRef(ref: string, encryption?: { cipherKey: string; cipherIv: string }): void {
   const session = loadSession();
   if (!session) {
     throw new Error('No active session. Run `ksef auth login` first.');
   }
   session.onlineSessionRef = ref;
+  if (encryption) {
+    session.cipherKey = encryption.cipherKey;
+    session.cipherIv = encryption.cipherIv;
+  }
   saveSession(session);
+}
+
+export function loadEncryptionData(): { cipherKey: Uint8Array; cipherIv: Uint8Array } | null {
+  const session = loadSession();
+  if (!session?.cipherKey || !session?.cipherIv) return null;
+  return {
+    cipherKey: new Uint8Array(Buffer.from(session.cipherKey, 'base64')),
+    cipherIv: new Uint8Array(Buffer.from(session.cipherIv, 'base64')),
+  };
 }
 
 export function clearOnlineSessionRef(): void {
   const session = loadSession();
   if (session) {
     delete session.onlineSessionRef;
+    delete session.cipherKey;
+    delete session.cipherIv;
     saveSession(session);
   }
 }

@@ -59,6 +59,7 @@ export default defineConfig({
         text: 'Usage',
         items: [
           { text: 'CLI', link: '/cli' },
+          { text: 'Setup Wizard', link: '/setup-wizard' },
           { text: 'Configuration', link: '/configuration' },
           { text: 'Workflows', link: '/workflows' },
           { text: 'Batch Processing', link: '/batch-processing' },

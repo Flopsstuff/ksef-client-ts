@@ -24,7 +24,8 @@ export type InvoiceValidationErrorCode =
   | 'UNKNOWN_SCHEMA'
   | 'SCHEMA_VALIDATION_ERROR'
   | 'INVALID_NIP_CHECKSUM'
-  | 'INVALID_PESEL_CHECKSUM';
+  | 'INVALID_PESEL_CHECKSUM'
+  | 'FUTURE_INVOICE_DATE';
 
 export interface InvoiceValidationError {
   /** Error classification code. */
@@ -192,6 +193,9 @@ export function validateBusinessRules(
   // Walk the object looking for NIP and PESEL fields in Podmiot* elements
   collectNipPeselErrors(object, rootElement ? `/${rootElement}` : '', errors);
 
+  // Check P_1 (invoice issue date) is not in the future — KSeF rejects future P_1 with 445
+  collectDateErrors(object, rootElement, errors);
+
   return { valid: errors.length === 0, schemaType, errors };
 }
 
@@ -231,6 +235,35 @@ function collectNipPeselErrors(
         collectNipPeselErrors(value as Record<string, unknown>, currentPath, errors);
       }
     }
+  }
+}
+
+/** Returns today's date in Poland (Europe/Warsaw) as YYYY-MM-DD. */
+function getPolandLocalDate(): string {
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Warsaw' }).format(Date.now());
+}
+
+/** Check that P_1 (invoice issue date) is not in the future. */
+function collectDateErrors(
+  obj: Record<string, unknown>,
+  rootElement: string | null,
+  errors: InvoiceValidationError[],
+): void {
+  const fa = obj['Fa'];
+  if (!fa || typeof fa !== 'object') return;
+
+  const p1 = (fa as Record<string, unknown>)['P_1'];
+  if (typeof p1 !== 'string') return;
+
+  // P_1 is YYYY-MM-DD — compare against today in Polish time (Europe/Warsaw)
+  const today = getPolandLocalDate();
+  if (p1 > today) {
+    const prefix = rootElement ? `/${rootElement}` : '';
+    errors.push({
+      code: 'FUTURE_INVOICE_DATE',
+      message: `Invoice date P_1 (${p1}) is in the future — KSeF rejects invoices with P_1 > today (${today})`,
+      path: `${prefix}/Fa/P_1`,
+    });
   }
 }
 

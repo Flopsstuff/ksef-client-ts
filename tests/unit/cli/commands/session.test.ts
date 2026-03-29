@@ -50,7 +50,7 @@ let mockClient: ReturnType<typeof createMockClient>;
 beforeEach(() => {
   vi.clearAllMocks();
   mockClient = createMockClient();
-  mockRequireSession.mockReturnValue({
+  mockRequireSession.mockResolvedValue({
     client: mockClient as any,
     session: { ...validSession, onlineSessionRef: 'online-ref-1' },
   });
@@ -74,7 +74,7 @@ describe('session', () => {
   describe('open', () => {
     it('throws without NIP', async () => {
       mockLoadConfig.mockReturnValue({ ...defaultConfig, nip: undefined });
-      mockRequireSession.mockReturnValue({
+      mockRequireSession.mockResolvedValue({
         client: mockClient as any,
         session: { ...validSession },
       });
@@ -86,7 +86,10 @@ describe('session', () => {
         referenceNumber: 'new-ref', validUntil: '2099-01-01',
       });
       await runOpen({});
-      expect(mockSaveOnlineSessionRef).toHaveBeenCalledWith('new-ref');
+      expect(mockSaveOnlineSessionRef).toHaveBeenCalledWith('new-ref', expect.objectContaining({
+        cipherKey: expect.any(String),
+        cipherIv: expect.any(String),
+      }));
     });
 
     it('throws when --batch is used', async () => {
@@ -134,7 +137,7 @@ describe('session', () => {
     });
 
     it('throws without ref', async () => {
-      mockRequireSession.mockReturnValue({
+      mockRequireSession.mockResolvedValue({
         client: mockClient as any,
         session: { ...validSession },
       });
@@ -230,7 +233,7 @@ describe('session', () => {
     }
 
     it('throws without session ref', async () => {
-      mockRequireSession.mockReturnValue({
+      mockRequireSession.mockResolvedValue({
         client: mockClient as any,
         session: { ...validSession },
       });
@@ -380,7 +383,7 @@ describe('session', () => {
     }
 
     it('throws without session ref', async () => {
-      mockRequireSession.mockReturnValue({
+      mockRequireSession.mockResolvedValue({
         client: mockClient as any,
         session: { ...validSession },
       });
@@ -468,7 +471,7 @@ describe('session', () => {
     }
 
     it('throws without session ref', async () => {
-      mockRequireSession.mockReturnValue({
+      mockRequireSession.mockResolvedValue({
         client: mockClient as any,
         session: { ...validSession },
       });
@@ -637,7 +640,7 @@ describe('session', () => {
     }
 
     it('throws without session ref', async () => {
-      mockRequireSession.mockReturnValue({
+      mockRequireSession.mockResolvedValue({
         client: mockClient as any,
         session: { ...validSession },
       });

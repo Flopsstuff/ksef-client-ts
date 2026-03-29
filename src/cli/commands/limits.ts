@@ -25,7 +25,7 @@ const context = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const result = await client.limits.getContextLimits();
 
@@ -56,7 +56,7 @@ const subject = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const result = await client.limits.getSubjectLimits();
 
@@ -83,7 +83,7 @@ const rate = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const result = await client.limits.getRateLimits();
 

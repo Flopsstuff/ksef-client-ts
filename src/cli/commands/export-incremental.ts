@@ -40,7 +40,7 @@ export const exportIncremental = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const from = normalizeCliDate(args.from as string, 'from');
       const to = normalizeCliDate((args.to as string | undefined) ?? new Date().toISOString().slice(0, 10), 'to');

@@ -5,7 +5,7 @@ import { defineCommand } from 'citty';
 import { consola } from 'consola';
 import { requireSession } from '../client-factory.js';
 import { loadConfig } from '../config-store.js';
-import { saveOnlineSessionRef, clearOnlineSessionRef } from '../session-store.js';
+import { saveOnlineSessionRef, clearOnlineSessionRef, loadEncryptionData } from '../session-store.js';
 import { outputResult, outputTable, outputSuccess } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions } from '../types.js';
@@ -94,7 +94,7 @@ const send = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client, session } = await requireSession(globalOpts);
       const config = loadConfig();
       const nip = args.nip ?? config.nip;
       const filePath = args.path;
@@ -242,11 +242,14 @@ const send = defineCommand({
 
         if (!args.json) consola.start('Sending invoice...');
         await client.crypto.init();
-        const encryptionData = client.crypto.getEncryptionData();
+        const storedEnc = loadEncryptionData();
+        if (!storedEnc) {
+          throw new Error('No encryption keys found. The session must be opened with `ksef session open` first (keys are saved automatically).');
+        }
 
         const xmlBytes = new Uint8Array(xmlContent);
         const plainMetadata = client.crypto.getFileMetadata(xmlBytes);
-        const encrypted = client.crypto.encryptAES256(xmlBytes, encryptionData.cipherKey, encryptionData.cipherIv);
+        const encrypted = client.crypto.encryptAES256(xmlBytes, storedEnc.cipherKey, storedEnc.cipherIv);
         const encryptedMetadata = client.crypto.getFileMetadata(encrypted);
 
         const result = await client.onlineSession.sendInvoice(ref, {
@@ -280,7 +283,7 @@ const get = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const xml = await client.invoices.getInvoice(args.ksefNumber);
 
@@ -314,7 +317,7 @@ const query = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const filters = buildQueryFilters(args);
       const pageOffset = args.page ? parseInt(args.page as string, 10) : undefined;
@@ -376,7 +379,7 @@ const exportCmd = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       if (!args.json) consola.start('Starting invoice export...');
       await client.crypto.init();
@@ -409,7 +412,7 @@ const exportStatus = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const result = await client.invoices.getInvoiceExportStatus(args.ref);
 
