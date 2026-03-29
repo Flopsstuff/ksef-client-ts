@@ -46,6 +46,7 @@ const grant = defineCommand({
     contextNipVatUe: { type: 'string', description: 'Context NIP VAT UE for EU entity admin grants' },
     euEntityName: { type: 'string', description: 'EU entity name' },
     address: { type: 'string', description: 'Address for EU entity grants' },
+    canDelegate: { type: 'boolean', description: 'Allow subject to delegate permissions further' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -95,7 +96,7 @@ const grant = defineCommand({
             subjectIdentifier: { type: 'Nip', value: args.targetNip },
             permissions: args.permissions.split(',').map((p) => p.trim()).map((type) => ({
               type,
-              canDelegate: false,
+              canDelegate: !!args.canDelegate,
             })) as EntityPermission[],
             description: args.description,
             subjectDetails: { fullName: args.fullName },
