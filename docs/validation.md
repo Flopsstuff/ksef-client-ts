@@ -41,6 +41,51 @@ import type { UnzipOptions, ZipEntryInput } from 'ksef-client-ts';
 
 KSeF rejects invalid invoice XML at submission time with cryptic server-side errors, wasting API quota. The invoice XML validator catches structural and constraint errors client-side before any network I/O.
 
+### How it works
+
+The validation pipeline has two phases: **build-time** schema generation and **runtime** validation.
+
+```
+BUILD-TIME (one-time setup, output committed to git)
+
+  CIRFMF/ksef-docs (GitHub)        Official KSeF XSD schemas
+          │
+          │  yarn sync-schemas
+          ▼
+  docs/schemas/**/*.xsd             Local copy of XSD files (FA, PEF, RR)
+          │
+          │  yarn generate-schemas
+          ▼
+  src/validation/schemas/*.ts       Zod schemas (6 files + index.ts)
+
+
+RUNTIME (every validate() call)
+
+  Invoice XML string
+          │
+          │  @xmldom/xmldom DOMParser
+          ▼
+  Level 1: Well-formedness check    Rejects malformed XML
+          │
+          │  xmlToObject()
+          ▼
+  Plain JS object                   Elements → properties, arrays, @attributes
+          │
+          │  SchemaRegistry.detect() → namespace URI → schema type
+          │  schema.safeParse(object)
+          ▼
+  Level 2: Schema validation        Required elements, enums, patterns, occurrences
+          │
+          │  collectNipPeselErrors()
+          ▼
+  Level 3: Business rules           NIP/PESEL checksum verification
+          │
+          ▼
+  InvoiceValidationResult           { valid, schemaType, errors[] }
+```
+
+Each level short-circuits: if Level 1 fails, Levels 2-3 are skipped. See [Generated schemas](#generated-schemas) for details on the build-time pipeline and how to update schemas when KSeF publishes new versions.
+
 ### Three validation levels
 
 The validator runs three independent levels, each callable separately or combined:
@@ -196,7 +241,7 @@ Each error includes:
 
 ### Generated schemas
 
-Zod schemas are generated at build time from official KSeF XSD files (`docs/schemas/`). Each schema type gets its own file:
+This is the build-time half of the [validation pipeline](#how-it-works). The generator script (`scripts/generate-invoice-schemas.mjs`) parses official KSeF XSD files from `docs/schemas/`, resolves cross-file imports (base types, country codes), and emits self-contained Zod TypeScript files. Each schema type gets its own file:
 
 | File | Source XSD | Types |
 |------|-----------|-------|
