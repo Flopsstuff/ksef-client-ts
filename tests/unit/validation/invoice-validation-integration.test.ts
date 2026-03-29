@@ -1,5 +1,5 @@
 /**
- * End-to-end validation tests using real invoice XML fixtures.
+ * Integration validation tests using real invoice XML fixtures.
  * These tests verify the full pipeline: XML → xmldom → object → Zod schema.
  */
 import { readFileSync } from 'node:fs';
@@ -58,37 +58,34 @@ describe('FA(3) invoice validation', () => {
   });
 });
 
-describe('Invalid invoice detection', () => {
-  it('detects missing required elements', async () => {
-    const xml = `<?xml version="1.0" encoding="utf-8"?>
-    <Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
-      <Naglowek>
-        <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
-        <WariantFormularza>3</WariantFormularza>
-        <DataWytworzeniaFa>2025-01-15T10:00:00</DataWytworzeniaFa>
-      </Naglowek>
-    </Faktura>`;
+describe('Invalid invoice fixtures', () => {
+  it('Level 1: detects malformed XML', () => {
+    const xml = readFixture('invalid-malformed.xml');
+    const result = validateWellFormedness(xml);
+    expect(result.valid).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(0);
+    expect(result.errors[0].code).toBe('MALFORMED_XML');
+  });
 
+  it('Level 2: detects missing required elements', async () => {
+    const xml = readFixture('invalid-missing-required-fa3.xml');
     const result = await validateSchema(xml);
     expect(result.valid).toBe(false);
     expect(result.schemaType).toBe('FA3');
-    // Missing Podmiot1 and Fa
     expect(result.errors.length).toBeGreaterThan(0);
   });
 
-  it('detects invalid NIP checksum in fixture', async () => {
-    const xml = `<?xml version="1.0" encoding="utf-8"?>
-    <Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
-      <Podmiot1>
-        <DaneIdentyfikacyjne>
-          <NIP>1234567890</NIP>
-          <Nazwa>Bad NIP Company</Nazwa>
-        </DaneIdentyfikacyjne>
-      </Podmiot1>
-    </Faktura>`;
-
-    const result = validateBusinessRules(xml);
+  it('Level 3: detects invalid NIP checksums', async () => {
+    const xml = readFixture('invalid-bad-nip-fa3.xml');
+    const result = await validate(xml);
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.code === 'INVALID_NIP_CHECKSUM')).toBe(true);
+  });
+
+  it('full pipeline rejects malformed XML early', async () => {
+    const xml = readFixture('invalid-malformed.xml');
+    const result = await validate(xml);
+    expect(result.valid).toBe(false);
+    expect(result.errors[0].code).toBe('MALFORMED_XML');
   });
 });
