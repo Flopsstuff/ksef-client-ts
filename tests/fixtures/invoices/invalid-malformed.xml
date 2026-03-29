@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+    <Naglowek>
+        <KodFormularza>FA</KodFormularza>
+        <unclosed-tag>
+    </Naglowek>
+</Faktura>
