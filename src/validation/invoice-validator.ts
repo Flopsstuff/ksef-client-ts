@@ -17,6 +17,7 @@ import { isValidNip, isValidPesel } from './patterns.js';
 export type InvoiceValidationErrorCode =
   | 'MALFORMED_XML'
   | 'MISSING_REQUIRED_ELEMENT'
+  | 'INVALID_VALUE'
   | 'INVALID_ENUM_VALUE'
   | 'PATTERN_MISMATCH'
   | 'MAX_OCCURS_EXCEEDED'
@@ -121,7 +122,7 @@ export async function validateSchema(
     const zodPath = issue.path.join('/');
     const path = zodPath ? `${prefix}${zodPath}` : (rootElement ? `/${rootElement}` : undefined);
     return {
-      code: mapZodErrorCode(issue.code),
+      code: mapZodErrorCode(issue),
       message: issue.message,
       path,
     };
@@ -131,13 +132,19 @@ export async function validateSchema(
 }
 
 /** Map Zod error codes to our domain error codes. */
-function mapZodErrorCode(zodCode: string): InvoiceValidationErrorCode {
-  switch (zodCode) {
+function mapZodErrorCode(issue: { code?: string; input?: unknown }): InvoiceValidationErrorCode {
+  switch (issue.code) {
     case 'invalid_type':
-      return 'MISSING_REQUIRED_ELEMENT';
-    case 'invalid_enum_value':
+      // Zod emits invalid_type both for missing values (input === undefined)
+      // and for wrong data types (e.g., string where number expected).
+      return issue.input === undefined
+        ? 'MISSING_REQUIRED_ELEMENT'
+        : 'INVALID_VALUE';
+    case 'invalid_enum_value': // Zod v3
+    case 'invalid_value':      // Zod v4
       return 'INVALID_ENUM_VALUE';
-    case 'invalid_string':
+    case 'invalid_string': // Zod v3
+    case 'invalid_format': // Zod v4
       return 'PATTERN_MISMATCH';
     case 'too_big':
       return 'MAX_OCCURS_EXCEEDED';

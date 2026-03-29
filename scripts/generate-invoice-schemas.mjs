@@ -637,7 +637,7 @@ class ZodEmitter {
     let schema = 'z.string()';
     const facets = typeDef.facets;
     if (facets.pattern && facets.pattern.length > 0) {
-      schema += `.regex(/${facets.pattern[0]}/)`;
+      schema += `.regex(/^${facets.pattern[0]}$/)`;
     }
     return schema;
   }
@@ -671,7 +671,7 @@ class ZodEmitter {
     if (facets.pattern && facets.pattern.length > 0) {
       // Multiple patterns = OR (union of patterns)
       if (facets.pattern.length === 1) {
-        schema += `.regex(/${escapeRegex(facets.pattern[0])}/)`;
+        schema += `.regex(/^${escapeRegex(facets.pattern[0])}$/)`;
       } else {
         // Combine with alternation
         const combined = facets.pattern.map(p => `(?:${escapeRegex(p)})`).join('|');
@@ -711,7 +711,7 @@ class ZodEmitter {
     }
     if (allFacets.pattern && allFacets.pattern.length > 0) {
       if (allFacets.pattern.length === 1) {
-        schema += `.regex(/${escapeRegex(allFacets.pattern[0])}/)`;
+        schema += `.regex(/^${escapeRegex(allFacets.pattern[0])}$/)`;
       } else {
         const combined = allFacets.pattern.map(p => `(?:${escapeRegex(p)})`).join('|');
         schema += `.regex(/^(?:${combined})$/)`;
@@ -810,39 +810,30 @@ class ZodEmitter {
 
   generateContentElements(content) {
     const props = [];
+    this._flattenElements(content.elements, false, props);
+    return props;
+  }
 
-    for (const elem of content.elements) {
+  // Recursively flatten elements, handling synthetic compositors
+  // by inlining their children at the same level instead of creating nested objects.
+  _flattenElements(elements, forceOptional, props) {
+    for (const elem of elements) {
       if (elem.name.startsWith('__')) {
-        // Synthetic nested compositor
+        // Synthetic nested compositor — flatten its children into the parent
         if (elem.inlineType && elem.inlineType.content) {
           if (elem.inlineType.content.type === 'choice') {
-            // Inline choice — spread its branches as optional fields
-            for (const choiceElem of elem.inlineType.content.elements) {
-              if (choiceElem.name.startsWith('__')) {
-                // Nested sequence within choice
-                if (choiceElem.inlineType && choiceElem.inlineType.content) {
-                  for (const seqElem of choiceElem.inlineType.content.elements) {
-                    props.push(this.generateElementProp(seqElem, true));
-                  }
-                }
-              } else {
-                props.push(this.generateElementProp(choiceElem, true));
-              }
-            }
+            // Choice: all branches become optional fields (since only one branch is active)
+            this._flattenElements(elem.inlineType.content.elements, true, props);
           } else {
-            // Inline sequence — flatten elements
-            const isOptional = elem.minOccurs === '0';
-            for (const seqElem of elem.inlineType.content.elements) {
-              props.push(this.generateElementProp(seqElem, isOptional));
-            }
+            // Sequence/all: inherit optionality from the compositor's minOccurs
+            const isOptional = forceOptional || elem.minOccurs === '0';
+            this._flattenElements(elem.inlineType.content.elements, isOptional, props);
           }
         }
       } else {
-        props.push(this.generateElementProp(elem, false));
+        props.push(this.generateElementProp(elem, forceOptional));
       }
     }
-
-    return props;
   }
 
   generateChoiceSchema(content, attrProps = [], baseProps = []) {

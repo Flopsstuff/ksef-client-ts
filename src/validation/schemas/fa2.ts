@@ -18,7 +18,7 @@ const TNaglowek = z.object({
 
 const TKodyKrajowUE = z.enum(["AT", "BE", "BG", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "EL", "HR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "XI"]);
 
-const TNrNIP = z.string().regex(/[1-9]((\d[1-9])|([1-9]\d))\d{7}/);
+const TNrNIP = z.string().regex(/^[1-9]((\d[1-9])|([1-9]\d))\d{7}$/);
 
 const TZnakowy512 = z.string().min(1).max(512);
 
@@ -38,13 +38,13 @@ const TAdres = z.object({
   "GLN": TGLN.optional()
 });
 
-const TAdresEmail = z.string().min(3).max(255).regex(/(.)+@(.)+/);
+const TAdresEmail = z.string().min(3).max(255).regex(/^(.)+@(.)+$/);
 
 const TNumerTelefonu = z.string().min(1).max(16);
 
 const TStatusInfoPodatnika = z.enum(["1", "2", "3", "4"]);
 
-const TNrVatUE = z.string().regex(/(\d|[A-Z]|\+|\*){1,12}/);
+const TNrVatUE = z.string().regex(/^(\d|[A-Z]|\+|\*){1,12}$/);
 
 const TNrIdentyfikacjiPodatkowej = z.string().min(1).max(50);
 
@@ -55,7 +55,7 @@ const TPodmiot2 = z.object({
   "KodUE": TKodyKrajowUE.optional(),
   "NrVatUE": TNrVatUE.optional(),
   "KodKraju": TKodKraju.optional(),
-  "NrID": z.string().min(1).max(50).regex(/[a-zA-Z0-9]{1,50}/).optional(),
+  "NrID": z.string().min(1).max(50).regex(/^[a-zA-Z0-9]{1,50}$/).optional(),
   "BrakID": TWybor1.optional(),
   "Nazwa": TZnakowy512.optional()
 });
@@ -64,7 +64,7 @@ const TZnakowy50 = z.string().min(1).max(50);
 
 const TZnakowy20 = z.string().min(1).max(20);
 
-const TNIPIdWew = z.string().min(1).max(20).regex(/[1-9]((\d[1-9])|([1-9]\d))\d{7}-\d{5}/);
+const TNIPIdWew = z.string().min(1).max(20).regex(/^[1-9]((\d[1-9])|([1-9]\d))\d{7}-\d{5}$/);
 
 const TPodmiot3 = z.object({
   "NIP": TNrNIP.optional(),
@@ -72,7 +72,7 @@ const TPodmiot3 = z.object({
   "KodUE": TKodyKrajowUE.optional(),
   "NrVatUE": TNrVatUE.optional(),
   "KodKraju": TKodKraju.optional(),
-  "NrID": z.string().min(1).max(50).regex(/[a-zA-Z0-9]{1,50}/).optional(),
+  "NrID": z.string().min(1).max(50).regex(/^[a-zA-Z0-9]{1,50}$/).optional(),
   "BrakID": TWybor1.optional(),
   "Nazwa": TZnakowy512.optional()
 });
@@ -89,9 +89,9 @@ const TData = z.string();
 
 const TDataT = z.string();
 
-const TKwotowy = z.string().regex(/-?([1-9]\d{0,15}|0)(\.\d{1,2})?/);
+const TKwotowy = z.string().regex(/^-?([1-9]\d{0,15}|0)(\.\d{1,2})?$/);
 
-const TIlosci = z.string().regex(/-?([1-9]\d{0,15}|0)(\.\d{1,6})?/);
+const TIlosci = z.string().regex(/^-?([1-9]\d{0,15}|0)(\.\d{1,6})?$/);
 
 const TWybor1_2 = z.enum(["1", "2"]);
 
@@ -101,7 +101,7 @@ const TRodzajFaktury = z.enum(["VAT", "KOR", "ZAL", "ROZ", "UPR", "KOR_ZAL", "KO
 
 const TTypKorekty = z.enum(["1", "2", "3"]);
 
-const TNumerKSeF = z.string().regex(/([1-9]((\d[1-9])|([1-9]\d))\d{7}|M\d{9}|[A-Z]{3}\d{7})-(20[2-9][0-9]|2[1-9][0-9]{2}|[3-9][0-9]{3})(0[1-9]|1[0-2])(0[1-9]|[1-2][0-9]|3[0-1])-([0-9A-F]{6})-?([0-9A-F]{6})-([0-9A-F]{2})/);
+const TNumerKSeF = z.string().regex(/^([1-9]((\d[1-9])|([1-9]\d))\d{7}|M\d{9}|[A-Z]{3}\d{7})-(20[2-9][0-9]|2[1-9][0-9]{2}|[3-9][0-9]{3})(0[1-9]|1[0-2])(0[1-9]|[1-2][0-9]|3[0-1])-([0-9A-F]{6})-?([0-9A-F]{6})-([0-9A-F]{2})$/);
 
 const TKluczWartosc = z.object({
   "NrWiersza": TNaturalny.optional(),
@@ -109,7 +109,7 @@ const TKluczWartosc = z.object({
   "Wartosc": TZnakowy
 });
 
-const TKwotowy2 = z.string().regex(/-?([1-9]\d{0,13}|0)(\.\d{1,8})?/);
+const TKwotowy2 = z.string().regex(/^-?([1-9]\d{0,13}|0)(\.\d{1,8})?$/);
 
 const TStawkaPodatku = z.enum(["23", "22", "8", "7", "5", "4", "3", "0", "zw", "oo", "np"]);
 
@@ -119,9 +119,9 @@ const TOznaczenieProcedury = z.enum(["WSTO_EE", "IED", "TT_D", "I_42", "I_63", "
 
 const TFormaPlatnosci = z.enum(["1", "2", "3", "4", "5", "6", "7"]);
 
-const TNrRB = z.string().regex(/[0-9A-Z]{10,32}/);
+const TNrRB = z.string().regex(/^[0-9A-Z]{10,32}$/);
 
-const SWIFT_Type = z.string().regex(/[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3}){0,1}/);
+const SWIFT_Type = z.string().regex(/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3}){0,1}$/);
 
 const TRachunekWlasnyBanku = z.enum(["1", "2", "3"]);
 
@@ -141,9 +141,9 @@ const TOznaczenieProceduryZ = z.enum(["WSTO_EE", "IED", "TT_D", "B_SPV", "B_SPV_
 
 const TTekstowy = z.string().min(1).max(3500);
 
-const TNrKRS = z.string().regex(/\d{10}/);
+const TNrKRS = z.string().regex(/^\d{10}$/);
 
-const TNrREGON = z.union([z.string().regex(/\d{9}/), z.string().regex(/\d{14}/)]);
+const TNrREGON = z.union([z.string().regex(/^\d{9}$/), z.string().regex(/^\d{14}$/)]);
 
 
 export const FA2Schema = z.object({
@@ -254,7 +254,10 @@ export const FA2Schema = z.object({
   "P_22BNR": TZnakowy.optional(),
   "P_22BRP": TZnakowy.optional(),
   "P_22B": TZnakowy.optional(),
-  "__choice_1": z.union([z.object({ "P_22B1": TZnakowy.optional() }), z.object({ "P_22B2": TZnakowy.optional() }), z.object({ "P_22B3": TZnakowy.optional() }), z.object({ "P_22B4": TZnakowy.optional() })]).optional().optional(),
+  "P_22B1": TZnakowy.optional(),
+  "P_22B2": TZnakowy.optional(),
+  "P_22B3": TZnakowy.optional(),
+  "P_22B4": TZnakowy.optional(),
   "P_22BT": TZnakowy.optional(),
   "P_22C": TZnakowy.optional(),
   "P_22C1": TZnakowy.optional(),
@@ -286,10 +289,8 @@ export const FA2Schema = z.object({
   "Adres": TAdres.optional(),
   "IDNabywcy": z.string().min(1).max(32).optional()
 })).min(0).max(101)).optional(),
-  "__sequence_7": z.object({
-  "P_15ZK": TKwotowy,
-  "KursWalutyZK": TIlosci.optional()
-}).optional(),
+  "P_15ZK": TKwotowy.optional(),
+  "KursWalutyZK": TIlosci.optional(),
   "ZaliczkaCzesciowa": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "P_6Z": TDataT,
   "P_15Z": TKwotowy,
@@ -385,7 +386,9 @@ export const FA2Schema = z.object({
   "AdresPrzewoznika": TAdres
 }).optional(),
   "NrZleceniaTransportu": TZnakowy.optional(),
-  "__choice_0": z.union([z.object({ "OpisLadunku": TLadunek }), z.object({ "LadunekInny": TWybor1, "OpisInnegoLadunku": TZnakowy50 })]),
+  "OpisLadunku": TLadunek.optional(),
+  "LadunekInny": TWybor1.optional(),
+  "OpisInnegoLadunku": TZnakowy50.optional(),
   "JednostkaOpakowania": TZnakowy.optional(),
   "DataGodzRozpTransportu": TDataCzas.optional(),
   "DataGodzZakTransportu": TDataCzas.optional(),
@@ -425,7 +428,12 @@ export const FA2Schema = z.object({
   "Informacje": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "StopkaFaktury": TTekstowy.optional()
 })).min(0).max(3)).optional(),
-  "Rejestry": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.any()).min(0).max(100)).optional()
+  "Rejestry": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
+  "PelnaNazwa": TZnakowy.optional(),
+  "KRS": TNrKRS.optional(),
+  "REGON": TNrREGON.optional(),
+  "BDO": z.string().min(1).max(9).optional()
+})).min(0).max(100)).optional()
 }).optional()
 });
 

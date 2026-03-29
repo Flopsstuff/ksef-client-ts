@@ -41,7 +41,7 @@ export function xmlToObject(xml: string): XmlConversionResult {
     },
   }).parseFromString(xml, 'text/xml');
 
-  if (errors.length > 0 || !doc.documentElement) {
+  if (errors.length > 0 || !doc || !doc.documentElement) {
     return { object: null, rootElement: null, namespace: null, errors };
   }
 

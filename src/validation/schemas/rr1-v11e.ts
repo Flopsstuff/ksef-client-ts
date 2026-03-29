@@ -16,7 +16,7 @@ const TNaglowek = z.object({
   "SystemInfo": TZnakowy.optional()
 });
 
-const TNrNIP = z.string().regex(/[1-9]((\d[1-9])|([1-9]\d))\d{7}/);
+const TNrNIP = z.string().regex(/^[1-9]((\d[1-9])|([1-9]\d))\d{7}$/);
 
 const TZnakowy512 = z.string().min(1).max(512);
 
@@ -36,7 +36,7 @@ const TAdres = z.object({
   "GLN": TGLN.optional()
 });
 
-const TAdresEmail = z.string().min(3).max(255).regex(/(.)+@(.)+/);
+const TAdresEmail = z.string().min(3).max(255).regex(/^(.)+@(.)+$/);
 
 const TNumerTelefonu = z.string().min(1).max(16);
 
@@ -44,7 +44,7 @@ const TStatusInfoPodatnika = z.enum(["1", "2", "3", "4"]);
 
 const TZnakowy20 = z.string().min(1).max(20);
 
-const TNIPIdWew = z.string().min(1).max(20).regex(/[1-9]((\d[1-9])|([1-9]\d))\d{7}-\d{5}/);
+const TNIPIdWew = z.string().min(1).max(20).regex(/^[1-9]((\d[1-9])|([1-9]\d))\d{7}-\d{5}$/);
 
 const TWybor1 = z.literal("1");
 
@@ -63,13 +63,13 @@ const TData = z.string();
 
 const TDataT = z.string();
 
-const TKwotowy = z.string().regex(/-?([1-9]\d{0,15}|0)(\.\d{1,2})?/);
+const TKwotowy = z.string().regex(/^-?([1-9]\d{0,15}|0)(\.\d{1,2})?$/);
 
 const TRodzajFaktury = z.enum(["VAT_RR", "KOR_VAT_RR"]);
 
 const TTypKorekty = z.enum(["1", "2", "3", "4"]);
 
-const TNumerKSeF = z.string().regex(/([1-9]((\d[1-9])|([1-9]\d))\d{7}|M\d{9}|[A-Z]{3}\d{7})-(20[2-9][0-9]|2[1-9][0-9]{2}|[3-9][0-9]{3})(0[1-9]|1[0-2])(0[1-9]|[1-2][0-9]|3[0-1])-([0-9A-F]{6})-?([0-9A-F]{6})-([0-9A-F]{2})/);
+const TNumerKSeF = z.string().regex(/^([1-9]((\d[1-9])|([1-9]\d))\d{7}|M\d{9}|[A-Z]{3}\d{7})-(20[2-9][0-9]|2[1-9][0-9]{2}|[3-9][0-9]{3})(0[1-9]|1[0-2])(0[1-9]|[1-2][0-9]|3[0-1])-([0-9A-F]{6})-?([0-9A-F]{6})-([0-9A-F]{2})$/);
 
 const TNaturalny = z.string();
 
@@ -81,9 +81,9 @@ const TKluczWartosc = z.object({
 
 const TZnakowy50 = z.string().min(1).max(50);
 
-const TIlosci = z.string().regex(/-?([1-9]\d{0,15}|0)(\.\d{1,6})?/);
+const TIlosci = z.string().regex(/^-?([1-9]\d{0,15}|0)(\.\d{1,6})?$/);
 
-const TKwotowy2 = z.string().regex(/-?([1-9]\d{0,13}|0)(\.\d{1,8})?/);
+const TKwotowy2 = z.string().regex(/^-?([1-9]\d{0,13}|0)(\.\d{1,8})?$/);
 
 const TProcentowy = z.coerce.number().min(0).max(100);
 
@@ -93,7 +93,7 @@ const TFormaPlatnosci = z.literal("1");
 
 const TNrRB = z.string().min(10).max(34);
 
-const SWIFT_Type = z.string().regex(/[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3}){0,1}/);
+const SWIFT_Type = z.string().regex(/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3}){0,1}$/);
 
 const TRachunekBankowy = z.object({
   "NrRB": TNrRB,
@@ -104,9 +104,9 @@ const TRachunekBankowy = z.object({
 
 const TTekstowy = z.string().min(1).max(3500);
 
-const TNrKRS = z.string().regex(/\d{10}/);
+const TNrKRS = z.string().regex(/^\d{10}$/);
 
-const TNrREGON = z.union([z.string().regex(/\d{9}/), z.string().regex(/\d{14}/)]);
+const TNrREGON = z.union([z.string().regex(/^\d{9}$/), z.string().regex(/^\d{14}$/)]);
 
 
 export const RR1_V11ESchema = z.object({
@@ -219,8 +219,8 @@ export const RR1_V11ESchema = z.object({
   "OpisPlatnosci": TZnakowy.optional(),
   "RachunekBankowy1": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(TRachunekBankowy).min(0).max(3)).optional(),
   "RachunekBankowy2": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(TRachunekBankowy).min(0).max(3)).optional(),
-  "IPKSeF": z.string().min(1).max(13).regex(/[0-9]{3}[a-zA-Z0-9]{10}/).optional(),
-  "LinkDoPlatnosci": z.string().min(1).max(512).regex(/(https?):\/\/([a-zA-Z0-9][a-zA-Z0-9-]*\.)+[a-zA-Z]{2,}(:[0-9]{1,5})?(\/[^\s?#]*)?\?([^#\s]*&)?IPKSeF=[0-9]{3}[a-zA-Z0-9]{10}(&[^#\s]*)?(#.*)?/).optional()
+  "IPKSeF": z.string().min(1).max(13).regex(/^[0-9]{3}[a-zA-Z0-9]{10}$/).optional(),
+  "LinkDoPlatnosci": z.string().min(1).max(512).regex(/^(https?):\/\/([a-zA-Z0-9][a-zA-Z0-9-]*\.)+[a-zA-Z]{2,}(:[0-9]{1,5})?(\/[^\s?#]*)?\?([^#\s]*&)?IPKSeF=[0-9]{3}[a-zA-Z0-9]{10}(&[^#\s]*)?(#.*)?$/).optional()
 }).optional()
 }),
   "Stopka": z.object({
