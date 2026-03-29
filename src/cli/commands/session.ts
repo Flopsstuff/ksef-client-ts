@@ -3,7 +3,7 @@ import { defineCommand } from 'citty';
 import { consola } from 'consola';
 import { requireSession } from '../client-factory.js';
 import { loadConfig } from '../config-store.js';
-import { saveOnlineSessionRef, clearOnlineSessionRef } from '../session-store.js';
+import { saveOnlineSessionRef, clearOnlineSessionRef, loadEncryptionData } from '../session-store.js';
 import { outputResult, outputKeyValue, outputTable, outputSuccess, outputWarning } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions } from '../types.js';
@@ -66,7 +66,10 @@ const open = defineCommand({
         { formCode, encryption: encryptionData.encryptionInfo },
       );
 
-      saveOnlineSessionRef(result.referenceNumber);
+      saveOnlineSessionRef(result.referenceNumber, {
+        cipherKey: Buffer.from(encryptionData.cipherKey).toString('base64'),
+        cipherIv: Buffer.from(encryptionData.cipherIv).toString('base64'),
+      });
 
       if (args.json) {
         outputResult(result, { json: true });

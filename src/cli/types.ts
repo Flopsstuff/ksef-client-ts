@@ -16,6 +16,10 @@ export interface SessionData {
   onlineSessionRef?: string;
   expiresAt?: string;
   environment: CliConfig['environment'];
+  /** AES-256 cipher key (base64) for the active online session. */
+  cipherKey?: string;
+  /** AES-256 cipher IV (base64) for the active online session. */
+  cipherIv?: string;
 }
 
 export interface GlobalOptions {

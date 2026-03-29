@@ -86,7 +86,10 @@ describe('session', () => {
         referenceNumber: 'new-ref', validUntil: '2099-01-01',
       });
       await runOpen({});
-      expect(mockSaveOnlineSessionRef).toHaveBeenCalledWith('new-ref');
+      expect(mockSaveOnlineSessionRef).toHaveBeenCalledWith('new-ref', expect.objectContaining({
+        cipherKey: expect.any(String),
+        cipherIv: expect.any(String),
+      }));
     });
 
     it('throws when --batch is used', async () => {

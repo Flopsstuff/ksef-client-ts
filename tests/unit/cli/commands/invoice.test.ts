@@ -28,6 +28,10 @@ vi.mock('../../../../src/cli/config-store.js', () => ({
 vi.mock('../../../../src/cli/session-store.js', () => ({
   saveOnlineSessionRef: vi.fn(),
   clearOnlineSessionRef: vi.fn(),
+  loadEncryptionData: vi.fn(() => ({
+    cipherKey: new Uint8Array(32),
+    cipherIv: new Uint8Array(16),
+  })),
 }));
 
 vi.mock('../../../../src/cli/output.js', () => ({

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   validateWellFormedness,
   validateSchema,
@@ -168,6 +168,54 @@ describe('validateBusinessRules', () => {
     expect(result.valid).toBe(false);
     // Both NIPs are invalid
     expect(result.errors.length).toBe(2);
+  });
+});
+
+// ─── Date validation ───────────────────────────────────────────────────────
+
+describe('validateBusinessRules – P_1 future date', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const makeXml = (p1: string) => `<tns:Faktura xmlns:tns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+    <Podmiot1><NIP>5213003700</NIP></Podmiot1>
+    <Fa><P_1>${p1}</P_1></Fa>
+  </tns:Faktura>`;
+
+  it('accepts P_1 = today', () => {
+    vi.useFakeTimers({ now: new Date('2026-06-15T12:00:00Z') });
+    const result = validateBusinessRules(makeXml('2026-06-15'));
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  it('accepts P_1 in the past', () => {
+    vi.useFakeTimers({ now: new Date('2026-06-15T12:00:00Z') });
+    const result = validateBusinessRules(makeXml('2026-06-14'));
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects P_1 in the future', () => {
+    vi.useFakeTimers({ now: new Date('2026-06-15T12:00:00Z') });
+    const result = validateBusinessRules(makeXml('2026-06-16'));
+    expect(result.valid).toBe(false);
+    expect(result.errors.length).toBe(1);
+    expect(result.errors[0]!.code).toBe('FUTURE_INVOICE_DATE');
+    expect(result.errors[0]!.path).toBe('/Faktura/Fa/P_1');
+    expect(result.errors[0]!.message).toContain('2026-06-16');
+  });
+
+  it('does not check DataWytworzeniaFa (not validated by KSeF)', () => {
+    vi.useFakeTimers({ now: new Date('2026-06-15T12:00:00Z') });
+    // Future DataWytworzeniaFa but valid P_1 — should pass
+    const xml = `<tns:Faktura xmlns:tns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+      <Naglowek><DataWytworzeniaFa>2099-12-31T00:00:00Z</DataWytworzeniaFa></Naglowek>
+      <Podmiot1><NIP>5213003700</NIP></Podmiot1>
+      <Fa><P_1>2026-06-15</P_1></Fa>
+    </tns:Faktura>`;
+    const result = validateBusinessRules(xml);
+    expect(result.valid).toBe(true);
   });
 });
 
