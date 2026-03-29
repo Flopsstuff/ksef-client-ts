@@ -16,7 +16,7 @@ import { exportIncremental } from './export-incremental.js';
 import { normalizeCliDate } from '../date-utils.js';
 import { validate as validateInvoice } from '../../validation/invoice-validator.js';
 import { KSeFValidationError } from '../../errors/ksef-validation-error.js';
-import type { SchemaType } from '../../validation/schemas/index.js';
+import { type SchemaType, SCHEMA_TYPES } from '../../validation/schemas/index.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -224,9 +224,12 @@ const send = defineCommand({
           throw new Error('No active online session. Run `ksef session open` or provide --session-ref.');
         }
 
+        // Read file once — reused for both validation and sending
+        const xmlContent = fs.readFileSync(filePath);
+
         // Validate before send if --validate flag is set
         if (args.validate) {
-          const xmlStr = fs.readFileSync(filePath, 'utf-8');
+          const xmlStr = xmlContent.toString('utf-8');
           const validationResult = await validateInvoice(xmlStr);
           if (!validationResult.valid) {
             throw new KSeFValidationError(
@@ -241,7 +244,6 @@ const send = defineCommand({
         await client.crypto.init();
         const encryptionData = client.crypto.getEncryptionData();
 
-        const xmlContent = fs.readFileSync(filePath);
         const xmlBytes = new Uint8Array(xmlContent);
         const plainMetadata = client.crypto.getFileMetadata(xmlBytes);
         const encrypted = client.crypto.encryptAES256(xmlBytes, encryptionData.cipherKey, encryptionData.cipherIv);
@@ -451,7 +453,7 @@ const exportStatus = defineCommand({
   },
 });
 
-const VALID_SCHEMA_TYPES = ['FA3', 'FA2', 'RR1_V11E', 'RR1_V10E', 'PEF3', 'PEF_KOR3'] as const;
+const VALID_SCHEMA_TYPES = SCHEMA_TYPES;
 
 const validateCmd = defineCommand({
   meta: { name: 'validate', description: 'Validate invoice XML against KSeF schema' },
@@ -474,6 +476,7 @@ const validateCmd = defineCommand({
       if (fs.existsSync(inputPath) && fs.statSync(inputPath).isDirectory()) {
         const xmlFiles = fs.readdirSync(inputPath)
           .filter(f => f.endsWith('.xml'))
+          .sort()
           .map(f => path.join(inputPath, f));
         if (xmlFiles.length === 0) {
           throw new Error(`No XML files found in ${inputPath}`);

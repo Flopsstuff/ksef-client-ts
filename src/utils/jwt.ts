@@ -10,6 +10,10 @@ export interface KSeFTokenContext {
   expiresAt?: number;
 }
 
+/**
+ * Decodes the payload of a JWT token without verifying its signature.
+ * Intended for display purposes only (e.g., the `whoami` command).
+ */
 export function decodeJwtPayload(token: string): Record<string, unknown> | null {
   const parts = token.split('.');
   if (parts.length !== 3) return null;
@@ -36,7 +40,7 @@ function tryParseJsonArray(value: unknown): string[] | undefined {
   if (typeof value !== 'string') return undefined;
   try {
     const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) ? (parsed as string[]) : undefined;
+    return Array.isArray(parsed) && parsed.every(item => typeof item === 'string') ? parsed : undefined;
   } catch {
     return undefined;
   }

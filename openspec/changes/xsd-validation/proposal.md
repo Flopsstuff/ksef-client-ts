@@ -24,7 +24,7 @@ No KSeF client implementation (Java, C#, or TypeScript) performs client-side XSD
 
 ## Impact
 
-- **New files**: `scripts/generate-invoice-schemas.ts`, `src/validation/schemas/*.ts` (generated), `src/validation/invoice-validator.ts`, `src/validation/schema-registry.ts`, `src/validation/xml-to-object.ts`, `src/validation/business-rules.ts`, `src/cli/commands/validate.ts`
+- **New files**: `scripts/generate-invoice-schemas.mjs`, `src/validation/schemas/*.ts` (generated), `src/validation/invoice-validator.ts`, `src/validation/schema-registry.ts`, `src/validation/xml-to-object.ts`, `src/validation/business-rules.ts`, `src/cli/commands/validate.ts`
 - **Modified files**: `src/cli/commands/invoice.ts` (add `--validate` flag), `src/validation/index.ts` (re-export new modules)
 - **Dependencies**: Add `zod` (production). `@xmldom/xmldom` already in project.
 - **Build**: New `yarn generate:schemas` script; generated files checked into git.

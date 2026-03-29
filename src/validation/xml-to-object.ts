@@ -140,5 +140,7 @@ function getTextContent(el: Element): string {
       text += child.nodeValue || '';
     }
   }
+  // trim() strips leading/trailing whitespace — correct for KSeF invoices,
+  // but would be incorrect for XML with xml:space="preserve".
   return text.trim();
 }

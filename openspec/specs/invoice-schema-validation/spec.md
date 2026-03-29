@@ -58,11 +58,11 @@
 - **THEN** `schemaType` is `'FA3'`
 
 #### Scenario: Detect PEF vs PEF_KOR by root element
-- **WHEN** XML has PEF namespace and root element is `Faktura`
+- **WHEN** XML has PEF namespace and root element is `Invoice`
 - **THEN** `schemaType` is `'PEF3'`
 
 #### Scenario: Detect PEF_KOR by root element
-- **WHEN** XML has PEF namespace and root element is `FakturaKorygujaca`
+- **WHEN** XML has PEF namespace and root element is `CreditNote`
 - **THEN** `schemaType` is `'PEF_KOR3'`
 
 #### Scenario: Detect RR version by schema attribute

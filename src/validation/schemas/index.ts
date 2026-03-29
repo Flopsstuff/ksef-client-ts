@@ -11,6 +11,9 @@ export { PEF_KOR3Schema, type PEF_KOR3 } from './pef-kor3.js';
 /** Schema type identifiers */
 export type SchemaType = 'FA3' | 'FA2' | 'RR1_V11E' | 'RR1_V10E' | 'PEF3' | 'PEF_KOR3';
 
+/** All valid schema type values as a runtime array. */
+export const SCHEMA_TYPES: readonly SchemaType[] = ['FA3', 'FA2', 'RR1_V11E', 'RR1_V10E', 'PEF3', 'PEF_KOR3'] as const;
+
 /** Namespace URI → schema type mapping for auto-detection */
 export const NAMESPACE_MAP: Record<string, SchemaType> = {
   'http://crd.gov.pl/wzor/2025/06/25/13775/': 'FA3',

@@ -139,6 +139,15 @@ describe('validateBusinessRules', () => {
     expect(result.errors[0]!.path).toBe('/Faktura/Podmiot1/NIP');
   });
 
+  it('passes with valid PESEL', () => {
+    const xml = `<tns:Faktura xmlns:tns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+      <Podmiot2><PESEL>44051401458</PESEL></Podmiot2>
+    </tns:Faktura>`;
+    const result = validateBusinessRules(xml);
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
   it('rejects invalid PESEL checksum', () => {
     const xml = `<tns:Faktura xmlns:tns="http://crd.gov.pl/wzor/2025/06/25/13775/">
       <Podmiot2><PESEL>12345678901</PESEL></Podmiot2>

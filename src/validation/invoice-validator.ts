@@ -261,8 +261,6 @@ export async function validate(
 
   // Level 3: Business rules
   const l3 = validateBusinessRules(xml, parsed);
-  // Carry forward schema type from L2
-  l3.schemaType = l2.schemaType;
-
-  return l3;
+  // Carry forward schema type from L2 (immutable — don't mutate l3)
+  return { ...l3, schemaType: l2.schemaType };
 }

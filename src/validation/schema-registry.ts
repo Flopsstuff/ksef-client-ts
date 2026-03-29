@@ -78,3 +78,8 @@ export const SchemaRegistry = {
     return null;
   },
 };
+
+/** Clear the lazy-loaded schema cache (useful for testing). */
+export function clearCache(): void {
+  schemaCache.clear();
+}

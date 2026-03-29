@@ -121,4 +121,13 @@ describe('xmlToObject', () => {
 
     expect(result.object).toEqual({ Data: 'Some <special> content' });
   });
+
+  it('handles XML with UTF-8 BOM', () => {
+    const xml = `\uFEFF<Root><Name>Test</Name></Root>`;
+    const result = xmlToObject(xml);
+
+    expect(result.errors).toEqual([]);
+    expect(result.rootElement).toBe('Root');
+    expect(result.object).toEqual({ Name: 'Test' });
+  });
 });

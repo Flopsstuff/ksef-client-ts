@@ -12,6 +12,8 @@ export function normalizeCliDate(date: string, position: 'from' | 'to'): string 
     throw new Error(`Invalid date: "${date}". Expected a valid YYYY-MM-DD date.`);
   }
 
+  // UTC (+00:00) is used intentionally for KSeF API consistency.
+  // Users in CET/CEST should be aware that date-only inputs are normalized to UTC, not local time.
   return position === 'from'
     ? `${date}T00:00:00+00:00`
     : `${date}T23:59:59.999+00:00`;

@@ -295,6 +295,34 @@ describe('invoice', () => {
     });
   });
 
+  describe('send — validate flag', () => {
+    it('runs validation before sending when --validate is set', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as any);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('<Faktura/>'));
+      mockValidateInvoice.mockResolvedValue({ valid: true, schemaType: 'FA3', errors: [] });
+      mockClient.onlineSession.sendInvoice.mockResolvedValue({ referenceNumber: 'ref-val' });
+
+      await runSend({ path: '/test.xml', validate: true });
+
+      expect(mockValidateInvoice).toHaveBeenCalledWith('<Faktura/>');
+      expect(mockClient.onlineSession.sendInvoice).toHaveBeenCalled();
+    });
+
+    it('does not send when validation fails', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as any);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('<bad/>'));
+      mockValidateInvoice.mockResolvedValue({
+        valid: false, schemaType: null,
+        errors: [{ code: 'MALFORMED_XML', message: 'Invalid XML' }],
+      });
+
+      await expect(runSend({ path: '/test.xml', validate: true })).rejects.toThrow('Validation failed');
+      expect(mockClient.onlineSession.sendInvoice).not.toHaveBeenCalled();
+    });
+  });
+
   describe('send — form-code option', () => {
     it('resolves form code for single file send', async () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);

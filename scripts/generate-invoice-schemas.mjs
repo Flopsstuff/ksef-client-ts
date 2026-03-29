@@ -434,6 +434,11 @@ function parseAttribute(el, registry) {
   return def;
 }
 
+// Smallest epsilon added when converting exclusive bounds to inclusive for Zod's .min()/.max().
+// Zod doesn't support exclusive min/max, so minExclusive=X becomes .min(X + EXCLUSIVE_BOUND_EPSILON).
+// For integer types we use 1 instead. This value is sufficient for KSeF decimal fields (max 6 decimal places).
+const EXCLUSIVE_BOUND_EPSILON = 0.000001;
+
 // ─── Zod Code Emitter ───────────────────────────────────────────────────────
 
 class ZodEmitter {
@@ -476,7 +481,13 @@ class ZodEmitter {
       return this.getOutput();
     }
 
-    // Emit all types used by the root element (depth-first)
+    // Emit all types reachable from the root element (depth-first).
+    // Note: some base types in the inheritance chain (e.g. TNrIdentyfikacjiPodatkowej,
+    // TTekstowy, TNrKRS, TNrREGON, TZnakowy2) may appear unused in the output because
+    // their constraints are flattened into derived types by generateSimpleTypeWithInheritedFacets().
+    // They are still emitted because they are part of the type dependency graph and may be
+    // referenced directly by other types. Filtering them out would require a second pass to
+    // check which variable names actually appear in the generated code.
     const allTypes = this.collectReferencedTypes(rootElem);
     for (const typeName of allTypes) {
       this.emitTypeDefinition(typeName);
@@ -627,7 +638,7 @@ class ZodEmitter {
 
     if (facets.minInclusive !== undefined) schema += `.min(${facets.minInclusive})`;
     if (facets.maxInclusive !== undefined) schema += `.max(${facets.maxInclusive})`;
-    if (facets.minExclusive !== undefined) schema += `.min(${Number(facets.minExclusive) + (this.isIntegerBase(base) ? 1 : 0.000001)})`;
+    if (facets.minExclusive !== undefined) schema += `.min(${Number(facets.minExclusive) + (this.isIntegerBase(base) ? 1 : EXCLUSIVE_BOUND_EPSILON)})`;
 
     // For XML parsed values, numbers come as strings, so we need coerce
     return `z.coerce.number()${schema.substring('z.number()'.length)}`;
@@ -1028,7 +1039,14 @@ class ZodEmitter {
 }
 
 function escapeRegex(pattern) {
-  // Escape forward slashes for use inside JS regex literals /pattern/
+  // Escape XSD regex patterns for safe embedding in JS regex literals (/pattern/).
+  // XSD and JS regex share most syntax, but differ in a few areas:
+  //   - Forward slash `/` must be escaped (JS regex literal delimiter)
+  //   - XSD `\i` and `\c` (XML name chars) are not valid in JS — left as-is
+  //     since KSeF schemas don't currently use them
+  //   - XSD treats `^` and `$` as literal chars (not anchors) — the generator
+  //     wraps patterns in ^...$ explicitly, so mid-pattern `^`/`$` are unlikely
+  //     but would be a problem if encountered in future schemas
   return pattern.replace(/\//g, '\\/');
 }
 
