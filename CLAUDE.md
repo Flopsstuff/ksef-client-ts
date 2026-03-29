@@ -61,8 +61,10 @@ QR layer (src/qr/)
   └── QrCodeService — generates QR codes (PNG, SVG, SVG+label)
 
 CLI (src/cli/) — 14 command groups via commander.js
-  └── auth, session, invoice, permission, token, cert, lighthouse, limits,
-      peppol, test-data, qr, config, doctor, completion
+  ├── auth, session, invoice, permission, token, cert, lighthouse, limits,
+  │   peppol, test-data, qr, config, doctor, completion
+  ├── requireSession() — auto-recovers via refresh or re-login from stored credentials
+  └── session-recovery — cascade: refresh token → loginWithToken from credentials → error
 ```
 
 ### Key conventions
