@@ -39,7 +39,8 @@
     "docs:preview": "vitepress preview docs",
     "check-api": "node scripts/check-openapi-coverage.mjs",
     "split-openapi": "node scripts/split-openapi.mjs",
-    "sync-schemas": "node scripts/sync-xsd-schemas.mjs"
+    "sync-schemas": "node scripts/sync-xsd-schemas.mjs",
+    "generate-schemas": "node --stack-size=16384 scripts/generate-invoice-schemas.mjs"
   },
   "keywords": [
     "ksef",

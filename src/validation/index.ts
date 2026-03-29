@@ -12,3 +12,11 @@ export {
   SUBUNIT_NAME_MIN_LENGTH, SUBUNIT_NAME_MAX_LENGTH,
   PERMISSION_DESCRIPTION_MIN_LENGTH, PERMISSION_DESCRIPTION_MAX_LENGTH,
 } from './constraints.js';
+
+export { xmlToObject, type XmlConversionResult } from './xml-to-object.js';
+export { SchemaRegistry } from './schema-registry.js';
+export {
+  validate, validateWellFormedness, validateSchema, validateBusinessRules,
+  type InvoiceValidationResult, type InvoiceValidationError,
+  type InvoiceValidationErrorCode, type ValidateOptions,
+} from './invoice-validator.js';

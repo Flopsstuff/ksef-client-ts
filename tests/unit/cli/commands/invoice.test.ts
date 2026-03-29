@@ -5,10 +5,11 @@ import * as configStore from '../../../../src/cli/config-store.js';
 import * as output from '../../../../src/cli/output.js';
 import * as fs from 'node:fs';
 import { consola } from 'consola';
+import { validate as validateInvoice } from '../../../../src/validation/invoice-validator.js';
 import { createMockClient, defaultConfig, validSession } from './_helpers.js';
 
 vi.mock('consola', () => ({
-  consola: { level: 0, start: vi.fn(), info: vi.fn() },
+  consola: { level: 0, start: vi.fn(), info: vi.fn(), success: vi.fn(), error: vi.fn(), log: vi.fn() },
 }));
 
 vi.mock('../../../../src/cli/error-handler.js', () => ({
@@ -35,6 +36,10 @@ vi.mock('../../../../src/cli/output.js', () => ({
   outputSuccess: vi.fn(),
   outputKeyValue: vi.fn(),
   outputWarning: vi.fn(),
+}));
+
+vi.mock('../../../../src/validation/invoice-validator.js', () => ({
+  validate: vi.fn(),
 }));
 
 vi.mock('node:fs', () => ({
@@ -76,6 +81,12 @@ async function runSend(args: Record<string, unknown>) {
 async function runGet(args: Record<string, unknown>) {
   return (invoiceCommand.subCommands!.get as any).run!({ args });
 }
+
+async function runValidate(args: Record<string, unknown>) {
+  return (invoiceCommand.subCommands!.validate as any).run!({ args });
+}
+
+const mockValidateInvoice = vi.mocked(validateInvoice);
 
 describe('invoice', () => {
   describe('query / buildQueryFilters', () => {
@@ -553,6 +564,96 @@ describe('invoice', () => {
       await runExportStatus({ ref: 'export-ref-4' });
 
       expect(consola.info).toHaveBeenCalledWith(expect.stringContaining('Processing'));
+    });
+  });
+
+  describe('validate', () => {
+    it('validates a single XML file successfully', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as any);
+      vi.mocked(fs.readFileSync).mockReturnValue('<Faktura/>');
+      mockValidateInvoice.mockResolvedValue({ valid: true, schemaType: 'FA3', errors: [] });
+
+      await runValidate({ files: '/test.xml' });
+
+      expect(mockValidateInvoice).toHaveBeenCalledWith('<Faktura/>', undefined);
+      expect(consola.success).toHaveBeenCalledWith(expect.stringContaining('valid'));
+    });
+
+    it('reports invalid file and sets process.exitCode', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as any);
+      vi.mocked(fs.readFileSync).mockReturnValue('<bad/>');
+      mockValidateInvoice.mockResolvedValue({
+        valid: false, schemaType: null,
+        errors: [{ code: 'MALFORMED_XML', message: 'Empty root' }],
+      });
+
+      const origExitCode = process.exitCode;
+      await runValidate({ files: '/bad.xml' });
+
+      expect(consola.error).toHaveBeenCalledWith(expect.stringContaining('INVALID'));
+      expect(process.exitCode).toBe(1);
+      process.exitCode = origExitCode;
+    });
+
+    it('validates all XML files in a directory', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as any);
+      vi.mocked(fs.readdirSync).mockReturnValue(['a.xml', 'b.xml'] as any);
+      vi.mocked(fs.readFileSync).mockReturnValue('<Faktura/>');
+      mockValidateInvoice.mockResolvedValue({ valid: true, schemaType: 'FA3', errors: [] });
+
+      await runValidate({ files: '/dir' });
+
+      expect(mockValidateInvoice).toHaveBeenCalledTimes(2);
+      expect(consola.info).toHaveBeenCalledWith(expect.stringContaining('2 valid'));
+    });
+
+    it('throws when directory has no XML files', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as any);
+      vi.mocked(fs.readdirSync).mockReturnValue(['readme.txt'] as any);
+
+      await expect(runValidate({ files: '/empty-dir' })).rejects.toThrow('No XML files found');
+    });
+
+    it('throws when file does not exist', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+
+      await expect(runValidate({ files: '/missing.xml' })).rejects.toThrow('File not found');
+    });
+
+    it('throws on invalid --schema value', async () => {
+      await expect(runValidate({ files: '/test.xml', schema: 'INVALID' })).rejects.toThrow('Invalid schema "INVALID"');
+    });
+
+    it('passes schema override to validator', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as any);
+      vi.mocked(fs.readFileSync).mockReturnValue('<Faktura/>');
+      mockValidateInvoice.mockResolvedValue({ valid: true, schemaType: 'FA2', errors: [] });
+
+      await runValidate({ files: '/test.xml', schema: 'FA2' });
+
+      expect(mockValidateInvoice).toHaveBeenCalledWith('<Faktura/>', { schema: 'FA2' });
+    });
+
+    it('outputs JSON when --json is set', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as any);
+      vi.mocked(fs.readFileSync).mockReturnValue('<Faktura/>');
+      mockValidateInvoice.mockResolvedValue({ valid: true, schemaType: 'FA3', errors: [] });
+
+      await runValidate({ files: '/test.xml', json: true });
+
+      expect(output.outputResult).toHaveBeenCalledWith(
+        expect.objectContaining({
+          files: [expect.objectContaining({ file: 'test.xml', valid: true, schemaType: 'FA3' })],
+          summary: { total: 1, valid: 1, invalid: 0 },
+        }),
+        { json: true },
+      );
     });
   });
 });

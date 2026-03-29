@@ -5,10 +5,14 @@ import { DEFAULT_FORM_CODE } from '../models/document-structures/index.js';
 import type { OnlineSessionHandle, ParsedUpoInfo, PollOptions, UpoInfo } from './types.js';
 import { pollUntil } from './polling.js';
 import { parseUpoXml } from '../xml/index.js';
+import { validate as validateInvoice } from '../validation/invoice-validator.js';
+import { KSeFValidationError } from '../errors/ksef-validation-error.js';
 
 export interface OpenOnlineSessionOptions {
   formCode?: FormCode;
   upoVersion?: UpoVersion | string;
+  /** Validate invoices against XSD schema before sending. Default: false. */
+  validate?: boolean;
 }
 
 export interface SendAndCloseOptions extends OpenOnlineSessionOptions {
@@ -52,6 +56,16 @@ export async function openOnlineSession(
     validUntil: openResp.validUntil,
 
     async sendInvoice(invoiceXml: string | Uint8Array): Promise<string> {
+      if (options?.validate) {
+        const xmlStr = typeof invoiceXml === 'string' ? invoiceXml : new TextDecoder().decode(invoiceXml);
+        const vResult = await validateInvoice(xmlStr);
+        if (!vResult.valid) {
+          throw new KSeFValidationError(
+            'Invoice validation failed',
+            vResult.errors.map(e => ({ field: e.path, message: e.message })),
+          );
+        }
+      }
       const data = typeof invoiceXml === 'string' ? new TextEncoder().encode(invoiceXml) : invoiceXml;
       const plainMeta = client.crypto.getFileMetadata(data);
       const encrypted = client.crypto.encryptAES256(data, encData.cipherKey, encData.cipherIv);
