@@ -31,7 +31,11 @@ async function loadSchema(type: SchemaType): Promise<ZodType> {
     default: throw new Error(`Unknown schema type: ${type}`);
   }
 
-  const schema = mod[`${type}Schema`] as ZodType;
+  const exportName = `${type}Schema`;
+  const schema = mod[exportName] as ZodType | undefined;
+  if (!schema) {
+    throw new Error(`Schema export "${exportName}" not found in module for type "${type}"`);
+  }
   schemaCache.set(type, schema);
   return schema;
 }

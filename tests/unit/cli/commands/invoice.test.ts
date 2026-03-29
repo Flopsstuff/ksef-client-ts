@@ -9,7 +9,7 @@ import { validate as validateInvoice } from '../../../../src/validation/invoice-
 import { createMockClient, defaultConfig, validSession } from './_helpers.js';
 
 vi.mock('consola', () => ({
-  consola: { level: 0, start: vi.fn(), info: vi.fn(), success: vi.fn(), error: vi.fn(), log: vi.fn() },
+  consola: { level: 0, start: vi.fn(), info: vi.fn(), success: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() },
 }));
 
 vi.mock('../../../../src/cli/error-handler.js', () => ({

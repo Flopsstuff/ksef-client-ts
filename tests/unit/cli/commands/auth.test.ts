@@ -6,7 +6,7 @@ import * as sessionStore from '../../../../src/cli/session-store.js';
 import * as output from '../../../../src/cli/output.js';
 import { createMockClient, defaultConfig, validSession } from './_helpers.js';
 
-vi.mock('consola', () => ({ consola: { level: 0 } }));
+vi.mock('consola', () => ({ consola: { level: 0, info: vi.fn(), warn: vi.fn() } }));
 
 vi.mock('../../../../src/cli/error-handler.js', () => ({
   withErrorHandler: vi.fn((fn) => fn()),

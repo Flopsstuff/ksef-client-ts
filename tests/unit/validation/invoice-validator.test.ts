@@ -65,11 +65,9 @@ describe('validateWellFormedness', () => {
 // ─── Level 2: Schema validation ─────────────────────────────────────────────
 
 describe('validateSchema', () => {
-  it('validates valid FA3 XML', async () => {
+  it('detects FA3 schema type from namespace', async () => {
     const result = await validateSchema(MINIMAL_FA3_XML);
     expect(result.schemaType).toBe('FA3');
-    // May or may not pass depending on schema strictness, but should detect type
-    expect(result.schemaType).toBeTruthy();
   });
 
   it('detects and reports schema violations', async () => {

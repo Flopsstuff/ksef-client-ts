@@ -249,8 +249,8 @@ This is the build-time half of the [validation pipeline](#how-it-works). The gen
 | `fa2.ts` | `FA/schemat_FA(2)_v1-0E.xsd` | ~111 Zod types |
 | `rr1-v11e.ts` | `RR/schemat_FA_RR(1)_v1-1E.xsd` | ~102 Zod types |
 | `rr1-v10e.ts` | `RR/schemat_FA_RR(1)_v1-0E.xsd` | ~102 Zod types |
-| `pef3.ts` | `PEF/schemat_PEF(3)_v1-0E.xsd` | Wrapper-level validation |
-| `pef-kor3.ts` | `PEF/schemat_PEF_KOR(3)_v1-0E.xsd` | Wrapper-level validation |
+| `pef3.ts` | `PEF/Schemat_PEF(3)_v2-1.xsd` | Wrapper-level validation |
+| `pef-kor3.ts` | `PEF/Schemat_PEF_KOR(3)_v2-1.xsd` | Wrapper-level validation |
 
 PEF schemas validate the KSeF wrapper structure but not the full UBL body (UBL base schemas are 2.3MB; nested types use `z.any()`).
 

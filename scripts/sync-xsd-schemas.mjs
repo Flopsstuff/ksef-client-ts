@@ -10,12 +10,13 @@
  * Usage: node scripts/sync-xsd-schemas.mjs [--branch main]
  */
 
-import { writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
+import { writeFileSync, mkdirSync, rmSync, renameSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_DIR = join(ROOT, "docs", "schemas");
+const TEMP_DIR = `${OUT_DIR}.tmp`;
 const REPO = "CIRFMF/ksef-docs";
 const SCHEMA_PREFIX = "faktury/schemy/";
 
@@ -59,7 +60,7 @@ async function discoverXsdFiles() {
 async function downloadFile(file) {
   const url = `https://raw.githubusercontent.com/${REPO}/${branch}/${file.repoPath}`;
   const content = await fetchFile(url);
-  const dest = join(OUT_DIR, file.localPath);
+  const dest = join(TEMP_DIR, file.localPath);
   mkdirSync(dirname(dest), { recursive: true });
   writeFileSync(dest, content);
   return dest;
@@ -80,24 +81,38 @@ async function main() {
 
   console.log(`Found ${files.length} XSD files\n`);
 
-  // Clean output directory
-  if (existsSync(OUT_DIR)) {
-    rmSync(OUT_DIR, { recursive: true });
+  // Clean temp directory if leftover from a previous failed run
+  if (existsSync(TEMP_DIR)) {
+    rmSync(TEMP_DIR, { recursive: true });
   }
 
-  // Download all files (parallel, batched to avoid rate limits)
+  // Download all files into temp directory (parallel, batched to avoid rate limits)
   const BATCH_SIZE = 5;
   let downloaded = 0;
 
-  for (let i = 0; i < files.length; i += BATCH_SIZE) {
-    const batch = files.slice(i, i + BATCH_SIZE);
-    await Promise.all(
-      batch.map(async (file) => {
-        await downloadFile(file);
-        downloaded++;
-        console.log(`  [${downloaded}/${files.length}] ${file.localPath}`);
-      })
-    );
+  try {
+    for (let i = 0; i < files.length; i += BATCH_SIZE) {
+      const batch = files.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        batch.map(async (file) => {
+          await downloadFile(file);
+          downloaded++;
+          console.log(`  [${downloaded}/${files.length}] ${file.localPath}`);
+        })
+      );
+    }
+
+    // All downloads succeeded — atomically replace old directory with new one
+    if (existsSync(OUT_DIR)) {
+      rmSync(OUT_DIR, { recursive: true });
+    }
+    renameSync(TEMP_DIR, OUT_DIR);
+  } catch (err) {
+    // Clean up temp directory on failure; existing schemas remain intact
+    if (existsSync(TEMP_DIR)) {
+      rmSync(TEMP_DIR, { recursive: true });
+    }
+    throw err;
   }
 
   // Summary

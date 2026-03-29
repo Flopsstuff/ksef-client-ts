@@ -8,7 +8,7 @@
  */
 
 import type { SchemaType } from './schemas/index.js';
-import { xmlToObject } from './xml-to-object.js';
+import { type XmlConversionResult, xmlToObject } from './xml-to-object.js';
 import { SchemaRegistry } from './schema-registry.js';
 import { isValidNip, isValidPesel } from './patterns.js';
 
@@ -53,8 +53,14 @@ export interface ValidateOptions {
 
 /**
  * Check that the XML string is well-formed (parseable).
+ *
+ * @param xml - Raw XML string.
+ * @param _parsed - Pre-parsed XML result (internal optimisation, avoids re-parsing in `validate()`).
  */
-export function validateWellFormedness(xml: string): InvoiceValidationResult {
+export function validateWellFormedness(
+  xml: string,
+  _parsed?: XmlConversionResult,
+): InvoiceValidationResult {
   if (!xml || !xml.trim()) {
     return {
       valid: false,
@@ -63,7 +69,7 @@ export function validateWellFormedness(xml: string): InvoiceValidationResult {
     };
   }
 
-  const { object, rootElement, namespace, errors } = xmlToObject(xml);
+  const { object, rootElement, namespace, errors } = _parsed ?? xmlToObject(xml);
 
   if (errors.length > 0 || !object) {
     return {
@@ -82,12 +88,17 @@ export function validateWellFormedness(xml: string): InvoiceValidationResult {
 
 /**
  * Validate XML against its Zod schema (auto-detected or explicit).
+ *
+ * @param xml - Raw XML string.
+ * @param options - Validation options (e.g. explicit schema type override).
+ * @param _parsed - Pre-parsed XML result (internal optimisation, avoids re-parsing in `validate()`).
  */
 export async function validateSchema(
   xml: string,
   options?: ValidateOptions,
+  _parsed?: XmlConversionResult,
 ): Promise<InvoiceValidationResult> {
-  const { object, rootElement, namespace, errors: parseErrors } = xmlToObject(xml);
+  const { object, rootElement, namespace, errors: parseErrors } = _parsed ?? xmlToObject(xml);
 
   if (parseErrors.length > 0 || !object) {
     return {
@@ -157,9 +168,15 @@ function mapZodErrorCode(issue: { code?: string; input?: unknown }): InvoiceVali
 
 /**
  * Validate business rules: NIP/PESEL checksum verification on Podmiot elements.
+ *
+ * @param xml - Raw XML string.
+ * @param _parsed - Pre-parsed XML result (internal optimisation, avoids re-parsing in `validate()`).
  */
-export function validateBusinessRules(xml: string): InvoiceValidationResult {
-  const { object, rootElement, namespace, errors: parseErrors } = xmlToObject(xml);
+export function validateBusinessRules(
+  xml: string,
+  _parsed?: XmlConversionResult,
+): InvoiceValidationResult {
+  const { object, rootElement, namespace, errors: parseErrors } = _parsed ?? xmlToObject(xml);
 
   if (parseErrors.length > 0 || !object) {
     return {
@@ -222,21 +239,28 @@ function collectNipPeselErrors(
 /**
  * Run all three validation levels (well-formedness → schema → business rules).
  * Short-circuits on first failing level.
+ *
+ * XML is parsed once and the result is reused across all three levels.
  */
 export async function validate(
   xml: string,
   options?: ValidateOptions,
 ): Promise<InvoiceValidationResult> {
+  // Parse XML once upfront — reused by all three levels.
+  // The empty-input guard in validateWellFormedness runs before accessing
+  // the parsed result, so passing undefined for empty strings is safe.
+  const parsed = (xml && xml.trim()) ? xmlToObject(xml) : undefined;
+
   // Level 1: Well-formedness
-  const l1 = validateWellFormedness(xml);
+  const l1 = validateWellFormedness(xml, parsed);
   if (!l1.valid) return l1;
 
   // Level 2: Schema validation
-  const l2 = await validateSchema(xml, options);
+  const l2 = await validateSchema(xml, options, parsed);
   if (!l2.valid) return l2;
 
   // Level 3: Business rules
-  const l3 = validateBusinessRules(xml);
+  const l3 = validateBusinessRules(xml, parsed);
   // Carry forward schema type from L2
   l3.schemaType = l2.schemaType;
 

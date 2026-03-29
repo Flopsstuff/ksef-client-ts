@@ -857,7 +857,7 @@ class ZodEmitter {
 
     const isOptional = content.minOccurs === '0';
     const union = `z.union([${branches.join(', ')}])`;
-    return isOptional ? `${union}.optional()` : union;
+    return isOptional ? appendOptional(union) : union;
   }
 
   generateElementProp(elem, forceOptional = false) {
@@ -874,16 +874,16 @@ class ZodEmitter {
       const arraySchema = `z.array(${schema}).min(${minOccurs})${max}`;
       schema = `z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], ${arraySchema})`;
       if (minOccurs === 0 || forceOptional) {
-        schema += '.optional()';
+        schema = appendOptional(schema);
       }
     } else if (minOccurs === 0 || forceOptional) {
-      schema += '.optional()';
+      schema = appendOptional(schema);
     }
 
     // Fixed value
     if (elem.fixed) {
       schema = `z.literal(${JSON.stringify(elem.fixed)})`;
-      if (minOccurs === 0 || forceOptional) schema += '.optional()';
+      if (minOccurs === 0 || forceOptional) schema = appendOptional(schema);
     }
 
     return `${JSON.stringify(name)}: ${schema}`;
@@ -927,7 +927,7 @@ class ZodEmitter {
     }
 
     if (attr.use !== 'required') {
-      schema += '.optional()';
+      schema = appendOptional(schema);
     }
 
     return `${JSON.stringify('@' + attr.name)}: ${schema}`;
@@ -1030,6 +1030,12 @@ class ZodEmitter {
 function escapeRegex(pattern) {
   // Escape forward slashes for use inside JS regex literals /pattern/
   return pattern.replace(/\//g, '\\/');
+}
+
+/** Append .optional() only if the schema string doesn't already end with it */
+function appendOptional(schema) {
+  if (schema.endsWith('.optional()')) return schema;
+  return schema + '.optional()';
 }
 
 // ─── Main Generator ─────────────────────────────────────────────────────────

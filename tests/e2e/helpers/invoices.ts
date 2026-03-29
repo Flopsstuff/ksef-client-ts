@@ -30,10 +30,15 @@ export function loadInvoiceTemplate(version: InvoiceFormVersion): string {
   return readFileSync(join(FIXTURE_DIR, TEMPLATE_FILES[version]), 'utf-8');
 }
 
+const TEMPLATES_REQUIRING_BUYER_NIP: ReadonlySet<InvoiceFormVersion> = new Set(['FA_RR', 'FA_3_SELF']);
+
 export function prepareInvoiceXml(
   version: InvoiceFormVersion,
   placeholders: InvoicePlaceholders,
 ): string {
+  if (TEMPLATES_REQUIRING_BUYER_NIP.has(version) && !placeholders.buyerNip) {
+    throw new Error(`buyerNip is required for template ${version}`);
+  }
   let xml = loadInvoiceTemplate(version);
   xml = xml.replace(/#nip#/g, placeholders.nip);
   xml = xml.replace(/#buyer_nip#/g, placeholders.buyerNip ?? '');

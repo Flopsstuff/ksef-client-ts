@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { defineCommand } from 'citty';
+import { consola } from 'consola';
 import { createClient, requireSession } from '../client-factory.js';
 import { saveSession, clearSession, loadSession, isSessionExpired } from '../session-store.js';
 import { loadConfig, saveConfig } from '../config-store.js';
@@ -87,8 +88,13 @@ const login = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const client = createClient(globalOpts);
       const config = loadConfig();
+
+      if (!args.env) {
+        consola.info(`Using default environment: ${config.environment}`);
+      }
+
+      const client = createClient(globalOpts);
       const nip = args.nip ?? config.nip;
 
       if (!nip) {

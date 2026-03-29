@@ -53,44 +53,47 @@ describe('29 - Technical Correction', { timeout: 300_000 }, () => {
     const sessionRef = openResponse.referenceNumber;
     expect(sessionRef).toBeTruthy();
 
-    // Send invoice with future date (semantic error → 450)
+    // Use a future date to trigger KSeF semantic rejection (status 450) — this is
+    // intentional to produce a rejected invoice for testing the technical correction flow.
     const badRequest = prepareAndEncryptInvoiceWithDate(client, nip, futureDateString(2), cipherKey, cipherIv);
-    const badSendResponse = await client.onlineSession.sendInvoice(sessionRef, badRequest);
-    const badInvoiceRef = badSendResponse.referenceNumber;
-    expect(badInvoiceRef).toBeTruthy();
 
-    // Poll for failure detection
-    await pollUntil(
-      () => client.sessionStatus.getSessionStatus(sessionRef),
-      (s) => (s.failedInvoiceCount ?? 0) > 0,
-      { ...POLL_OPTIONS, description: 'semantic rejection detection' },
-    );
+    try {
+      const badSendResponse = await client.onlineSession.sendInvoice(sessionRef, badRequest);
+      const badInvoiceRef = badSendResponse.referenceNumber;
+      expect(badInvoiceRef).toBeTruthy();
 
-    // Get failed invoice hash
-    const failedInvoice = await client.sessionStatus.getSessionInvoice(sessionRef, badInvoiceRef);
-    expect(failedInvoice.status.code).toBe(450);
-    const rejectedInvoiceHash = failedInvoice.invoiceHash;
-    expect(rejectedInvoiceHash).toBeTruthy();
+      // Poll for failure detection
+      await pollUntil(
+        () => client.sessionStatus.getSessionStatus(sessionRef),
+        (s) => (s.failedInvoiceCount ?? 0) > 0,
+        { ...POLL_OPTIONS, description: 'semantic rejection detection' },
+      );
 
-    // Send corrected invoice referencing the rejected hash
-    const correctionRequest: SendInvoiceRequest = {
-      ...prepareAndEncryptInvoiceWithDate(client, nip, todayString(), cipherKey, cipherIv),
-      hashOfCorrectedInvoice: rejectedInvoiceHash,
-    };
-    const correctionResponse = await client.onlineSession.sendInvoice(sessionRef, correctionRequest);
-    const correctionRef = correctionResponse.referenceNumber;
-    expect(correctionRef).toBeTruthy();
+      // Get failed invoice hash
+      const failedInvoice = await client.sessionStatus.getSessionInvoice(sessionRef, badInvoiceRef);
+      expect(failedInvoice.status.code).toBe(450);
+      const rejectedInvoiceHash = failedInvoice.invoiceHash;
+      expect(rejectedInvoiceHash).toBeTruthy();
 
-    // Poll for correction success (100/150 = processing, 200 = success, ≥400 = failure)
-    const correctionStatus = await pollUntil(
-      () => client.sessionStatus.getSessionInvoice(sessionRef, correctionRef),
-      (s) => s.status.code === 200 || s.status.code >= 400,
-      { ...POLL_OPTIONS, description: 'technical correction processing' },
-    );
-    expect(correctionStatus.status.code).toBe(200);
+      // Send corrected invoice referencing the rejected hash
+      const correctionRequest: SendInvoiceRequest = {
+        ...prepareAndEncryptInvoiceWithDate(client, nip, todayString(), cipherKey, cipherIv),
+        hashOfCorrectedInvoice: rejectedInvoiceHash,
+      };
+      const correctionResponse = await client.onlineSession.sendInvoice(sessionRef, correctionRequest);
+      const correctionRef = correctionResponse.referenceNumber;
+      expect(correctionRef).toBeTruthy();
 
-    // Close session
-    await client.onlineSession.closeSession(sessionRef);
+      // Poll for correction success (100/150 = processing, 200 = success, ≥400 = failure)
+      const correctionStatus = await pollUntil(
+        () => client.sessionStatus.getSessionInvoice(sessionRef, correctionRef),
+        (s) => s.status.code === 200 || s.status.code >= 400,
+        { ...POLL_OPTIONS, description: 'technical correction processing' },
+      );
+      expect(correctionStatus.status.code).toBe(200);
+    } finally {
+      await client.onlineSession.closeSession(sessionRef).catch(() => {});
+    }
   });
 
   it('should correct a rejected invoice in a different session', async () => {
@@ -106,27 +109,32 @@ describe('29 - Technical Correction', { timeout: 300_000 }, () => {
     const sessionRef = openResponse.referenceNumber;
     expect(sessionRef).toBeTruthy();
 
-    // Send invoice with future date (semantic error → 450)
+    // Use a future date to trigger KSeF semantic rejection (status 450) — this is
+    // intentional to produce a rejected invoice for testing cross-session technical correction.
     const badRequest = prepareAndEncryptInvoiceWithDate(client, nip, futureDateString(2), cipherKey, cipherIv);
-    const badSendResponse = await client.onlineSession.sendInvoice(sessionRef, badRequest);
-    const badInvoiceRef = badSendResponse.referenceNumber;
-    expect(badInvoiceRef).toBeTruthy();
 
-    // Poll for failure detection
-    await pollUntil(
-      () => client.sessionStatus.getSessionStatus(sessionRef),
-      (s) => (s.failedInvoiceCount ?? 0) > 0,
-      { ...POLL_OPTIONS, description: 'semantic rejection detection' },
-    );
+    let rejectedInvoiceHash: string;
 
-    // Get failed invoice hash
-    const failedInvoice = await client.sessionStatus.getSessionInvoice(sessionRef, badInvoiceRef);
-    expect(failedInvoice.status.code).toBe(450);
-    const rejectedInvoiceHash = failedInvoice.invoiceHash;
-    expect(rejectedInvoiceHash).toBeTruthy();
+    try {
+      const badSendResponse = await client.onlineSession.sendInvoice(sessionRef, badRequest);
+      const badInvoiceRef = badSendResponse.referenceNumber;
+      expect(badInvoiceRef).toBeTruthy();
 
-    // Close first session
-    await client.onlineSession.closeSession(sessionRef);
+      // Poll for failure detection
+      await pollUntil(
+        () => client.sessionStatus.getSessionStatus(sessionRef),
+        (s) => (s.failedInvoiceCount ?? 0) > 0,
+        { ...POLL_OPTIONS, description: 'semantic rejection detection' },
+      );
+
+      // Get failed invoice hash
+      const failedInvoice = await client.sessionStatus.getSessionInvoice(sessionRef, badInvoiceRef);
+      expect(failedInvoice.status.code).toBe(450);
+      rejectedInvoiceHash = failedInvoice.invoiceHash;
+      expect(rejectedInvoiceHash).toBeTruthy();
+    } finally {
+      await client.onlineSession.closeSession(sessionRef).catch(() => {});
+    }
 
     // Re-authenticate with the same NIP, open second session
     const { client: client2, encryptionData: encryptionData2 } = await authenticateWithCertAndCrypto(nip);
@@ -137,27 +145,28 @@ describe('29 - Technical Correction', { timeout: 300_000 }, () => {
     const sessionRef2 = openResponse2.referenceNumber;
     expect(sessionRef2).toBeTruthy();
 
-    // Send corrected invoice in second session
-    const correctionRequest: SendInvoiceRequest = {
-      ...prepareAndEncryptInvoiceWithDate(
-        client2, nip, todayString(),
-        encryptionData2.cipherKey, encryptionData2.cipherIv,
-      ),
-      hashOfCorrectedInvoice: rejectedInvoiceHash,
-    };
-    const correctionResponse = await client2.onlineSession.sendInvoice(sessionRef2, correctionRequest);
-    const correctionRef = correctionResponse.referenceNumber;
-    expect(correctionRef).toBeTruthy();
+    try {
+      // Send corrected invoice in second session
+      const correctionRequest: SendInvoiceRequest = {
+        ...prepareAndEncryptInvoiceWithDate(
+          client2, nip, todayString(),
+          encryptionData2.cipherKey, encryptionData2.cipherIv,
+        ),
+        hashOfCorrectedInvoice: rejectedInvoiceHash,
+      };
+      const correctionResponse = await client2.onlineSession.sendInvoice(sessionRef2, correctionRequest);
+      const correctionRef = correctionResponse.referenceNumber;
+      expect(correctionRef).toBeTruthy();
 
-    // Poll for correction success (100/150 = processing, 200 = success, ≥400 = failure)
-    const correctionStatus = await pollUntil(
-      () => client2.sessionStatus.getSessionInvoice(sessionRef2, correctionRef),
-      (s) => s.status.code === 200 || s.status.code >= 400,
-      { ...POLL_OPTIONS, description: 'technical correction in new session' },
-    );
-    expect(correctionStatus.status.code).toBe(200);
-
-    // Close second session
-    await client2.onlineSession.closeSession(sessionRef2);
+      // Poll for correction success (100/150 = processing, 200 = success, ≥400 = failure)
+      const correctionStatus = await pollUntil(
+        () => client2.sessionStatus.getSessionInvoice(sessionRef2, correctionRef),
+        (s) => s.status.code === 200 || s.status.code >= 400,
+        { ...POLL_OPTIONS, description: 'technical correction in new session' },
+      );
+      expect(correctionStatus.status.code).toBe(200);
+    } finally {
+      await client2.onlineSession.closeSession(sessionRef2).catch(() => {});
+    }
   });
 });

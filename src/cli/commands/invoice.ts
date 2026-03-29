@@ -117,6 +117,10 @@ const send = defineCommand({
 
       if (args.stream) {
         // Stream-based batch upload from a ZIP file
+        if (args.validate) {
+          consola.warn('--validate is only supported for single-file sends, skipping validation.');
+        }
+
         if (!filePath.endsWith('.zip') || stat.isDirectory()) {
           throw new Error('--stream requires a .zip file path.');
         }
@@ -151,6 +155,10 @@ const send = defineCommand({
 
       if (stat.isDirectory()) {
         // Batch mode: send all XMLs in directory
+        if (args.validate) {
+          consola.warn('--validate is only supported for single-file sends, skipping validation.');
+        }
+
         const xmlFiles = fs.readdirSync(filePath)
           .filter((f) => f.endsWith('.xml'))
           .map((f) => path.join(filePath, f));
@@ -489,6 +497,9 @@ const validateCmd = defineCommand({
           validCount++;
           if (!args.json) {
             consola.success(`${path.basename(file)}: valid (${result.schemaType})`);
+            if (result.schemaType === 'PEF3' || result.schemaType === 'PEF_KOR3') {
+              consola.warn('PEF validation covers wrapper structure only — UBL content is not validated.');
+            }
           }
         } else {
           invalidCount++;

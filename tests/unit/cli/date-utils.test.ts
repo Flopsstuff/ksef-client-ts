@@ -6,8 +6,8 @@ describe('normalizeCliDate', () => {
     expect(normalizeCliDate('2026-03-01', 'from')).toBe('2026-03-01T00:00:00+00:00');
   });
 
-  it('expands short date to end-of-day for "to"', () => {
-    expect(normalizeCliDate('2026-03-01', 'to')).toBe('2026-03-01T23:59:59+00:00');
+  it('expands short date to end-of-day with milliseconds for "to"', () => {
+    expect(normalizeCliDate('2026-03-01', 'to')).toBe('2026-03-01T23:59:59.999+00:00');
   });
 
   it('passes through full ISO-8601 datetime unchanged', () => {
@@ -24,5 +24,13 @@ describe('normalizeCliDate', () => {
   it('passes through ISO-8601 with Z suffix unchanged', () => {
     const withZ = '2026-03-01T00:00:00Z';
     expect(normalizeCliDate(withZ, 'from')).toBe(withZ);
+  });
+
+  it('throws on invalid date like 2024-13-45', () => {
+    expect(() => normalizeCliDate('2024-13-45', 'from')).toThrow('Invalid date');
+  });
+
+  it('throws on invalid date like 2024-00-15', () => {
+    expect(() => normalizeCliDate('2024-00-15', 'from')).toThrow('Invalid date');
   });
 });
