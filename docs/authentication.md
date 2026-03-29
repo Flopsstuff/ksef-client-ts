@@ -151,7 +151,7 @@ The CLI supports a **two-phase external signing flow**: it generates the unsigne
 ksef auth login-external --generate --nip 1234567890 --env prod --output unsigned.xml
 
 # Phase 2: Sign the XML externally, then submit
-#   Option A: Profil Zaufany — https://www.gov.pl/web/gov/podpisz-dokument-elektronicznie-wykorzystaj-podpis-zaufany
+#   Option A: Profil Zaufany — https://podpis.gov.pl/podpisz-dokument-elektronicznie/
 #             upload unsigned.xml, sign, download signed XML
 #   Option B: Cloud signature app (mSzafir, SimplySign, etc.)
 #   Option C: Smart card middleware that outputs signed XML
@@ -201,7 +201,7 @@ Any method that produces a valid XAdES-B enveloped signature over the `AuthToken
 
 | Method | How to sign | Notes |
 |---|---|---|
-| Profil Zaufany | [gov.pl → "Podpisz dokument elektronicznie"](https://www.gov.pl/web/gov/podpisz-dokument-elektronicznie-wykorzystaj-podpis-zaufany) | Free, browser-based, uses PESEL |
+| Profil Zaufany | [podpis.gov.pl → "Podpisz dokument"](https://podpis.gov.pl/podpisz-dokument-elektronicznie/) ([info](https://www.gov.pl/web/gov/podpisz-dokument-elektronicznie-wykorzystaj-podpis-zaufany)) | Free, browser-based, uses PESEL |
 | mSzafir / SimplySign | Cloud signing app or API | Qualified signature, may have API for automation |
 | e-Dowod | National ID card with NFC reader | Requires compatible reader and middleware |
 | Smart card (PKCS#11) | Middleware exports signed XML | Card-specific software needed |
