@@ -175,6 +175,7 @@ describe('validateBusinessRules', () => {
 
 describe('validateBusinessRules – P_1 future date', () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -204,6 +205,35 @@ describe('validateBusinessRules – P_1 future date', () => {
     expect(result.errors[0]!.code).toBe('FUTURE_INVOICE_DATE');
     expect(result.errors[0]!.path).toBe('/Faktura/Fa/P_1');
     expect(result.errors[0]!.message).toContain('2026-06-16');
+  });
+
+  it('uses Poland time, not UTC — late CEST evening (23:30 CEST = 21:30 UTC)', () => {
+    vi.useFakeTimers({ now: new Date('2026-06-15T21:30:00Z') });
+    const result = validateBusinessRules(makeXml('2026-06-15'));
+    expect(result.valid).toBe(true);
+  });
+
+  it('uses Poland time, not UTC — just after CEST midnight (00:30 CEST = 22:30 UTC prev day)', () => {
+    // 2026-06-15T22:30:00Z = 2026-06-16T00:30:00+02:00 (CEST)
+    // Poland date = June 16, UTC date = June 15
+    vi.useFakeTimers({ now: new Date('2026-06-15T22:30:00Z') });
+    const result = validateBusinessRules(makeXml('2026-06-16'));
+    expect(result.valid).toBe(true);
+  });
+
+  it('uses Poland time, not UTC — rejects future date even when UTC is previous day', () => {
+    // 2026-06-15T22:30:00Z = 2026-06-16T00:30:00+02:00 (CEST)
+    vi.useFakeTimers({ now: new Date('2026-06-15T22:30:00Z') });
+    const result = validateBusinessRules(makeXml('2026-06-17'));
+    expect(result.valid).toBe(false);
+    expect(result.errors[0]!.code).toBe('FUTURE_INVOICE_DATE');
+  });
+
+  it('handles CET winter time — just after midnight (00:30 CET = 23:30 UTC prev day)', () => {
+    // 2026-01-15T23:30:00Z = 2026-01-16T00:30:00+01:00 (CET)
+    vi.useFakeTimers({ now: new Date('2026-01-15T23:30:00Z') });
+    const result = validateBusinessRules(makeXml('2026-01-16'));
+    expect(result.valid).toBe(true);
   });
 
   it('does not check DataWytworzeniaFa (not validated by KSeF)', () => {

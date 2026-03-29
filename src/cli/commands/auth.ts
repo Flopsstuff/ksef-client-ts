@@ -2,11 +2,12 @@ import * as fs from 'node:fs';
 import { defineCommand } from 'citty';
 import { consola } from 'consola';
 import { createClient, requireSession } from '../client-factory.js';
-import { saveSession, clearSession, loadSession } from '../session-store.js';
+import { saveSession, clearSession, loadSession, isSessionExpired } from '../session-store.js';
 import { loadConfig, saveConfig } from '../config-store.js';
 import { loadCredentials } from '../credentials-store.js';
 import { savePendingChallenge, clearPendingChallenge } from '../pending-challenge-store.js';
-import { outputResult, outputKeyValue, outputSuccess } from '../output.js';
+import { recoverSession } from '../session-recovery.js';
+import { outputResult, outputKeyValue, outputSuccess, outputWarning } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions, SessionData } from '../types.js';
 import { pollUntil } from '../../workflows/polling.js';
@@ -177,7 +178,32 @@ const whoami = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { session } = await requireSession(globalOpts);
+
+      const existingSession = loadSession();
+      let session: SessionData;
+      let restored = false;
+
+      if (existingSession && !isSessionExpired(existingSession)) {
+        session = existingSession;
+      } else {
+        try {
+          const recovered = await recoverSession(globalOpts);
+          session = recovered.session;
+          restored = true;
+        } catch {
+          if (!existingSession) {
+            outputWarning('No active session. Run `ksef setup` to configure authentication.');
+          } else {
+            outputWarning('Session expired and could not be restored. Run `ksef auth login` or `ksef setup`.');
+          }
+          process.exit(1);
+          return;
+        }
+      }
+
+      if (restored) {
+        consola.info('Session restored from stored credentials.');
+      }
 
       const context = parseKSeFTokenContext(session.accessToken);
       const info: Record<string, unknown> = {
@@ -188,7 +214,7 @@ const whoami = defineCommand({
         ...(context?.type && { tokenType: context.type }),
         sessionRef: session.sessionRef ?? 'N/A',
         expiresAt: session.expiresAt ?? 'N/A',
-        status: 'ACTIVE',
+        status: restored ? 'ACTIVE (restored)' : 'ACTIVE',
         accessToken: session.accessToken.slice(0, 12) + '...',
       };
 

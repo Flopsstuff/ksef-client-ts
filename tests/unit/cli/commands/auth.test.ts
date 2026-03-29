@@ -4,6 +4,7 @@ import * as clientFactory from '../../../../src/cli/client-factory.js';
 import * as configStore from '../../../../src/cli/config-store.js';
 import * as sessionStore from '../../../../src/cli/session-store.js';
 import * as output from '../../../../src/cli/output.js';
+import * as sessionRecovery from '../../../../src/cli/session-recovery.js';
 import { createMockClient, defaultConfig, validSession } from './_helpers.js';
 
 vi.mock('consola', () => ({ consola: { level: 0, info: vi.fn(), warn: vi.fn() } }));
@@ -46,6 +47,10 @@ vi.mock('../../../../src/cli/pending-challenge-store.js', () => ({
   clearPendingChallenge: vi.fn(),
 }));
 
+vi.mock('../../../../src/cli/session-recovery.js', () => ({
+  recoverSession: vi.fn(),
+}));
+
 // Mock node:fs (dynamic import in login cert path)
 vi.mock('node:fs', () => ({
   readFileSync: vi.fn(),
@@ -69,6 +74,7 @@ const mockIsSessionExpired = vi.mocked(sessionStore.isSessionExpired);
 const mockOutputSuccess = vi.mocked(output.outputSuccess);
 const mockOutputWarning = vi.mocked(output.outputWarning);
 const mockOutputKeyValue = vi.mocked(output.outputKeyValue);
+const mockRecoverSession = vi.mocked(sessionRecovery.recoverSession);
 const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
 let mockClient: ReturnType<typeof createMockClient>;
@@ -207,10 +213,13 @@ describe('auth', () => {
       return `${header}.${body}.signature`;
     }
 
-    it('shows truncated token', async () => {
+    it('shows truncated token and ACTIVE status for valid session', async () => {
       await runWhoami();
       expect(mockOutputKeyValue).toHaveBeenCalledWith(
-        expect.objectContaining({ accessToken: expect.stringContaining('...') }),
+        expect.objectContaining({
+          accessToken: expect.stringContaining('...'),
+          status: 'ACTIVE',
+        }),
         expect.anything(),
       );
     });
@@ -223,7 +232,7 @@ describe('auth', () => {
         aum: 'TrustedProfile',
         per: '["InvoiceRead"]',
       });
-      mockRequireSession.mockResolvedValue({ client: mockClient as any, session: { ...validSession, accessToken: jwtToken } });
+      mockLoadSession.mockReturnValue({ ...validSession, accessToken: jwtToken });
       await runWhoami();
       expect(mockOutputKeyValue).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -237,7 +246,7 @@ describe('auth', () => {
     });
 
     it('omits context fields when token is not a JWT', async () => {
-      mockRequireSession.mockResolvedValue({ client: mockClient as any, session: { ...validSession, accessToken: 'not-a-jwt' } });
+      mockLoadSession.mockReturnValue({ ...validSession, accessToken: 'not-a-jwt' });
       await runWhoami();
       const info = mockOutputKeyValue.mock.calls[0]![0] as Record<string, unknown>;
       expect(info).not.toHaveProperty('nip');
@@ -249,7 +258,7 @@ describe('auth', () => {
 
     it('includes full context object in JSON mode', async () => {
       const jwtToken = buildTestJwt({ typ: 'ContextToken', civ: '1234567890' });
-      mockRequireSession.mockResolvedValue({ client: mockClient as any, session: { ...validSession, accessToken: jwtToken } });
+      mockLoadSession.mockReturnValue({ ...validSession, accessToken: jwtToken });
       await runWhoami({ json: true });
       expect(mockOutputKeyValue).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -259,9 +268,51 @@ describe('auth', () => {
       );
     });
 
-    it('no session and no credentials — throws', async () => {
-      mockRequireSession.mockRejectedValue(new Error('No active session and no stored credentials.'));
-      await expect(runWhoami()).rejects.toThrow('No active session');
+    it('restores expired session and shows ACTIVE (restored)', async () => {
+      mockLoadSession.mockReturnValue({ ...validSession });
+      mockIsSessionExpired.mockReturnValue(true);
+      const restoredSession = { ...validSession, accessToken: 'restored-token-123' };
+      mockRecoverSession.mockResolvedValue({ client: mockClient as any, session: restoredSession });
+
+      await runWhoami();
+
+      expect(mockRecoverSession).toHaveBeenCalled();
+      expect(mockOutputKeyValue).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'ACTIVE (restored)' }),
+        expect.anything(),
+      );
+    });
+
+    it('logs info message when session is restored', async () => {
+      const { consola } = await import('consola');
+      mockLoadSession.mockReturnValue({ ...validSession });
+      mockIsSessionExpired.mockReturnValue(true);
+      mockRecoverSession.mockResolvedValue({ client: mockClient as any, session: validSession });
+
+      await runWhoami();
+
+      expect(consola.info).toHaveBeenCalledWith('Session restored from stored credentials.');
+    });
+
+    it('no session — shows warning and exits', async () => {
+      mockLoadSession.mockReturnValue(null);
+      mockRecoverSession.mockRejectedValue(new Error('No stored credentials'));
+
+      await runWhoami();
+
+      expect(mockOutputWarning).toHaveBeenCalledWith(expect.stringContaining('No active session'));
+      expect(mockExit).toHaveBeenCalledWith(1);
+    });
+
+    it('expired session + recovery failure — shows warning and exits', async () => {
+      mockLoadSession.mockReturnValue({ ...validSession });
+      mockIsSessionExpired.mockReturnValue(true);
+      mockRecoverSession.mockRejectedValue(new Error('Auto-login failed'));
+
+      await runWhoami();
+
+      expect(mockOutputWarning).toHaveBeenCalledWith(expect.stringContaining('expired and could not be restored'));
+      expect(mockExit).toHaveBeenCalledWith(1);
     });
   });
 

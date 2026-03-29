@@ -238,6 +238,11 @@ function collectNipPeselErrors(
   }
 }
 
+/** Returns today's date in Poland (Europe/Warsaw) as YYYY-MM-DD. */
+function getPolandLocalDate(): string {
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Warsaw' }).format(Date.now());
+}
+
 /** Check that P_1 (invoice issue date) is not in the future. */
 function collectDateErrors(
   obj: Record<string, unknown>,
@@ -250,8 +255,8 @@ function collectDateErrors(
   const p1 = (fa as Record<string, unknown>)['P_1'];
   if (typeof p1 !== 'string') return;
 
-  // P_1 is YYYY-MM-DD — compare as date-only string against today (UTC)
-  const today = new Date().toISOString().slice(0, 10);
+  // P_1 is YYYY-MM-DD — compare against today in Polish time (Europe/Warsaw)
+  const today = getPolandLocalDate();
   if (p1 > today) {
     const prefix = rootElement ? `/${rootElement}` : '';
     errors.push({
