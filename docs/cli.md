@@ -5,25 +5,34 @@ The `ksef` CLI is a thin wrapper over the `ksef-client-ts` library. Each command
 ## Installation
 
 ```bash
-# Clone and link locally
-git clone https://github.com/Flopsstuff/ksef-client-ts.git
-cd ksef-client-ts
-yarn install && yarn build && yarn link
+npm install -g ksef-client-ts
+```
+
+Or with yarn:
+
+```bash
+yarn global add ksef-client-ts
 ```
 
 ## Quick Start
 
 ```bash
-# 1. Configure NIP (environment defaults to prod)
-ksef config set --nip 1234567890
+# 1. Run the interactive setup wizard
+ksef setup
 
-# 2. Authenticate with a KSeF token
-ksef auth login --token "$KSEF_TOKEN"
-
-# 3. Open a session, send an invoice, close the session
+# 2. Open a session, send an invoice, close the session
 ksef session open
 ksef invoice send invoice.xml
 ksef session close
+```
+
+The setup wizard guides you through environment selection, NIP configuration, and authentication. See [Setup Wizard](/setup-wizard) for details.
+
+For manual configuration:
+
+```bash
+ksef config set --nip 1234567890 --env prod
+ksef auth login --token "$KSEF_TOKEN"
 ```
 
 ## Global Options
