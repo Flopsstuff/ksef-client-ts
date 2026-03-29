@@ -18,7 +18,7 @@ describe('toEnvironmentName', () => {
 describe('DEFAULT_CONFIG', () => {
   it('has expected default values', () => {
     expect(DEFAULT_CONFIG).toEqual({
-      environment: 'test',
+      environment: 'prod',
       output: 'pretty',
       timeout: 30_000,
     });

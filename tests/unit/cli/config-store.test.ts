@@ -41,7 +41,7 @@ describe('loadConfig', () => {
 
     const config = loadConfig();
 
-    expect(config.environment).toBe('test');
+    expect(config.environment).toBe('prod');
     expect(config.output).toBe('pretty');
     expect(config.timeout).toBe(30_000);
     expect(config.nip).toBe('1234567890');
