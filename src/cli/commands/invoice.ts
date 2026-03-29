@@ -94,7 +94,7 @@ const send = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client, session } = await requireSession(globalOpts);
       const config = loadConfig();
       const nip = args.nip ?? config.nip;
       const filePath = args.path;
@@ -280,7 +280,7 @@ const get = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const xml = await client.invoices.getInvoice(args.ksefNumber);
 
@@ -314,7 +314,7 @@ const query = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const filters = buildQueryFilters(args);
       const pageOffset = args.page ? parseInt(args.page as string, 10) : undefined;
@@ -376,7 +376,7 @@ const exportCmd = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       if (!args.json) consola.start('Starting invoice export...');
       await client.crypto.init();
@@ -409,7 +409,7 @@ const exportStatus = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const result = await client.invoices.getInvoiceExportStatus(args.ref);
 

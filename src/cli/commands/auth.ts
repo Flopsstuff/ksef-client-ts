@@ -122,7 +122,7 @@ const status = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client, session } = requireSession(globalOpts);
+      const { client, session } = await requireSession(globalOpts);
       const result = await client.auth.getAuthStatus(args.ref, session.accessToken);
       outputResult(result, { json: args.json });
     });
@@ -176,13 +176,9 @@ const whoami = defineCommand({
   },
   run({ args }) {
     return withErrorHandler(async () => {
-      const session = loadSession();
-      if (!session) {
-        outputWarning('No active session.');
-        process.exit(1);
-      }
+      const globalOpts = getGlobalOpts(args);
+      const { session } = await requireSession(globalOpts);
 
-      const expired = isSessionExpired(session);
       const context = parseKSeFTokenContext(session.accessToken);
       const info: Record<string, unknown> = {
         environment: session.environment,
@@ -192,7 +188,7 @@ const whoami = defineCommand({
         ...(context?.type && { tokenType: context.type }),
         sessionRef: session.sessionRef ?? 'N/A',
         expiresAt: session.expiresAt ?? 'N/A',
-        status: expired ? 'EXPIRED' : 'ACTIVE',
+        status: 'ACTIVE',
         accessToken: session.accessToken.slice(0, 12) + '...',
       };
 
@@ -201,10 +197,6 @@ const whoami = defineCommand({
       }
 
       outputKeyValue(info, { json: args.json });
-
-      if (expired) {
-        process.exit(1);
-      }
     });
   },
 });

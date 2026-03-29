@@ -120,7 +120,7 @@ beforeEach(() => {
 
   mockClient = createMockClient();
   mockCreateClient.mockReturnValue(mockClient as any);
-  mockRequireSession.mockReturnValue({ client: mockClient as any, session: validSession });
+  mockRequireSession.mockResolvedValue({ client: mockClient as any, session: validSession });
   mockLoadConfig.mockReturnValue({ ...defaultConfig });
   mockLoadSession.mockReturnValue(null);
   mockLoadCredentials.mockReturnValue(null);

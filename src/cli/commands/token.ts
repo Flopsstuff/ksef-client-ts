@@ -30,7 +30,7 @@ const generate = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       if (!args.permissions) {
         throw new Error('--permissions is required. Provide comma-separated values (e.g. InvoiceRead,InvoiceWrite).');
@@ -76,7 +76,7 @@ const list = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const options: QueryKsefTokensOptions = {
         continuationToken: args.continue as string | undefined,
@@ -137,7 +137,7 @@ const get = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
       const ref = args.ref as string;
 
       const result = await client.tokens.getToken(ref);
@@ -173,7 +173,7 @@ const revoke = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
       const ref = args.ref as string;
 
       await client.tokens.revokeToken(ref);

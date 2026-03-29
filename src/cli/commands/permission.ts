@@ -56,7 +56,7 @@ const grant = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       let result;
 
@@ -243,7 +243,7 @@ const revoke = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       let result;
 
@@ -280,7 +280,7 @@ const search = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
       const page = args.page ? parseInt(args.page, 10) : undefined;
       const pageSize = args.pageSize ? parseInt(args.pageSize, 10) : undefined;
 
@@ -550,7 +550,7 @@ const status = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const result = await client.permissions.getOperationStatus(args.ref);
 
@@ -578,7 +578,7 @@ const attachmentStatus = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const result = await client.permissions.getAttachmentStatus();
 

@@ -3,6 +3,7 @@ import { KSeFClient } from '../client.js';
 import type { KSeFClientOptions } from '../config/options.js';
 import { loadConfig } from './config-store.js';
 import { loadSession, isSessionExpired } from './session-store.js';
+import { recoverSession } from './session-recovery.js';
 import { toEnvironmentName, type GlobalOptions, type SessionData } from './types.js';
 
 export function createClient(globalOpts: GlobalOptions): KSeFClient {
@@ -21,32 +22,29 @@ export function createClient(globalOpts: GlobalOptions): KSeFClient {
   return new KSeFClient(options);
 }
 
-export function requireSession(globalOpts: GlobalOptions): { client: KSeFClient; session: SessionData } {
+export async function requireSession(globalOpts: GlobalOptions): Promise<{ client: KSeFClient; session: SessionData }> {
   if (globalOpts.verbose) {
     consola.level = 4;
   }
+
+  // Fast path: valid session on disk
   const session = loadSession();
-  if (!session) {
-    throw new Error('No active session. Run `ksef auth login` first.');
-  }
-  if (isSessionExpired(session)) {
-    throw new Error('Session expired. Run `ksef auth login` or `ksef auth refresh`.');
-  }
-  // Use session's environment as fallback (between --env flag and config file)
-  const opts = globalOpts.env ? globalOpts : { ...globalOpts, env: session.environment };
-  const client = createClient(opts);
-
-  // Hydrate AuthManager from stored session
-  client.authManager.setAccessToken(session.accessToken);
-  if (session.refreshToken) {
-    client.authManager.setRefreshToken(session.refreshToken);
+  if (session && !isSessionExpired(session)) {
+    const opts = globalOpts.env ? globalOpts : { ...globalOpts, env: session.environment };
+    const client = createClient(opts);
+    client.authManager.setAccessToken(session.accessToken);
+    if (session.refreshToken) {
+      client.authManager.setRefreshToken(session.refreshToken);
+    }
+    return { client, session };
   }
 
-  return { client, session };
+  // Slow path: attempt recovery (refresh or re-login from credentials)
+  return recoverSession(globalOpts);
 }
 
-export function requireOnlineSession(globalOpts: GlobalOptions): { client: KSeFClient; session: SessionData; onlineSessionRef: string } {
-  const { client, session } = requireSession(globalOpts);
+export async function requireOnlineSession(globalOpts: GlobalOptions): Promise<{ client: KSeFClient; session: SessionData; onlineSessionRef: string }> {
+  const { client, session } = await requireSession(globalOpts);
   if (!session.onlineSessionRef) {
     throw new Error('No active online session. Run `ksef session open` first.');
   }

@@ -66,7 +66,7 @@ let mockClient: ReturnType<typeof createMockClient>;
 beforeEach(() => {
   vi.clearAllMocks();
   mockClient = createMockClient();
-  mockRequireSession.mockReturnValue({ client: mockClient as any, session: { ...validSession, onlineSessionRef: 'online-ref' } });
+  mockRequireSession.mockResolvedValue({ client: mockClient as any, session: { ...validSession, onlineSessionRef: 'online-ref' } });
   mockLoadConfig.mockReturnValue({ ...defaultConfig });
 });
 
@@ -435,7 +435,7 @@ describe('invoice', () => {
     it('throws when no online session ref is available', async () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as any);
-      mockRequireSession.mockReturnValue({
+      mockRequireSession.mockResolvedValue({
         client: mockClient as any,
         session: { ...validSession, onlineSessionRef: undefined },
       });

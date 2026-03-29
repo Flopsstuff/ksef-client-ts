@@ -3,6 +3,7 @@ import { consola } from 'consola';
 import { createClient, requireSession, requireOnlineSession } from '../../../src/cli/client-factory.js';
 import * as configStore from '../../../src/cli/config-store.js';
 import * as sessionStore from '../../../src/cli/session-store.js';
+import * as sessionRecovery from '../../../src/cli/session-recovery.js';
 import type { SessionData } from '../../../src/cli/types.js';
 
 vi.mock('consola', () => ({
@@ -20,9 +21,14 @@ vi.mock('../../../src/cli/session-store.js', () => ({
   isSessionExpired: vi.fn(),
 }));
 
+vi.mock('../../../src/cli/session-recovery.js', () => ({
+  recoverSession: vi.fn(),
+}));
+
 const mockLoadConfig = vi.mocked(configStore.loadConfig);
 const mockLoadSession = vi.mocked(sessionStore.loadSession);
 const mockIsSessionExpired = vi.mocked(sessionStore.isSessionExpired);
+const mockRecoverSession = vi.mocked(sessionRecovery.recoverSession);
 
 const defaultConfig = {
   environment: 'test' as const,
@@ -73,54 +79,71 @@ describe('createClient', () => {
 });
 
 describe('requireSession', () => {
-  it('returns client and session when session is valid', () => {
-    const result = requireSession({});
+  it('returns client and session when session is valid', async () => {
+    const result = await requireSession({});
 
     expect(result.client).toBeDefined();
     expect(result.session).toEqual(validSession);
   });
 
-  it('hydrates access and refresh tokens on the client', () => {
-    const result = requireSession({});
+  it('hydrates access and refresh tokens on the client', async () => {
+    const result = await requireSession({});
 
     expect(result.client.authManager.getAccessToken()).toBe('access-token-123');
   });
 
-  it('throws when no session exists', () => {
+  it('delegates to recoverSession when no session exists', async () => {
     mockLoadSession.mockReturnValue(null);
+    const recovered = { client: createClient({}), session: validSession };
+    mockRecoverSession.mockResolvedValue(recovered);
 
-    expect(() => requireSession({})).toThrow('No active session');
+    const result = await requireSession({});
+
+    expect(mockRecoverSession).toHaveBeenCalledWith({});
+    expect(result).toBe(recovered);
   });
 
-  it('throws when session is expired', () => {
+  it('delegates to recoverSession when session is expired', async () => {
     mockIsSessionExpired.mockReturnValue(true);
+    const recovered = { client: createClient({}), session: validSession };
+    mockRecoverSession.mockResolvedValue(recovered);
 
-    expect(() => requireSession({})).toThrow('Session expired');
+    const result = await requireSession({});
+
+    expect(mockRecoverSession).toHaveBeenCalledWith({});
+    expect(result).toBe(recovered);
   });
 
-  it('uses session environment as fallback when no --env flag', () => {
+  it('propagates recoverSession errors', async () => {
+    mockLoadSession.mockReturnValue(null);
+    mockRecoverSession.mockRejectedValue(new Error('No stored credentials'));
+
+    await expect(requireSession({})).rejects.toThrow('No stored credentials');
+  });
+
+  it('uses session environment as fallback when no --env flag', async () => {
     const prodSession = { ...validSession, environment: 'prod' as const };
     mockLoadSession.mockReturnValue(prodSession);
 
-    const result = requireSession({});
+    const result = await requireSession({});
 
     expect(result.session.environment).toBe('prod');
   });
 });
 
 describe('requireOnlineSession', () => {
-  it('returns onlineSessionRef when present', () => {
+  it('returns onlineSessionRef when present', async () => {
     const sessionWithOnline = { ...validSession, onlineSessionRef: 'online-ref-1' };
     mockLoadSession.mockReturnValue(sessionWithOnline);
 
-    const result = requireOnlineSession({});
+    const result = await requireOnlineSession({});
 
     expect(result.onlineSessionRef).toBe('online-ref-1');
     expect(result.client).toBeDefined();
     expect(result.session).toEqual(sessionWithOnline);
   });
 
-  it('throws when no online session ref', () => {
-    expect(() => requireOnlineSession({})).toThrow('No active online session');
+  it('throws when no online session ref', async () => {
+    await expect(requireOnlineSession({})).rejects.toThrow('No active online session');
   });
 });

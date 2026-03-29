@@ -127,7 +127,7 @@ const enroll = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const certPem = fs.readFileSync(args.cert as string, 'utf-8');
 
@@ -168,7 +168,7 @@ const status = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
       const ref = args.ref as string;
 
       const result = await client.certificates.getEnrollmentStatus(ref);
@@ -209,7 +209,7 @@ const list = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const request: QueryCertificatesRequest = {
         certificateSerialNumber: args.serial as string | undefined,
@@ -275,7 +275,7 @@ const revoke = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
       const serial = args.serial as string;
 
       await client.certificates.revoke(serial, {
@@ -305,7 +305,7 @@ const limits = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const result = await client.certificates.getLimits();
 
@@ -336,7 +336,7 @@ const enrollmentData = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const result = await client.certificates.getEnrollmentData();
 
@@ -371,7 +371,7 @@ const retrieve = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
 
       const serials = (args.serial as string).split(',').map((s) => s.trim()).filter(Boolean);
       if (serials.length === 0) {

@@ -304,5 +304,5 @@ export const setupCommand = defineCommand({
 
 async function getSessionClient(env: string) {
   const { requireSession } = await import('../client-factory.js');
-  return requireSession({ env });
+  return await requireSession({ env });
 }

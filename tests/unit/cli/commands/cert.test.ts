@@ -53,7 +53,7 @@ let mockClient: ReturnType<typeof createMockClient>;
 beforeEach(() => {
   vi.clearAllMocks();
   mockClient = createMockClient();
-  mockRequireSession.mockReturnValue({ client: mockClient as any, session: { ...validSession } });
+  mockRequireSession.mockResolvedValue({ client: mockClient as any, session: { ...validSession } });
   vi.mocked(fs.existsSync).mockReturnValue(false);
   vi.mocked(fs.mkdirSync).mockReturnValue(undefined as any);
 });

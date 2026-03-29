@@ -77,7 +77,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockClient = createMockClient();
   mockCreateClient.mockReturnValue(mockClient as any);
-  mockRequireSession.mockReturnValue({ client: mockClient as any, session: { ...validSession } });
+  mockRequireSession.mockResolvedValue({ client: mockClient as any, session: { ...validSession } });
   mockLoadConfig.mockReturnValue({ ...defaultConfig });
   mockLoadSession.mockReturnValue({ ...validSession });
   mockIsSessionExpired.mockReturnValue(false);
@@ -223,7 +223,7 @@ describe('auth', () => {
         aum: 'TrustedProfile',
         per: '["InvoiceRead"]',
       });
-      mockLoadSession.mockReturnValue({ ...validSession, accessToken: jwtToken });
+      mockRequireSession.mockResolvedValue({ client: mockClient as any, session: { ...validSession, accessToken: jwtToken } });
       await runWhoami();
       expect(mockOutputKeyValue).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -237,7 +237,7 @@ describe('auth', () => {
     });
 
     it('omits context fields when token is not a JWT', async () => {
-      mockLoadSession.mockReturnValue({ ...validSession, accessToken: 'not-a-jwt' });
+      mockRequireSession.mockResolvedValue({ client: mockClient as any, session: { ...validSession, accessToken: 'not-a-jwt' } });
       await runWhoami();
       const info = mockOutputKeyValue.mock.calls[0]![0] as Record<string, unknown>;
       expect(info).not.toHaveProperty('nip');
@@ -249,7 +249,7 @@ describe('auth', () => {
 
     it('includes full context object in JSON mode', async () => {
       const jwtToken = buildTestJwt({ typ: 'ContextToken', civ: '1234567890' });
-      mockLoadSession.mockReturnValue({ ...validSession, accessToken: jwtToken });
+      mockRequireSession.mockResolvedValue({ client: mockClient as any, session: { ...validSession, accessToken: jwtToken } });
       await runWhoami({ json: true });
       expect(mockOutputKeyValue).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -259,18 +259,9 @@ describe('auth', () => {
       );
     });
 
-    it('expired — calls process.exit(1)', async () => {
-      mockIsSessionExpired.mockReturnValue(true);
-      await runWhoami();
-      expect(mockExit).toHaveBeenCalledWith(1);
-    });
-
-    it('no session — outputs warning and exits', async () => {
-      mockLoadSession.mockReturnValue(null);
-      mockExit.mockImplementationOnce(() => { throw new Error('process.exit'); });
-      await expect(runWhoami()).rejects.toThrow('process.exit');
-      expect(mockOutputWarning).toHaveBeenCalledWith('No active session.');
-      expect(mockExit).toHaveBeenCalledWith(1);
+    it('no session and no credentials — throws', async () => {
+      mockRequireSession.mockRejectedValue(new Error('No active session and no stored credentials.'));
+      await expect(runWhoami()).rejects.toThrow('No active session');
     });
   });
 

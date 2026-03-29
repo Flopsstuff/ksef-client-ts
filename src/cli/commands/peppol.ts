@@ -28,7 +28,7 @@ const providers = defineCommand({
   run({ args }) {
     return withErrorHandler(async () => {
       const globalOpts = getGlobalOpts(args);
-      const { client } = requireSession(globalOpts);
+      const { client } = await requireSession(globalOpts);
       const pageOffset = args.page ? parseInt(args.page, 10) : undefined;
       const pageSize = args.pageSize ? parseInt(args.pageSize, 10) : undefined;
 

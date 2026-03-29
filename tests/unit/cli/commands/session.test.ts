@@ -50,7 +50,7 @@ let mockClient: ReturnType<typeof createMockClient>;
 beforeEach(() => {
   vi.clearAllMocks();
   mockClient = createMockClient();
-  mockRequireSession.mockReturnValue({
+  mockRequireSession.mockResolvedValue({
     client: mockClient as any,
     session: { ...validSession, onlineSessionRef: 'online-ref-1' },
   });
@@ -74,7 +74,7 @@ describe('session', () => {
   describe('open', () => {
     it('throws without NIP', async () => {
       mockLoadConfig.mockReturnValue({ ...defaultConfig, nip: undefined });
-      mockRequireSession.mockReturnValue({
+      mockRequireSession.mockResolvedValue({
         client: mockClient as any,
         session: { ...validSession },
       });
@@ -134,7 +134,7 @@ describe('session', () => {
     });
 
     it('throws without ref', async () => {
-      mockRequireSession.mockReturnValue({
+      mockRequireSession.mockResolvedValue({
         client: mockClient as any,
         session: { ...validSession },
       });
@@ -230,7 +230,7 @@ describe('session', () => {
     }
 
     it('throws without session ref', async () => {
-      mockRequireSession.mockReturnValue({
+      mockRequireSession.mockResolvedValue({
         client: mockClient as any,
         session: { ...validSession },
       });
@@ -380,7 +380,7 @@ describe('session', () => {
     }
 
     it('throws without session ref', async () => {
-      mockRequireSession.mockReturnValue({
+      mockRequireSession.mockResolvedValue({
         client: mockClient as any,
         session: { ...validSession },
       });
@@ -468,7 +468,7 @@ describe('session', () => {
     }
 
     it('throws without session ref', async () => {
-      mockRequireSession.mockReturnValue({
+      mockRequireSession.mockResolvedValue({
         client: mockClient as any,
         session: { ...validSession },
       });
@@ -637,7 +637,7 @@ describe('session', () => {
     }
 
     it('throws without session ref', async () => {
-      mockRequireSession.mockReturnValue({
+      mockRequireSession.mockResolvedValue({
         client: mockClient as any,
         session: { ...validSession },
       });
