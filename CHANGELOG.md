@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.5.0] - Unreleased
+## [0.5.0] - 2026-03-29
 
 ### Added
 - **Invoice XML validation** — client-side validation of invoice XML against official KSeF XSD schemas before submission. Three levels: XML well-formedness, Zod schema validation (generated from XSD at build time), and business rules (NIP/PESEL checksums). Auto-detects schema type from XML namespace. Supports all 6 invoice types (FA2, FA3, PEF3, PEF_KOR3, RR v1-0E, RR v1-1E). Available via `ksef invoice validate` CLI command, programmatic `validate()` API, and opt-in `--validate` flag on `ksef invoice send`.

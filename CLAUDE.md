@@ -137,3 +137,4 @@ VitePress site in `docs/` with Scalar API reference. Config: `docs/.vitepress/co
 - When writing CHANGELOG entries, describe the feature's purpose and user-facing impact, NOT implementation details like method names, parameters, or internal references. Keep entries concise.
 - Always run the full test suite (unit + e2e) before committing. Ensure all tests pass before creating commits.
 - When debugging issues, investigate root causes before suggesting surface-level fixes. Don't suggest simple retries or config changes without first checking if the value is hardcoded or the real problem is deeper.
+- Always merge PRs with `--squash`. Merge commits are disabled on this repository.
