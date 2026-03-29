@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - **Advanced E2E scenarios** — RR invoicing (FA-RR agricultural invoice lifecycle), self-invoicing (buyer-seller cross-entity flow with seller verification), enforcement operations, technical corrections, incremental export with HWM, and duplicate invoice detection.
 ### Changed
 - **Default form code switched to FA(3)** — CLI commands, workflows, and E2E tests now default to FA(3), the invoice schema required by KSeF on DEMO and PROD since February 2026. FA(2) remains available via `--form-code FA2` for TEST environment use.
+- **CLI defaults to PROD environment** — `ksef` commands now target the production KSeF API when `--env` is not specified. Use `--env test` or `ksef config set --env test` for development. The library (`KSeFClient`) still defaults to TEST as a safety measure.
 ### Fixed
 - **CLI date format** — `--from` and `--to` date arguments in `invoice query`, `invoice export`, and `invoice export-incremental` are now normalized to full ISO-8601 datetime, fixing HTTP 400 errors when using short `YYYY-MM-DD` format.
 

@@ -14,8 +14,8 @@ yarn install && yarn build && yarn link
 ## Quick Start
 
 ```bash
-# 1. Configure environment and NIP
-ksef config set --env test --nip 1234567890
+# 1. Configure NIP (environment defaults to prod)
+ksef config set --nip 1234567890
 
 # 2. Authenticate with a KSeF token
 ksef auth login --token "$KSEF_TOKEN"
@@ -51,7 +51,7 @@ ksef config show                    # Show current config
 ksef config reset                   # Reset to defaults
 ```
 
-Default values: `environment=test`, `output=pretty`, `timeout=30000`.
+Default values: `environment=prod`, `output=pretty`, `timeout=30000`.
 
 ## Authentication
 
