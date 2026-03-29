@@ -29,6 +29,7 @@ const main = defineCommand({
     description: 'CLI for the Polish National e-Invoice System (KSeF)',
   },
   subCommands: {
+    setup: setupCommand,
     config: configCommand,
     auth: authCommand,
     session: sessionCommand,
@@ -43,7 +44,6 @@ const main = defineCommand({
     'test-data': testDataCommand,
     doctor: doctorCommand,
     completion: completionCommand,
-    setup: setupCommand,
   },
 });
 

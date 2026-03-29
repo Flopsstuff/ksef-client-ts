@@ -233,6 +233,7 @@ const type = SchemaRegistry.detect(
 | `SCHEMA_VALIDATION_ERROR` | 2 | Other schema constraint violation |
 | `INVALID_NIP_CHECKSUM` | 3 | NIP value fails weighted checksum |
 | `INVALID_PESEL_CHECKSUM` | 3 | PESEL value fails weighted checksum |
+| `FUTURE_INVOICE_DATE` | 3 | Invoice date (P_1) is in the future — KSeF rejects such invoices with status 445 |
 
 Each error includes:
 - `code` -- classification from the table above
