@@ -64,9 +64,10 @@ const challenge = await client.auth.getChallenge();
 
 ```bash
 ksef auth login --token "$KSEF_TOKEN" --nip "$KSEF_NIP"
-ksef session open
-ksef invoice send invoice.xml
-ksef session close
+ksef session open              # 1. Open online session (required)
+ksef invoice send invoice.xml  # 2. Send invoice
+ksef session invoices          # 3. Verify invoice status
+ksef session close             # 4. Close session (optional)
 ```
 
 See the [documentation](https://flopsstuff.github.io/ksef-client-ts) for full usage, [API reference](https://flopsstuff.github.io/ksef-client-ts/api-reference), and [CLI reference](https://flopsstuff.github.io/ksef-client-ts/cli).

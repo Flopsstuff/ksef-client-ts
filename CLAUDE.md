@@ -95,6 +95,19 @@ The web portal is used for token generation, permission management, and invoice 
 
 `KSEF_TOKEN` and `KSEF_NIP` are set in the current shell environment. Use them for CLI login: `ksef auth login --token "$KSEF_TOKEN" --nip "$KSEF_NIP" --env prod`.
 
+### Invoice upload flow (CLI)
+
+```bash
+ksef auth login --token "$KSEF_TOKEN" --nip "$KSEF_NIP"
+ksef session open              # 1. Open online session (required before sending)
+ksef invoice send file.xml     # 2. Send invoice
+ksef session invoices          # 3. Verify invoice status (check for errors/duplicates)
+ksef invoice query --from 2026-01-01  # Query invoices by date range
+ksef session close             # 4. Close session (optional)
+```
+
+Invoice number (`P_2` in XML) must be unique — resubmitting gives error 440 (Duplikat faktury).
+
 ### OpenAPI spec
 
 `docs/open-api.json` is the KSeF API OpenAPI specification (source of truth, v2.3.0-te). Per-domain chunks in `docs/openapi-chunks/` (16 files). Regenerate with `yarn split-openapi`. Validate coverage with `yarn check-api`.
