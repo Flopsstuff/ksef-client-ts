@@ -10,11 +10,11 @@ const TDataCzas = z.string();
 const TZnakowy = z.string().min(1).max(256);
 
 const TNaglowek = z.object({
-  "KodFormularza": z.object({ '#text': TKodFormularza, "@kodSystemowy": z.literal("FA (3)"), "@wersjaSchemy": z.literal("1-0E") }),
+  "KodFormularza": z.object({ '#text': TKodFormularza, "@kodSystemowy": z.literal("FA (3)"), "@wersjaSchemy": z.literal("1-0E") }).strict(),
   "WariantFormularza": z.literal("3"),
   "DataWytworzeniaFa": z.string(),
   "SystemInfo": TZnakowy.optional()
-});
+}).strict();
 
 const TKodyKrajowUE = z.enum(["AT", "BE", "BG", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "EL", "HR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "XI"]);
 
@@ -25,7 +25,7 @@ const TZnakowy512 = z.string().min(1).max(512);
 const TPodmiot1 = z.object({
   "NIP": TNrNIP,
   "Nazwa": TZnakowy512
-});
+}).strict();
 
 const TKodKraju = z.enum(["AF", "AX", "AL", "DZ", "AD", "AO", "AI", "AQ", "AG", "AN", "SA", "AR", "AM", "AW", "AU", "AT", "AZ", "BS", "BH", "BD", "BB", "BE", "BZ", "BJ", "BM", "BT", "BY", "BO", "BQ", "BA", "BW", "BR", "BN", "IO", "BG", "BF", "BI", "XC", "CL", "CN", "HR", "CW", "CY", "TD", "ME", "DK", "DM", "DO", "DJ", "EG", "EC", "ER", "EE", "ET", "FK", "FJ", "PH", "FI", "FR", "TF", "GA", "GM", "GH", "GI", "GR", "GD", "GL", "GE", "GU", "GG", "GY", "GF", "GP", "GT", "GN", "GQ", "GW", "HT", "ES", "HN", "HK", "IN", "ID", "IQ", "IR", "IE", "IS", "IL", "JM", "JP", "YE", "JE", "JO", "KY", "KH", "CM", "CA", "QA", "KZ", "KE", "KG", "KI", "CO", "KM", "CG", "CD", "KP", "XK", "CR", "CU", "KW", "LA", "LS", "LB", "LR", "LY", "LI", "LT", "LV", "LU", "MK", "MG", "YT", "MO", "MW", "MV", "MY", "ML", "MT", "MP", "MA", "MQ", "MR", "MU", "MX", "XL", "FM", "UM", "MD", "MC", "MN", "MS", "MZ", "MM", "NA", "NR", "NP", "NL", "DE", "NE", "NG", "NI", "NU", "NF", "NO", "NC", "NZ", "PS", "OM", "PK", "PW", "PA", "PG", "PY", "PE", "PN", "PF", "PL", "GS", "PT", "PR", "CF", "CZ", "KR", "ZA", "RE", "RU", "RO", "RW", "EH", "BL", "KN", "LC", "MF", "VC", "SV", "WS", "AS", "SM", "SN", "RS", "SC", "SL", "SG", "SK", "SI", "SO", "LK", "PM", "US", "SZ", "SD", "SS", "SR", "SJ", "SH", "SY", "CH", "SE", "TJ", "TH", "TW", "TZ", "TG", "TK", "TO", "TT", "TN", "TR", "TM", "TV", "UG", "UA", "UY", "UZ", "VU", "WF", "VA", "HU", "VE", "GB", "VN", "IT", "TL", "CI", "BV", "CX", "IM", "SX", "CK", "VI", "VG", "HM", "CC", "MH", "FO", "SB", "ST", "TC", "ZM", "CV", "ZW", "AE", "XI"]);
 
@@ -36,7 +36,7 @@ const TAdres = z.object({
   "AdresL1": TZnakowy512,
   "AdresL2": TZnakowy512.optional(),
   "GLN": TGLN.optional()
-});
+}).strict();
 
 const TAdresEmail = z.string().min(3).max(255).regex(/^(.)+@(.)+$/);
 
@@ -58,7 +58,7 @@ const TPodmiot2 = z.object({
   "NrID": z.string().min(1).max(50).optional(),
   "BrakID": TWybor1.optional(),
   "Nazwa": TZnakowy512.optional()
-});
+}).strict();
 
 const TZnakowy50 = z.string().min(1).max(50);
 
@@ -75,7 +75,7 @@ const TPodmiot3 = z.object({
   "NrID": z.string().min(1).max(50).optional(),
   "BrakID": TWybor1.optional(),
   "Nazwa": TZnakowy512.optional()
-});
+}).strict();
 
 const TRolaPodmiotu3 = z.enum(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]);
 
@@ -107,7 +107,7 @@ const TKluczWartosc = z.object({
   "NrWiersza": TNaturalny.optional(),
   "Klucz": TZnakowy,
   "Wartosc": TZnakowy
-});
+}).strict();
 
 const TKwotowy2 = z.string().regex(/^-?([1-9]\d{0,13}|0)(\.\d{1,8})?$/);
 
@@ -131,7 +131,7 @@ const TRachunekBankowy = z.object({
   "RachunekWlasnyBanku": TRachunekWlasnyBanku.optional(),
   "NazwaBanku": TZnakowy.optional(),
   "OpisRachunku": TZnakowy.optional()
-});
+}).strict();
 
 const TDataU = z.string();
 
@@ -162,13 +162,13 @@ export const FA3Schema = z.object({
   "AdresL1": TZnakowy512,
   "AdresL2": TZnakowy512.optional(),
   "GLN": TGLN.optional()
-}).optional(),
+}).strict().optional(),
   "DaneKontaktowe": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "Email": TAdresEmail.optional(),
   "Telefon": TNumerTelefonu.optional()
-})).min(0).max(3)).optional(),
+}).strict()).min(0).max(3)).optional(),
   "StatusInfoPodatnika": TStatusInfoPodatnika.optional()
-}),
+}).strict(),
   "Podmiot2": z.object({
   "NrEORI": TZnakowy.optional(),
   "DaneIdentyfikacyjne": TPodmiot2,
@@ -177,12 +177,12 @@ export const FA3Schema = z.object({
   "DaneKontaktowe": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "Email": TAdresEmail.optional(),
   "Telefon": TNumerTelefonu.optional()
-})).min(0).max(3)).optional(),
+}).strict()).min(0).max(3)).optional(),
   "NrKlienta": TZnakowy.optional(),
   "IDNabywcy": z.string().min(1).max(32).optional(),
   "JST": z.enum(["1", "2"]),
   "GV": z.enum(["1", "2"])
-}),
+}).strict(),
   "Podmiot3": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "IDNabywcy": z.string().min(1).max(32).optional(),
   "NrEORI": TZnakowy.optional(),
@@ -192,13 +192,13 @@ export const FA3Schema = z.object({
   "DaneKontaktowe": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "Email": TAdresEmail.optional(),
   "Telefon": TNumerTelefonu.optional()
-})).min(0).max(3)).optional(),
+}).strict()).min(0).max(3)).optional(),
   "Rola": TRolaPodmiotu3.optional(),
   "RolaInna": TWybor1.optional(),
   "OpisRoli": TZnakowy.optional(),
   "Udzial": TProcentowy.optional(),
   "NrKlienta": TZnakowy.optional()
-})).min(0).max(100)).optional(),
+}).strict()).min(0).max(100)).optional(),
   "PodmiotUpowazniony": z.object({
   "NrEORI": TZnakowy.optional(),
   "DaneIdentyfikacyjne": TPodmiot1,
@@ -207,9 +207,9 @@ export const FA3Schema = z.object({
   "DaneKontaktowe": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "EmailPU": TAdresEmail.optional(),
   "TelefonPU": TNumerTelefonu.optional()
-})).min(0).max(3)).optional(),
+}).strict()).min(0).max(3)).optional(),
   "RolaPU": TRolaPodmiotuUpowaznionego
-}).optional(),
+}).strict().optional(),
   "Fa": z.object({
   "KodWaluty": TKodWaluty,
   "P_1": TDataT,
@@ -220,7 +220,7 @@ export const FA3Schema = z.object({
   "OkresFa": z.object({
   "P_6_Od": TDataT,
   "P_6_Do": TDataT
-}).optional(),
+}).strict().optional(),
   "P_13_1": TKwotowy.optional(),
   "P_14_1": TKwotowy.optional(),
   "P_14_1W": TKwotowy.optional(),
@@ -250,7 +250,7 @@ export const FA3Schema = z.object({
   "P_17": TWybor1_2,
   "P_18": TWybor1_2,
   "P_18A": TWybor1_2,
-  "Zwolnienie": z.union([z.object({ "P_19": TWybor1, "P_19A": TZnakowy.optional(), "P_19B": TZnakowy.optional(), "P_19C": TZnakowy.optional() }), z.object({ "P_19N": TWybor1 })]),
+  "Zwolnienie": z.union([z.object({ "P_19": TWybor1, "P_19A": TZnakowy.optional(), "P_19B": TZnakowy.optional(), "P_19C": TZnakowy.optional() }).strict(), z.object({ "P_19N": TWybor1 }).strict()]),
   "NoweSrodkiTransportu": z.union([z.object({ "P_22": TWybor1, "P_42_5": TWybor1_2, "NowySrodekTransportu": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "P_22A": TDataT,
   "P_NrWierszaNST": TNaturalny,
@@ -269,10 +269,10 @@ export const FA3Schema = z.object({
   "P_22C1": TZnakowy.optional(),
   "P_22D": TZnakowy.optional(),
   "P_22D1": TZnakowy.optional()
-})).min(1).max(10000)) }), z.object({ "P_22N": TWybor1 })]),
+}).strict()).min(1).max(10000)) }).strict(), z.object({ "P_22N": TWybor1 }).strict()]),
   "P_23": TWybor1_2,
-  "PMarzy": z.union([z.object({ "P_PMarzy": TWybor1, "P_PMarzy_2": TWybor1.optional(), "P_PMarzy_3_1": TWybor1.optional(), "P_PMarzy_3_2": TWybor1.optional(), "P_PMarzy_3_3": TWybor1.optional() }), z.object({ "P_PMarzyN": TWybor1 })])
-}),
+  "PMarzy": z.union([z.object({ "P_PMarzy": TWybor1, "P_PMarzy_2": TWybor1.optional(), "P_PMarzy_3_1": TWybor1.optional(), "P_PMarzy_3_2": TWybor1.optional(), "P_PMarzy_3_3": TWybor1.optional() }).strict(), z.object({ "P_PMarzyN": TWybor1 }).strict()])
+}).strict(),
   "RodzajFaktury": TRodzajFaktury,
   "PrzyczynaKorekty": TZnakowy.optional(),
   "TypKorekty": TTypKorekty.optional(),
@@ -282,30 +282,30 @@ export const FA3Schema = z.object({
   "NrKSeF": TWybor1.optional(),
   "NrKSeFFaKorygowanej": TNumerKSeF.optional(),
   "NrKSeFN": TWybor1.optional()
-})).min(1).max(50000)).optional(),
+}).strict()).min(1).max(50000)).optional(),
   "OkresFaKorygowanej": TZnakowy.optional(),
   "NrFaKorygowany": TZnakowy.optional(),
   "Podmiot1K": z.object({
   "PrefiksPodatnika": TKodyKrajowUE.optional(),
   "DaneIdentyfikacyjne": TPodmiot1,
   "Adres": TAdres
-}).optional(),
+}).strict().optional(),
   "Podmiot2K": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "DaneIdentyfikacyjne": TPodmiot2,
   "Adres": TAdres.optional(),
   "IDNabywcy": z.string().min(1).max(32).optional()
-})).min(0).max(101)).optional(),
+}).strict()).min(0).max(101)).optional(),
   "P_15ZK": TKwotowy.optional(),
   "KursWalutyZK": TIlosci.optional(),
   "ZaliczkaCzesciowa": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "P_6Z": TDataT,
   "P_15Z": TKwotowy,
   "KursWalutyZW": TIlosci.optional()
-})).min(0).max(31)).optional(),
+}).strict()).min(0).max(31)).optional(),
   "FP": TWybor1.optional(),
   "TP": TWybor1.optional(),
   "DodatkowyOpis": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(TKluczWartosc).min(0).max(10000)).optional(),
-  "FakturaZaliczkowa": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.union([z.object({ "NrKSeFZN": TWybor1, "NrFaZaliczkowej": TZnakowy }), z.object({ "NrKSeFFaZaliczkowej": TNumerKSeF })])).min(0).max(100)).optional(),
+  "FakturaZaliczkowa": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.union([z.object({ "NrKSeFZN": TWybor1, "NrFaZaliczkowej": TZnakowy }).strict(), z.object({ "NrKSeFFaZaliczkowej": TNumerKSeF }).strict()])).min(0).max(100)).optional(),
   "ZwrotAkcyzy": TWybor1.optional(),
   "FaWiersz": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "NrWierszaFa": TNaturalny,
@@ -333,21 +333,21 @@ export const FA3Schema = z.object({
   "Procedura": TOznaczenieProcedury.optional(),
   "KursWaluty": TIlosci.optional(),
   "StanPrzed": TWybor1.optional()
-})).min(0).max(10000)).optional(),
+}).strict()).min(0).max(10000)).optional(),
   "Rozliczenie": z.object({
   "Obciazenia": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "Kwota": TKwotowy,
   "Powod": TZnakowy
-})).min(0).max(100)).optional(),
+}).strict()).min(0).max(100)).optional(),
   "SumaObciazen": TKwotowy.optional(),
   "Odliczenia": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "Kwota": TKwotowy,
   "Powod": TZnakowy
-})).min(0).max(100)).optional(),
+}).strict()).min(0).max(100)).optional(),
   "SumaOdliczen": TKwotowy.optional(),
   "DoZaplaty": TKwotowy.optional(),
   "DoRozliczenia": TKwotowy.optional()
-}).optional(),
+}).strict().optional(),
   "Platnosc": z.object({
   "Zaplacono": TWybor1.optional(),
   "DataZaplaty": TData.optional(),
@@ -358,15 +358,15 @@ export const FA3Schema = z.object({
   "FormaPlatnosci": TFormaPlatnosci.optional(),
   "PlatnoscInna": TWybor1.optional(),
   "OpisPlatnosci": TZnakowy.optional()
-})).min(1).max(100)).optional(),
+}).strict()).min(1).max(100)).optional(),
   "TerminPlatnosci": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "Termin": TData.optional(),
   "TerminOpis": z.object({
   "Ilosc": z.coerce.number().int(),
   "Jednostka": TZnakowy50,
   "ZdarzeniePoczatkowe": TZnakowy
-}).optional()
-})).min(0).max(100)).optional(),
+}).strict().optional()
+}).strict()).min(0).max(100)).optional(),
   "FormaPlatnosci": TFormaPlatnosci.optional(),
   "PlatnoscInna": TWybor1.optional(),
   "OpisPlatnosci": TZnakowy.optional(),
@@ -375,19 +375,19 @@ export const FA3Schema = z.object({
   "Skonto": z.object({
   "WarunkiSkonta": TZnakowy,
   "WysokoscSkonta": TZnakowy
-}).optional(),
+}).strict().optional(),
   "LinkDoPlatnosci": z.string().min(1).max(512).regex(/^(https?):\/\/([a-zA-Z0-9][a-zA-Z0-9-]*\.)+[a-zA-Z]{2,}(:[0-9]{1,5})?(\/[^\s?#]*)?\?([^#\s]*&)?IPKSeF=[0-9]{3}[a-zA-Z0-9]{10}(&[^#\s]*)?(#.*)?$/).optional(),
   "IPKSeF": z.string().min(1).max(13).regex(/^[0-9]{3}[a-zA-Z0-9]{10}$/).optional()
-}).optional(),
+}).strict().optional(),
   "WarunkiTransakcji": z.object({
   "Umowy": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "DataUmowy": TDataU.optional(),
   "NrUmowy": TZnakowy.optional()
-})).min(0).max(100)).optional(),
+}).strict()).min(0).max(100)).optional(),
   "Zamowienia": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "DataZamowienia": TDataU.optional(),
   "NrZamowienia": TZnakowy.optional()
-})).min(0).max(100)).optional(),
+}).strict()).min(0).max(100)).optional(),
   "NrPartiiTowaru": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(TZnakowy).min(0).max(1000)).optional(),
   "WarunkiDostawy": TZnakowy.optional(),
   "KursUmowny": TIlosci.optional(),
@@ -399,7 +399,7 @@ export const FA3Schema = z.object({
   "Przewoznik": z.object({
   "DaneIdentyfikacyjne": TPodmiot2,
   "AdresPrzewoznika": TAdres
-}).optional(),
+}).strict().optional(),
   "NrZleceniaTransportu": TZnakowy.optional(),
   "OpisLadunku": TLadunek.optional(),
   "LadunekInny": TWybor1.optional(),
@@ -410,9 +410,9 @@ export const FA3Schema = z.object({
   "WysylkaZ": TAdres.optional(),
   "WysylkaPrzez": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(TAdres).min(0).max(20)).optional(),
   "WysylkaDo": TAdres.optional()
-})).min(0).max(20)).optional(),
+}).strict()).min(0).max(20)).optional(),
   "PodmiotPosredniczacy": TWybor1.optional()
-}).optional(),
+}).strict().optional(),
   "Zamowienie": z.object({
   "WartoscZamowienia": TKwotowy,
   "ZamowienieWiersz": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
@@ -436,23 +436,23 @@ export const FA3Schema = z.object({
   "ProceduraZ": TOznaczenieProceduryZ.optional(),
   "KwotaAkcyzyZ": TKwotowy.optional(),
   "StanPrzedZ": TWybor1.optional()
-})).min(1).max(10000))
-}).optional()
-}),
+}).strict()).min(1).max(10000))
+}).strict().optional()
+}).strict(),
   "Stopka": z.object({
   "Informacje": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "StopkaFaktury": TTekstowy.optional()
-})).min(0).max(3)).optional(),
+}).strict()).min(0).max(3)).optional(),
   "Rejestry": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "PelnaNazwa": TZnakowy.optional(),
   "KRS": TNrKRS.optional(),
   "REGON": TNrREGON.optional(),
   "BDO": z.string().min(1).max(9).optional()
-})).min(0).max(100)).optional()
-}).optional(),
+}).strict()).min(0).max(100)).optional()
+}).strict().optional(),
   "Zalacznik": z.object({
   "BlokDanych": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.any()).min(1).max(1000))
-}).optional()
-});
+}).strict().optional()
+}).strict();
 
 export type FA3 = z.infer<typeof FA3Schema>;

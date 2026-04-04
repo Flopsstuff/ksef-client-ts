@@ -58,7 +58,7 @@ const InvoiceType = z.object({
   "WithholdingTaxTotal": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.any()).min(0)).optional(),
   "LegalMonetaryTotal": z.any(),
   "InvoiceLine": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.any()).min(1))
-});
+}).strict();
 
 
 export const PEF3Schema = InvoiceType;

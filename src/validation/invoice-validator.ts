@@ -23,6 +23,7 @@ export type InvoiceValidationErrorCode =
   | 'MAX_OCCURS_EXCEEDED'
   | 'UNKNOWN_SCHEMA'
   | 'SCHEMA_VALIDATION_ERROR'
+  | 'UNRECOGNIZED_KEY'
   | 'INVALID_NIP_CHECKSUM'
   | 'INVALID_PESEL_CHECKSUM'
   | 'FUTURE_INVOICE_DATE';
@@ -160,6 +161,8 @@ function mapZodErrorCode(issue: { code?: string; input?: unknown }): InvoiceVali
       return 'PATTERN_MISMATCH';
     case 'too_big':
       return 'MAX_OCCURS_EXCEEDED';
+    case 'unrecognized_keys':
+      return 'UNRECOGNIZED_KEY';
     default:
       return 'SCHEMA_VALIDATION_ERROR';
   }

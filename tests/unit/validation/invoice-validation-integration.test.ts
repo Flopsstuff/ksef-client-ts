@@ -82,6 +82,14 @@ describe('Invalid invoice fixtures', () => {
     expect(result.errors.some(e => e.code === 'INVALID_NIP_CHECKSUM')).toBe(true);
   });
 
+  it('Level 2: rejects unknown element inside FaWiersz (strict mode)', async () => {
+    const xml = readFixture('invalid-unknown-element-in-fawiersz-fa3.xml');
+    const result = await validateSchema(xml);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.code === 'UNRECOGNIZED_KEY')).toBe(true);
+    expect(result.errors.some(e => e.path?.includes('FaWiersz'))).toBe(true);
+  });
+
   it('full pipeline rejects malformed XML early', async () => {
     const xml = readFixture('invalid-malformed.xml');
     const result = await validate(xml);
