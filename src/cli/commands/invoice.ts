@@ -171,11 +171,14 @@ const send = defineCommand({
           throw new Error(`Document type "${formCode.systemCode}" is not supported in batch sessions. PEF/PEF_KOR require online sessions.`);
         }
 
+        // Read all files once — reused for validation, metadata, and batch hash
+        const fileBuffers = xmlFiles.map(file => ({ file, content: fs.readFileSync(file) }));
+
         if (args.validate) {
-          const { validateBatch } = await import('../../validation/invoice-validator.js');
-          const invoicesToValidate = xmlFiles.map(file => ({
+          const { validateBatch, batchValidationDetails } = await import('../../validation/invoice-validator.js');
+          const invoicesToValidate = fileBuffers.map(({ file, content }) => ({
             fileName: path.basename(file),
-            xml: fs.readFileSync(file, 'utf-8'),
+            xml: content.toString('utf-8'),
           }));
           if (!args.json) consola.start(`Validating ${invoicesToValidate.length} invoices...`);
           const batchResult = await validateBatch(invoicesToValidate);
@@ -183,12 +186,7 @@ const send = defineCommand({
             const invalidCount = batchResult.results.filter(r => !r.result.valid).length;
             throw new KSeFValidationError(
               `Validation failed: ${invalidCount} of ${xmlFiles.length} invoices invalid`,
-              batchResult.results
-                .filter(r => !r.result.valid)
-                .flatMap(r => r.result.errors.map(e => ({
-                  field: `${r.fileName}:${e.path ?? ''}`,
-                  message: e.message,
-                }))),
+              batchValidationDetails(batchResult),
             );
           }
           if (!args.json) consola.success(`All ${xmlFiles.length} invoices valid.`);
@@ -198,9 +196,7 @@ const send = defineCommand({
         await client.crypto.init();
         const encryptionData = client.crypto.getEncryptionData();
 
-        // Read all files and compute metadata
-        const parts = xmlFiles.map((file, i) => {
-          const content = fs.readFileSync(file);
+        const parts = fileBuffers.map(({ content }, i) => {
           const metadata = client.crypto.getFileMetadata(new Uint8Array(content));
           return {
             data: content.buffer as ArrayBuffer,
@@ -209,8 +205,7 @@ const send = defineCommand({
           };
         });
 
-        // Compute overall batch file info
-        const totalContent = Buffer.concat(xmlFiles.map((f) => fs.readFileSync(f)));
+        const totalContent = Buffer.concat(fileBuffers.map(({ content }) => content));
         const totalMetadata = client.crypto.getFileMetadata(new Uint8Array(totalContent));
         const batchFileInfo = {
           fileSize: totalMetadata.fileSize,

@@ -322,3 +322,18 @@ export async function validateBatch(
   }
   return { valid: results.every(r => r.result.valid), results };
 }
+
+/**
+ * Build a flat array of `ValidationDetail` from batch results, for use with `KSeFValidationError`.
+ * Prefixes each error's field with the file name for traceability.
+ */
+export function batchValidationDetails(
+  batch: BatchValidationResult,
+): Array<{ field?: string; message: string }> {
+  return batch.results
+    .filter(r => !r.result.valid)
+    .flatMap(r => r.result.errors.map(e => ({
+      field: e.path ? `${r.fileName}:${e.path}` : r.fileName,
+      message: e.message,
+    })));
+}

@@ -29,22 +29,20 @@ export async function uploadBatch(
 
   if (options?.validate) {
     const { unzip } = await import('../utils/zip.js');
-    const { validateBatch } = await import('../validation/invoice-validator.js');
+    const { validateBatch, batchValidationDetails } = await import('../validation/invoice-validator.js');
     const { KSeFValidationError } = await import('../errors/ksef-validation-error.js');
-    const files = await unzip(Buffer.from(zipData));
+    const zipBuf = Buffer.isBuffer(zipData) ? zipData : Buffer.from(zipData.buffer, zipData.byteOffset, zipData.byteLength);
+    const files = await unzip(zipBuf);
     const invoices = [...files.entries()]
       .filter(([name]) => name.endsWith('.xml'))
       .map(([name, data]) => ({ fileName: name, xml: data.toString('utf-8') }));
     if (invoices.length > 0) {
       const result = await validateBatch(invoices);
       if (!result.valid) {
-        const invalid = result.results.filter(r => !r.result.valid);
+        const invalidCount = result.results.filter(r => !r.result.valid).length;
         throw new KSeFValidationError(
-          `Batch validation failed: ${invalid.length} of ${invoices.length} invoices invalid`,
-          invalid.flatMap(r => r.result.errors.map(e => ({
-            field: `${r.fileName}:${e.path ?? ''}`,
-            message: e.message,
-          }))),
+          `Batch validation failed: ${invalidCount} of ${invoices.length} invoices invalid`,
+          batchValidationDetails(result),
         );
       }
     }
