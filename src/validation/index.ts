@@ -16,7 +16,7 @@ export {
 export { xmlToObject, type XmlConversionResult } from './xml-to-object.js';
 export { SchemaRegistry } from './schema-registry.js';
 export {
-  validate, validateWellFormedness, validateSchema, validateBusinessRules,
+  validate, validateBatch, validateWellFormedness, validateSchema, validateBusinessRules,
   type InvoiceValidationResult, type InvoiceValidationError,
-  type InvoiceValidationErrorCode, type ValidateOptions,
+  type InvoiceValidationErrorCode, type ValidateOptions, type BatchValidationResult,
 } from './invoice-validator.js';

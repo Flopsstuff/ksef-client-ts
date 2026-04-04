@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [0.5.2] - Unreleased
 
+### Added
+- **Batch invoice validation** — `--validate` flag now works for directory batch sends in CLI and `validate` option in programmatic `uploadBatch()`. Invalid invoices are caught before upload with per-file error reporting.
+
 ### Fixed
 - **Strict Invoice validation** — unknown XML elements not defined in KSeF schemas now rejected client-side instead of silently passing through to KSeF (error 450).
 

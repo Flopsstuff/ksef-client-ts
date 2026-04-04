@@ -118,7 +118,7 @@ const send = defineCommand({
       if (args.stream) {
         // Stream-based batch upload from a ZIP file
         if (args.validate) {
-          consola.warn('--validate is only supported for single-file sends, skipping validation.');
+          consola.warn('--validate is not supported in stream mode. Run `ksef invoice validate <path>` before sending, or remove --stream.');
         }
 
         if (!filePath.endsWith('.zip') || stat.isDirectory()) {
@@ -155,10 +155,6 @@ const send = defineCommand({
 
       if (stat.isDirectory()) {
         // Batch mode: send all XMLs in directory
-        if (args.validate) {
-          consola.warn('--validate is only supported for single-file sends, skipping validation.');
-        }
-
         const xmlFiles = fs.readdirSync(filePath)
           .filter((f) => f.endsWith('.xml'))
           .map((f) => path.join(filePath, f));
@@ -173,6 +169,29 @@ const send = defineCommand({
 
         if (!validateFormCodeForSession(formCode, 'batch')) {
           throw new Error(`Document type "${formCode.systemCode}" is not supported in batch sessions. PEF/PEF_KOR require online sessions.`);
+        }
+
+        if (args.validate) {
+          const { validateBatch } = await import('../../validation/invoice-validator.js');
+          const invoicesToValidate = xmlFiles.map(file => ({
+            fileName: path.basename(file),
+            xml: fs.readFileSync(file, 'utf-8'),
+          }));
+          if (!args.json) consola.start(`Validating ${invoicesToValidate.length} invoices...`);
+          const batchResult = await validateBatch(invoicesToValidate);
+          if (!batchResult.valid) {
+            const invalidCount = batchResult.results.filter(r => !r.result.valid).length;
+            throw new KSeFValidationError(
+              `Validation failed: ${invalidCount} of ${xmlFiles.length} invoices invalid`,
+              batchResult.results
+                .filter(r => !r.result.valid)
+                .flatMap(r => r.result.errors.map(e => ({
+                  field: `${r.fileName}:${e.path ?? ''}`,
+                  message: e.message,
+                }))),
+            );
+          }
+          if (!args.json) consola.success(`All ${xmlFiles.length} invoices valid.`);
         }
 
         if (!args.json) consola.start(`Sending ${xmlFiles.length} invoices via batch session...`);

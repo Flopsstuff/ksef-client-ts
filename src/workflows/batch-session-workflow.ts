@@ -16,6 +16,8 @@ export interface BatchUploadOptions {
   maxPartSize?: number;
   /** Pass-through to KSeF API. */
   offlineMode?: boolean;
+  /** Validate each invoice XML in the ZIP before uploading. */
+  validate?: boolean;
 }
 
 export async function uploadBatch(
@@ -24,6 +26,30 @@ export async function uploadBatch(
   options?: BatchUploadOptions,
 ): Promise<BatchUploadResult> {
   await client.crypto.init();
+
+  if (options?.validate) {
+    const { unzip } = await import('../utils/zip.js');
+    const { validateBatch } = await import('../validation/invoice-validator.js');
+    const { KSeFValidationError } = await import('../errors/ksef-validation-error.js');
+    const files = await unzip(Buffer.from(zipData));
+    const invoices = [...files.entries()]
+      .filter(([name]) => name.endsWith('.xml'))
+      .map(([name, data]) => ({ fileName: name, xml: data.toString('utf-8') }));
+    if (invoices.length > 0) {
+      const result = await validateBatch(invoices);
+      if (!result.valid) {
+        const invalid = result.results.filter(r => !r.result.valid);
+        throw new KSeFValidationError(
+          `Batch validation failed: ${invalid.length} of ${invoices.length} invoices invalid`,
+          invalid.flatMap(r => r.result.errors.map(e => ({
+            field: `${r.fileName}:${e.path ?? ''}`,
+            message: e.message,
+          }))),
+        );
+      }
+    }
+  }
+
   const encData = client.crypto.getEncryptionData();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
 

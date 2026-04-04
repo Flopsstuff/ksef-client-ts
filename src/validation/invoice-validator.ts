@@ -300,3 +300,25 @@ export async function validate(
   // Carry forward schema type from L2 (immutable — don't mutate l3)
   return { ...l3, schemaType: l2.schemaType };
 }
+
+// ─── Batch validation ──────────────────────────────────────────────────────
+
+export interface BatchValidationResult {
+  valid: boolean;
+  results: Array<{ fileName: string; result: InvoiceValidationResult }>;
+}
+
+/**
+ * Validate multiple invoices, collecting results for each file.
+ * Sequential execution — first call lazy-loads the Zod schema, subsequent calls use cache.
+ */
+export async function validateBatch(
+  invoices: Array<{ fileName: string; xml: string }>,
+  options?: ValidateOptions,
+): Promise<BatchValidationResult> {
+  const results = [];
+  for (const { fileName, xml } of invoices) {
+    results.push({ fileName, result: await validate(xml, options) });
+  }
+  return { valid: results.every(r => r.result.valid), results };
+}
