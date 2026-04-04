@@ -30,6 +30,14 @@ export async function withErrorHandler(fn: () => Promise<void>): Promise<void> {
       process.exit(1);
     }
 
+    if (error instanceof KSeFValidationError) {
+      consola.error(error.message);
+      for (const detail of error.details) {
+        consola.error(`  ${detail.field ? `[${detail.field}] ` : ''}${detail.message}`);
+      }
+      process.exit(1);
+    }
+
     if (error instanceof KSeFApiError) {
       consola.error(`KSeF API error (HTTP ${error.statusCode}): ${error.message}`);
       if (error.errorResponse?.exception?.exceptionDetailList) {
@@ -41,14 +49,6 @@ export async function withErrorHandler(fn: () => Promise<void>): Promise<void> {
         consola.info('Hint: Run `ksef auth login` to authenticate.');
       } else if (error.statusCode === 404) {
         consola.info('Hint: Check if the resource reference is correct.');
-      }
-      process.exit(1);
-    }
-
-    if (error instanceof KSeFValidationError) {
-      consola.error(error.message);
-      for (const detail of error.details) {
-        consola.error(`  ${detail.field ? `[${detail.field}] ` : ''}${detail.message}`);
       }
       process.exit(1);
     }

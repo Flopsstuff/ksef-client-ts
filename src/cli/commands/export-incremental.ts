@@ -73,7 +73,7 @@ export const exportIncremental = defineCommand({
         windowTo: to,
         continuationPoints,
         maxIterations,
-        onlyMetadata: args.onlyMetadata as boolean | undefined,
+        onlyMetadata: args.onlyMetadata,
         store,
         pollOptions: { intervalMs: 2000 },
         onIterationComplete: (iteration, iterResult) => {
