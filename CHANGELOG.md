@@ -4,11 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [0.5.2] - Unreleased
 
-### Added
-
-### Changed
-
 ### Fixed
+- **Strict Invoice validation** — unknown XML elements not defined in KSeF schemas now rejected client-side instead of silently passing through to KSeF (error 450).
 
 ## [0.5.1] - 2026-03-30
 

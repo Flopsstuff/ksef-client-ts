@@ -370,6 +370,7 @@ const exportCmd = defineCommand({
   meta: { name: 'export', description: 'Start invoice export' },
   args: {
     ...QUERY_FILTER_ARGS,
+    onlyMetadata: { type: 'boolean', description: 'Export metadata only (no invoice XML)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -387,7 +388,7 @@ const exportCmd = defineCommand({
       const filters = buildQueryFilters(args);
 
       const result = await client.invoices.exportInvoices(
-        { encryption: encryptionData.encryptionInfo, filters },
+        { encryption: encryptionData.encryptionInfo, filters, onlyMetadata: args.onlyMetadata },
       );
 
       if (args.json) {
