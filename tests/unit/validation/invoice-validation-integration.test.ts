@@ -58,6 +58,84 @@ describe('FA(3) invoice validation', () => {
   });
 });
 
+describe('FA(2) invoice validation', () => {
+  const xml = readFixture('valid-fa2.xml');
+
+  it('passes well-formedness check', () => {
+    const result = validateWellFormedness(xml);
+    expect(result.valid).toBe(true);
+    expect(result.schemaType).toBe('FA2');
+  });
+
+  it('auto-detects FA2 schema from namespace', () => {
+    const result = validateWellFormedness(xml);
+    expect(result.schemaType).toBe('FA2');
+  });
+
+  it('passes schema validation', async () => {
+    const result = await validateSchema(xml);
+    expect(result.schemaType).toBe('FA2');
+    if (!result.valid) {
+      console.log('Schema errors:', JSON.stringify(result.errors, null, 2));
+    }
+    expect(result.valid).toBe(true);
+  });
+
+  it('passes business rules (valid NIPs)', () => {
+    const result = validateBusinessRules(xml);
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  it('passes full combined validation', async () => {
+    const result = await validate(xml);
+    if (!result.valid) {
+      console.log('Validation errors:', JSON.stringify(result.errors, null, 2));
+    }
+    expect(result.valid).toBe(true);
+    expect(result.schemaType).toBe('FA2');
+  });
+});
+
+describe('FA_RR(1) invoice validation', () => {
+  const xml = readFixture('valid-rr1.xml');
+
+  it('passes well-formedness check', () => {
+    const result = validateWellFormedness(xml);
+    expect(result.valid).toBe(true);
+    expect(result.schemaType).toBe('RR1_V11E');
+  });
+
+  it('auto-detects RR1_V11E schema from namespace', () => {
+    const result = validateWellFormedness(xml);
+    expect(result.schemaType).toBe('RR1_V11E');
+  });
+
+  it('passes schema validation', async () => {
+    const result = await validateSchema(xml);
+    expect(result.schemaType).toBe('RR1_V11E');
+    if (!result.valid) {
+      console.log('Schema errors:', JSON.stringify(result.errors, null, 2));
+    }
+    expect(result.valid).toBe(true);
+  });
+
+  it('passes business rules (valid NIPs)', () => {
+    const result = validateBusinessRules(xml);
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  it('passes full combined validation', async () => {
+    const result = await validate(xml);
+    if (!result.valid) {
+      console.log('Validation errors:', JSON.stringify(result.errors, null, 2));
+    }
+    expect(result.valid).toBe(true);
+    expect(result.schemaType).toBe('RR1_V11E');
+  });
+});
+
 describe('Invalid invoice fixtures', () => {
   it('Level 1: detects malformed XML', () => {
     const xml = readFixture('invalid-malformed.xml');
