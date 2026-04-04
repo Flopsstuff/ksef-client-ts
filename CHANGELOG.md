@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.2] - Unreleased
+
+### Added
+- **Batch invoice validation** — `--validate` flag now works for directory batch sends in CLI and `validate` option in programmatic `uploadBatch()`. Invalid invoices are caught before upload with per-file error reporting.
+- **OnlyMetadata export** — `--onlyMetadata` flag for `invoice export` and `invoice export-incremental` CLI commands to download metadata without invoice XML files.
+- **`SCHEMA_TYPES` runtime array** — exported list of all valid schema type identifiers for runtime use.
+
+### Fixed
+- **Strict Invoice validation** — unknown XML elements not defined in KSeF schemas now rejected client-side instead of silently passing through to KSeF (error 450).
+
 ## [0.5.1] - 2026-03-30
 
 ### Added

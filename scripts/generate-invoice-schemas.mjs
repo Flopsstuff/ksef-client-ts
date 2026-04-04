@@ -775,7 +775,7 @@ class ZodEmitter {
         for (const attr of typeDef.attributes) {
           props.push(this.generateAttributeProp(attr));
         }
-        return `z.object({ ${props.join(', ')} })`;
+        return `z.object({ ${props.join(', ')} }).strict()`;
       }
       return baseSchema;
     }
@@ -813,10 +813,10 @@ class ZodEmitter {
 
     const allProps = [...baseProps, ...ownProps];
     if (allProps.length === 0) {
-      return 'z.object({})';
+      return 'z.object({}).strict()';
     }
 
-    return `z.object({\n${allProps.map(p => '  ' + p).join(',\n')}\n})`;
+    return `z.object({\n${allProps.map(p => '  ' + p).join(',\n')}\n}).strict()`;
   }
 
   generateContentElements(content) {
@@ -855,15 +855,15 @@ class ZodEmitter {
         // Nested sequence within choice
         if (elem.inlineType && elem.inlineType.content) {
           const seqProps = this.generateContentElements(elem.inlineType.content);
-          branches.push(`z.object({ ${[...baseProps, ...attrProps, ...seqProps].join(', ')} })`);
+          branches.push(`z.object({ ${[...baseProps, ...attrProps, ...seqProps].join(', ')} }).strict()`);
         }
       } else {
         const prop = this.generateElementProp(elem, false);
-        branches.push(`z.object({ ${[...baseProps, ...attrProps, prop].join(', ')} })`);
+        branches.push(`z.object({ ${[...baseProps, ...attrProps, prop].join(', ')} }).strict()`);
       }
     }
 
-    if (branches.length === 0) return 'z.object({})';
+    if (branches.length === 0) return 'z.object({}).strict()';
     if (branches.length === 1) return branches[0];
 
     const isOptional = content.minOccurs === '0';
@@ -1129,6 +1129,9 @@ function generateIndex(namespaces) {
   lines.push('');
   lines.push('/** Schema type identifiers */');
   lines.push(`export type SchemaType = ${SCHEMA_DEFS.map(d => `'${d.id}'`).join(' | ')};`);
+  lines.push('');
+  lines.push('/** All valid schema type values as a runtime array. */');
+  lines.push(`export const SCHEMA_TYPES: readonly SchemaType[] = [${SCHEMA_DEFS.map(d => `'${d.id}'`).join(', ')}] as const;`);
   lines.push('');
 
   // Namespace map for auto-detection — only include unique namespaces

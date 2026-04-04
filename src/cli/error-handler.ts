@@ -3,6 +3,7 @@ import { KSeFRateLimitError } from '../errors/ksef-rate-limit-error.js';
 import { KSeFUnauthorizedError } from '../errors/ksef-unauthorized-error.js';
 import { KSeFForbiddenError } from '../errors/ksef-forbidden-error.js';
 import { KSeFApiError } from '../errors/ksef-api-error.js';
+import { KSeFValidationError } from '../errors/ksef-validation-error.js';
 
 export async function withErrorHandler(fn: () => Promise<void>): Promise<void> {
   try {
@@ -26,6 +27,14 @@ export async function withErrorHandler(fn: () => Promise<void>): Promise<void> {
       consola.error(`  Reason: ${error.reasonCode}`);
       if (error.traceId) consola.error(`  Trace ID: ${error.traceId}`);
       consola.info('Hint: Check your permissions for this operation.');
+      process.exit(1);
+    }
+
+    if (error instanceof KSeFValidationError) {
+      consola.error(error.message);
+      for (const detail of error.details) {
+        consola.error(`  ${detail.field ? `[${detail.field}] ` : ''}${detail.message}`);
+      }
       process.exit(1);
     }
 

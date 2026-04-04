@@ -31,6 +31,7 @@ export const exportIncremental = defineCommand({
     stateFile: { type: 'string', description: 'HWM state file path (default: ./ksef-hwm-state.json)' },
     outputDir: { type: 'string', description: 'Output directory for exported parts (default: ./ksef-exports/)' },
     maxIterations: { type: 'string', description: 'Max export iterations (default: 20)' },
+    onlyMetadata: { type: 'boolean', description: 'Export metadata only (no invoice XML)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -72,6 +73,7 @@ export const exportIncremental = defineCommand({
         windowTo: to,
         continuationPoints,
         maxIterations,
+        onlyMetadata: args.onlyMetadata,
         store,
         pollOptions: { intervalMs: 2000 },
         onIterationComplete: (iteration, iterResult) => {

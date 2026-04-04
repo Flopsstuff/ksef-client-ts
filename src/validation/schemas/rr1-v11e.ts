@@ -10,11 +10,11 @@ const TDataCzas = z.string();
 const TZnakowy = z.string().min(1).max(256);
 
 const TNaglowek = z.object({
-  "KodFormularza": z.object({ '#text': TKodFormularza, "@kodSystemowy": z.literal("FA_RR (1)"), "@wersjaSchemy": z.literal("1-1E") }),
+  "KodFormularza": z.object({ '#text': TKodFormularza, "@kodSystemowy": z.literal("FA_RR (1)"), "@wersjaSchemy": z.literal("1-1E") }).strict(),
   "WariantFormularza": z.literal("1"),
   "DataWytworzeniaFa": z.string(),
   "SystemInfo": TZnakowy.optional()
-});
+}).strict();
 
 const TNrNIP = z.string().regex(/^[1-9]((\d[1-9])|([1-9]\d))\d{7}$/);
 
@@ -23,7 +23,7 @@ const TZnakowy512 = z.string().min(1).max(512);
 const TPodmiot1 = z.object({
   "NIP": TNrNIP,
   "Nazwa": TZnakowy512
-});
+}).strict();
 
 const TKodKraju = z.enum(["AF", "AX", "AL", "DZ", "AD", "AO", "AI", "AQ", "AG", "AN", "SA", "AR", "AM", "AW", "AU", "AT", "AZ", "BS", "BH", "BD", "BB", "BE", "BZ", "BJ", "BM", "BT", "BY", "BO", "BQ", "BA", "BW", "BR", "BN", "IO", "BG", "BF", "BI", "XC", "CL", "CN", "HR", "CW", "CY", "TD", "ME", "DK", "DM", "DO", "DJ", "EG", "EC", "ER", "EE", "ET", "FK", "FJ", "PH", "FI", "FR", "TF", "GA", "GM", "GH", "GI", "GR", "GD", "GL", "GE", "GU", "GG", "GY", "GF", "GP", "GT", "GN", "GQ", "GW", "HT", "ES", "HN", "HK", "IN", "ID", "IQ", "IR", "IE", "IS", "IL", "JM", "JP", "YE", "JE", "JO", "KY", "KH", "CM", "CA", "QA", "KZ", "KE", "KG", "KI", "CO", "KM", "CG", "CD", "KP", "XK", "CR", "CU", "KW", "LA", "LS", "LB", "LR", "LY", "LI", "LT", "LV", "LU", "MK", "MG", "YT", "MO", "MW", "MV", "MY", "ML", "MT", "MP", "MA", "MQ", "MR", "MU", "MX", "XL", "FM", "UM", "MD", "MC", "MN", "MS", "MZ", "MM", "NA", "NR", "NP", "NL", "DE", "NE", "NG", "NI", "NU", "NF", "NO", "NC", "NZ", "PS", "OM", "PK", "PW", "PA", "PG", "PY", "PE", "PN", "PF", "PL", "GS", "PT", "PR", "CF", "CZ", "KR", "ZA", "RE", "RU", "RO", "RW", "EH", "BL", "KN", "LC", "MF", "VC", "SV", "WS", "AS", "SM", "SN", "RS", "SC", "SL", "SG", "SK", "SI", "SO", "LK", "PM", "US", "SZ", "SD", "SS", "SR", "SJ", "SH", "SY", "CH", "SE", "TJ", "TH", "TW", "TZ", "TG", "TK", "TO", "TT", "TN", "TR", "TM", "TV", "UG", "UA", "UY", "UZ", "VU", "WF", "VA", "HU", "VE", "GB", "VN", "IT", "TL", "CI", "BV", "CX", "IM", "SX", "CK", "VI", "VG", "HM", "CC", "MH", "FO", "SB", "ST", "TC", "ZM", "CV", "ZW", "AE", "XI"]);
 
@@ -34,7 +34,7 @@ const TAdres = z.object({
   "AdresL1": TZnakowy512,
   "AdresL2": TZnakowy512.optional(),
   "GLN": TGLN.optional()
-});
+}).strict();
 
 const TAdresEmail = z.string().min(3).max(255).regex(/^(.)+@(.)+$/);
 
@@ -53,7 +53,7 @@ const TPodmiot3 = z.object({
   "IDWew": TNIPIdWew.optional(),
   "BrakID": TWybor1.optional(),
   "Nazwa": TZnakowy512
-});
+}).strict();
 
 const TRolaPodmiotu3 = z.enum(["1", "2", "3", "5", "6", "7", "8", "9", "10", "11"]);
 
@@ -77,7 +77,7 @@ const TKluczWartosc = z.object({
   "NrWiersza": TNaturalny.optional(),
   "Klucz": TZnakowy,
   "Wartosc": TZnakowy
-});
+}).strict();
 
 const TZnakowy50 = z.string().min(1).max(50);
 
@@ -100,7 +100,7 @@ const TRachunekBankowy = z.object({
   "SWIFT": SWIFT_Type.optional(),
   "NazwaBanku": TZnakowy.optional(),
   "OpisRachunku": TZnakowy.optional()
-});
+}).strict();
 
 const TTekstowy = z.string().min(1).max(3500);
 
@@ -118,9 +118,9 @@ export const RR1_V11ESchema = z.object({
   "DaneKontaktowe": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "Email": TAdresEmail.optional(),
   "Telefon": TNumerTelefonu.optional()
-})).min(0).max(3)).optional(),
+}).strict()).min(0).max(3)).optional(),
   "NrKontrahenta": TZnakowy.optional()
-}),
+}).strict(),
   "Podmiot2": z.object({
   "DaneIdentyfikacyjne": TPodmiot1,
   "Adres": TAdres,
@@ -128,9 +128,9 @@ export const RR1_V11ESchema = z.object({
   "DaneKontaktowe": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "Email": TAdresEmail.optional(),
   "Telefon": TNumerTelefonu.optional()
-})).min(0).max(3)).optional(),
+}).strict()).min(0).max(3)).optional(),
   "StatusInfoPodatnika": TStatusInfoPodatnika.optional()
-}),
+}).strict(),
   "Podmiot3": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "DaneIdentyfikacyjne": TPodmiot3,
   "Adres": TAdres.optional(),
@@ -138,11 +138,11 @@ export const RR1_V11ESchema = z.object({
   "DaneKontaktowe": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "Email": TAdresEmail.optional(),
   "Telefon": TNumerTelefonu.optional()
-})).min(0).max(3)).optional(),
+}).strict()).min(0).max(3)).optional(),
   "Rola": TRolaPodmiotu3.optional(),
   "RolaInna": TWybor1.optional(),
   "OpisRoli": TZnakowy.optional()
-})).min(0).max(100)).optional(),
+}).strict()).min(0).max(100)).optional(),
   "FakturaRR": z.object({
   "KodWaluty": TKodWaluty,
   "P_1M": TZnakowy.optional(),
@@ -165,20 +165,20 @@ export const RR1_V11ESchema = z.object({
   "NrKSeF": TWybor1.optional(),
   "NrKSeFFaKorygowanej": TNumerKSeF.optional(),
   "NrKSeFN": TWybor1.optional()
-})).min(1).max(50000)).optional(),
+}).strict()).min(1).max(50000)).optional(),
   "NrFaKorygowany": TZnakowy.optional(),
   "Podmiot1K": z.object({
   "DaneIdentyfikacyjne": TPodmiot1,
   "Adres": TAdres
-}).optional(),
+}).strict().optional(),
   "Podmiot2K": z.object({
   "DaneIdentyfikacyjne": TPodmiot1,
   "Adres": TAdres
-}).optional(),
+}).strict().optional(),
   "DokumentZaplaty": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "NrDokumentu": TZnakowy,
   "DataDokumentu": TData.optional()
-})).min(0).max(50)).optional(),
+}).strict()).min(0).max(50)).optional(),
   "DodatkowyOpis": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(TKluczWartosc).min(0).max(10000)).optional(),
   "FakturaRRWiersz": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "NrWierszaFa": TNaturalny,
@@ -198,21 +198,21 @@ export const RR1_V11ESchema = z.object({
   "P_11": TKwotowy,
   "StanPrzed": TWybor1.optional(),
   "KursWaluty": TIlosci.optional()
-})).min(0).max(10000)).optional(),
+}).strict()).min(0).max(10000)).optional(),
   "Rozliczenie": z.object({
   "Obciazenia": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "Kwota": TKwotowy,
   "Powod": TZnakowy
-})).min(0).max(100)).optional(),
+}).strict()).min(0).max(100)).optional(),
   "SumaObciazen": TKwotowy.optional(),
   "Odliczenia": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "Kwota": TKwotowy,
   "Powod": TZnakowy
-})).min(0).max(100)).optional(),
+}).strict()).min(0).max(100)).optional(),
   "SumaOdliczen": TKwotowy.optional(),
   "DoZaplaty": TKwotowy.optional(),
   "DoRozliczenia": TKwotowy.optional()
-}).optional(),
+}).strict().optional(),
   "Platnosc": z.object({
   "FormaPlatnosci": TFormaPlatnosci.optional(),
   "PlatnoscInna": TWybor1.optional(),
@@ -221,19 +221,19 @@ export const RR1_V11ESchema = z.object({
   "RachunekBankowy2": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(TRachunekBankowy).min(0).max(3)).optional(),
   "IPKSeF": z.string().min(1).max(13).regex(/^[0-9]{3}[a-zA-Z0-9]{10}$/).optional(),
   "LinkDoPlatnosci": z.string().min(1).max(512).regex(/^(https?):\/\/([a-zA-Z0-9][a-zA-Z0-9-]*\.)+[a-zA-Z]{2,}(:[0-9]{1,5})?(\/[^\s?#]*)?\?([^#\s]*&)?IPKSeF=[0-9]{3}[a-zA-Z0-9]{10}(&[^#\s]*)?(#.*)?$/).optional()
-}).optional()
-}),
+}).strict().optional()
+}).strict(),
   "Stopka": z.object({
   "Informacje": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "StopkaFaktury": TTekstowy.optional()
-})).min(0).max(3)).optional(),
+}).strict()).min(0).max(3)).optional(),
   "Rejestry": z.preprocess(v => Array.isArray(v) ? v : v == null ? [] : [v], z.array(z.object({
   "PelnaNazwa": TZnakowy.optional(),
   "KRS": TNrKRS.optional(),
   "REGON": TNrREGON.optional(),
   "BDO": z.string().min(1).max(9).optional()
-})).min(0).max(100)).optional()
-}).optional()
-});
+}).strict()).min(0).max(100)).optional()
+}).strict().optional()
+}).strict();
 
 export type RR1_V11E = z.infer<typeof RR1_V11ESchema>;

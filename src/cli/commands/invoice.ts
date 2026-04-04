@@ -118,7 +118,7 @@ const send = defineCommand({
       if (args.stream) {
         // Stream-based batch upload from a ZIP file
         if (args.validate) {
-          consola.warn('--validate is only supported for single-file sends, skipping validation.');
+          consola.warn('--validate is not supported in stream mode. Run `ksef invoice validate <path>` before sending, or remove --stream.');
         }
 
         if (!filePath.endsWith('.zip') || stat.isDirectory()) {
@@ -155,10 +155,6 @@ const send = defineCommand({
 
       if (stat.isDirectory()) {
         // Batch mode: send all XMLs in directory
-        if (args.validate) {
-          consola.warn('--validate is only supported for single-file sends, skipping validation.');
-        }
-
         const xmlFiles = fs.readdirSync(filePath)
           .filter((f) => f.endsWith('.xml'))
           .map((f) => path.join(filePath, f));
@@ -175,13 +171,32 @@ const send = defineCommand({
           throw new Error(`Document type "${formCode.systemCode}" is not supported in batch sessions. PEF/PEF_KOR require online sessions.`);
         }
 
+        // Read all files once — reused for validation, metadata, and batch hash
+        const fileBuffers = xmlFiles.map(file => ({ file, content: fs.readFileSync(file) }));
+
+        if (args.validate) {
+          const { validateBatch, batchValidationDetails } = await import('../../validation/invoice-validator.js');
+          const invoicesToValidate = fileBuffers.map(({ file, content }) => ({
+            fileName: path.basename(file),
+            xml: content.toString('utf-8'),
+          }));
+          if (!args.json) consola.start(`Validating ${invoicesToValidate.length} invoices...`);
+          const batchResult = await validateBatch(invoicesToValidate);
+          if (!batchResult.valid) {
+            const invalidCount = batchResult.results.filter(r => !r.result.valid).length;
+            throw new KSeFValidationError(
+              `Validation failed: ${invalidCount} of ${xmlFiles.length} invoices invalid`,
+              batchValidationDetails(batchResult),
+            );
+          }
+          if (!args.json) consola.success(`All ${xmlFiles.length} invoices valid.`);
+        }
+
         if (!args.json) consola.start(`Sending ${xmlFiles.length} invoices via batch session...`);
         await client.crypto.init();
         const encryptionData = client.crypto.getEncryptionData();
 
-        // Read all files and compute metadata
-        const parts = xmlFiles.map((file, i) => {
-          const content = fs.readFileSync(file);
+        const parts = fileBuffers.map(({ content }, i) => {
           const metadata = client.crypto.getFileMetadata(new Uint8Array(content));
           return {
             data: content.buffer as ArrayBuffer,
@@ -190,8 +205,7 @@ const send = defineCommand({
           };
         });
 
-        // Compute overall batch file info
-        const totalContent = Buffer.concat(xmlFiles.map((f) => fs.readFileSync(f)));
+        const totalContent = Buffer.concat(fileBuffers.map(({ content }) => content));
         const totalMetadata = client.crypto.getFileMetadata(new Uint8Array(totalContent));
         const batchFileInfo = {
           fileSize: totalMetadata.fileSize,
@@ -370,6 +384,7 @@ const exportCmd = defineCommand({
   meta: { name: 'export', description: 'Start invoice export' },
   args: {
     ...QUERY_FILTER_ARGS,
+    onlyMetadata: { type: 'boolean', description: 'Export metadata only (no invoice XML)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -387,7 +402,7 @@ const exportCmd = defineCommand({
       const filters = buildQueryFilters(args);
 
       const result = await client.invoices.exportInvoices(
-        { encryption: encryptionData.encryptionInfo, filters },
+        { encryption: encryptionData.encryptionInfo, filters, onlyMetadata: args.onlyMetadata },
       );
 
       if (args.json) {

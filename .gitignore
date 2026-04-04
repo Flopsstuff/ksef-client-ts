@@ -20,7 +20,7 @@ coverage/
 plans/
 
 # Invoices
-invoices/
+/invoices/
 
 # OpenSpec archive
 openspec/changes/archive/

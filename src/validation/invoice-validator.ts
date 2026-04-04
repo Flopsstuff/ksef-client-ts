@@ -23,6 +23,7 @@ export type InvoiceValidationErrorCode =
   | 'MAX_OCCURS_EXCEEDED'
   | 'UNKNOWN_SCHEMA'
   | 'SCHEMA_VALIDATION_ERROR'
+  | 'UNRECOGNIZED_KEY'
   | 'INVALID_NIP_CHECKSUM'
   | 'INVALID_PESEL_CHECKSUM'
   | 'FUTURE_INVOICE_DATE';
@@ -160,6 +161,8 @@ function mapZodErrorCode(issue: { code?: string; input?: unknown }): InvoiceVali
       return 'PATTERN_MISMATCH';
     case 'too_big':
       return 'MAX_OCCURS_EXCEEDED';
+    case 'unrecognized_keys':
+      return 'UNRECOGNIZED_KEY';
     default:
       return 'SCHEMA_VALIDATION_ERROR';
   }
@@ -296,4 +299,41 @@ export async function validate(
   const l3 = validateBusinessRules(xml, parsed);
   // Carry forward schema type from L2 (immutable — don't mutate l3)
   return { ...l3, schemaType: l2.schemaType };
+}
+
+// ─── Batch validation ──────────────────────────────────────────────────────
+
+export interface BatchValidationResult {
+  valid: boolean;
+  results: Array<{ fileName: string; result: InvoiceValidationResult }>;
+}
+
+/**
+ * Validate multiple invoices, collecting results for each file.
+ * Sequential execution — first call lazy-loads the Zod schema, subsequent calls use cache.
+ */
+export async function validateBatch(
+  invoices: Array<{ fileName: string; xml: string }>,
+  options?: ValidateOptions,
+): Promise<BatchValidationResult> {
+  const results = [];
+  for (const { fileName, xml } of invoices) {
+    results.push({ fileName, result: await validate(xml, options) });
+  }
+  return { valid: results.every(r => r.result.valid), results };
+}
+
+/**
+ * Build a flat array of `ValidationDetail` from batch results, for use with `KSeFValidationError`.
+ * Prefixes each error's field with the file name for traceability.
+ */
+export function batchValidationDetails(
+  batch: BatchValidationResult,
+): Array<{ field?: string; message: string }> {
+  return batch.results
+    .filter(r => !r.result.valid)
+    .flatMap(r => r.result.errors.map(e => ({
+      field: e.path ? `${r.fileName}:${e.path}` : r.fileName,
+      message: e.message,
+    })));
 }

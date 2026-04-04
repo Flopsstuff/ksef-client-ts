@@ -39,11 +39,14 @@
         <FakturaRRWiersz>
             <NrWierszaFa>1</NrWierszaFa>
             <P_5>Ziemniaki</P_5>
-            <P_7>100.00</P_7>
-            <P_8>kg</P_8>
-            <P_9A>5.00</P_9A>
-            <P_10>500.00</P_10>
-            <P_11>7</P_11>
+            <P_6A>Klasa I jadalne</P_6A>
+            <P_6B>100</P_6B>
+            <P_6C>kg</P_6C>
+            <P_7>5.00</P_7>
+            <P_8>500.00</P_8>
+            <P_9>7</P_9>
+            <P_10>35.00</P_10>
+            <P_11>535.00</P_11>
         </FakturaRRWiersz>
     </FakturaRR>
 </FakturaRRStrukt>
