@@ -202,6 +202,55 @@ describe('OfflineInvoiceWorkflow', () => {
       const result = await workflow.submit(client, { storage });
       expect(result.total).toBe(0);
     });
+
+    it('transitions through SUBMITTED before ACCEPTED', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      const inv = await workflow.generate(makeInput(), { storage });
+      const updateSpy = vi.spyOn(storage, 'update');
+
+      const client = mockClient();
+      await workflow.submit(client, { storage });
+
+      const statusUpdates = updateSpy.mock.calls
+        .filter(([id]) => id === inv.id)
+        .map(([, updates]) => (updates as Record<string, unknown>).status)
+        .filter(Boolean);
+
+      expect(statusUpdates).toEqual(['QUEUED', 'SUBMITTED', 'ACCEPTED']);
+    });
+
+    it('transitions through SUBMITTED before REJECTED', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      const inv = await workflow.generate(makeInput(), { storage });
+      const updateSpy = vi.spyOn(storage, 'update');
+
+      const client = mockClient();
+      (client.onlineSession.sendInvoice as ReturnType<typeof vi.fn>)
+        .mockRejectedValue(new Error('KSeF rejected'));
+
+      await workflow.submit(client, { storage });
+
+      const statusUpdates = updateSpy.mock.calls
+        .filter(([id]) => id === inv.id)
+        .map(([, updates]) => (updates as Record<string, unknown>).status)
+        .filter(Boolean);
+
+      expect(statusUpdates).toEqual(['QUEUED', 'SUBMITTED', 'REJECTED']);
+    });
+
+    it('retries invoices stuck in SUBMITTED status', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      const inv = await workflow.generate(makeInput(), { storage });
+      await storage.update(inv.id, { status: 'SUBMITTED', submittedAt: new Date().toISOString() });
+
+      const client = mockClient();
+      const result = await workflow.submit(client, { storage });
+
+      expect(result.total).toBe(1);
+      expect(result.accepted).toBe(1);
+      const updated = await storage.get(inv.id);
+      expect(updated!.status).toBe('ACCEPTED');
+    });
   });
 
   describe('correct', () => {
@@ -229,6 +278,8 @@ describe('OfflineInvoiceWorkflow', () => {
       const correction = await storage.get(result.invoiceId);
       expect(correction).toBeDefined();
       expect(correction!.correctedInvoiceId).toBe(inv.id);
+      expect(correction!.submittedAt).toBeDefined();
+      expect(correction!.acceptedAt).toBeDefined();
     });
 
     it('throws for non-rejected invoice', async () => {

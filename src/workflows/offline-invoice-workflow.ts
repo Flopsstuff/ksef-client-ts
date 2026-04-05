@@ -119,7 +119,7 @@ export class OfflineInvoiceWorkflow {
         if (inv) invoices.push(inv);
       }
     } else {
-      invoices = await storage.list({ status: ['GENERATED', 'QUEUED'] });
+      invoices = await storage.list({ status: ['GENERATED', 'QUEUED', 'SUBMITTED'] });
     }
 
     const result: OfflineBatchResult = {
@@ -176,6 +176,8 @@ export class OfflineInvoiceWorkflow {
           const encrypted = client.crypto.encryptAES256(data, encData.cipherKey, encData.cipherIv);
           const encMeta = client.crypto.getFileMetadata(encrypted);
 
+          await storage.update(inv.id, { status: 'SUBMITTED', submittedAt: new Date().toISOString() });
+
           const resp = await client.onlineSession.sendInvoice(sessionRef, {
             invoiceHash: plainMeta.hashSHA,
             invoiceSize: plainMeta.fileSize,
@@ -185,11 +187,9 @@ export class OfflineInvoiceWorkflow {
             offlineMode: true,
           });
 
-          const now = new Date().toISOString();
           await storage.update(inv.id, {
             status: 'ACCEPTED',
-            submittedAt: now,
-            acceptedAt: now,
+            acceptedAt: new Date().toISOString(),
             ksefReferenceNumber: resp.referenceNumber,
           });
 
@@ -263,6 +263,28 @@ export class OfflineInvoiceWorkflow {
       const encrypted = client.crypto.encryptAES256(data, encData.cipherKey, encData.cipherIv);
       const encMeta = client.crypto.getFileMetadata(encrypted);
 
+      const correctionId = crypto.randomUUID();
+      const submittedAt = new Date().toISOString();
+      const correctionMetadata: OfflineInvoiceMetadata = {
+        id: correctionId,
+        mode: original.mode,
+        reason: original.reason,
+        status: 'SUBMITTED',
+        invoiceNumber: original.invoiceNumber,
+        invoiceDate: original.invoiceDate,
+        invoiceXml: correctedInvoiceXml,
+        sellerNip: original.sellerNip,
+        sellerIdentifier: original.sellerIdentifier,
+        buyerIdentifier: original.buyerIdentifier,
+        kod1Url: original.kod1Url,
+        kod2Url: original.kod2Url,
+        generatedAt: submittedAt,
+        submitBy: original.submitBy,
+        submittedAt,
+        correctedInvoiceId: rejectedInvoiceId,
+      };
+      await storage.save(correctionMetadata);
+
       const resp = await client.onlineSession.sendInvoice(sessionRef, {
         invoiceHash: plainMeta.hashSHA,
         invoiceSize: plainMeta.fileSize,
@@ -273,31 +295,14 @@ export class OfflineInvoiceWorkflow {
         hashOfCorrectedInvoice: originalHash,
       });
 
-      const correctionMetadata: OfflineInvoiceMetadata = {
-        id: crypto.randomUUID(),
-        mode: original.mode,
-        reason: original.reason,
+      await storage.update(correctionId, {
         status: 'ACCEPTED',
-        invoiceNumber: original.invoiceNumber,
-        invoiceDate: original.invoiceDate,
-        invoiceXml: correctedInvoiceXml,
-        sellerNip: original.sellerNip,
-        sellerIdentifier: original.sellerIdentifier,
-        buyerIdentifier: original.buyerIdentifier,
-        kod1Url: original.kod1Url,
-        kod2Url: original.kod2Url,
-        generatedAt: new Date().toISOString(),
-        submitBy: original.submitBy,
-        submittedAt: new Date().toISOString(),
         acceptedAt: new Date().toISOString(),
         ksefReferenceNumber: resp.referenceNumber,
-        correctedInvoiceId: rejectedInvoiceId,
-      };
-
-      await storage.save(correctionMetadata);
+      });
 
       return {
-        invoiceId: correctionMetadata.id,
+        invoiceId: correctionId,
         invoiceNumber: correctionMetadata.invoiceNumber,
         status: 'ACCEPTED',
         ksefReferenceNumber: resp.referenceNumber,
