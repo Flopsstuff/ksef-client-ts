@@ -8,6 +8,7 @@ import type { GlobalOptions } from '../types.js';
 import { FileOfflineInvoiceStorage } from '../../offline/file-storage.js';
 import { QrCodeService } from '../../qr/qrcode-service.js';
 import type { OfflineMode } from '../../offline/types.js';
+import { extractInvoiceFields } from '../../xml/invoice-field-extractor.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -81,10 +82,12 @@ const generate = defineCommand({
 
       const storage = args['no-store'] ? undefined : getStorage(args);
 
+      const { invoiceNumber, invoiceDate } = extractInvoiceFields(invoiceXml);
+
       const metadata = await workflow.generate(
         {
-          invoiceNumber: 'OFFLINE', // placeholder, extracted from XML in production
-          invoiceDate: new Date().toISOString().slice(0, 10),
+          invoiceNumber,
+          invoiceDate,
           invoiceXml,
           sellerNip,
           sellerIdentifier: { type: contextType as 'Nip', value: contextId },

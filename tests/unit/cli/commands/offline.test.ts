@@ -27,7 +27,7 @@ vi.mock('../../../../src/cli/output.js', () => ({
 }));
 vi.mock('node:fs', () => ({
   existsSync: vi.fn().mockReturnValue(true),
-  readFileSync: vi.fn().mockReturnValue('<FA><P_1>2026-04-08</P_1></FA>'),
+  readFileSync: vi.fn().mockReturnValue('<Faktura><Fa><P_1>2026-04-08</P_1><P_2>FV/2026/001</P_2></Fa></Faktura>'),
   writeFileSync: vi.fn(),
   mkdirSync: vi.fn(),
   default: { existsSync: vi.fn(), readFileSync: vi.fn(), writeFileSync: vi.fn(), mkdirSync: vi.fn() },
@@ -101,7 +101,12 @@ describe('offline', () => {
     it('generates offline invoice metadata', async () => {
       await run('generate', { xml: '/invoice.xml', nip: '1234567890' });
       expect(mockWorkflow.generate).toHaveBeenCalledWith(
-        expect.objectContaining({ sellerNip: '1234567890', invoiceXml: '<FA><P_1>2026-04-08</P_1></FA>' }),
+        expect.objectContaining({
+          sellerNip: '1234567890',
+          invoiceNumber: 'FV/2026/001',
+          invoiceDate: '2026-04-08',
+          invoiceXml: '<Faktura><Fa><P_1>2026-04-08</P_1><P_2>FV/2026/001</P_2></Fa></Faktura>',
+        }),
         expect.objectContaining({ mode: 'offline24' }),
       );
       expect(vi.mocked(output.outputKeyValue)).toHaveBeenCalled();
@@ -119,7 +124,7 @@ describe('offline', () => {
 
     it('reads private key when --key provided', async () => {
       vi.mocked(fs.readFileSync)
-        .mockReturnValueOnce('<FA/>' as any)  // XML file
+        .mockReturnValueOnce('<Faktura><Fa><P_1>2026-04-08</P_1><P_2>FV/2026/001</P_2></Fa></Faktura>' as any)  // XML file
         .mockReturnValueOnce('PEM-KEY' as any);  // key file
       await run('generate', { xml: '/invoice.xml', nip: '1234567890', key: '/key.pem', 'cert-serial': '01AA' });
       expect(mockWorkflow.generate).toHaveBeenCalledWith(
@@ -303,7 +308,7 @@ describe('offline', () => {
       await run('correct', { id: 'rej-1', xml: '/corrected.xml' });
       expect(mockWorkflow.correct).toHaveBeenCalledWith(
         mockClient,
-        expect.objectContaining({ rejectedInvoiceId: 'rej-1', correctedInvoiceXml: '<FA><P_1>2026-04-08</P_1></FA>' }),
+        expect.objectContaining({ rejectedInvoiceId: 'rej-1', correctedInvoiceXml: '<Faktura><Fa><P_1>2026-04-08</P_1><P_2>FV/2026/001</P_2></Fa></Faktura>' }),
       );
       expect(vi.mocked(output.outputSuccess)).toHaveBeenCalledWith(expect.stringContaining('ksef-ref-corrected'));
     });
