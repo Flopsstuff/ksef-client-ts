@@ -253,6 +253,8 @@ export class OfflineInvoiceWorkflow {
     return result;
   }
 
+  // TODO(perf): Each correction opens a separate KSeF session.
+  // For batch corrections, consider a correctBatch() sharing one session (like submit()).
   async correct(
     client: KSeFClient,
     options: TechnicalCorrectionOptions,

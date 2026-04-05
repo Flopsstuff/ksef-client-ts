@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
@@ -113,6 +113,43 @@ describe('FileOfflineInvoiceStorage', () => {
     fs.mkdirSync(testDir, { recursive: true });
     fs.writeFileSync(path.join(testDir, `${ID_BAD}.json`), '{broken');
     expect(await storage.get(ID_BAD)).toBeNull();
+  });
+
+  it('get warns on corrupt JSON', async () => {
+    const storage = new FileOfflineInvoiceStorage(testDir);
+    fs.mkdirSync(testDir, { recursive: true });
+    fs.writeFileSync(path.join(testDir, `${ID_BAD}.json`), '{broken');
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await storage.get(ID_BAD);
+    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy.mock.calls[0]![0]).toContain(ID_BAD);
+    warnSpy.mockRestore();
+  });
+
+  it('get does not warn for missing file', async () => {
+    const storage = new FileOfflineInvoiceStorage(testDir);
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await storage.get(ID_MISSING);
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it('list warns about corrupt files', async () => {
+    const storage = new FileOfflineInvoiceStorage(testDir);
+    await storage.save(makeInvoice({ id: ID_GOOD }));
+    fs.writeFileSync(path.join(testDir, `${ID_BAD}.json`), 'not-json');
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const result = await storage.list();
+    expect(result).toHaveLength(1);
+    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy.mock.calls[0]![0]).toContain(ID_BAD);
+    warnSpy.mockRestore();
+  });
+
+  it('does not expand ~username style paths', async () => {
+    const storage = new FileOfflineInvoiceStorage('~nonexistent-user-test/invoices');
+    const result = await storage.list();
+    expect(result).toEqual([]);
   });
 
   it('atomic write creates temp file then renames', async () => {

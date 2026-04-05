@@ -54,6 +54,8 @@ export interface OfflineInvoiceMetadata {
 
   invoiceNumber: string;
   invoiceDate: string;
+  // TODO(perf): invoiceXml stored inline means list() loads all XML into memory.
+  // For large-scale use, consider lazy-loading XML from separate files.
   invoiceXml: string;
   sellerNip: string;
   sellerIdentifier: ContextIdentifier;

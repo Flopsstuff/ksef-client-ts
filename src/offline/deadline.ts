@@ -1,3 +1,13 @@
+/**
+ * Offline invoice deadline calculation.
+ *
+ * All business-day arithmetic uses UTC methods (getUTCDay, setUTCDate).
+ * KSeF deadlines are specified as calendar dates, not wall-clock times,
+ * so UTC produces correct results for date-only calculations regardless
+ * of the caller's timezone. The endOfDay() helper sets 23:59:59.999 UTC
+ * as a conservative cutoff.
+ */
+
 import type { MaintenanceWindow, OfflineMode, OfflineReason } from './types.js';
 
 const FAR_FUTURE = new Date('9999-12-31T23:59:59Z');
@@ -21,6 +31,9 @@ export function nextBusinessDay(from: Date): Date {
 }
 
 export function addBusinessDays(from: Date, days: number): Date {
+  if (!Number.isInteger(days) || days < 0) {
+    throw new Error(`days must be a non-negative integer, got ${days}`);
+  }
   const d = new Date(from);
   let remaining = days;
   while (remaining > 0) {

@@ -6,7 +6,7 @@ import { matchesFilter } from './storage.js';
 import type { OfflineInvoiceFilter, OfflineInvoiceStorage, OfflineInvoiceUpdates } from './storage.js';
 
 function resolveDir(dir: string): string {
-  if (dir.startsWith('~')) {
+  if (dir === '~' || dir.startsWith('~/')) {
     return path.join(os.homedir(), dir.slice(1));
   }
   return dir;
@@ -48,7 +48,11 @@ export class FileOfflineInvoiceStorage implements OfflineInvoiceStorage {
     const file = this.filePath(id);
     try {
       return JSON.parse(await fs.readFile(file, 'utf-8'));
-    } catch {
+    } catch (err: unknown) {
+      if (err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
+        return null;
+      }
+      console.warn(`Warning: Failed to read offline invoice ${id}: ${err instanceof Error ? err.message : String(err)}`);
       return null;
     }
   }
@@ -69,8 +73,8 @@ export class FileOfflineInvoiceStorage implements OfflineInvoiceStorage {
         if (!filter || matchesFilter(data, filter)) {
           results.push(data);
         }
-      } catch {
-        // Skip corrupt JSON files
+      } catch (err: unknown) {
+        console.warn(`Warning: Skipping corrupt offline invoice file ${file}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
     return results;

@@ -46,6 +46,30 @@ describe('InMemoryOfflineInvoiceStorage', () => {
     expect(a).not.toBe(b);
   });
 
+  it('deep-copies nested sellerIdentifier', async () => {
+    await storage.save(makeInvoice({ sellerIdentifier: { type: 'Nip', value: '111' } }));
+    const retrieved = await storage.get('inv-1');
+    retrieved!.sellerIdentifier.value = 'MUTATED';
+    const again = await storage.get('inv-1');
+    expect(again!.sellerIdentifier.value).toBe('111');
+  });
+
+  it('deep-copies nested error object', async () => {
+    await storage.save(makeInvoice({ error: { code: 440, message: 'Duplikat', details: ['a'] } }));
+    const retrieved = await storage.get('inv-1');
+    retrieved!.error!.details!.push('MUTATED');
+    const again = await storage.get('inv-1');
+    expect(again!.error!.details).toEqual(['a']);
+  });
+
+  it('list returns deep copies of nested objects', async () => {
+    await storage.save(makeInvoice({ id: 'a', sellerIdentifier: { type: 'Nip', value: '111' } }));
+    const [first] = await storage.list();
+    first.sellerIdentifier.value = 'MUTATED';
+    const [again] = await storage.list();
+    expect(again.sellerIdentifier.value).toBe('111');
+  });
+
   it('update partial fields', async () => {
     await storage.save(makeInvoice());
     await storage.update('inv-1', { status: 'QUEUED' });

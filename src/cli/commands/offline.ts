@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import { defineCommand } from 'citty';
+import { consola } from 'consola';
 import { createClient, requireSession } from '../client-factory.js';
 import { outputResult, outputTable, outputKeyValue, outputSuccess, outputWarning } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
@@ -110,6 +111,9 @@ const generate = defineCommand({
         const outDir = args['qr-out'] as string;
         fs.mkdirSync(outDir, { recursive: true });
         const format = (args['qr-format'] as string) ?? 'png';
+        if (format !== 'png' && format !== 'svg') {
+          throw new Error(`Invalid --qr-format "${format}". Must be one of: png, svg`);
+        }
         const shortId = metadata.id.slice(0, 8);
 
         if (format === 'svg') {
@@ -259,6 +263,10 @@ const submit = defineCommand({
         ? (args.ids as string).split(',').map(s => s.trim())
         : undefined;
 
+      if (args.all && invoiceIds) {
+        throw new Error('Cannot use --all together with specific invoice IDs. Use one or the other.');
+      }
+
       if (!args.all && !invoiceIds) {
         throw new Error('Specify invoice IDs or use --all to submit all pending invoices.');
       }
@@ -343,6 +351,7 @@ const del = defineCommand({
     ...globalArgs,
     id: { type: 'positional' as const, description: 'Invoice ID to delete' },
     expired: { type: 'boolean' as const, description: 'Delete all expired invoices' },
+    force: { type: 'boolean' as const, description: 'Skip confirmation prompt' },
   },
   run({ args }) {
     return withErrorHandler(async () => {
@@ -350,6 +359,25 @@ const del = defineCommand({
 
       if (args.expired) {
         const expired = await storage.list({ status: 'EXPIRED' });
+        if (expired.length === 0) {
+          outputSuccess('No expired invoices to delete.');
+          return;
+        }
+        if (!args.force) {
+          if (!process.stdin.isTTY) {
+            throw new Error(
+              `${expired.length} expired invoice(s) would be deleted. Use --force to confirm in non-interactive mode.`,
+            );
+          }
+          const confirmed = await consola.prompt(
+            `Delete ${expired.length} expired invoice(s)?`,
+            { type: 'confirm', initial: false },
+          );
+          if (!confirmed) {
+            consola.info('Cancelled.');
+            return;
+          }
+        }
         for (const inv of expired) {
           await storage.delete(inv.id);
         }

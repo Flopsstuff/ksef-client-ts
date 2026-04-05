@@ -335,16 +335,32 @@ describe('offline', () => {
       expect(vi.mocked(output.outputSuccess)).toHaveBeenCalledWith(expect.stringContaining('Deleted'));
     });
 
-    it('deletes all expired invoices', async () => {
+    it('deletes all expired invoices with --force', async () => {
       const expired = [
         { ...mockStorageInvoice, id: 'exp-1', status: 'EXPIRED' as const },
         { ...mockStorageInvoice, id: 'exp-2', status: 'EXPIRED' as const },
       ];
       mockStorageMethods.list.mockResolvedValue(expired);
-      await run('delete', { expired: true });
+      await run('delete', { expired: true, force: true });
       expect(mockStorageMethods.list).toHaveBeenCalledWith({ status: 'EXPIRED' });
       expect(mockStorageMethods.delete).toHaveBeenCalledTimes(2);
       expect(vi.mocked(output.outputSuccess)).toHaveBeenCalledWith('Deleted 2 expired invoice(s).');
+    });
+
+    it('requires --force in non-interactive mode for --expired', async () => {
+      const expired = [
+        { ...mockStorageInvoice, id: 'exp-1', status: 'EXPIRED' as const },
+      ];
+      mockStorageMethods.list.mockResolvedValue(expired);
+      await expect(run('delete', { expired: true }))
+        .rejects.toThrow('Use --force to confirm in non-interactive mode');
+    });
+
+    it('shows message when no expired invoices', async () => {
+      mockStorageMethods.list.mockResolvedValue([]);
+      await run('delete', { expired: true });
+      expect(vi.mocked(output.outputSuccess)).toHaveBeenCalledWith('No expired invoices to delete.');
+      expect(mockStorageMethods.delete).not.toHaveBeenCalled();
     });
 
     it('throws when invoice not found', async () => {

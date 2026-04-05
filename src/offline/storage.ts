@@ -37,24 +37,24 @@ export class InMemoryOfflineInvoiceStorage implements OfflineInvoiceStorage {
   private readonly store = new Map<string, OfflineInvoiceMetadata>();
 
   async save(invoice: OfflineInvoiceMetadata): Promise<void> {
-    this.store.set(invoice.id, { ...invoice });
+    this.store.set(invoice.id, JSON.parse(JSON.stringify(invoice)));
   }
 
   async get(id: string): Promise<OfflineInvoiceMetadata | null> {
     const entry = this.store.get(id);
-    return entry ? { ...entry } : null;
+    return entry ? JSON.parse(JSON.stringify(entry)) : null;
   }
 
   async list(filter?: OfflineInvoiceFilter): Promise<OfflineInvoiceMetadata[]> {
     const all = [...this.store.values()];
-    if (!filter) return all.map(i => ({ ...i }));
-    return all.filter(i => matchesFilter(i, filter)).map(i => ({ ...i }));
+    if (!filter) return all.map(i => JSON.parse(JSON.stringify(i)));
+    return all.filter(i => matchesFilter(i, filter)).map(i => JSON.parse(JSON.stringify(i)));
   }
 
   async update(id: string, updates: OfflineInvoiceUpdates): Promise<void> {
     const existing = this.store.get(id);
     if (!existing) throw new Error(`Offline invoice not found: ${id}`);
-    this.store.set(id, { ...existing, ...updates });
+    this.store.set(id, JSON.parse(JSON.stringify({ ...existing, ...updates })));
   }
 
   async delete(id: string): Promise<void> {

@@ -80,6 +80,21 @@ describe('addBusinessDays', () => {
     const result = addBusinessDays(new Date('2026-04-08T00:00:00Z'), 0);
     expect(result.toISOString().slice(0, 10)).toBe('2026-04-08');
   });
+
+  it('throws on negative days', () => {
+    expect(() => addBusinessDays(new Date('2026-04-08T00:00:00Z'), -1))
+      .toThrow('days must be a non-negative integer, got -1');
+  });
+
+  it('throws on fractional days', () => {
+    expect(() => addBusinessDays(new Date('2026-04-08T00:00:00Z'), 1.5))
+      .toThrow('days must be a non-negative integer, got 1.5');
+  });
+
+  it('throws on NaN', () => {
+    expect(() => addBusinessDays(new Date('2026-04-08T00:00:00Z'), NaN))
+      .toThrow('days must be a non-negative integer, got NaN');
+  });
 });
 
 describe('calculateOfflineDeadline', () => {
