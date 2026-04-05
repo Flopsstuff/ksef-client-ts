@@ -154,6 +154,10 @@ export class OfflineInvoiceWorkflow {
 
     // Open session
     await client.crypto.init();
+    // KSeF provides a single (key, IV) pair per session — all invoices share it.
+    // This is by API design: EncryptionInfo is sent at openSession(), sendInvoice()
+    // does not accept per-invoice encryption. Consistent with all official reference
+    // implementations (Java, C#, TypeScript).
     const encData = client.crypto.getEncryptionData();
     const formCode = options.formCode ?? DEFAULT_FORM_CODE;
 
