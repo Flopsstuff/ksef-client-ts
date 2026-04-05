@@ -21,6 +21,7 @@ import { peppolCommand } from './commands/peppol.js';
 import { doctorCommand } from './commands/doctor.js';
 import { completionCommand } from './commands/completion.js';
 import { setupCommand } from './commands/setup.js';
+import { offlineCommand } from './commands/offline.js';
 
 const main = defineCommand({
   meta: {
@@ -42,6 +43,7 @@ const main = defineCommand({
     limits: limitsCommand,
     peppol: peppolCommand,
     'test-data': testDataCommand,
+    offline: offlineCommand,
     doctor: doctorCommand,
     completion: completionCommand,
   },

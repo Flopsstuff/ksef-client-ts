@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Generate invoice QR code
-The `ksef qr invoice` command SHALL generate a QR code for invoice verification. Required flags: `--nip`, `--date` (issue date, ISO format), `--hash` (invoice hash, base64). The `--format` flag SHALL select `png` (default) or `svg`. The `-o` flag SHALL specify the output file path. The `--size` flag SHALL set QR code width in pixels (default 300). The `--label` flag SHALL add a text label (SVG only).
+The `ksef qr invoice` command SHALL generate a QR code for invoice verification. Required flags: `--nip`, `--date` (issue date, ISO format), `--hash` (invoice hash, base64). The `--format` flag SHALL select `png` (default) or `svg`. The `-o` flag SHALL specify the output file path. The `--size` flag SHALL set QR code width in pixels (default 300). The `--label` flag SHALL add a text label (SVG only). The `--offline` flag SHALL set the label to `"OFFLINE"` when generating SVG with label.
 
 #### Scenario: Generate PNG QR to file
 - **WHEN** user runs `ksef qr invoice --nip 1234567890 --date 2026-01-15 --hash "abc123==" -o invoice-qr.png`
@@ -10,6 +10,14 @@ The `ksef qr invoice` command SHALL generate a QR code for invoice verification.
 #### Scenario: Generate SVG QR with label
 - **WHEN** user runs with `--format svg --label "Faktura 2026/001" -o invoice-qr.svg`
 - **THEN** the CLI SHALL generate SVG with label via `QrCodeService.generateQrCodeSvgWithLabel` and write to the file
+
+#### Scenario: Generate SVG with offline label
+- **WHEN** user runs with `--format svg --offline -o invoice-qr.svg`
+- **THEN** the CLI SHALL generate SVG with label `"OFFLINE"` via `QrCodeService.generateQrCodeSvgWithLabel`
+
+#### Scenario: Offline flag overrides label
+- **WHEN** user runs with `--format svg --offline --label "Custom"` 
+- **THEN** the CLI SHALL use `"OFFLINE"` as the label, ignoring `--label`
 
 #### Scenario: No output file specified
 - **WHEN** user runs without `-o`

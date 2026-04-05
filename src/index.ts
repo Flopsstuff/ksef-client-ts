@@ -10,4 +10,7 @@ export * from './qr/index.js';
 export * from './utils/index.js';
 export * from './workflows/index.js';
 export * from './xml/index.js';
+export * from './offline/index.js';
+export { OfflineInvoiceWorkflow } from './workflows/offline-invoice-workflow.js';
+export type { SubmitOfflineInvoicesOptions, TechnicalCorrectionOptions } from './workflows/offline-invoice-workflow.js';
 export { KSeFClient } from './client.js';

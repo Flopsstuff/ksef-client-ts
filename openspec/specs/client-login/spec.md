@@ -77,3 +77,19 @@ All service methods (except three `AuthService` methods) SHALL NOT accept an `ac
 - **WHEN** `client.auth.refreshAccessToken(refreshToken)` is called
 - **THEN** the request SHALL have the `skipAuthRetry` flag set
 - **AND** SHALL use the explicit `refreshToken` in the `Authorization` header
+
+### Requirement: Offline workflow property on KSeFClient
+`KSeFClient` SHALL expose an `offline` property that returns an `OfflineInvoiceWorkflow` instance. The instance SHALL be lazy-initialized on first access and reused on subsequent accesses. It SHALL receive the client's `VerificationLinkService` (qr) as a dependency.
+
+#### Scenario: Access offline workflow
+- **WHEN** `client.offline` is accessed
+- **THEN** it SHALL return an `OfflineInvoiceWorkflow` instance
+- **AND** the instance SHALL use the client's existing `qr` service
+
+#### Scenario: Lazy initialization
+- **WHEN** `client.offline` is accessed multiple times
+- **THEN** it SHALL return the same instance each time (not create a new one)
+
+#### Scenario: No network call on access
+- **WHEN** `client.offline` is accessed
+- **THEN** no network calls SHALL be made (initialization is local-only)

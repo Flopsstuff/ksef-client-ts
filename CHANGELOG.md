@@ -2,7 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.5.2] - Unreleased
+## [0.6.0] - Unreleased
+
+### Added
+- **Offline invoice mode** — full lifecycle for offline invoices: generate locally with QR KOD I + KOD II codes, store in `~/.ksef/offline/`, track submission deadlines, submit to KSeF when available. Supports all 4 KSeF offline modes (`offline24`, `offline`, `awaryjny`, `awaria_calkowita`) with business day deadline calculation and maintenance window cascading.
+- **Technical correction** — resubmit rejected offline invoices with `hashOfCorrectedInvoice` linking the correction to the original.
+- **CLI `ksef offline`** — 6 subcommands: `generate`, `list`, `status`, `submit`, `correct`, `delete` for managing offline invoices from the terminal.
+- **CLI `ksef qr invoice --offline`** — generates KOD I QR with "OFFLINE" label for SVG output.
+- **Documentation** — new VitePress page: Offline Mode.
+
+## [0.5.2] - 2026-04-05
 
 ### Added
 - **Batch invoice validation** — `--validate` flag now works for directory batch sends in CLI and `validate` option in programmatic `uploadBatch()`. Invalid invoices are caught before upload with per-file error reporting.
