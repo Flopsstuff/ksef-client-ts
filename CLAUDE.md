@@ -33,9 +33,10 @@ Tests live in `tests/**/*.test.ts` (vitest, globals enabled). Unit tests in `tes
 
 ```
 KSeFClient (src/client.ts)
-  ├── 13 API services + crypto + qr (15 properties total)
+  ├── 13 API services + crypto + qr + offline (16 properties total)
   ├── each service wraps RestClient for its API domain
-  └── crypto is lazy-initialized (user calls client.crypto.init())
+  ├── crypto is lazy-initialized (user calls client.crypto.init())
+  └── offline is lazy-initialized (accessed via client.offline)
 
 Services (src/services/*.ts) — 13 services
   └── use RestClient.execute<T>() with RestRequest builders + Routes constants
@@ -60,9 +61,15 @@ QR layer (src/qr/)
   ├── VerificationLinkService — builds invoice/certificate verification URLs
   └── QrCodeService — generates QR codes (PNG, SVG, SVG+label)
 
-CLI (src/cli/) — 14 command groups via commander.js
+Offline layer (src/offline/)
+  ├── types — OfflineMode, OfflineInvoiceStatus, OfflineInvoiceMetadata, OfflineCertificate
+  ├── deadline — calculateOfflineDeadline(), business day helpers, maintenance cascading
+  ├── storage — OfflineInvoiceStorage interface + InMemoryOfflineInvoiceStorage
+  └── file-storage — FileOfflineInvoiceStorage (~/.ksef/offline/)
+
+CLI (src/cli/) — 15 command groups via citty
   ├── auth, session, invoice, permission, token, cert, lighthouse, limits,
-  │   peppol, test-data, qr, config, doctor, completion
+  │   peppol, test-data, qr, config, doctor, completion, offline
   ├── requireSession() — auto-recovers via refresh or re-login from stored credentials
   └── session-recovery — cascade: refresh token → loginWithToken from credentials → error
 ```

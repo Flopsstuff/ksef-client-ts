@@ -297,6 +297,26 @@ ksef qr certificate \
 ksef qr url --nip 1234567890 --date 2025-06-15 --hash "abc...=="
 ```
 
+## Offline Invoices
+
+Generate, store, and submit offline invoices. See [Offline Mode](/offline-mode) for details.
+
+```bash
+ksef offline generate invoice.xml --nip 1234567890       # Generate with KOD I
+ksef offline generate invoice.xml --key key.pem \
+  --cert-serial 01F20A --nip 1234567890                  # Generate with KOD I + KOD II
+ksef offline list                                        # List stored invoices
+ksef offline list --status GENERATED --expiring           # Filter by status/expiry
+ksef offline status <id>                                 # Show invoice details
+ksef offline submit --all                                # Submit all pending to KSeF
+ksef offline submit id1,id2                              # Submit specific invoices
+ksef offline correct <id> corrected.xml                  # Technical correction
+ksef offline delete <id>                                 # Delete from store
+ksef offline delete --expired                            # Delete all expired
+```
+
+All commands support `--store-dir` to override the default `~/.ksef/offline/` directory.
+
 ## Lighthouse (System Status)
 
 No authentication required. Available only in `test` and `prod` environments (DEMO does not have a lighthouse endpoint). Defaults to `prod`.

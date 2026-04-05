@@ -22,8 +22,10 @@ hero:
 features:
   - title: Complete API Coverage
     details: KSeF API v2.3.0 — auth, sessions, invoices, permissions, tokens, certificates, QR codes, and more. All types aligned with the official OpenAPI spec.
+  - title: Offline Invoice Mode
+    details: Full lifecycle for all 4 KSeF offline modes (offline24, offline, awaryjny, awaria_calkowita). Generate invoices locally with QR KOD I + KOD II signing, store in ~/.ksef/offline/, track deadlines with business day calculation, submit when available, and handle technical corrections.
   - title: Full-Featured CLI
-    details: 14 command groups, 60+ subcommands. Auth (token, certificate, external signing), sessions, invoices, batch upload, incremental export, permissions, tokens, certificates, QR codes, health checks, and shell completion.
+    details: 15 command groups, 60+ subcommands. Auth, sessions, invoices, offline, batch upload, incremental export, permissions, tokens, certificates, QR codes, health checks, and shell completion.
   - title: High-Level Workflows
     details: Orchestration functions for auth, online/batch sessions, and invoice export. Handle the full lifecycle — polling, encryption, UPO retrieval — in a single call.
   - title: Built-in Cryptography
@@ -43,7 +45,7 @@ features:
   - title: Typed Errors & Fluent Builders
     details: KSeFError hierarchy with specific classes for 401, 403, 429, and validation errors. Fluent request builders catch mistakes at compile time before they hit the network.
   - title: Comprehensive Test Coverage
-    details: 1200+ Vitest unit and E2E tests across HTTP, crypto, services, workflows, builders, and CLI. CI runs the full suite on every change so regressions are caught early.
+    details: 1400+ Vitest unit and E2E tests across HTTP, crypto, services, workflows, builders, and CLI. CI runs the full suite on every change so regressions are caught early.
   - title: Interactive Setup Wizard
     details: Get started in one command — ksef setup walks you through environment selection, NIP configuration, external signature authentication, and API token generation. Credentials are securely stored in ~/.ksef/credentials.json.
   - title: Zero HTTP Dependencies

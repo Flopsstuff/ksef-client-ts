@@ -21,6 +21,7 @@ import { CertificateFetcher } from './crypto/certificate-fetcher.js';
 import { CryptographyService } from './crypto/cryptography-service.js';
 import { VerificationLinkService } from './qr/verification-link-service.js';
 import { buildUnsignedAuthTokenRequestXml } from './crypto/auth-xml-builder.js';
+import { OfflineInvoiceWorkflow } from './workflows/offline-invoice-workflow.js';
 
 export class KSeFClient {
   readonly auth: AuthService;
@@ -40,6 +41,7 @@ export class KSeFClient {
   readonly qr: VerificationLinkService;
   readonly options: ResolvedOptions;
   readonly authManager: AuthManager;
+  private _offline?: OfflineInvoiceWorkflow;
 
   constructor(options?: KSeFClientOptions) {
     this.options = resolveOptions(options);
@@ -71,6 +73,13 @@ export class KSeFClient {
     this.peppol = new PeppolService(restClient);
     this.testData = new TestDataService(restClient, this.options.environmentName);
     this.qr = new VerificationLinkService(this.options.baseQrUrl);
+  }
+
+  get offline(): OfflineInvoiceWorkflow {
+    if (!this._offline) {
+      this._offline = new OfflineInvoiceWorkflow(this.qr);
+    }
+    return this._offline;
   }
 
   async loginWithToken(token: string, nip: string): Promise<void> {

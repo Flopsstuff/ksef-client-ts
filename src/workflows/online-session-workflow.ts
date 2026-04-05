@@ -24,6 +24,7 @@ export async function openOnlineSession(
   options?: OpenOnlineSessionOptions,
 ): Promise<OnlineSessionHandle> {
   await client.crypto.init();
+  // KSeF provides a single (key, IV) pair per session — all invoices share it.
   const encData = client.crypto.getEncryptionData();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
 

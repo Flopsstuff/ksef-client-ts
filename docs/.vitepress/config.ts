@@ -66,6 +66,7 @@ export default defineConfig({
           { text: 'HTTP Resilience', link: '/http-resilience' },
           { text: 'Cryptography', link: '/cryptography' },
           { text: 'QR Codes', link: '/qr-codes' },
+          { text: 'Offline Mode', link: '/offline-mode' },
           { text: 'Validation', link: '/validation' },
           { text: 'Error Handling', link: '/error-handling' },
           { text: 'External Signing', link: '/external-signing' },

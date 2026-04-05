@@ -32,6 +32,7 @@ All source files are in `src/workflows/`:
 | `incremental-export-workflow.ts` | Incremental export with high-water mark (HWM) tracking |
 | `hwm-coordinator.ts` | Continuation point logic for incremental export |
 | `hwm-storage.ts` | `HwmStore` interface + `InMemoryHwmStore` / `FileHwmStore` |
+| `offline-invoice-workflow.ts` | Offline invoice lifecycle: generate, submit, technical correction |
 | `index.ts` | Barrel re-exports for all workflows, types, and HWM utilities |
 
 Supporting files outside `src/workflows/`:
@@ -683,6 +684,14 @@ Need to send invoices?
         • Auto-split into ≤100 MB encrypted parts
         • Single upload session, UPO after processing
         • Good for bulk/scheduled imports
+
+KSeF unavailable or issuing offline?
+  │
+  └── client.offline → OfflineInvoiceWorkflow
+        • Generate invoices locally with QR KOD I + KOD II
+        • Store in ~/.ksef/offline/, track deadlines
+        • Submit when KSeF comes back online
+        • See Offline Mode docs for details
 
 Need to download invoices?
   │

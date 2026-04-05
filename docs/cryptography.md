@@ -185,7 +185,7 @@ AES-CBC requires the plaintext to be a multiple of 16 bytes. Node.js `createCiph
 
 ### Session key reuse
 
-A single (key, IV) pair is generated once per session (online or batch) and reused for all invoices in that session. This is by design in the KSeF protocol: the wrapped key is sent during session open, and all subsequent invoice data is encrypted with the same key.
+A single (key, IV) pair is generated once per session (online, batch, or offline submit) and reused for all invoices in that session. This is by design in the KSeF protocol: `EncryptionInfo` (RSA-wrapped key + IV) is sent once at `openSession()`, and `sendInvoice()` does not accept per-invoice encryption parameters. All official reference implementations (Java, C#, TypeScript) follow the same pattern. The KSeF documentation explicitly recommends generating a new key *per session* (*"Rekomendowane jest użycie nowo wygenerowanego klucza dla każdej sesji"*).
 
 ```
 openOnlineSession()

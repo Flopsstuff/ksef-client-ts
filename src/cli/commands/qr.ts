@@ -25,6 +25,7 @@ const invoice = defineCommand({
     format: { type: 'string', description: 'Output format: png or svg (default: png)' },
     size: { type: 'string', description: 'QR code size in pixels (default: 300)' },
     label: { type: 'string', description: 'Label text (SVG only)' },
+    offline: { type: 'boolean', description: 'Use "OFFLINE" as label (SVG, overrides --label)' },
     o: { type: 'string', description: 'Output file path' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
@@ -47,8 +48,9 @@ const invoice = defineCommand({
       }
 
       if (format === 'svg') {
-        const svg = args.label
-          ? await QrCodeService.generateQrCodeSvgWithLabel(url, args.label, { width: size })
+        const effectiveLabel = args.offline ? 'OFFLINE' : (args.label as string | undefined);
+        const svg = effectiveLabel
+          ? await QrCodeService.generateQrCodeSvgWithLabel(url, effectiveLabel, { width: size })
           : await QrCodeService.generateQrCodeSvg(url, { width: size });
 
         if (args.o) {
