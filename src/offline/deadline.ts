@@ -87,12 +87,21 @@ export function calculateOfflineDeadline(
 export function extendDeadlineForMaintenance(
   currentDeadline: Date | string,
   maintenanceWindow: MaintenanceWindow,
+  mode: OfflineMode = 'awaryjny',
 ): Date {
   const current = typeof currentDeadline === 'string' ? new Date(currentDeadline) : new Date(currentDeadline);
   const mwEnd = getMaintenanceEndFallback(maintenanceWindow);
 
   if (mwEnd.getTime() > current.getTime()) {
-    return endOfDay(addBusinessDays(mwEnd, 7));
+    switch (mode) {
+      case 'offline24':
+      case 'offline':
+        return endOfDay(nextBusinessDay(mwEnd));
+      case 'awaryjny':
+        return endOfDay(addBusinessDays(mwEnd, 7));
+      case 'awaria_calkowita':
+        return new Date(FAR_FUTURE);
+    }
   }
   return current;
 }

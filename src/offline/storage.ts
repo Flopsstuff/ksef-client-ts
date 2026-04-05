@@ -7,15 +7,17 @@ export interface OfflineInvoiceFilter {
   sellerNip?: string;
 }
 
+export type OfflineInvoiceUpdates = Omit<Partial<OfflineInvoiceMetadata>, 'id'>;
+
 export interface OfflineInvoiceStorage {
   save(invoice: OfflineInvoiceMetadata): Promise<void>;
   get(id: string): Promise<OfflineInvoiceMetadata | null>;
   list(filter?: OfflineInvoiceFilter): Promise<OfflineInvoiceMetadata[]>;
-  update(id: string, updates: Partial<OfflineInvoiceMetadata>): Promise<void>;
+  update(id: string, updates: OfflineInvoiceUpdates): Promise<void>;
   delete(id: string): Promise<void>;
 }
 
-function matchesFilter(invoice: OfflineInvoiceMetadata, filter: OfflineInvoiceFilter): boolean {
+export function matchesFilter(invoice: OfflineInvoiceMetadata, filter: OfflineInvoiceFilter): boolean {
   if (filter.status !== undefined) {
     const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
     if (!statuses.includes(invoice.status)) return false;
@@ -49,7 +51,7 @@ export class InMemoryOfflineInvoiceStorage implements OfflineInvoiceStorage {
     return all.filter(i => matchesFilter(i, filter)).map(i => ({ ...i }));
   }
 
-  async update(id: string, updates: Partial<OfflineInvoiceMetadata>): Promise<void> {
+  async update(id: string, updates: OfflineInvoiceUpdates): Promise<void> {
     const existing = this.store.get(id);
     if (!existing) throw new Error(`Offline invoice not found: ${id}`);
     this.store.set(id, { ...existing, ...updates });

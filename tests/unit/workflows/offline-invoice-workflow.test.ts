@@ -4,6 +4,7 @@ import { InMemoryOfflineInvoiceStorage } from '../../../src/offline/storage.js';
 import type { VerificationLinkService } from '../../../src/qr/verification-link-service.js';
 import type { OfflineInvoiceInputData } from '../../../src/offline/types.js';
 import type { KSeFClient } from '../../../src/client.js';
+import { KSeFApiError } from '../../../src/errors/ksef-api-error.js';
 
 function makeInput(overrides: Partial<OfflineInvoiceInputData> = {}): OfflineInvoiceInputData {
   return {
@@ -164,7 +165,7 @@ describe('OfflineInvoiceWorkflow', () => {
       expect(updated!.status).toBe('EXPIRED');
     });
 
-    it('handles partial failure', async () => {
+    it('handles network failure (counts as failed, not rejected)', async () => {
       const storage = new InMemoryOfflineInvoiceStorage();
       await workflow.generate(makeInput({ invoiceNumber: 'FV/001' }), { storage });
       await workflow.generate(makeInput({ invoiceNumber: 'FV/002' }), { storage });
@@ -173,14 +174,49 @@ describe('OfflineInvoiceWorkflow', () => {
       let callCount = 0;
       (client.onlineSession.sendInvoice as ReturnType<typeof vi.fn>).mockImplementation(() => {
         callCount++;
-        if (callCount === 2) throw new Error('KSeF rejected');
+        if (callCount === 2) throw new Error('ECONNREFUSED');
         return Promise.resolve({ referenceNumber: 'ksef-ref' });
       });
 
       const result = await workflow.submit(client, { storage });
       expect(result.accepted).toBe(1);
+      expect(result.failed).toBe(1);
+      expect(result.rejected).toBe(0);
+      expect(result.submitted).toBe(1);
+    });
+
+    it('counts KSeFApiError as rejected', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      const inv = await workflow.generate(makeInput(), { storage });
+
+      const client = mockClient();
+      (client.onlineSession.sendInvoice as ReturnType<typeof vi.fn>)
+        .mockRejectedValue(new KSeFApiError('Duplikat faktury', 440));
+
+      const result = await workflow.submit(client, { storage });
       expect(result.rejected).toBe(1);
-      expect(result.submitted).toBe(2);
+      expect(result.failed).toBe(0);
+      expect(result.submitted).toBe(1);
+
+      const updated = await storage.get(inv.id);
+      expect(updated!.status).toBe('REJECTED');
+      expect(updated!.error!.code).toBe(440);
+    });
+
+    it('reverts to QUEUED on network error', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      const inv = await workflow.generate(makeInput(), { storage });
+
+      const client = mockClient();
+      (client.onlineSession.sendInvoice as ReturnType<typeof vi.fn>)
+        .mockRejectedValue(new Error('ECONNREFUSED'));
+
+      const result = await workflow.submit(client, { storage });
+      expect(result.failed).toBe(1);
+      expect(result.rejected).toBe(0);
+
+      const updated = await storage.get(inv.id);
+      expect(updated!.status).toBe('QUEUED');
     });
 
     it('throws on session open failure without changing statuses', async () => {
@@ -194,6 +230,25 @@ describe('OfflineInvoiceWorkflow', () => {
 
       const unchanged = await storage.get(inv.id);
       expect(unchanged!.status).toBe('GENERATED');
+    });
+
+    it('throws when requested IDs not found', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      const client = mockClient();
+      await expect(workflow.submit(client, {
+        storage,
+        invoiceIds: ['nonexistent-id'],
+      })).rejects.toThrow('Offline invoice(s) not found: nonexistent-id');
+    });
+
+    it('lists all missing IDs in error message', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      const inv = await workflow.generate(makeInput(), { storage });
+      const client = mockClient();
+      await expect(workflow.submit(client, {
+        storage,
+        invoiceIds: [inv.id, 'missing-1', 'missing-2'],
+      })).rejects.toThrow('Offline invoice(s) not found: missing-1, missing-2');
     });
 
     it('returns empty result when no invoices', async () => {
@@ -226,7 +281,7 @@ describe('OfflineInvoiceWorkflow', () => {
 
       const client = mockClient();
       (client.onlineSession.sendInvoice as ReturnType<typeof vi.fn>)
-        .mockRejectedValue(new Error('KSeF rejected'));
+        .mockRejectedValue(new KSeFApiError('Invalid XML', 400));
 
       await workflow.submit(client, { storage });
 
@@ -292,6 +347,81 @@ describe('OfflineInvoiceWorkflow', () => {
         correctedInvoiceXml: '<FA/>',
         storage,
       })).rejects.toThrow('Only rejected invoices can be corrected');
+    });
+
+    it('updates original invoice to CORRECTED', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      const inv = await workflow.generate(makeInput(), { storage });
+      await storage.update(inv.id, { status: 'REJECTED', error: { code: 440, message: 'duplicate' } });
+
+      const client = mockClient();
+      const result = await workflow.correct(client, {
+        rejectedInvoiceId: inv.id,
+        correctedInvoiceXml: '<FA><P_1>2026-04-08</P_1><fixed/></FA>',
+        storage,
+      });
+
+      const original = await storage.get(inv.id);
+      expect(original!.status).toBe('CORRECTED');
+      expect(original!.correctedBy).toBe(result.invoiceId);
+    });
+
+    it('regenerates QR codes from corrected XML', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      const inv = await workflow.generate(makeInput(), { storage });
+      await storage.update(inv.id, { status: 'REJECTED', error: { code: 440, message: 'duplicate' } });
+
+      const client = mockClient();
+      const result = await workflow.correct(client, {
+        rejectedInvoiceId: inv.id,
+        correctedInvoiceXml: '<FA><P_1>2026-04-08</P_1><fixed/></FA>',
+        storage,
+      });
+
+      // QR service should be called with the corrected XML's hash, not the original's
+      expect(qrService.buildInvoiceVerificationUrl).toHaveBeenCalledTimes(2); // once for generate, once for correct
+      const correctCall = (qrService.buildInvoiceVerificationUrl as ReturnType<typeof vi.fn>).mock.calls[1];
+      expect(correctCall[0]).toBe('1234567890'); // sellerNip
+      // The hash argument should differ from the original generate call
+      const generateCall = (qrService.buildInvoiceVerificationUrl as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(correctCall[2]).not.toBe(generateCall[2]);
+    });
+
+    it('generates KOD II for correction when certificate provided', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      const inv = await workflow.generate(makeInput(), { storage });
+      await storage.update(inv.id, { status: 'REJECTED', error: { code: 440, message: 'duplicate' } });
+
+      const client = mockClient();
+      const result = await workflow.correct(client, {
+        rejectedInvoiceId: inv.id,
+        correctedInvoiceXml: '<FA><P_1>2026-04-08</P_1><fixed/></FA>',
+        storage,
+        certificate: { privateKeyPem: 'PEM', certificateSerial: '01AA' },
+      });
+
+      const correction = await storage.get(result.invoiceId);
+      expect(correction!.kod2Url).toBeDefined();
+      expect(qrService.buildCertificateVerificationUrl).toHaveBeenCalledTimes(1);
+    });
+
+    it('prevents duplicate correction of same invoice', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      const inv = await workflow.generate(makeInput(), { storage });
+      await storage.update(inv.id, { status: 'REJECTED', error: { code: 440, message: 'duplicate' } });
+
+      const client = mockClient();
+      await workflow.correct(client, {
+        rejectedInvoiceId: inv.id,
+        correctedInvoiceXml: '<FA><P_1>2026-04-08</P_1><fixed/></FA>',
+        storage,
+      });
+
+      await expect(workflow.correct(client, {
+        rejectedInvoiceId: inv.id,
+        correctedInvoiceXml: '<FA><P_1>2026-04-08</P_1><fixed2/></FA>',
+        storage,
+      })).rejects.toThrow('has already been corrected');
     });
 
     it('throws for missing invoice', async () => {

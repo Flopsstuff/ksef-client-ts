@@ -69,6 +69,10 @@ const generate = defineCommand({
       const client = createClient(globalOpts);
       const workflow = client.offline;
 
+      if (args.key && !args['cert-serial']) {
+        throw new Error('--cert-serial is required when using --key');
+      }
+
       const certificate = args.key
         ? {
             privateKeyPem: fs.readFileSync(args.key as string, 'utf-8'),
@@ -76,8 +80,10 @@ const generate = defineCommand({
           }
         : undefined;
 
-      if (args.key && !args['cert-serial']) {
-        throw new Error('--cert-serial is required when using --key');
+      const validModes: readonly string[] = ['offline24', 'offline', 'awaryjny', 'awaria_calkowita'];
+      const modeArg = (args.mode as string) ?? 'offline24';
+      if (!validModes.includes(modeArg)) {
+        throw new Error(`Invalid --mode "${modeArg}". Must be one of: ${validModes.join(', ')}`);
       }
 
       const storage = args['no-store'] ? undefined : getStorage(args);
@@ -93,7 +99,7 @@ const generate = defineCommand({
           sellerIdentifier: { type: contextType as 'Nip', value: contextId },
         },
         {
-          mode: (args.mode as OfflineMode) ?? 'offline24',
+          mode: modeArg as OfflineMode,
           certificate,
           storage,
         },

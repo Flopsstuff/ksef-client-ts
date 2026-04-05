@@ -21,6 +21,6 @@ export {
   getTimeUntilDeadline,
 } from './deadline.js';
 
-export type { OfflineInvoiceFilter, OfflineInvoiceStorage } from './storage.js';
+export type { OfflineInvoiceFilter, OfflineInvoiceStorage, OfflineInvoiceUpdates } from './storage.js';
 export { InMemoryOfflineInvoiceStorage } from './storage.js';
 export { FileOfflineInvoiceStorage } from './file-storage.js';

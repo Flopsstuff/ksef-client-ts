@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import type { KSeFClient } from '../client.js';
+import { KSeFApiError } from '../errors/ksef-api-error.js';
 import type { VerificationLinkService } from '../qr/verification-link-service.js';
 import type { OfflineInvoiceStorage } from '../offline/storage.js';
 import type {
@@ -25,6 +26,7 @@ export interface TechnicalCorrectionOptions {
   correctedInvoiceXml: string;
   storage: OfflineInvoiceStorage;
   formCode?: FormCode;
+  certificate?: import('../offline/types.js').OfflineCertificate;
 }
 
 export class OfflineInvoiceWorkflow {
@@ -114,9 +116,17 @@ export class OfflineInvoiceWorkflow {
     let invoices: OfflineInvoiceMetadata[];
     if (options.invoiceIds) {
       invoices = [];
+      const notFound: string[] = [];
       for (const id of options.invoiceIds) {
         const inv = await storage.get(id);
-        if (inv) invoices.push(inv);
+        if (inv) {
+          invoices.push(inv);
+        } else {
+          notFound.push(id);
+        }
+      }
+      if (notFound.length > 0) {
+        throw new Error(`Offline invoice(s) not found: ${notFound.join(', ')}`);
       }
     } else {
       invoices = await storage.list({ status: ['GENERATED', 'QUEUED', 'SUBMITTED'] });
@@ -203,19 +213,33 @@ export class OfflineInvoiceWorkflow {
           });
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
-          await storage.update(inv.id, {
-            status: 'REJECTED',
-            error: { code: 0, message },
-          });
 
-          result.submitted++;
-          result.rejected++;
-          result.results.push({
-            invoiceId: inv.id,
-            invoiceNumber: inv.invoiceNumber,
-            status: 'REJECTED',
-            error: { code: 0, message },
-          });
+          if (err instanceof KSeFApiError) {
+            await storage.update(inv.id, {
+              status: 'REJECTED',
+              error: { code: err.statusCode, message },
+            });
+            result.submitted++;
+            result.rejected++;
+            result.results.push({
+              invoiceId: inv.id,
+              invoiceNumber: inv.invoiceNumber,
+              status: 'REJECTED',
+              error: { code: err.statusCode, message },
+            });
+          } else {
+            await storage.update(inv.id, {
+              status: 'QUEUED',
+              error: { code: 0, message },
+            });
+            result.failed++;
+            result.results.push({
+              invoiceId: inv.id,
+              invoiceNumber: inv.invoiceNumber,
+              status: 'QUEUED',
+              error: { code: 0, message },
+            });
+          }
         }
       }
     } finally {
@@ -240,7 +264,11 @@ export class OfflineInvoiceWorkflow {
       throw new Error(`Offline invoice not found: ${rejectedInvoiceId}`);
     }
     if (original.status !== 'REJECTED') {
-      throw new Error(`Only rejected invoices can be corrected (current status: ${original.status})`);
+      throw new Error(
+        original.status === 'CORRECTED'
+          ? `Invoice ${rejectedInvoiceId} has already been corrected (by ${original.correctedBy})`
+          : `Only rejected invoices can be corrected (current status: ${original.status})`,
+      );
     }
 
     const originalHash = crypto
@@ -265,6 +293,30 @@ export class OfflineInvoiceWorkflow {
 
       const correctionId = crypto.randomUUID();
       const submittedAt = new Date().toISOString();
+
+      const correctedHashBase64 = crypto
+        .createHash('sha256')
+        .update(correctedInvoiceXml)
+        .digest('base64');
+
+      const kod1Url = this.qrService.buildInvoiceVerificationUrl(
+        original.sellerNip,
+        original.invoiceDate,
+        correctedHashBase64,
+      );
+
+      let kod2Url: string | undefined;
+      if (options.certificate) {
+        kod2Url = this.qrService.buildCertificateVerificationUrl(
+          original.sellerIdentifier.type,
+          original.sellerIdentifier.value,
+          original.sellerNip,
+          options.certificate.certificateSerial,
+          correctedHashBase64,
+          options.certificate.privateKeyPem,
+        );
+      }
+
       const correctionMetadata: OfflineInvoiceMetadata = {
         id: correctionId,
         mode: original.mode,
@@ -276,8 +328,8 @@ export class OfflineInvoiceWorkflow {
         sellerNip: original.sellerNip,
         sellerIdentifier: original.sellerIdentifier,
         buyerIdentifier: original.buyerIdentifier,
-        kod1Url: original.kod1Url,
-        kod2Url: original.kod2Url,
+        kod1Url,
+        kod2Url,
         generatedAt: submittedAt,
         submitBy: original.submitBy,
         submittedAt,
@@ -299,6 +351,11 @@ export class OfflineInvoiceWorkflow {
         status: 'ACCEPTED',
         acceptedAt: new Date().toISOString(),
         ksefReferenceNumber: resp.referenceNumber,
+      });
+
+      await storage.update(rejectedInvoiceId, {
+        status: 'CORRECTED',
+        correctedBy: correctionId,
       });
 
       return {

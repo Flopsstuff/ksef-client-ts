@@ -17,6 +17,7 @@ export type OfflineInvoiceStatus =
   | 'SUBMITTED'
   | 'ACCEPTED'
   | 'REJECTED'
+  | 'CORRECTED'
   | 'EXPIRED';
 
 export interface OfflineInvoiceInputData {
@@ -73,6 +74,7 @@ export interface OfflineInvoiceMetadata {
 
   maintenanceWindowId?: string;
   correctedInvoiceId?: string;
+  correctedBy?: string;
 }
 
 export interface OfflineInvoiceOptions {

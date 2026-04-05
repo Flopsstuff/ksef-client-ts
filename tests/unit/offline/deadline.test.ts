@@ -176,6 +176,28 @@ describe('extendDeadlineForMaintenance', () => {
       mw({ endTime: '2026-04-12T10:00:00Z' }));
     expect(result.toISOString().slice(0, 10)).toBe('2026-04-21');
   });
+
+  it('extends to next business day for offline24 mode', () => {
+    const current = new Date('2026-04-10T23:59:59Z');
+    const result = extendDeadlineForMaintenance(current,
+      mw({ endTime: '2026-04-12T10:00:00Z' }), 'offline24'); // Sunday
+    // next bd after Sunday 2026-04-12 = Monday 2026-04-13
+    expect(result.toISOString().slice(0, 10)).toBe('2026-04-13');
+  });
+
+  it('extends to next business day for offline mode', () => {
+    const current = new Date('2026-04-10T23:59:59Z');
+    const result = extendDeadlineForMaintenance(current,
+      mw({ endTime: '2026-04-12T10:00:00Z' }), 'offline');
+    expect(result.toISOString().slice(0, 10)).toBe('2026-04-13');
+  });
+
+  it('extends to far future for awaria_calkowita mode', () => {
+    const current = new Date('2026-04-10T23:59:59Z');
+    const result = extendDeadlineForMaintenance(current,
+      mw({ endTime: '2026-04-12T10:00:00Z' }), 'awaria_calkowita');
+    expect(result.getUTCFullYear()).toBe(9999);
+  });
 });
 
 describe('isExpired', () => {

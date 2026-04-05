@@ -155,8 +155,10 @@ If a new KSeF failure is announced during an existing deadline window, the deadl
 ```typescript
 import { extendDeadlineForMaintenance } from 'ksef-client-ts';
 
-const newDeadline = extendDeadlineForMaintenance(currentDeadline, newMaintenanceWindow);
-// Returns 7 business days from new endTime if it's later than current deadline
+const newDeadline = extendDeadlineForMaintenance(currentDeadline, newMaintenanceWindow, mode);
+// Extension depends on mode: next business day (offline24/offline),
+// 7 business days (awaryjny), or far-future (awaria_calkowita).
+// Default mode is 'awaryjny' for backward compatibility.
 ```
 
 ## Storage
