@@ -68,6 +68,7 @@ console.log(`Deadline: ${metadata.submitBy}`);
 
 // Submit when KSeF is available
 await client.loginWithToken(token, nip);
+// submit() needs the full client for crypto, session, and invoice API calls
 const result = await client.offline.submit(client, { storage });
 console.log(`Accepted: ${result.accepted}, Rejected: ${result.rejected}`);
 ```
@@ -104,6 +105,8 @@ https://qr-{env}.ksef.mf.gov.pl/invoice/{NIP}/{DD-MM-YYYY}/{hash_base64url}
 ```
 
 Label: `OFFLINE` (until KSeF assigns a reference number).
+
+> **Tip:** Use `ksef qr invoice --offline` to generate a standalone KOD I QR with the "OFFLINE" label.
 
 ### KOD II (Certificate Verification)
 
@@ -243,7 +246,7 @@ Generate offline invoice metadata with QR codes.
 
 | Flag | Description |
 |------|-------------|
-| `--mode` | Offline mode: `offline24` (default), `offline`, `awaryjny` |
+| `--mode` | Offline mode: `offline24` (default), `offline`, `awaryjny`, `awaria_calkowita` |
 | `--key` | Private key PEM file for KOD II signing |
 | `--cert-serial` | Certificate serial number (hex, required with `--key`) |
 | `--context-type` | Seller context type (default: `Nip`) |

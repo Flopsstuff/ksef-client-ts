@@ -382,6 +382,7 @@ ksef qr invoice \
 | `--format` | No | `png` (default) or `svg` |
 | `--size` | No | QR code width in pixels (default: 300) |
 | `--label` | No | Label text (SVG format only) |
+| `--offline` | No | Use "OFFLINE" as label (SVG only, overrides `--label`) |
 | `-o` | No | Output file path. Without it, prints base64 (PNG) or SVG markup to stdout |
 | `--env` | No | Environment: `test`, `demo`, or `prod` |
 | `--json` | No | Output as JSON (`QrCodeResult` format) |
