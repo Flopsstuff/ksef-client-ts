@@ -27,6 +27,14 @@ function matchesFilter(invoice: OfflineInvoiceMetadata, filter: OfflineInvoiceFi
   return true;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function validateId(id: string): void {
+  if (!UUID_RE.test(id)) {
+    throw new Error(`Invalid invoice ID: ${id}`);
+  }
+}
+
 export class FileOfflineInvoiceStorage implements OfflineInvoiceStorage {
   private readonly dir: string;
 
@@ -41,6 +49,7 @@ export class FileOfflineInvoiceStorage implements OfflineInvoiceStorage {
   }
 
   private filePath(id: string): string {
+    validateId(id);
     return path.join(this.dir, `${id}.json`);
   }
 

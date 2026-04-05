@@ -5,9 +5,16 @@ import * as os from 'node:os';
 import { FileOfflineInvoiceStorage } from '../../../src/offline/file-storage.js';
 import type { OfflineInvoiceMetadata } from '../../../src/offline/types.js';
 
+const ID1 = '00000000-0000-4000-8000-000000000001';
+const ID2 = '00000000-0000-4000-8000-000000000002';
+const ID3 = '00000000-0000-4000-8000-000000000003';
+const ID_GOOD = '00000000-0000-4000-8000-00000000000a';
+const ID_BAD = '00000000-0000-4000-8000-00000000000b';
+const ID_MISSING = '00000000-0000-4000-8000-ffffffffffff';
+
 function makeInvoice(overrides: Partial<OfflineInvoiceMetadata> = {}): OfflineInvoiceMetadata {
   return {
-    id: 'inv-1',
+    id: ID1,
     mode: 'offline24',
     reason: 'PLANNED',
     status: 'GENERATED',
@@ -38,13 +45,13 @@ describe('FileOfflineInvoiceStorage', () => {
     const storage = new FileOfflineInvoiceStorage(testDir);
     const inv = makeInvoice();
     await storage.save(inv);
-    const result = await storage.get('inv-1');
+    const result = await storage.get(ID1);
     expect(result).toEqual(inv);
   });
 
   it('get returns null for missing', async () => {
     const storage = new FileOfflineInvoiceStorage(testDir);
-    expect(await storage.get('missing')).toBeNull();
+    expect(await storage.get(ID_MISSING)).toBeNull();
   });
 
   it('creates directory if not exists', async () => {
@@ -56,9 +63,9 @@ describe('FileOfflineInvoiceStorage', () => {
 
   it('list with filters', async () => {
     const storage = new FileOfflineInvoiceStorage(testDir);
-    await storage.save(makeInvoice({ id: 'a', status: 'GENERATED' }));
-    await storage.save(makeInvoice({ id: 'b', status: 'QUEUED' }));
-    await storage.save(makeInvoice({ id: 'c', status: 'GENERATED' }));
+    await storage.save(makeInvoice({ id: ID1, status: 'GENERATED' }));
+    await storage.save(makeInvoice({ id: ID2, status: 'QUEUED' }));
+    await storage.save(makeInvoice({ id: ID3, status: 'GENERATED' }));
     const result = await storage.list({ status: 'GENERATED' });
     expect(result).toHaveLength(2);
   });
@@ -72,48 +79,86 @@ describe('FileOfflineInvoiceStorage', () => {
   it('update partial fields', async () => {
     const storage = new FileOfflineInvoiceStorage(testDir);
     await storage.save(makeInvoice());
-    await storage.update('inv-1', { status: 'QUEUED' });
-    const result = await storage.get('inv-1');
+    await storage.update(ID1, { status: 'QUEUED' });
+    const result = await storage.get(ID1);
     expect(result!.status).toBe('QUEUED');
     expect(result!.invoiceNumber).toBe('FV/2026/001');
   });
 
   it('update non-existent throws', async () => {
     const storage = new FileOfflineInvoiceStorage(testDir);
-    await expect(storage.update('missing', { status: 'QUEUED' }))
-      .rejects.toThrow('Offline invoice not found: missing');
+    await expect(storage.update(ID_MISSING, { status: 'QUEUED' }))
+      .rejects.toThrow(`Offline invoice not found: ${ID_MISSING}`);
   });
 
   it('delete removes file', async () => {
     const storage = new FileOfflineInvoiceStorage(testDir);
     await storage.save(makeInvoice());
-    await storage.delete('inv-1');
-    expect(await storage.get('inv-1')).toBeNull();
-    expect(fs.existsSync(path.join(testDir, 'inv-1.json'))).toBe(false);
+    await storage.delete(ID1);
+    expect(await storage.get(ID1)).toBeNull();
+    expect(fs.existsSync(path.join(testDir, `${ID1}.json`))).toBe(false);
   });
 
   it('skips corrupt JSON on list', async () => {
     const storage = new FileOfflineInvoiceStorage(testDir);
-    await storage.save(makeInvoice({ id: 'good' }));
-    fs.writeFileSync(path.join(testDir, 'bad.json'), 'not-json{{{');
+    await storage.save(makeInvoice({ id: ID_GOOD }));
+    fs.writeFileSync(path.join(testDir, `${ID_BAD}.json`), 'not-json{{{');
     const result = await storage.list();
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe('good');
+    expect(result[0].id).toBe(ID_GOOD);
   });
 
   it('get returns null for corrupt file', async () => {
     const storage = new FileOfflineInvoiceStorage(testDir);
     fs.mkdirSync(testDir, { recursive: true });
-    fs.writeFileSync(path.join(testDir, 'bad.json'), '{broken');
-    expect(await storage.get('bad')).toBeNull();
+    fs.writeFileSync(path.join(testDir, `${ID_BAD}.json`), '{broken');
+    expect(await storage.get(ID_BAD)).toBeNull();
   });
 
   it('atomic write creates temp file then renames', async () => {
     const storage = new FileOfflineInvoiceStorage(testDir);
     await storage.save(makeInvoice());
-    // After save, there should be no .tmp file
     const files = fs.readdirSync(testDir);
     expect(files.every(f => !f.endsWith('.tmp'))).toBe(true);
-    expect(files).toContain('inv-1.json');
+    expect(files).toContain(`${ID1}.json`);
+  });
+});
+
+describe('path traversal protection', () => {
+  it('rejects path traversal in get', async () => {
+    const storage = new FileOfflineInvoiceStorage(testDir);
+    await expect(storage.get('../../../etc/passwd')).rejects.toThrow('Invalid invoice ID');
+  });
+
+  it('rejects path separator in get', async () => {
+    const storage = new FileOfflineInvoiceStorage(testDir);
+    await expect(storage.get('subdir/file')).rejects.toThrow('Invalid invoice ID');
+  });
+
+  it('rejects path traversal in delete', async () => {
+    const storage = new FileOfflineInvoiceStorage(testDir);
+    await expect(storage.delete('../../../etc/passwd')).rejects.toThrow('Invalid invoice ID');
+  });
+
+  it('rejects path traversal in update', async () => {
+    const storage = new FileOfflineInvoiceStorage(testDir);
+    await expect(storage.update('../secret', { status: 'QUEUED' })).rejects.toThrow('Invalid invoice ID');
+  });
+
+  it('rejects path traversal in save', async () => {
+    const storage = new FileOfflineInvoiceStorage(testDir);
+    const inv = makeInvoice({ id: '../../../etc/evil' });
+    await expect(storage.save(inv)).rejects.toThrow('Invalid invoice ID');
+  });
+
+  it('rejects empty string', async () => {
+    const storage = new FileOfflineInvoiceStorage(testDir);
+    await expect(storage.get('')).rejects.toThrow('Invalid invoice ID');
+  });
+
+  it('accepts valid UUID', async () => {
+    const storage = new FileOfflineInvoiceStorage(testDir);
+    const result = await storage.get('a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d');
+    expect(result).toBeNull();
   });
 });
