@@ -258,6 +258,75 @@ describe('OfflineInvoiceWorkflow', () => {
       expect(result.total).toBe(0);
     });
 
+    it('calls closeSession in finally block after successful submit', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      await workflow.generate(makeInput(), { storage });
+
+      const client = mockClient();
+      await workflow.submit(client, { storage });
+
+      expect(client.onlineSession.closeSession).toHaveBeenCalledWith('session-ref');
+      expect(client.onlineSession.closeSession).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls closeSession even when sendInvoice fails', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      await workflow.generate(makeInput(), { storage });
+
+      const client = mockClient();
+      (client.onlineSession.sendInvoice as ReturnType<typeof vi.fn>)
+        .mockRejectedValue(new Error('ECONNREFUSED'));
+
+      await workflow.submit(client, { storage });
+
+      expect(client.onlineSession.closeSession).toHaveBeenCalledWith('session-ref');
+    });
+
+    it('submits expired invoices when checkExpiry is false', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      const inv = await workflow.generate(makeInput(), {
+        storage,
+        customDeadline: '2020-01-01T00:00:00Z',
+      });
+
+      const client = mockClient();
+      const result = await workflow.submit(client, { storage, checkExpiry: false });
+
+      expect(result.expired).toBe(0);
+      expect(result.accepted).toBe(1);
+      expect(result.submitted).toBe(1);
+      const updated = await storage.get(inv.id);
+      expect(updated!.status).toBe('ACCEPTED');
+    });
+
+    it('handles mixed expired and valid invoices in batch', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      const expired1 = await workflow.generate(makeInput({ invoiceNumber: 'FV/EXP1' }), {
+        storage,
+        customDeadline: '2020-01-01T00:00:00Z',
+      });
+      const expired2 = await workflow.generate(makeInput({ invoiceNumber: 'FV/EXP2' }), {
+        storage,
+        customDeadline: '2020-06-01T00:00:00Z',
+      });
+      const valid = await workflow.generate(makeInput({ invoiceNumber: 'FV/VALID' }), {
+        storage,
+        customDeadline: '2099-12-31T00:00:00Z',
+      });
+
+      const client = mockClient();
+      const result = await workflow.submit(client, { storage });
+
+      expect(result.total).toBe(3);
+      expect(result.expired).toBe(2);
+      expect(result.accepted).toBe(1);
+      expect(result.submitted).toBe(1);
+
+      expect((await storage.get(expired1.id))!.status).toBe('EXPIRED');
+      expect((await storage.get(expired2.id))!.status).toBe('EXPIRED');
+      expect((await storage.get(valid.id))!.status).toBe('ACCEPTED');
+    });
+
     it('transitions through SUBMITTED before ACCEPTED', async () => {
       const storage = new InMemoryOfflineInvoiceStorage();
       const inv = await workflow.generate(makeInput(), { storage });
@@ -432,6 +501,40 @@ describe('OfflineInvoiceWorkflow', () => {
         correctedInvoiceXml: '<FA/>',
         storage,
       })).rejects.toThrow('Offline invoice not found');
+    });
+
+    it('calls closeSession in finally block after successful correction', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      const inv = await workflow.generate(makeInput(), { storage });
+      await storage.update(inv.id, { status: 'REJECTED', error: { code: 440, message: 'duplicate' } });
+
+      const client = mockClient();
+      await workflow.correct(client, {
+        rejectedInvoiceId: inv.id,
+        correctedInvoiceXml: '<FA><P_1>2026-04-08</P_1><fixed/></FA>',
+        storage,
+      });
+
+      expect(client.onlineSession.closeSession).toHaveBeenCalledWith('session-ref');
+      expect(client.onlineSession.closeSession).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls closeSession even when sendInvoice fails during correction', async () => {
+      const storage = new InMemoryOfflineInvoiceStorage();
+      const inv = await workflow.generate(makeInput(), { storage });
+      await storage.update(inv.id, { status: 'REJECTED', error: { code: 440, message: 'duplicate' } });
+
+      const client = mockClient();
+      (client.onlineSession.sendInvoice as ReturnType<typeof vi.fn>)
+        .mockRejectedValue(new Error('ECONNREFUSED'));
+
+      await expect(workflow.correct(client, {
+        rejectedInvoiceId: inv.id,
+        correctedInvoiceXml: '<FA><P_1>2026-04-08</P_1><fixed/></FA>',
+        storage,
+      })).rejects.toThrow('ECONNREFUSED');
+
+      expect(client.onlineSession.closeSession).toHaveBeenCalledWith('session-ref');
     });
   });
 });
