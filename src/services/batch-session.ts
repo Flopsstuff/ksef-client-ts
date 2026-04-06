@@ -2,6 +2,7 @@ import { RestClient } from '../http/rest-client.js';
 import { KSEF_FEATURE_HEADER } from '../http/ksef-feature.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
+import { runWithConcurrency } from '../utils/concurrency.js';
 import type { UpoVersion } from '../http/ksef-feature.js';
 import type { OpenBatchSessionRequest, OpenBatchSessionResponse, BatchPartSendingInfo, BatchPartStreamSendingInfo } from '../models/sessions/batch-types.js';
 
@@ -28,12 +29,11 @@ export class BatchSessionService {
   async sendParts(
     openResponse: OpenBatchSessionResponse,
     parts: BatchPartSendingInfo[],
+    parallelism?: number,
   ): Promise<void> {
-    const uploadRequests = openResponse.partUploadRequests;
-    const tasks = parts.map(async (part) => {
-      const uploadReq = uploadRequests.find(
-        (r) => r.ordinalNumber === part.ordinalNumber,
-      );
+    const uploadMap = new Map(openResponse.partUploadRequests.map(r => [r.ordinalNumber, r] as const));
+    const tasks = parts.map((part) => async (signal: AbortSignal) => {
+      const uploadReq = uploadMap.get(part.ordinalNumber);
       if (!uploadReq) {
         throw new Error(`No upload request found for part ${part.ordinalNumber}`);
       }
@@ -41,29 +41,40 @@ export class BatchSessionService {
       for (const [k, v] of Object.entries(uploadReq.headers)) {
         if (v != null) headers[k] = v;
       }
-      await fetch(uploadReq.url, {
+      const resp = await fetch(uploadReq.url, {
         method: uploadReq.method,
         headers,
         body: part.data,
+        signal,
       });
+      if (!resp.ok) {
+        const body = await resp.text().catch(() => '');
+        throw new Error(
+          `Upload failed for part ${part.ordinalNumber}: HTTP ${resp.status}${body ? ` — ${body}` : ''}`,
+        );
+      }
     });
-    await Promise.all(tasks);
+    if (parallelism !== undefined) {
+      await runWithConcurrency(tasks, parallelism);
+    } else {
+      const ac = new AbortController();
+      await Promise.all(tasks.map(t => t(ac.signal).catch(err => { ac.abort(); throw err; })));
+    }
   }
 
   /**
-   * Upload parts sequentially (not in parallel) because each part uses a
-   * streaming body (`duplex: 'half'`). Parallel streaming uploads can cause
-   * backpressure issues and exceed memory limits for large payloads.
+   * Upload parts using streaming bodies (`duplex: 'half'`).
+   * By default uploads sequentially to avoid backpressure issues.
+   * Pass `parallelism` to enable bounded concurrent uploads.
    */
   async sendPartsWithStream(
     openResponse: OpenBatchSessionResponse,
     parts: BatchPartStreamSendingInfo[],
+    parallelism?: number,
   ): Promise<void> {
-    const uploadRequests = openResponse.partUploadRequests;
-    for (const part of parts) {
-      const uploadReq = uploadRequests.find(
-        (r) => r.ordinalNumber === part.ordinalNumber,
-      );
+    const uploadMap = new Map(openResponse.partUploadRequests.map(r => [r.ordinalNumber, r] as const));
+    const uploadPart = async (part: BatchPartStreamSendingInfo, signal: AbortSignal) => {
+      const uploadReq = uploadMap.get(part.ordinalNumber);
       if (!uploadReq) {
         throw new Error(`No upload request found for part ${part.ordinalNumber}`);
       }
@@ -75,11 +86,24 @@ export class BatchSessionService {
         method: uploadReq.method,
         headers,
         body: part.dataStream,
+        signal,
         // @ts-expect-error -- Node 18+ undici supports duplex for streaming body
         duplex: 'half',
       });
       if (!resp.ok) {
-        throw new Error(`Upload failed for part ${part.ordinalNumber}: HTTP ${resp.status}`);
+        const body = await resp.text().catch(() => '');
+        throw new Error(
+          `Upload failed for part ${part.ordinalNumber}: HTTP ${resp.status}${body ? ` — ${body}` : ''}`,
+        );
+      }
+    };
+
+    if (parallelism !== undefined) {
+      await runWithConcurrency(parts.map((p) => (signal: AbortSignal) => uploadPart(p, signal)), parallelism);
+    } else {
+      const { signal } = new AbortController();
+      for (const part of parts) {
+        await uploadPart(part, signal);
       }
     }
   }

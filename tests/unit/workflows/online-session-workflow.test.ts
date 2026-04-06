@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { openOnlineSession, openSendAndClose } from '../../../src/workflows/online-session-workflow.js';
+import { openOnlineSession, resumeOnlineSession, openSendAndClose } from '../../../src/workflows/online-session-workflow.js';
 import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
+import { KSeFSessionExpiredError } from '../../../src/errors/ksef-session-expired-error.js';
 import { validate as validateInvoice } from '../../../src/validation/invoice-validator.js';
 import type { UpoPotwierdzenie } from '../../../src/xml/index.js';
 
@@ -10,8 +11,25 @@ vi.mock('../../../src/validation/invoice-validator.js', () => ({
 
 const mockValidateInvoice = vi.mocked(validateInvoice);
 
-function createMockClient() {
+function createMockScopedRestClient() {
   return {
+    execute: vi.fn().mockResolvedValue({
+      body: { referenceNumber: 'inv-ref-1' },
+      headers: new Headers(),
+      statusCode: 200,
+    }),
+    executeVoid: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
+function createMockClient() {
+  let _token = 'test-access-token';
+  return {
+    authManager: {
+      getAccessToken: vi.fn(() => _token),
+      setAccessToken: vi.fn((t: string) => { _token = t; }),
+    },
+    createScopedRestClient: vi.fn().mockReturnValue(createMockScopedRestClient()),
     crypto: {
       init: vi.fn(),
       getEncryptionData: vi.fn().mockReturnValue({
@@ -212,6 +230,144 @@ describe('openSendAndClose', () => {
     expect(client.onlineSession.sendInvoice).toHaveBeenCalledTimes(2);
     expect(client.onlineSession.closeSession).toHaveBeenCalledWith('sess-ref-1');
     expect(upo.pages).toHaveLength(1);
+  });
+});
+
+describe('getState', () => {
+  it('returns serializable session state', async () => {
+    const handle = await openOnlineSession(client);
+    const state = handle.getState();
+
+    expect(state.referenceNumber).toBe('sess-ref-1');
+    expect(state.validUntil).toBe('2099-01-01T00:00:00Z');
+    expect(state.accessToken).toBe('test-access-token');
+    expect(state.formCode).toEqual({ systemCode: 'FA (3)', schemaVersion: '1-0E', value: 'FA' });
+    expect(typeof state.aesKey).toBe('string');
+    expect(typeof state.iv).toBe('string');
+    // Base64-encoded keys should be decodable
+    expect(Buffer.from(state.aesKey, 'base64')).toHaveLength(32);
+    expect(Buffer.from(state.iv, 'base64')).toHaveLength(16);
+  });
+
+  it('throws when access token is unavailable', async () => {
+    const handle = await openOnlineSession(client);
+    client.authManager.getAccessToken.mockReturnValue(undefined);
+    expect(() => handle.getState()).toThrow('Cannot serialize session state: no access token available');
+  });
+
+  it('includes validate flag when true', async () => {
+    const handle = await openOnlineSession(client, { validate: true });
+    const state = handle.getState();
+    expect(state.validate).toBe(true);
+  });
+
+  it('omits validate flag when not set', async () => {
+    const handle = await openOnlineSession(client);
+    const state = handle.getState();
+    expect(state.validate).toBeUndefined();
+  });
+
+  it('state is JSON-serializable round-trip', async () => {
+    const handle = await openOnlineSession(client);
+    const state = handle.getState();
+    const json = JSON.stringify(state);
+    const restored = JSON.parse(json);
+    expect(restored).toEqual(state);
+  });
+});
+
+describe('resumeOnlineSession', () => {
+  const savedState = {
+    referenceNumber: 'sess-ref-saved',
+    aesKey: Buffer.from(new Uint8Array(32)).toString('base64'),
+    iv: Buffer.from(new Uint8Array(16)).toString('base64'),
+    accessToken: 'saved-token-123',
+    formCode: { systemCode: 'FA (3)' as const, schemaVersion: '1-0E' as const, value: 'FA' as const },
+    validUntil: '2099-06-01T00:00:00Z',
+  };
+
+  it('throws KSeFSessionExpiredError for expired session', () => {
+    const expiredState = {
+      ...savedState,
+      validUntil: '2020-01-01T00:00:00Z',
+    };
+    expect(() => resumeOnlineSession(client, expiredState)).toThrow(KSeFSessionExpiredError);
+    expect(() => resumeOnlineSession(client, expiredState)).toThrow('Cannot resume session: expired at 2020-01-01T00:00:00Z');
+  });
+
+  it('restores handle with correct sessionRef and validUntil', () => {
+    const handle = resumeOnlineSession(client, savedState);
+    expect(handle.sessionRef).toBe('sess-ref-saved');
+    expect(handle.validUntil).toBe('2099-06-01T00:00:00Z');
+  });
+
+  it('does not modify client authManager', () => {
+    resumeOnlineSession(client, savedState);
+    expect(client.authManager.setAccessToken).not.toHaveBeenCalled();
+    expect(client.authManager.getAccessToken()).toBe('test-access-token');
+  });
+
+  it('creates scoped RestClient via client.createScopedRestClient', () => {
+    resumeOnlineSession(client, savedState);
+    expect(client.createScopedRestClient).toHaveBeenCalledWith(
+      expect.objectContaining({ getAccessToken: expect.any(Function) }),
+    );
+    const scopedAuth = client.createScopedRestClient.mock.calls[0][0];
+    expect(scopedAuth.getAccessToken()).toBe('saved-token-123');
+  });
+
+  it('resumed handle can send invoices via scoped services', async () => {
+    const handle = resumeOnlineSession(client, savedState);
+    const ref = await handle.sendInvoice('<invoice>resumed</invoice>');
+    expect(ref).toBe('inv-ref-1');
+    expect(client.crypto.encryptAES256).toHaveBeenCalled();
+    // Uses scoped services, not client.onlineSession
+    expect(client.onlineSession.sendInvoice).not.toHaveBeenCalled();
+  });
+
+  it('resumed handle can close session via scoped services', async () => {
+    const handle = resumeOnlineSession(client, savedState);
+    await handle.close();
+    // Uses scoped services, not client.onlineSession
+    expect(client.onlineSession.closeSession).not.toHaveBeenCalled();
+  });
+
+  it('resumed handle.getState() returns scoped token, not client token', () => {
+    const handle = resumeOnlineSession(client, savedState);
+    const state = handle.getState();
+    expect(state.referenceNumber).toBe('sess-ref-saved');
+    expect(state.accessToken).toBe('saved-token-123');
+    expect(state.aesKey).toBe(savedState.aesKey);
+    expect(state.iv).toBe(savedState.iv);
+  });
+
+  it('restores validate flag from state', () => {
+    const stateWithValidate = { ...savedState, validate: true };
+    const handle = resumeOnlineSession(client, stateWithValidate);
+    const restored = handle.getState();
+    expect(restored.validate).toBe(true);
+  });
+
+  it('options.validate overrides state.validate', () => {
+    const stateWithValidate = { ...savedState, validate: true };
+    const handle = resumeOnlineSession(client, stateWithValidate, { validate: false });
+    const restored = handle.getState();
+    expect(restored.validate).toBeUndefined();
+  });
+
+  it('full round-trip: open → getState → JSON → resumeOnlineSession → sendInvoice', async () => {
+    const handle1 = await openOnlineSession(client);
+    const json = JSON.stringify(handle1.getState());
+
+    // Simulate restart with new client
+    const client2 = createMockClient();
+    const restored = JSON.parse(json);
+    const handle2 = resumeOnlineSession(client2, restored);
+
+    const ref = await handle2.sendInvoice('<invoice>round-trip</invoice>');
+    expect(ref).toBe('inv-ref-1');
+    // Auth is scoped — client2.authManager is untouched
+    expect(client2.authManager.setAccessToken).not.toHaveBeenCalled();
   });
 });
 

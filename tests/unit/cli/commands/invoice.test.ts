@@ -184,7 +184,7 @@ describe('invoice', () => {
 
   describe('get', () => {
     it('calls getInvoice with ksefNumber', async () => {
-      mockClient.invoices.getInvoice.mockResolvedValue('<invoice/>');
+      mockClient.invoices.getInvoice.mockResolvedValue({ xml: '<invoice/>', hash: 'h1' });
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       await runGet({ ksefNumber: 'KSeF-123' });
       expect(mockClient.invoices.getInvoice).toHaveBeenCalledWith('KSeF-123');
@@ -192,7 +192,7 @@ describe('invoice', () => {
     });
 
     it('writes to file when --output is provided', async () => {
-      mockClient.invoices.getInvoice.mockResolvedValue('<invoice/>');
+      mockClient.invoices.getInvoice.mockResolvedValue({ xml: '<invoice/>' });
       await runGet({ ksefNumber: 'KSeF-123', o: '/out.xml' });
       expect(fs.writeFileSync).toHaveBeenCalledWith('/out.xml', '<invoice/>', 'utf-8');
     });
@@ -464,12 +464,23 @@ describe('invoice', () => {
 
   describe('get — JSON mode', () => {
     it('outputs JSON when --json is set', async () => {
-      mockClient.invoices.getInvoice.mockResolvedValue('<invoice/>');
+      mockClient.invoices.getInvoice.mockResolvedValue({ xml: '<invoice/>', hash: 'h1' });
 
       await runGet({ ksefNumber: 'KSeF-456', json: true });
 
       expect(output.outputResult).toHaveBeenCalledWith(
-        { ksefNumber: 'KSeF-456', xml: '<invoice/>' },
+        { ksefNumber: 'KSeF-456', xml: '<invoice/>', hash: 'h1' },
+        { json: true },
+      );
+    });
+
+    it('outputs JSON without hash when hash is absent', async () => {
+      mockClient.invoices.getInvoice.mockResolvedValue({ xml: '<invoice/>' });
+
+      await runGet({ ksefNumber: 'KSeF-789', json: true });
+
+      expect(output.outputResult).toHaveBeenCalledWith(
+        { ksefNumber: 'KSeF-789', xml: '<invoice/>' },
         { json: true },
       );
     });

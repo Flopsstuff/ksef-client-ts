@@ -12,6 +12,16 @@ import { InMemoryHwmStore } from '../../src/workflows/hwm-storage.js';
 
 const EXPORT_POLL = { intervalMs: 2000, maxAttempts: 120 };
 
+/**
+ * KSeF assigns PermanentStorage dates in CET/CEST (Europe/Warsaw).
+ * Compute date strings in Polish timezone so export filters align with
+ * KSeF regardless of where the test runner is located (CI uses UTC).
+ */
+function dateInCET(offsetDays: number): string {
+  const d = new Date(Date.now() + offsetDays * 86_400_000);
+  return d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Warsaw' });
+}
+
 describe('23 - Incremental Export Workflow', { timeout: 300_000 }, () => {
   let client: KSeFClient;
   let nip: string;
@@ -29,7 +39,7 @@ describe('23 - Incremental Export Workflow', { timeout: 300_000 }, () => {
     });
 
     // Wait for invoices to reach PermanentStorage index (used by incremental export)
-    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    const yesterday = dateInCET(-1);
     const permStorageFilters = new InvoiceQueryFilterBuilder()
       .withSubjectType('Subject1')
       .withDateRange('PermanentStorage', yesterday)
@@ -43,8 +53,8 @@ describe('23 - Incremental Export Workflow', { timeout: 300_000 }, () => {
   }, 180_000);
 
   it('should perform incremental export and return results', async () => {
-    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
-    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const yesterday = dateInCET(-1);
+    const tomorrow = dateInCET(+1);
     const continuationPoints: ContinuationPoints = {};
 
     const result = await incrementalExportAndDownload(client, {
@@ -69,8 +79,8 @@ describe('23 - Incremental Export Workflow', { timeout: 300_000 }, () => {
   });
 
   it('should work with HwmStore', async () => {
-    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
-    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const yesterday = dateInCET(-1);
+    const tomorrow = dateInCET(+1);
     const store = new InMemoryHwmStore();
     const continuationPoints: ContinuationPoints = {};
 
@@ -91,8 +101,8 @@ describe('23 - Incremental Export Workflow', { timeout: 300_000 }, () => {
   });
 
   it('should advance continuation points after export', async () => {
-    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
-    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const yesterday = dateInCET(-1);
+    const tomorrow = dateInCET(+1);
     const continuationPoints: ContinuationPoints = {};
 
     const result = await incrementalExportAndDownload(client, {
@@ -114,8 +124,8 @@ describe('23 - Incremental Export Workflow', { timeout: 300_000 }, () => {
   });
 
   it('should extract invoice XML from decrypted ZIP parts', async () => {
-    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
-    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const yesterday = dateInCET(-1);
+    const tomorrow = dateInCET(+1);
 
     const result = await incrementalExportAndDownload(client, {
       subjectType: 'Subject1',
@@ -145,8 +155,8 @@ describe('23 - Incremental Export Workflow', { timeout: 300_000 }, () => {
   });
 
   it('should deduplicate invoices from overlapping exports', async () => {
-    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
-    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const yesterday = dateInCET(-1);
+    const tomorrow = dateInCET(+1);
 
     // Run two exports with the same date window — both will return the same invoices
     const [resultA, resultB] = await Promise.all([
@@ -201,8 +211,8 @@ describe('23 - Incremental Export Workflow', { timeout: 300_000 }, () => {
   });
 
   it('should invoke onIterationComplete callback', async () => {
-    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
-    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const yesterday = dateInCET(-1);
+    const tomorrow = dateInCET(+1);
     const iterations: Array<{ i: number; r: ExportResult }> = [];
 
     const result = await incrementalExportAndDownload(client, {

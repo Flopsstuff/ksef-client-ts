@@ -5,6 +5,7 @@ import type { ExportDownloadResult, ExportExtractedResult, ExportResult, PollOpt
 import type { UnzipOptions } from '../utils/zip.js';
 import { unzip } from '../utils/zip.js';
 import { pollUntil } from './polling.js';
+import { verifyHash } from '../utils/hash.js';
 
 export interface ExportOptions {
   onlyMetadata?: boolean;
@@ -18,6 +19,8 @@ export interface ExportAndDownloadOptions extends ExportOptions {
   extract?: boolean;
   /** Options for ZIP extraction safety limits (only used when extract is true). */
   unzipOptions?: UnzipOptions;
+  /** Verify SHA-256 hash of encrypted parts after download. Defaults to true. */
+  verifyHash?: boolean;
 }
 
 export async function doExport(
@@ -56,6 +59,7 @@ export async function doExport(
         url: p.url,
         method: p.method,
         partSize: p.partSize,
+        partHash: p.partHash,
         encryptedPartSize: p.encryptedPartSize,
         encryptedPartHash: p.encryptedPartHash,
         expirationDate: p.expirationDate,
@@ -103,6 +107,9 @@ export async function exportAndDownload(
       throw new Error(`Download failed for part ${part.ordinalNumber}: HTTP ${resp.status}`);
     }
     const encryptedData = new Uint8Array(await resp.arrayBuffer());
+    if (options?.verifyHash !== false && !verifyHash(encryptedData, part.encryptedPartHash)) {
+      throw new Error(`Hash mismatch for export part ${part.ordinalNumber}`);
+    }
     const decrypted = client.crypto.decryptAES256(encryptedData, encData.cipherKey, encData.cipherIv);
     decryptedParts.push(decrypted);
   }

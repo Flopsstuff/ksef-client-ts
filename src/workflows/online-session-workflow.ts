@@ -1,6 +1,11 @@
 import type { KSeFClient } from '../client.js';
 import type { UpoVersion } from '../http/ksef-feature.js';
 import type { FormCode } from '../models/common.js';
+import type { OnlineSessionState } from '../models/sessions/session-state.js';
+import { KSeFSessionExpiredError } from '../errors/ksef-session-expired-error.js';
+import { DefaultAuthManager } from '../http/auth-manager.js';
+import { OnlineSessionService } from '../services/online-session.js';
+import { SessionStatusService } from '../services/session-status.js';
 import { DEFAULT_FORM_CODE } from '../models/document-structures/index.js';
 import type { OnlineSessionHandle, ParsedUpoInfo, PollOptions, UpoInfo } from './types.js';
 import { pollUntil } from './polling.js';
@@ -19,25 +24,29 @@ export interface SendAndCloseOptions extends OpenOnlineSessionOptions {
   pollOptions?: PollOptions;
 }
 
-export async function openOnlineSession(
-  client: KSeFClient,
-  options?: OpenOnlineSessionOptions,
-): Promise<OnlineSessionHandle> {
-  await client.crypto.init();
-  // KSeF provides a single (key, IV) pair per session — all invoices share it.
-  const encData = client.crypto.getEncryptionData();
-  const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
+interface SessionHandleDeps {
+  crypto: { getFileMetadata(data: Uint8Array): { hashSHA: string; fileSize: number }; encryptAES256(data: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array };
+  onlineSession: Pick<OnlineSessionService, 'sendInvoice' | 'closeSession'>;
+  sessionStatus: Pick<SessionStatusService, 'getSessionStatus' | 'getSessionUpo'>;
+  getAccessToken: () => string | undefined;
+}
 
-  const openResp = await client.onlineSession.openSession(
-    { formCode, encryption: encData.encryptionInfo },
-    options?.upoVersion,
-  );
+interface SessionHandleParams {
+  deps: SessionHandleDeps;
+  sessionRef: string;
+  validUntil: string;
+  cipherKey: Uint8Array;
+  cipherIv: Uint8Array;
+  formCode: FormCode;
+  validate?: boolean;
+}
 
-  const sessionRef = openResp.referenceNumber;
+function buildSessionHandle(params: SessionHandleParams): OnlineSessionHandle {
+  const { deps, sessionRef, validUntil, cipherKey, cipherIv, formCode, validate } = params;
 
   async function fetchUpo(pollOpts?: PollOptions): Promise<UpoInfo> {
     const result = await pollUntil(
-      () => client.sessionStatus.getSessionStatus(sessionRef),
+      () => deps.sessionStatus.getSessionStatus(sessionRef),
       (s) => s.status.code === 200 || s.status.code >= 400,
       { ...pollOpts, description: `UPO for session ${sessionRef}` },
     );
@@ -54,10 +63,10 @@ export async function openOnlineSession(
 
   return {
     sessionRef,
-    validUntil: openResp.validUntil,
+    validUntil,
 
     async sendInvoice(invoiceXml: string | Uint8Array): Promise<string> {
-      if (options?.validate) {
+      if (validate) {
         const xmlStr = typeof invoiceXml === 'string' ? invoiceXml : new TextDecoder().decode(invoiceXml);
         const vResult = await validateInvoice(xmlStr);
         if (!vResult.valid) {
@@ -68,11 +77,11 @@ export async function openOnlineSession(
         }
       }
       const data = typeof invoiceXml === 'string' ? new TextEncoder().encode(invoiceXml) : invoiceXml;
-      const plainMeta = client.crypto.getFileMetadata(data);
-      const encrypted = client.crypto.encryptAES256(data, encData.cipherKey, encData.cipherIv);
-      const encMeta = client.crypto.getFileMetadata(encrypted);
+      const plainMeta = deps.crypto.getFileMetadata(data);
+      const encrypted = deps.crypto.encryptAES256(data, cipherKey, cipherIv);
+      const encMeta = deps.crypto.getFileMetadata(encrypted);
 
-      const resp = await client.onlineSession.sendInvoice(sessionRef, {
+      const resp = await deps.onlineSession.sendInvoice(sessionRef, {
         invoiceHash: plainMeta.hashSHA,
         invoiceSize: plainMeta.fileSize,
         encryptedInvoiceHash: encMeta.hashSHA,
@@ -83,7 +92,7 @@ export async function openOnlineSession(
     },
 
     async close(): Promise<void> {
-      await client.onlineSession.closeSession(sessionRef);
+      await deps.onlineSession.closeSession(sessionRef);
     },
 
     async waitForUpo(pollOpts?: PollOptions): Promise<UpoInfo> {
@@ -94,12 +103,88 @@ export async function openOnlineSession(
       const upoInfo = await fetchUpo(pollOpts);
       const parsed = [];
       for (const page of upoInfo.pages) {
-        const result = await client.sessionStatus.getSessionUpo(sessionRef, page.referenceNumber);
+        const result = await deps.sessionStatus.getSessionUpo(sessionRef, page.referenceNumber);
         parsed.push(parseUpoXml(result.upo));
       }
       return { ...upoInfo, parsed };
     },
+
+    getState(): OnlineSessionState {
+      const token = deps.getAccessToken();
+      if (!token) {
+        throw new Error('Cannot serialize session state: no access token available');
+      }
+      return {
+        referenceNumber: sessionRef,
+        aesKey: Buffer.from(cipherKey).toString('base64'),
+        iv: Buffer.from(cipherIv).toString('base64'),
+        accessToken: token,
+        formCode,
+        validUntil,
+        ...(validate ? { validate } : {}),
+      };
+    },
   };
+}
+
+export async function openOnlineSession(
+  client: KSeFClient,
+  options?: OpenOnlineSessionOptions,
+): Promise<OnlineSessionHandle> {
+  await client.crypto.init();
+  const encData = client.crypto.getEncryptionData();
+  const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
+
+  const openResp = await client.onlineSession.openSession(
+    { formCode, encryption: encData.encryptionInfo },
+    options?.upoVersion,
+  );
+
+  return buildSessionHandle({
+    deps: {
+      crypto: client.crypto,
+      onlineSession: client.onlineSession,
+      sessionStatus: client.sessionStatus,
+      getAccessToken: () => client.authManager.getAccessToken(),
+    },
+    sessionRef: openResp.referenceNumber,
+    validUntil: openResp.validUntil,
+    cipherKey: encData.cipherKey,
+    cipherIv: encData.cipherIv,
+    formCode,
+    validate: options?.validate,
+  });
+}
+
+export function resumeOnlineSession(
+  client: KSeFClient,
+  state: OnlineSessionState,
+  options?: Pick<OpenOnlineSessionOptions, 'validate'>,
+): OnlineSessionHandle {
+  const expiry = new Date(state.validUntil);
+  if (expiry.getTime() <= Date.now()) {
+    throw new KSeFSessionExpiredError(
+      `Cannot resume session: expired at ${state.validUntil}`,
+    );
+  }
+
+  const scopedAuth = new DefaultAuthManager(() => Promise.resolve(null), state.accessToken);
+  const scopedRestClient = client.createScopedRestClient(scopedAuth);
+
+  return buildSessionHandle({
+    deps: {
+      crypto: client.crypto,
+      onlineSession: new OnlineSessionService(scopedRestClient),
+      sessionStatus: new SessionStatusService(scopedRestClient),
+      getAccessToken: () => scopedAuth.getAccessToken(),
+    },
+    sessionRef: state.referenceNumber,
+    validUntil: state.validUntil,
+    cipherKey: new Uint8Array(Buffer.from(state.aesKey, 'base64')),
+    cipherIv: new Uint8Array(Buffer.from(state.iv, 'base64')),
+    formCode: state.formCode,
+    validate: options?.validate ?? state.validate,
+  });
 }
 
 export async function openSendAndClose(

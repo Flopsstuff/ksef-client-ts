@@ -72,16 +72,18 @@ describe('BatchSessionService', () => {
 
     await service.sendParts(openResponse, parts);
 
-    expect(mockFetch).toHaveBeenCalledWith('https://presigned.url/part1', {
+    expect(mockFetch).toHaveBeenCalledWith('https://presigned.url/part1', expect.objectContaining({
       method: 'PUT',
       headers: { 'x-custom': 'val1' },
       body: 'data-part-1',
-    });
-    expect(mockFetch).toHaveBeenCalledWith('https://presigned.url/part2', {
+      signal: expect.any(AbortSignal),
+    }));
+    expect(mockFetch).toHaveBeenCalledWith('https://presigned.url/part2', expect.objectContaining({
       method: 'PUT',
       headers: { 'x-custom': 'val2' },
       body: 'data-part-2',
-    });
+      signal: expect.any(AbortSignal),
+    }));
   });
 
   it('sendParts throws when part ordinalNumber not found in partUploadRequests', async () => {
@@ -105,7 +107,7 @@ describe('BatchSessionService', () => {
     );
   });
 
-  it('sendParts uploads all parts in parallel', async () => {
+  it('sendParts uploads all parts in parallel by default', async () => {
     const client = createMockRestClient();
     const service = new BatchSessionService(client);
     const mockFetch = vi.fn().mockResolvedValue(new Response('', { status: 200 }));
@@ -126,6 +128,54 @@ describe('BatchSessionService', () => {
     await service.sendParts(openResponse, parts);
 
     expect(mockFetch.mock.calls.length).toBe(2);
+  });
+
+  it('sendParts with parallelism=1 uploads sequentially', async () => {
+    const client = createMockRestClient();
+    const service = new BatchSessionService(client);
+    const callOrder: number[] = [];
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      const ordinal = url.endsWith('part1') ? 1 : 2;
+      callOrder.push(ordinal);
+      await new Promise((r) => setTimeout(r, 10));
+      return new Response('', { status: 200 });
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const openResponse = {
+      referenceNumber: 'batch-ref',
+      partUploadRequests: [
+        { ordinalNumber: 1, url: 'https://presigned.url/part1', method: 'PUT', headers: {} },
+        { ordinalNumber: 2, url: 'https://presigned.url/part2', method: 'PUT', headers: {} },
+      ],
+    } as any;
+    const parts = [
+      { ordinalNumber: 1, data: 'data-1' },
+      { ordinalNumber: 2, data: 'data-2' },
+    ] as any[];
+
+    await service.sendParts(openResponse, parts, 1);
+
+    expect(callOrder).toEqual([1, 2]);
+  });
+
+  it('sendParts throws on non-ok response from presigned URL', async () => {
+    const client = createMockRestClient();
+    const service = new BatchSessionService(client);
+    const mockFetch = vi.fn().mockResolvedValue(new Response('Access Denied', { status: 403 }));
+    vi.stubGlobal('fetch', mockFetch);
+
+    const openResponse = {
+      referenceNumber: 'batch-ref',
+      partUploadRequests: [
+        { ordinalNumber: 1, url: 'https://presigned.url/part1', method: 'PUT', headers: {} },
+      ],
+    } as any;
+    const parts = [{ ordinalNumber: 1, data: 'data-1' }] as any[];
+
+    await expect(service.sendParts(openResponse, parts)).rejects.toThrow(
+      'Upload failed for part 1: HTTP 403 — Access Denied',
+    );
   });
 
   it('sendPartsWithStream uploads parts sequentially (not concurrent)', async () => {
@@ -160,6 +210,41 @@ describe('BatchSessionService', () => {
     // Sequential: part 1 completes before part 2 starts
     expect(callOrder).toEqual([1, 2]);
     expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('sendPartsWithStream with parallelism=2 uses bounded concurrency', async () => {
+    const client = createMockRestClient();
+    const service = new BatchSessionService(client);
+    let active = 0;
+    let maxActive = 0;
+    const mockFetch = vi.fn().mockImplementation(async () => {
+      active++;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((r) => setTimeout(r, 10));
+      active--;
+      return new Response('', { status: 200 });
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const openResponse = {
+      referenceNumber: 'batch-ref',
+      partUploadRequests: [
+        { ordinalNumber: 1, url: 'https://presigned.url/part1', method: 'PUT', headers: {} },
+        { ordinalNumber: 2, url: 'https://presigned.url/part2', method: 'PUT', headers: {} },
+        { ordinalNumber: 3, url: 'https://presigned.url/part3', method: 'PUT', headers: {} },
+        { ordinalNumber: 4, url: 'https://presigned.url/part4', method: 'PUT', headers: {} },
+      ],
+    } as any;
+
+    const makeStream = () => new ReadableStream({ start(c) { c.enqueue(new Uint8Array([1])); c.close(); } });
+    const parts = [1, 2, 3, 4].map((n) => ({
+      ordinalNumber: n, dataStream: makeStream(), metadata: { hashSHA: 'h', fileSize: 1 },
+    }));
+
+    await service.sendPartsWithStream(openResponse, parts, 2);
+
+    expect(mockFetch).toHaveBeenCalledTimes(4);
+    expect(maxActive).toBeLessThanOrEqual(2);
   });
 
   it('sendPartsWithStream throws on ordinal mismatch', async () => {

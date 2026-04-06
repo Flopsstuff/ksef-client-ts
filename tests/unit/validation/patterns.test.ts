@@ -113,6 +113,11 @@ describe('isValidNipVatUe', () => {
     expect(isValidNipVatUe('0123456789-ATU12345678')).toBe(false);
   });
 
+  it('rejects NIP with invalid checksum', () => {
+    // 1234567890 passes NIP regex pattern but fails mod-11 checksum
+    expect(isValidNipVatUe('1234567890-DE123456789')).toBe(false);
+  });
+
   it('rejects empty string', () => {
     expect(isValidNipVatUe('')).toBe(false);
   });

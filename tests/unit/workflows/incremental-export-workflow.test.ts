@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ContinuationPoints } from '../../../src/workflows/hwm-coordinator.js';
 import type { ExportResult } from '../../../src/workflows/types.js';
 import type { HwmStore } from '../../../src/workflows/hwm-storage.js';
+import { sha256Base64 } from '../../../src/utils/hash.js';
+
+/** Pre-computed SHA-256 base64 of the mock encrypted data [99, 99]. */
+const MOCK_ENC_HASH = sha256Base64(new Uint8Array([99, 99]));
 
 // Mock doExport before importing the module under test
 vi.mock('../../../src/workflows/invoice-export-workflow.js', () => ({
@@ -46,8 +50,9 @@ function mockExportResult(overrides: Partial<ExportResult> & { referenceNumber?:
           url: 'https://dl.example.com/1',
           method: 'GET',
           partSize: 100,
+          partHash: 'ph1',
           encryptedPartSize: 110,
-          encryptedPartHash: 'h1',
+          encryptedPartHash: MOCK_ENC_HASH,
           expirationDate: '2026-12-31',
         },
       ],
@@ -474,8 +479,9 @@ describe('incrementalExportAndDownload', () => {
                 url: 'https://dl.example.com/a1',
                 method: 'GET',
                 partSize: 100,
+                partHash: 'ph',
                 encryptedPartSize: 110,
-                encryptedPartHash: 'ha1',
+                encryptedPartHash: MOCK_ENC_HASH,
                 expirationDate: '2026-12-31',
               },
             ],
@@ -491,8 +497,9 @@ describe('incrementalExportAndDownload', () => {
                 url: 'https://dl.example.com/b1',
                 method: 'GET',
                 partSize: 200,
+                partHash: 'ph',
                 encryptedPartSize: 210,
-                encryptedPartHash: 'hb1',
+                encryptedPartHash: MOCK_ENC_HASH,
                 expirationDate: '2026-12-31',
               },
             ],
@@ -526,8 +533,9 @@ describe('incrementalExportAndDownload', () => {
               url: 'https://dl.example.com/p1',
               method: 'GET',
               partSize: 100,
+              partHash: 'ph',
               encryptedPartSize: 110,
-              encryptedPartHash: 'h1',
+              encryptedPartHash: MOCK_ENC_HASH,
               expirationDate: '2026-12-31',
             },
             {
@@ -535,8 +543,9 @@ describe('incrementalExportAndDownload', () => {
               url: 'https://dl.example.com/p2',
               method: 'GET',
               partSize: 200,
+              partHash: 'ph',
               encryptedPartSize: 210,
-              encryptedPartHash: 'h2',
+              encryptedPartHash: MOCK_ENC_HASH,
               expirationDate: '2026-12-31',
             },
             {
@@ -544,8 +553,9 @@ describe('incrementalExportAndDownload', () => {
               url: 'https://dl.example.com/p3',
               method: 'GET',
               partSize: 300,
+              partHash: 'ph',
               encryptedPartSize: 310,
-              encryptedPartHash: 'h3',
+              encryptedPartHash: MOCK_ENC_HASH,
               expirationDate: '2026-12-31',
             },
           ],

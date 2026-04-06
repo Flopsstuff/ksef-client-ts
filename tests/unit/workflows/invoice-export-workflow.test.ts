@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { exportInvoices, exportAndDownload } from '../../../src/workflows/invoice-export-workflow.js';
 import type { InvoiceQueryFilters } from '../../../src/models/invoices/types.js';
+import { sha256Base64 } from '../../../src/utils/hash.js';
 
 function createMockClient() {
   return {
@@ -147,6 +148,7 @@ describe('exportAndDownload', () => {
     const result = await exportAndDownload(client, filters, {
       pollOptions: { intervalMs: 1 },
       transport: mockTransport,
+      verifyHash: false,
     });
 
     expect(mockTransport).toHaveBeenCalledTimes(2);
@@ -180,6 +182,7 @@ describe('exportAndDownload', () => {
     await exportAndDownload(client, filters, {
       pollOptions: { intervalMs: 1 },
       transport: mockTransport,
+      verifyHash: false,
     });
 
     const encData = client.crypto.getEncryptionData();
@@ -188,5 +191,54 @@ describe('exportAndDownload', () => {
       encData.cipherKey,
       encData.cipherIv,
     );
+  });
+
+  it('throws on hash mismatch when verifyHash is enabled', async () => {
+    const mockTransport = vi.fn().mockImplementation(async () =>
+      new Response(new Uint8Array([1, 2, 3]).buffer, { status: 200 }),
+    );
+
+    await expect(
+      exportAndDownload(client, filters, {
+        pollOptions: { intervalMs: 1 },
+        transport: mockTransport,
+      }),
+    ).rejects.toThrow('Hash mismatch for export part 1');
+  });
+
+  it('passes when encrypted data hash matches encryptedPartHash', async () => {
+    const encryptedBytes = new Uint8Array([99, 99, 99]);
+    const correctHash = sha256Base64(encryptedBytes);
+
+    client.invoices.getInvoiceExportStatus.mockResolvedValue({
+      status: { code: 200, description: 'OK' },
+      package: {
+        invoiceCount: 1,
+        size: 100,
+        isTruncated: false,
+        parts: [{
+          ordinalNumber: 1,
+          partName: 'part-1.zip',
+          method: 'GET',
+          url: 'https://download.example.com/1',
+          partSize: 3,
+          partHash: 'ph',
+          encryptedPartSize: 3,
+          encryptedPartHash: correctHash,
+          expirationDate: '2025-12-31',
+        }],
+      },
+    });
+
+    const mockTransport = vi.fn().mockImplementation(async () =>
+      new Response(encryptedBytes.slice().buffer, { status: 200 }),
+    );
+
+    const result = await exportAndDownload(client, filters, {
+      pollOptions: { intervalMs: 1 },
+      transport: mockTransport,
+    });
+
+    expect(result.decryptedParts).toHaveLength(1);
   });
 });

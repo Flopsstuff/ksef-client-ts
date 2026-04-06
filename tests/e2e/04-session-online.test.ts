@@ -85,7 +85,7 @@ describe('04 - Online Session E2E', { timeout: 180_000 }, () => {
     expect(sessionUpo.upo).toBeTruthy();
 
     // Step 10: Get invoice XML by KSeF number
-    const invoiceXml = await client.invoices.getInvoice(ksefNumber);
+    const { xml: invoiceXml } = await client.invoices.getInvoice(ksefNumber);
     expect(invoiceXml).toContain(nip);
     expect(invoiceXml).toContain('Faktura');
 

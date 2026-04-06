@@ -18,6 +18,8 @@ export interface BatchUploadOptions {
   offlineMode?: boolean;
   /** Validate each invoice XML in the ZIP before uploading. */
   validate?: boolean;
+  /** Number of concurrent part uploads. Omit for default behavior (buffer: all parallel, stream: sequential). */
+  parallelism?: number;
 }
 
 export async function uploadBatch(
@@ -25,6 +27,9 @@ export async function uploadBatch(
   zipData: Uint8Array,
   options?: BatchUploadOptions,
 ): Promise<BatchUploadResult> {
+  if (options?.parallelism !== undefined && (!Number.isInteger(options.parallelism) || options.parallelism < 1)) {
+    throw new Error('parallelism must be a positive integer');
+  }
   await client.crypto.init();
 
   if (options?.validate) {
@@ -77,7 +82,7 @@ export async function uploadBatch(
     },
     ordinalNumber: i + 1,
   }));
-  await client.batchSession.sendParts(openResp, sendingParts);
+  await client.batchSession.sendParts(openResp, sendingParts, options?.parallelism);
 
   await client.batchSession.closeSession(openResp.referenceNumber);
 
@@ -109,6 +114,9 @@ export async function uploadBatchStream(
   zipSize: number,
   options?: BatchUploadOptions,
 ): Promise<BatchUploadResult> {
+  if (options?.parallelism !== undefined && (!Number.isInteger(options.parallelism) || options.parallelism < 1)) {
+    throw new Error('parallelism must be a positive integer');
+  }
   await client.crypto.init();
   const encData = client.crypto.getEncryptionData();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
@@ -137,7 +145,7 @@ export async function uploadBatchStream(
     options?.upoVersion,
   );
 
-  await client.batchSession.sendPartsWithStream(openResp, streamParts);
+  await client.batchSession.sendPartsWithStream(openResp, streamParts, options?.parallelism);
 
   await client.batchSession.closeSession(openResp.referenceNumber);
 
