@@ -473,6 +473,17 @@ describe('invoice', () => {
         { json: true },
       );
     });
+
+    it('outputs JSON without hash when hash is absent', async () => {
+      mockClient.invoices.getInvoice.mockResolvedValue({ xml: '<invoice/>' });
+
+      await runGet({ ksefNumber: 'KSeF-789', json: true });
+
+      expect(output.outputResult).toHaveBeenCalledWith(
+        { ksefNumber: 'KSeF-789', xml: '<invoice/>' },
+        { json: true },
+      );
+    });
   });
 
   describe('export', () => {
