@@ -100,8 +100,8 @@ const send = defineCommand({
       const nip = args.nip ?? config.nip;
       const filePath = args.path;
 
-      const parallelism = args.parallelism ? parseInt(args.parallelism as string, 10) : undefined;
-      if (parallelism !== undefined && (isNaN(parallelism) || parallelism < 1)) {
+      const parallelism = args.parallelism ? Number(args.parallelism) : undefined;
+      if (parallelism !== undefined && (!Number.isInteger(parallelism) || parallelism < 1)) {
         throw new Error('--parallelism must be a positive integer');
       }
 

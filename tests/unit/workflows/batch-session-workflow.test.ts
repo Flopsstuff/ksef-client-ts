@@ -177,6 +177,11 @@ describe('uploadBatch', () => {
     expect(client.sessionStatus.getSessionUpo).toHaveBeenCalledWith('batch-ref-1', 'upo-batch-1');
   });
 
+  it.each([0, -1, 1.5, NaN])('rejects invalid parallelism: %s', async (parallelism) => {
+    await expect(uploadBatch(client, zipData, { parallelism, pollOptions: { intervalMs: 1 } }))
+      .rejects.toThrow('parallelism must be a positive integer');
+  });
+
   it('passes parallelism to sendParts', async () => {
     await uploadBatch(client, zipData, { parallelism: 3, pollOptions: { intervalMs: 1 } });
     expect(client.batchSession.sendParts).toHaveBeenCalledWith(
@@ -260,6 +265,11 @@ describe('uploadBatchStream', () => {
     await uploadBatchStream(client, zipStreamFactory, zipData.length, { pollOptions: { intervalMs: 1 } });
     expect(client.batchSession.sendPartsWithStream).toHaveBeenCalled();
     expect(client.batchSession.sendParts).not.toHaveBeenCalled();
+  });
+
+  it.each([0, -1, 1.5, NaN])('rejects invalid parallelism: %s', async (parallelism) => {
+    await expect(uploadBatchStream(client, zipStreamFactory, zipData.length, { parallelism, pollOptions: { intervalMs: 1 } }))
+      .rejects.toThrow('parallelism must be a positive integer');
   });
 
   it('passes parallelism to sendPartsWithStream', async () => {

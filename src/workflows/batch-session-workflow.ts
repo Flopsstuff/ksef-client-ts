@@ -27,6 +27,9 @@ export async function uploadBatch(
   zipData: Uint8Array,
   options?: BatchUploadOptions,
 ): Promise<BatchUploadResult> {
+  if (options?.parallelism !== undefined && (!Number.isInteger(options.parallelism) || options.parallelism < 1)) {
+    throw new Error('parallelism must be a positive integer');
+  }
   await client.crypto.init();
 
   if (options?.validate) {
@@ -111,6 +114,9 @@ export async function uploadBatchStream(
   zipSize: number,
   options?: BatchUploadOptions,
 ): Promise<BatchUploadResult> {
+  if (options?.parallelism !== undefined && (!Number.isInteger(options.parallelism) || options.parallelism < 1)) {
+    throw new Error('parallelism must be a positive integer');
+  }
   await client.crypto.init();
   const encData = client.crypto.getEncryptionData();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
