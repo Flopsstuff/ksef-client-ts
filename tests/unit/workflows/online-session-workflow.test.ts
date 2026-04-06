@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { openOnlineSession, openSendAndClose } from '../../../src/workflows/online-session-workflow.js';
+import { openOnlineSession, resumeOnlineSession, openSendAndClose } from '../../../src/workflows/online-session-workflow.js';
 import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
 import { validate as validateInvoice } from '../../../src/validation/invoice-validator.js';
 import type { UpoPotwierdzenie } from '../../../src/xml/index.js';
@@ -11,7 +11,12 @@ vi.mock('../../../src/validation/invoice-validator.js', () => ({
 const mockValidateInvoice = vi.mocked(validateInvoice);
 
 function createMockClient() {
+  let _token = 'test-access-token';
   return {
+    authManager: {
+      getAccessToken: vi.fn(() => _token),
+      setAccessToken: vi.fn((t: string) => { _token = t; }),
+    },
     crypto: {
       init: vi.fn(),
       getEncryptionData: vi.fn().mockReturnValue({
@@ -212,6 +217,95 @@ describe('openSendAndClose', () => {
     expect(client.onlineSession.sendInvoice).toHaveBeenCalledTimes(2);
     expect(client.onlineSession.closeSession).toHaveBeenCalledWith('sess-ref-1');
     expect(upo.pages).toHaveLength(1);
+  });
+});
+
+describe('getState', () => {
+  it('returns serializable session state', async () => {
+    const handle = await openOnlineSession(client);
+    const state = handle.getState();
+
+    expect(state.referenceNumber).toBe('sess-ref-1');
+    expect(state.validUntil).toBe('2099-01-01T00:00:00Z');
+    expect(state.accessToken).toBe('test-access-token');
+    expect(state.formCode).toEqual({ systemCode: 'FA (3)', schemaVersion: '1-0E', value: 'FA' });
+    expect(typeof state.aesKey).toBe('string');
+    expect(typeof state.iv).toBe('string');
+    // Base64-encoded keys should be decodable
+    expect(Buffer.from(state.aesKey, 'base64')).toHaveLength(32);
+    expect(Buffer.from(state.iv, 'base64')).toHaveLength(16);
+  });
+
+  it('state is JSON-serializable round-trip', async () => {
+    const handle = await openOnlineSession(client);
+    const state = handle.getState();
+    const json = JSON.stringify(state);
+    const restored = JSON.parse(json);
+    expect(restored).toEqual(state);
+  });
+});
+
+describe('resumeOnlineSession', () => {
+  const savedState = {
+    referenceNumber: 'sess-ref-saved',
+    aesKey: Buffer.from(new Uint8Array(32)).toString('base64'),
+    iv: Buffer.from(new Uint8Array(16)).toString('base64'),
+    accessToken: 'saved-token-123',
+    formCode: { systemCode: 'FA (3)' as const, schemaVersion: '1-0E' as const, value: 'FA' as const },
+    validUntil: '2099-06-01T00:00:00Z',
+  };
+
+  it('restores handle with correct sessionRef and validUntil', () => {
+    const handle = resumeOnlineSession(client, savedState);
+    expect(handle.sessionRef).toBe('sess-ref-saved');
+    expect(handle.validUntil).toBe('2099-06-01T00:00:00Z');
+  });
+
+  it('sets access token on client authManager', () => {
+    resumeOnlineSession(client, savedState);
+    expect(client.authManager.setAccessToken).toHaveBeenCalledWith('saved-token-123');
+  });
+
+  it('resumed handle can send invoices', async () => {
+    const handle = resumeOnlineSession(client, savedState);
+    const ref = await handle.sendInvoice('<invoice>resumed</invoice>');
+    expect(ref).toBe('inv-ref-1');
+    expect(client.onlineSession.sendInvoice).toHaveBeenCalledWith(
+      'sess-ref-saved',
+      expect.objectContaining({ encryptedInvoiceContent: expect.any(String) }),
+    );
+  });
+
+  it('resumed handle can close session', async () => {
+    const handle = resumeOnlineSession(client, savedState);
+    await handle.close();
+    expect(client.onlineSession.closeSession).toHaveBeenCalledWith('sess-ref-saved');
+  });
+
+  it('resumed handle.getState() returns current state', () => {
+    const handle = resumeOnlineSession(client, savedState);
+    const state = handle.getState();
+    expect(state.referenceNumber).toBe('sess-ref-saved');
+    expect(state.aesKey).toBe(savedState.aesKey);
+    expect(state.iv).toBe(savedState.iv);
+  });
+
+  it('full round-trip: open → getState → JSON → resumeOnlineSession → sendInvoice', async () => {
+    const handle1 = await openOnlineSession(client);
+    const json = JSON.stringify(handle1.getState());
+
+    // Simulate restart with new client
+    const client2 = createMockClient();
+    const restored = JSON.parse(json);
+    const handle2 = resumeOnlineSession(client2, restored);
+
+    const ref = await handle2.sendInvoice('<invoice>round-trip</invoice>');
+    expect(ref).toBe('inv-ref-1');
+    expect(client2.authManager.setAccessToken).toHaveBeenCalled();
+    expect(client2.onlineSession.sendInvoice).toHaveBeenCalledWith(
+      'sess-ref-1',
+      expect.any(Object),
+    );
   });
 });
 

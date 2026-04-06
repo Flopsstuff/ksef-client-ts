@@ -1,4 +1,5 @@
 import type { UpoPotwierdzenie } from '../xml/index.js';
+import type { OnlineSessionState } from '../models/sessions/session-state.js';
 
 export interface PollOptions {
   intervalMs?: number;
@@ -13,6 +14,8 @@ export interface OnlineSessionHandle {
   close(): Promise<void>;
   waitForUpo(options?: PollOptions): Promise<UpoInfo>;
   waitForUpoParsed(options?: PollOptions): Promise<ParsedUpoInfo>;
+  /** Serialize session state for persistence. Restore with `resumeOnlineSession()`. */
+  getState(): OnlineSessionState;
 }
 
 export interface UpoInfo {

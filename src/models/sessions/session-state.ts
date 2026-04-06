@@ -1,0 +1,27 @@
+import type { FormCode } from '../common.js';
+import type { PartUploadRequest } from './batch-types.js';
+
+/** Serializable state of an online session. All binary data is Base64-encoded. */
+export interface OnlineSessionState {
+  referenceNumber: string;
+  /** AES-256 cipher key, Base64-encoded. */
+  aesKey: string;
+  /** AES-256 initialization vector, Base64-encoded. */
+  iv: string;
+  accessToken: string;
+  formCode: FormCode;
+  /** Session expiration time, ISO 8601. */
+  validUntil: string;
+}
+
+/** Serializable state of a batch session. */
+export interface BatchSessionState {
+  referenceNumber: string;
+  /** AES-256 cipher key, Base64-encoded. */
+  aesKey: string;
+  /** AES-256 initialization vector, Base64-encoded. */
+  iv: string;
+  accessToken: string;
+  formCode: FormCode;
+  partUploadRequests: PartUploadRequest[];
+}

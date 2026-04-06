@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [0.6.1] - 2026-04-06
 
 ### Added
+- **Session state serialization** — online sessions can now be serialized to JSON via `handle.getState()` and restored with `resumeOnlineSession(client, state)`. Enables fault-tolerant invoice sending across process restarts without re-opening sessions.
 - **File hash verification** — downloaded invoices and export parts are now verified against the SHA-256 hash from the `x-ms-meta-hash` response header. Export workflows verify encrypted part integrity by default (opt out with `verifyHash: false`). `getInvoice()` returns the hash alongside the XML for caller-side verification.
 - **Documentation** — new VitePress page: Polish Holidays reference with full holiday list, calculation details, and usage examples.
 

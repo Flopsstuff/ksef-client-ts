@@ -52,7 +52,11 @@ export function isValidNip(value: string): boolean {
   return checksum !== 10 && checksum === Number(value[9]);
 }
 export function isValidVatUe(value: string): boolean { return VatUe.test(value); }
-export function isValidNipVatUe(value: string): boolean { return NipVatUe.test(value); }
+export function isValidNipVatUe(value: string): boolean {
+  if (!NipVatUe.test(value)) return false;
+  const nip = value.split('-')[0]!;
+  return isValidNip(nip);
+}
 export function isValidInternalId(value: string): boolean { return InternalId.test(value); }
 export function isValidPeppolId(value: string): boolean { return PeppolId.test(value); }
 export function isValidReferenceNumber(value: string): boolean { return ReferenceNumber.test(value); }
