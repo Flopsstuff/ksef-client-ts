@@ -50,4 +50,4 @@ jobs:
             echo "Version $VERSION already published to npm, skipping"
             exit 0
           fi
-          npm publish --access public
+          npm publish --access public --provenance
