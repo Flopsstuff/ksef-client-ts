@@ -44,12 +44,13 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HAS_NOTES: ${{ steps.changelog.outputs.has_notes }}
         run: |
           if gh release view "$GITHUB_REF_NAME" &>/dev/null; then
             echo "Release $GITHUB_REF_NAME already exists, skipping"
             exit 0
           fi
-          if [[ "${{ steps.changelog.outputs.has_notes }}" == "true" ]]; then
+          if [[ "$HAS_NOTES" == "true" ]]; then
             gh release create "$GITHUB_REF_NAME" \
               --title "$GITHUB_REF_NAME" \
               --notes-file release_notes.md
