@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+tone_instructions: "Senior TypeScript developer reviewing a KSeF API client library. Be concise. Focus on type safety, error handling, and API correctness."
+
+reviews:
+  profile: "assertive"
+  high_level_summary: true
+  collapse_walkthrough: true
+  sequence_diagrams: true
+  poem: false
+
+  path_filters:
+    - "!dist/**"
+    - "!docs/open-api.json"
+    - "!docs/openapi-chunks/**"
+    - "!docs/schemas/**"
+    - "!**/*.lock"
+    - "!.yarn/**"
+
+  path_instructions:
+    - path: "src/crypto/**"
+      instructions: |
+        Review for cryptographic correctness, proper key handling,
+        and secure defaults. Verify WebCrypto API usage.
+    - path: "src/services/**"
+      instructions: |
+        Verify proper use of RestClient.execute with typed responses.
+        Check error handling covers KSeF-specific error codes.
+    - path: "tests/**"
+      instructions: |
+        Verify test coverage for edge cases. Tests use vitest with globals enabled.
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    ignore_title_keywords:
+      - "WIP"
+    base_branches:
+      - "main"
+
+  tools:
+    eslint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    yamllint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    github-checks:
+      enabled: true
+      timeout_ms: 90000
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "CLAUDE.md"
+  learnings:
+    scope: "auto"
+
+chat:
+  auto_reply: true
