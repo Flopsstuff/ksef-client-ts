@@ -131,10 +131,9 @@ Invoice number (`P_2` in XML) must be unique — resubmitting gives error 440 (D
 
 ### CI/CD
 
-4 GitHub Actions workflows in `.github/workflows/`:
-- `test.yml` — unit tests on Node 18/20/22 matrix, coverage badge via gist
-- `e2e.yml` — E2E tests against KSeF TEST environment (push to main + manual)
-- `release.yml` — GitHub Release from tag `v*`, extracts notes from CHANGELOG.md
+3 GitHub Actions workflows in `.github/workflows/`:
+- `ci.yml` — unit + E2E tests on Node 18/20/22 matrix, coverage badge via gist
+- `release.yml` — on tag `v*`: create GitHub Release (from CHANGELOG), then publish to npm + GitHub Packages in parallel
 - `deploy-docs.yml` — VitePress → GitHub Pages
 
 ### Documentation
