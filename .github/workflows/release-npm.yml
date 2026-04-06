@@ -44,6 +44,8 @@ jobs:
         run: yarn lint && yarn test && yarn build
 
       - name: Publish package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           if npm view ksef-client-ts@"$VERSION" version 2>/dev/null; then
