@@ -17,6 +17,8 @@ export interface OnlineSessionState {
   formCode: FormCode;
   /** Session expiration time, ISO 8601. */
   validUntil: string;
+  /** Whether invoices are validated against XSD before sending. */
+  validate?: boolean;
 }
 
 /** Serializable state of a batch session. */

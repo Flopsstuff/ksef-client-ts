@@ -255,6 +255,18 @@ describe('getState', () => {
     expect(() => handle.getState()).toThrow('Cannot serialize session state: no access token available');
   });
 
+  it('includes validate flag when true', async () => {
+    const handle = await openOnlineSession(client, { validate: true });
+    const state = handle.getState();
+    expect(state.validate).toBe(true);
+  });
+
+  it('omits validate flag when not set', async () => {
+    const handle = await openOnlineSession(client);
+    const state = handle.getState();
+    expect(state.validate).toBeUndefined();
+  });
+
   it('state is JSON-serializable round-trip', async () => {
     const handle = await openOnlineSession(client);
     const state = handle.getState();
@@ -327,6 +339,20 @@ describe('resumeOnlineSession', () => {
     expect(state.accessToken).toBe('saved-token-123');
     expect(state.aesKey).toBe(savedState.aesKey);
     expect(state.iv).toBe(savedState.iv);
+  });
+
+  it('restores validate flag from state', () => {
+    const stateWithValidate = { ...savedState, validate: true };
+    const handle = resumeOnlineSession(client, stateWithValidate);
+    const restored = handle.getState();
+    expect(restored.validate).toBe(true);
+  });
+
+  it('options.validate overrides state.validate', () => {
+    const stateWithValidate = { ...savedState, validate: true };
+    const handle = resumeOnlineSession(client, stateWithValidate, { validate: false });
+    const restored = handle.getState();
+    expect(restored.validate).toBeUndefined();
   });
 
   it('full round-trip: open → getState → JSON → resumeOnlineSession → sendInvoice', async () => {

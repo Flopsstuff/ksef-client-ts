@@ -121,6 +121,7 @@ function buildSessionHandle(params: SessionHandleParams): OnlineSessionHandle {
         accessToken: token,
         formCode,
         validUntil,
+        ...(validate ? { validate } : {}),
       };
     },
   };
@@ -182,7 +183,7 @@ export function resumeOnlineSession(
     cipherKey: new Uint8Array(Buffer.from(state.aesKey, 'base64')),
     cipherIv: new Uint8Array(Buffer.from(state.iv, 'base64')),
     formCode: state.formCode,
-    validate: options?.validate,
+    validate: options?.validate ?? state.validate,
   });
 }
 
