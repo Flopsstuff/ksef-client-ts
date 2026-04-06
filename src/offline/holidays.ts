@@ -76,7 +76,7 @@ export function computeEasterSunday(year: number): Date {
  *
  * Count: 14 (year >= 2025), 13 (year <= 2024)
  */
-export function getPolishHolidays(year: number): Set<string> {
+export function getPolishHolidays(year: number): ReadonlySet<string> {
   const cached = holidayCache.get(year);
   if (cached) return cached;
 
