@@ -161,3 +161,4 @@ Feature descriptions live in two places that must be kept in sync: `README.md` (
 - Always run the full test suite (unit + e2e) before committing. Ensure all tests pass before creating commits.
 - When debugging issues, investigate root causes before suggesting surface-level fixes. Don't suggest simple retries or config changes without first checking if the value is hardcoded or the real problem is deeper.
 - Always merge PRs with `--squash`. Merge commits are disabled on this repository.
+- When squash-merging, edit the combined commit message to remove duplicate `Co-Authored-By` lines from individual commits — keep only a single `Co-Authored-By` at the very end.
