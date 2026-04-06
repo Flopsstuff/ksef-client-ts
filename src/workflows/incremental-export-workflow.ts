@@ -5,6 +5,7 @@ import type { ContinuationPoints } from './hwm-coordinator.js';
 import type { HwmStore } from './hwm-storage.js';
 import { doExport } from './invoice-export-workflow.js';
 import { updateContinuationPoint, getEffectiveStartDate } from './hwm-coordinator.js';
+import { verifyHash } from '../utils/hash.js';
 
 export interface IncrementalExportOptions {
   subjectType: InvoiceSubjectType;
@@ -16,6 +17,8 @@ export interface IncrementalExportOptions {
   pollOptions?: PollOptions;
   onlyMetadata?: boolean;
   transport?: typeof fetch;
+  /** Verify SHA-256 hash of encrypted parts after download. Defaults to true. */
+  verifyHash?: boolean;
   store?: HwmStore;
   onIterationComplete?: (iteration: number, result: ExportResult) => void;
 }
@@ -76,6 +79,9 @@ export async function incrementalExportAndDownload(
         throw new Error(`Download failed for part ${part.ordinalNumber}: HTTP ${resp.status}`);
       }
       const encryptedData = new Uint8Array(await resp.arrayBuffer());
+      if (options.verifyHash !== false && !verifyHash(encryptedData, part.encryptedPartHash)) {
+        throw new Error(`Hash mismatch for export part ${part.ordinalNumber}`);
+      }
       const decrypted = client.crypto.decryptAES256(encryptedData, encData.cipherKey, encData.cipherIv);
       decryptedParts.push(decrypted);
     }

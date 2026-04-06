@@ -3,14 +3,28 @@ import { Routes } from '../../../src/http/routes.js';
 import { createMockRestClient, getRequest, mockResponse, mockRawResponse } from './_helpers.js';
 
 describe('InvoiceDownloadService', () => {
-  it('getInvoice uses executeRaw and decodes ArrayBuffer to string', async () => {
+  it('getInvoice returns xml and hash from response headers', async () => {
+    const client = createMockRestClient();
+    const service = new InvoiceDownloadService(client);
+    (client.executeRaw as any).mockResolvedValueOnce(
+      mockRawResponse('<invoice-xml/>', { 'x-ms-meta-hash': 'abc123hash' }),
+    );
+
+    const result = await service.getInvoice('KSeF-123');
+
+    expect(result.xml).toBe('<invoice-xml/>');
+    expect(result.hash).toBe('abc123hash');
+  });
+
+  it('getInvoice returns undefined hash when header is missing', async () => {
     const client = createMockRestClient();
     const service = new InvoiceDownloadService(client);
     (client.executeRaw as any).mockResolvedValueOnce(mockRawResponse('<invoice-xml/>'));
 
     const result = await service.getInvoice('KSeF-123');
 
-    expect(result).toBe('<invoice-xml/>');
+    expect(result.xml).toBe('<invoice-xml/>');
+    expect(result.hash).toBeUndefined();
   });
 
   it('queryInvoiceMetadata sends POST with filters body and no query params', async () => {

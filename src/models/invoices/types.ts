@@ -144,6 +144,16 @@ export interface QueryInvoicesMetadataResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Invoice download result
+// ---------------------------------------------------------------------------
+
+export interface InvoiceResult {
+  xml: string;
+  /** SHA-256 base64 hash from the `x-ms-meta-hash` response header, if present. */
+  hash?: string;
+}
+
+// ---------------------------------------------------------------------------
 // Export
 // ---------------------------------------------------------------------------
 

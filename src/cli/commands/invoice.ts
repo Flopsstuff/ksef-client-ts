@@ -299,10 +299,10 @@ const get = defineCommand({
       const globalOpts = getGlobalOpts(args);
       const { client } = await requireSession(globalOpts);
 
-      const xml = await client.invoices.getInvoice(args.ksefNumber);
+      const { xml, hash } = await client.invoices.getInvoice(args.ksefNumber);
 
       if (args.json) {
-        outputResult({ ksefNumber: args.ksefNumber, xml }, { json: true });
+        outputResult({ ksefNumber: args.ksefNumber, xml, hash }, { json: true });
         return;
       }
 

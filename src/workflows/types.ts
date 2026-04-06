@@ -42,6 +42,7 @@ export interface ExportResult {
     url: string;
     method: string;
     partSize: number;
+    partHash: string;
     encryptedPartSize: number;
     encryptedPartHash: string;
     expirationDate: string;

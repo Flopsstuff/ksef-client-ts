@@ -2,7 +2,7 @@ import { RestClient } from '../http/rest-client.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
 import type { OperationResponse, SortOrder } from '../models/common.js';
-import type { InvoiceQueryFilters, QueryInvoicesMetadataResponse, InvoiceExportRequest, InvoiceExportStatusResponse } from '../models/invoices/types.js';
+import type { InvoiceQueryFilters, QueryInvoicesMetadataResponse, InvoiceExportRequest, InvoiceExportStatusResponse, InvoiceResult } from '../models/invoices/types.js';
 
 export class InvoiceDownloadService {
   private readonly restClient: RestClient;
@@ -11,10 +11,13 @@ export class InvoiceDownloadService {
     this.restClient = restClient;
   }
 
-  async getInvoice(ksefNumber: string): Promise<string> {
+  async getInvoice(ksefNumber: string): Promise<InvoiceResult> {
     const req = RestRequest.get(Routes.Invoices.byKsefNumber(ksefNumber));
     const response = await this.restClient.executeRaw(req);
-    return new TextDecoder().decode(response.body);
+    return {
+      xml: new TextDecoder().decode(response.body),
+      hash: response.headers.get('x-ms-meta-hash') ?? undefined,
+    };
   }
 
   async queryInvoiceMetadata(

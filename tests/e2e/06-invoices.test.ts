@@ -58,7 +58,7 @@ describe('06 - Invoice Query & Export', { timeout: 300_000 }, () => {
   });
 
   it('should get invoice by KSeF number', async () => {
-    const xml = await client.invoices.getInvoice(sentKsefNumber);
+    const { xml } = await client.invoices.getInvoice(sentKsefNumber);
     expect(xml).toContain('Faktura');
     expect(xml).toContain(sentNip);
   });
