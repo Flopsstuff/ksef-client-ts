@@ -13,7 +13,7 @@ KSeF defines four offline modes per Polish VAT Act (art. 106nda/106nh/106nf):
 | `awaryjny` | KSeF failure (emergency, announced via BIP) | 7 business days from failure end |
 | `awaria_calkowita` | Total system failure (mass media announcement) | Invoice obligation suspended entirely |
 
-Business days exclude Saturdays and Sundays.
+Business days exclude Saturdays, Sundays, and [Polish statutory holidays](./polish-holidays.md).
 
 ## Quick Start (CLI)
 

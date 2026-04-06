@@ -57,6 +57,30 @@ describe('nextBusinessDay', () => {
     const result = nextBusinessDay(new Date('2026-04-12T00:00:00Z'));
     expect(result.toISOString().slice(0, 10)).toBe('2026-04-13');
   });
+
+  it('skips Christmas cluster (Wed Dec 23 → Mon Dec 28)', () => {
+    // 2026: Dec 24 Thu (Wigilia), Dec 25 Fri (hol), Dec 26 Sat, Dec 27 Sun → Dec 28 Mon
+    const result = nextBusinessDay(new Date('2026-12-23T00:00:00Z'));
+    expect(result.toISOString().slice(0, 10)).toBe('2026-12-28');
+  });
+
+  it('skips Corpus Christi (Wed Jun 3 → Fri Jun 5, skips Thu Jun 4)', () => {
+    // 2026: Corpus Christi = Thu Jun 4
+    const result = nextBusinessDay(new Date('2026-06-03T00:00:00Z'));
+    expect(result.toISOString().slice(0, 10)).toBe('2026-06-05');
+  });
+
+  it('skips Easter Monday (Sun Apr 5 Easter → Tue Apr 7, skips Mon Apr 6)', () => {
+    // 2026: Easter Sunday = Apr 5, Easter Monday = Apr 6
+    const result = nextBusinessDay(new Date('2026-04-05T00:00:00Z'));
+    expect(result.toISOString().slice(0, 10)).toBe('2026-04-07');
+  });
+
+  it('skips Jan 6 Trzech Króli (Mon Jan 5 → Wed Jan 7)', () => {
+    // 2026: Jan 6 = Tuesday
+    const result = nextBusinessDay(new Date('2026-01-05T00:00:00Z'));
+    expect(result.toISOString().slice(0, 10)).toBe('2026-01-07');
+  });
 });
 
 describe('addBusinessDays', () => {
@@ -95,6 +119,18 @@ describe('addBusinessDays', () => {
     expect(() => addBusinessDays(new Date('2026-04-08T00:00:00Z'), NaN))
       .toThrow('days must be a non-negative integer, got NaN');
   });
+
+  it('skips holidays when adding business days (Dec 2026 cluster)', () => {
+    // Wed Dec 23 + 1bd: skip Dec 24 Thu (Wigilia), Dec 25 Fri (hol), Dec 26 Sat, Dec 27 Sun → Mon Dec 28
+    const result = addBusinessDays(new Date('2026-12-23T00:00:00Z'), 1);
+    expect(result.toISOString().slice(0, 10)).toBe('2026-12-28');
+  });
+
+  it('adds 7 business days across Corpus Christi', () => {
+    // Mon Jun 1 + 7bd: Tue 2, Wed 3, (Thu 4 = Corpus Christi skip), Fri 5, Mon 8, Tue 9, Wed 10
+    const result = addBusinessDays(new Date('2026-06-01T00:00:00Z'), 7);
+    expect(result.toISOString().slice(0, 10)).toBe('2026-06-11');
+  });
 });
 
 describe('calculateOfflineDeadline', () => {
@@ -118,6 +154,16 @@ describe('calculateOfflineDeadline', () => {
     it('accepts Date object', () => {
       const result = calculateOfflineDeadline('offline24', new Date('2026-04-08T12:00:00Z'));
       expect(result.toISOString().slice(0, 10)).toBe('2026-04-09');
+    });
+
+    it('skips Christmas cluster — Wed Dec 23 → Mon Dec 28 (Dec 24 Wigilia + Dec 25 hol + weekend)', () => {
+      const result = calculateOfflineDeadline('offline24', '2026-12-23');
+      expect(result.toISOString().slice(0, 10)).toBe('2026-12-28');
+    });
+
+    it('skips Easter Monday — Easter Sunday Apr 5 → Tue Apr 7', () => {
+      const result = calculateOfflineDeadline('offline24', '2026-04-05');
+      expect(result.toISOString().slice(0, 10)).toBe('2026-04-07');
     });
   });
 

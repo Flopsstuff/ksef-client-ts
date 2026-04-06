@@ -9,6 +9,7 @@
  */
 
 import type { MaintenanceWindow, OfflineMode, OfflineReason } from './types.js';
+import { isPolishHoliday } from './holidays.js';
 
 const FAR_FUTURE = new Date('9999-12-31T23:59:59Z');
 
@@ -24,7 +25,7 @@ export function getDefaultReason(mode: OfflineMode): OfflineReason {
 export function nextBusinessDay(from: Date): Date {
   const d = new Date(from);
   d.setUTCDate(d.getUTCDate() + 1);
-  while (d.getUTCDay() === 0 || d.getUTCDay() === 6) {
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6 || isPolishHoliday(d)) {
     d.setUTCDate(d.getUTCDate() + 1);
   }
   return d;
@@ -38,7 +39,7 @@ export function addBusinessDays(from: Date, days: number): Date {
   let remaining = days;
   while (remaining > 0) {
     d.setUTCDate(d.getUTCDate() + 1);
-    if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6) {
+    if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6 && !isPolishHoliday(d)) {
       remaining--;
     }
   }

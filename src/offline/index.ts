@@ -21,6 +21,8 @@ export {
   getTimeUntilDeadline,
 } from './deadline.js';
 
+export { computeEasterSunday, getPolishHolidays, isPolishHoliday } from './holidays.js';
+
 export type { OfflineInvoiceFilter, OfflineInvoiceStorage, OfflineInvoiceUpdates } from './storage.js';
 export { InMemoryOfflineInvoiceStorage } from './storage.js';
 export { FileOfflineInvoiceStorage } from './file-storage.js';

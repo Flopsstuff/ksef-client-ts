@@ -5,8 +5,10 @@ All notable changes to this project will be documented in this file.
 ## [0.6.1] - 2026-04-06
 
 ### Added
+- **Documentation** — new VitePress page: Polish Holidays reference with full holiday list, calculation details, and usage examples.
 
 ### Fixed
+- **Polish holidays in deadline calculation** — `nextBusinessDay()` and `addBusinessDays()` now skip 14 Polish statutory holidays (9 fixed + 4 Easter-based + Wigilia since 2025), not just weekends. Fixes legally incorrect deadlines that could fall on holidays like Christmas or Corpus Christi.
 
 ## [0.6.0] - 2026-04-05
 

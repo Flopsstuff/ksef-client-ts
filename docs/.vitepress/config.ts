@@ -67,6 +67,7 @@ export default defineConfig({
           { text: 'Cryptography', link: '/cryptography' },
           { text: 'QR Codes', link: '/qr-codes' },
           { text: 'Offline Mode', link: '/offline-mode' },
+          { text: 'Polish Holidays', link: '/polish-holidays' },
           { text: 'Validation', link: '/validation' },
           { text: 'Error Handling', link: '/error-handling' },
           { text: 'External Signing', link: '/external-signing' },
