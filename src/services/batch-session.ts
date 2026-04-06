@@ -58,7 +58,7 @@ export class BatchSessionService {
       await runWithConcurrency(tasks, parallelism);
     } else {
       const ac = new AbortController();
-      await Promise.all(tasks.map(t => t(ac.signal)));
+      await Promise.all(tasks.map(t => t(ac.signal).catch(err => { ac.abort(); throw err; })));
     }
   }
 
@@ -101,9 +101,9 @@ export class BatchSessionService {
     if (parallelism !== undefined) {
       await runWithConcurrency(parts.map((p) => (signal: AbortSignal) => uploadPart(p, signal)), parallelism);
     } else {
-      const ac = new AbortController();
+      const { signal } = new AbortController();
       for (const part of parts) {
-        await uploadPart(part, ac.signal);
+        await uploadPart(part, signal);
       }
     }
   }
