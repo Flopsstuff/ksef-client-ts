@@ -3,6 +3,9 @@ import type { UpoVersion } from '../http/ksef-feature.js';
 import type { FormCode } from '../models/common.js';
 import type { OnlineSessionState } from '../models/sessions/session-state.js';
 import { KSeFSessionExpiredError } from '../errors/ksef-session-expired-error.js';
+import { DefaultAuthManager } from '../http/auth-manager.js';
+import { OnlineSessionService } from '../services/online-session.js';
+import { SessionStatusService } from '../services/session-status.js';
 import { DEFAULT_FORM_CODE } from '../models/document-structures/index.js';
 import type { OnlineSessionHandle, ParsedUpoInfo, PollOptions, UpoInfo } from './types.js';
 import { pollUntil } from './polling.js';
@@ -21,8 +24,15 @@ export interface SendAndCloseOptions extends OpenOnlineSessionOptions {
   pollOptions?: PollOptions;
 }
 
+interface SessionHandleDeps {
+  crypto: { getFileMetadata(data: Uint8Array): { hashSHA: string; fileSize: number }; encryptAES256(data: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array };
+  onlineSession: Pick<OnlineSessionService, 'sendInvoice' | 'closeSession'>;
+  sessionStatus: Pick<SessionStatusService, 'getSessionStatus' | 'getSessionUpo'>;
+  getAccessToken: () => string | undefined;
+}
+
 interface SessionHandleParams {
-  client: KSeFClient;
+  deps: SessionHandleDeps;
   sessionRef: string;
   validUntil: string;
   cipherKey: Uint8Array;
@@ -32,11 +42,11 @@ interface SessionHandleParams {
 }
 
 function buildSessionHandle(params: SessionHandleParams): OnlineSessionHandle {
-  const { client, sessionRef, validUntil, cipherKey, cipherIv, formCode, validate } = params;
+  const { deps, sessionRef, validUntil, cipherKey, cipherIv, formCode, validate } = params;
 
   async function fetchUpo(pollOpts?: PollOptions): Promise<UpoInfo> {
     const result = await pollUntil(
-      () => client.sessionStatus.getSessionStatus(sessionRef),
+      () => deps.sessionStatus.getSessionStatus(sessionRef),
       (s) => s.status.code === 200 || s.status.code >= 400,
       { ...pollOpts, description: `UPO for session ${sessionRef}` },
     );
@@ -67,11 +77,11 @@ function buildSessionHandle(params: SessionHandleParams): OnlineSessionHandle {
         }
       }
       const data = typeof invoiceXml === 'string' ? new TextEncoder().encode(invoiceXml) : invoiceXml;
-      const plainMeta = client.crypto.getFileMetadata(data);
-      const encrypted = client.crypto.encryptAES256(data, cipherKey, cipherIv);
-      const encMeta = client.crypto.getFileMetadata(encrypted);
+      const plainMeta = deps.crypto.getFileMetadata(data);
+      const encrypted = deps.crypto.encryptAES256(data, cipherKey, cipherIv);
+      const encMeta = deps.crypto.getFileMetadata(encrypted);
 
-      const resp = await client.onlineSession.sendInvoice(sessionRef, {
+      const resp = await deps.onlineSession.sendInvoice(sessionRef, {
         invoiceHash: plainMeta.hashSHA,
         invoiceSize: plainMeta.fileSize,
         encryptedInvoiceHash: encMeta.hashSHA,
@@ -82,7 +92,7 @@ function buildSessionHandle(params: SessionHandleParams): OnlineSessionHandle {
     },
 
     async close(): Promise<void> {
-      await client.onlineSession.closeSession(sessionRef);
+      await deps.onlineSession.closeSession(sessionRef);
     },
 
     async waitForUpo(pollOpts?: PollOptions): Promise<UpoInfo> {
@@ -93,14 +103,14 @@ function buildSessionHandle(params: SessionHandleParams): OnlineSessionHandle {
       const upoInfo = await fetchUpo(pollOpts);
       const parsed = [];
       for (const page of upoInfo.pages) {
-        const result = await client.sessionStatus.getSessionUpo(sessionRef, page.referenceNumber);
+        const result = await deps.sessionStatus.getSessionUpo(sessionRef, page.referenceNumber);
         parsed.push(parseUpoXml(result.upo));
       }
       return { ...upoInfo, parsed };
     },
 
     getState(): OnlineSessionState {
-      const token = client.authManager.getAccessToken();
+      const token = deps.getAccessToken();
       if (!token) {
         throw new Error('Cannot serialize session state: no access token available');
       }
@@ -130,7 +140,12 @@ export async function openOnlineSession(
   );
 
   return buildSessionHandle({
-    client,
+    deps: {
+      crypto: client.crypto,
+      onlineSession: client.onlineSession,
+      sessionStatus: client.sessionStatus,
+      getAccessToken: () => client.authManager.getAccessToken(),
+    },
     sessionRef: openResp.referenceNumber,
     validUntil: openResp.validUntil,
     cipherKey: encData.cipherKey,
@@ -152,10 +167,16 @@ export function resumeOnlineSession(
     );
   }
 
-  client.authManager.setAccessToken(state.accessToken);
+  const scopedAuth = new DefaultAuthManager(() => Promise.resolve(null), state.accessToken);
+  const scopedRestClient = client.createScopedRestClient(scopedAuth);
 
   return buildSessionHandle({
-    client,
+    deps: {
+      crypto: client.crypto,
+      onlineSession: new OnlineSessionService(scopedRestClient),
+      sessionStatus: new SessionStatusService(scopedRestClient),
+      getAccessToken: () => scopedAuth.getAccessToken(),
+    },
     sessionRef: state.referenceNumber,
     validUntil: state.validUntil,
     cipherKey: new Uint8Array(Buffer.from(state.aesKey, 'base64')),

@@ -41,6 +41,7 @@ export class KSeFClient {
   readonly qr: VerificationLinkService;
   readonly options: ResolvedOptions;
   readonly authManager: AuthManager;
+  private readonly _baseRestClientConfig: Omit<RestClientConfig, 'authManager'>;
   private _offline?: OfflineInvoiceWorkflow;
 
   constructor(options?: KSeFClientOptions) {
@@ -55,6 +56,8 @@ export class KSeFClient {
     this.authManager = authManager;
 
     const restClientConfig = buildRestClientConfig(options, authManager);
+    const { authManager: _am, ...baseConfig } = restClientConfig;
+    this._baseRestClientConfig = baseConfig;
     const restClient = new RestClient(this.options, restClientConfig);
 
     const fetcher = new CertificateFetcher(restClient);
@@ -80,6 +83,11 @@ export class KSeFClient {
       this._offline = new OfflineInvoiceWorkflow(this.qr);
     }
     return this._offline;
+  }
+
+  /** @internal Create a RestClient with a different AuthManager, preserving transport/retry/rateLimit config. */
+  createScopedRestClient(authManager: AuthManager): RestClient {
+    return new RestClient(this.options, { ...this._baseRestClientConfig, authManager });
   }
 
   async loginWithToken(token: string, nip: string): Promise<void> {

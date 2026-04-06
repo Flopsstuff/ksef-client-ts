@@ -11,6 +11,17 @@ vi.mock('../../../src/validation/invoice-validator.js', () => ({
 
 const mockValidateInvoice = vi.mocked(validateInvoice);
 
+function createMockScopedRestClient() {
+  return {
+    execute: vi.fn().mockResolvedValue({
+      body: { referenceNumber: 'inv-ref-1' },
+      headers: new Headers(),
+      statusCode: 200,
+    }),
+    executeVoid: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
 function createMockClient() {
   let _token = 'test-access-token';
   return {
@@ -18,6 +29,7 @@ function createMockClient() {
       getAccessToken: vi.fn(() => _token),
       setAccessToken: vi.fn((t: string) => { _token = t; }),
     },
+    createScopedRestClient: vi.fn().mockReturnValue(createMockScopedRestClient()),
     crypto: {
       init: vi.fn(),
       getEncryptionData: vi.fn().mockReturnValue({
@@ -277,31 +289,42 @@ describe('resumeOnlineSession', () => {
     expect(handle.validUntil).toBe('2099-06-01T00:00:00Z');
   });
 
-  it('sets access token on client authManager', () => {
+  it('does not modify client authManager', () => {
     resumeOnlineSession(client, savedState);
-    expect(client.authManager.setAccessToken).toHaveBeenCalledWith('saved-token-123');
+    expect(client.authManager.setAccessToken).not.toHaveBeenCalled();
+    expect(client.authManager.getAccessToken()).toBe('test-access-token');
   });
 
-  it('resumed handle can send invoices', async () => {
+  it('creates scoped RestClient via client.createScopedRestClient', () => {
+    resumeOnlineSession(client, savedState);
+    expect(client.createScopedRestClient).toHaveBeenCalledWith(
+      expect.objectContaining({ getAccessToken: expect.any(Function) }),
+    );
+    const scopedAuth = client.createScopedRestClient.mock.calls[0][0];
+    expect(scopedAuth.getAccessToken()).toBe('saved-token-123');
+  });
+
+  it('resumed handle can send invoices via scoped services', async () => {
     const handle = resumeOnlineSession(client, savedState);
     const ref = await handle.sendInvoice('<invoice>resumed</invoice>');
     expect(ref).toBe('inv-ref-1');
-    expect(client.onlineSession.sendInvoice).toHaveBeenCalledWith(
-      'sess-ref-saved',
-      expect.objectContaining({ encryptedInvoiceContent: expect.any(String) }),
-    );
+    expect(client.crypto.encryptAES256).toHaveBeenCalled();
+    // Uses scoped services, not client.onlineSession
+    expect(client.onlineSession.sendInvoice).not.toHaveBeenCalled();
   });
 
-  it('resumed handle can close session', async () => {
+  it('resumed handle can close session via scoped services', async () => {
     const handle = resumeOnlineSession(client, savedState);
     await handle.close();
-    expect(client.onlineSession.closeSession).toHaveBeenCalledWith('sess-ref-saved');
+    // Uses scoped services, not client.onlineSession
+    expect(client.onlineSession.closeSession).not.toHaveBeenCalled();
   });
 
-  it('resumed handle.getState() returns current state', () => {
+  it('resumed handle.getState() returns scoped token, not client token', () => {
     const handle = resumeOnlineSession(client, savedState);
     const state = handle.getState();
     expect(state.referenceNumber).toBe('sess-ref-saved');
+    expect(state.accessToken).toBe('saved-token-123');
     expect(state.aesKey).toBe(savedState.aesKey);
     expect(state.iv).toBe(savedState.iv);
   });
@@ -317,11 +340,8 @@ describe('resumeOnlineSession', () => {
 
     const ref = await handle2.sendInvoice('<invoice>round-trip</invoice>');
     expect(ref).toBe('inv-ref-1');
-    expect(client2.authManager.setAccessToken).toHaveBeenCalled();
-    expect(client2.onlineSession.sendInvoice).toHaveBeenCalledWith(
-      'sess-ref-1',
-      expect.any(Object),
-    );
+    // Auth is scoped — client2.authManager is untouched
+    expect(client2.authManager.setAccessToken).not.toHaveBeenCalled();
   });
 });
 
