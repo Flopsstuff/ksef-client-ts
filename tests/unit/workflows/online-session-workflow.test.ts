@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { openOnlineSession, resumeOnlineSession, openSendAndClose } from '../../../src/workflows/online-session-workflow.js';
 import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
+import { KSeFSessionExpiredError } from '../../../src/errors/ksef-session-expired-error.js';
 import { validate as validateInvoice } from '../../../src/validation/invoice-validator.js';
 import type { UpoPotwierdzenie } from '../../../src/xml/index.js';
 
@@ -236,6 +237,12 @@ describe('getState', () => {
     expect(Buffer.from(state.iv, 'base64')).toHaveLength(16);
   });
 
+  it('throws when access token is unavailable', async () => {
+    const handle = await openOnlineSession(client);
+    client.authManager.getAccessToken.mockReturnValue(undefined);
+    expect(() => handle.getState()).toThrow('Cannot serialize session state: no access token available');
+  });
+
   it('state is JSON-serializable round-trip', async () => {
     const handle = await openOnlineSession(client);
     const state = handle.getState();
@@ -254,6 +261,15 @@ describe('resumeOnlineSession', () => {
     formCode: { systemCode: 'FA (3)' as const, schemaVersion: '1-0E' as const, value: 'FA' as const },
     validUntil: '2099-06-01T00:00:00Z',
   };
+
+  it('throws KSeFSessionExpiredError for expired session', () => {
+    const expiredState = {
+      ...savedState,
+      validUntil: '2020-01-01T00:00:00Z',
+    };
+    expect(() => resumeOnlineSession(client, expiredState)).toThrow(KSeFSessionExpiredError);
+    expect(() => resumeOnlineSession(client, expiredState)).toThrow('Cannot resume session: expired at 2020-01-01T00:00:00Z');
+  });
 
   it('restores handle with correct sessionRef and validUntil', () => {
     const handle = resumeOnlineSession(client, savedState);

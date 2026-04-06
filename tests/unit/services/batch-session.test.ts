@@ -160,7 +160,7 @@ describe('BatchSessionService', () => {
   it('sendParts throws on non-ok response from presigned URL', async () => {
     const client = createMockRestClient();
     const service = new BatchSessionService(client);
-    const mockFetch = vi.fn().mockResolvedValue(new Response('', { status: 403 }));
+    const mockFetch = vi.fn().mockResolvedValue(new Response('Access Denied', { status: 403 }));
     vi.stubGlobal('fetch', mockFetch);
 
     const openResponse = {
@@ -172,7 +172,7 @@ describe('BatchSessionService', () => {
     const parts = [{ ordinalNumber: 1, data: 'data-1' }] as any[];
 
     await expect(service.sendParts(openResponse, parts)).rejects.toThrow(
-      'Upload failed for part 1: HTTP 403',
+      'Upload failed for part 1: HTTP 403 — Access Denied',
     );
   });
 

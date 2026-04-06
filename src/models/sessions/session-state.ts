@@ -1,7 +1,12 @@
 import type { FormCode } from '../common.js';
 import type { PartUploadRequest } from './batch-types.js';
 
-/** Serializable state of an online session. All binary data is Base64-encoded. */
+/**
+ * Serializable state of an online session. All binary data is Base64-encoded.
+ *
+ * **Security:** contains AES encryption keys in plaintext. Treat serialized
+ * state as sensitive data — encrypt at rest or store in a secure vault.
+ */
 export interface OnlineSessionState {
   referenceNumber: string;
   /** AES-256 cipher key, Base64-encoded. */

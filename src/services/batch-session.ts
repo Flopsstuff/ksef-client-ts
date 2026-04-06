@@ -49,7 +49,10 @@ export class BatchSessionService {
         body: part.data,
       });
       if (!resp.ok) {
-        throw new Error(`Upload failed for part ${part.ordinalNumber}: HTTP ${resp.status}`);
+        const body = await resp.text().catch(() => '');
+        throw new Error(
+          `Upload failed for part ${part.ordinalNumber}: HTTP ${resp.status}${body ? ` — ${body}` : ''}`,
+        );
       }
     });
     if (parallelism !== undefined) {
@@ -89,7 +92,10 @@ export class BatchSessionService {
         duplex: 'half',
       });
       if (!resp.ok) {
-        throw new Error(`Upload failed for part ${part.ordinalNumber}: HTTP ${resp.status}`);
+        const body = await resp.text().catch(() => '');
+        throw new Error(
+          `Upload failed for part ${part.ordinalNumber}: HTTP ${resp.status}${body ? ` — ${body}` : ''}`,
+        );
       }
     };
 

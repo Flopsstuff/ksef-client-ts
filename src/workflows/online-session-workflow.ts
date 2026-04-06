@@ -2,6 +2,7 @@ import type { KSeFClient } from '../client.js';
 import type { UpoVersion } from '../http/ksef-feature.js';
 import type { FormCode } from '../models/common.js';
 import type { OnlineSessionState } from '../models/sessions/session-state.js';
+import { KSeFSessionExpiredError } from '../errors/ksef-session-expired-error.js';
 import { DEFAULT_FORM_CODE } from '../models/document-structures/index.js';
 import type { OnlineSessionHandle, ParsedUpoInfo, PollOptions, UpoInfo } from './types.js';
 import { pollUntil } from './polling.js';
@@ -99,11 +100,15 @@ function buildSessionHandle(params: SessionHandleParams): OnlineSessionHandle {
     },
 
     getState(): OnlineSessionState {
+      const token = client.authManager.getAccessToken();
+      if (!token) {
+        throw new Error('Cannot serialize session state: no access token available');
+      }
       return {
         referenceNumber: sessionRef,
         aesKey: Buffer.from(cipherKey).toString('base64'),
         iv: Buffer.from(cipherIv).toString('base64'),
-        accessToken: client.authManager.getAccessToken()!,
+        accessToken: token,
         formCode,
         validUntil,
       };
@@ -140,6 +145,13 @@ export function resumeOnlineSession(
   state: OnlineSessionState,
   options?: Pick<OpenOnlineSessionOptions, 'validate'>,
 ): OnlineSessionHandle {
+  const expiry = new Date(state.validUntil);
+  if (expiry.getTime() <= Date.now()) {
+    throw new KSeFSessionExpiredError(
+      `Cannot resume session: expired at ${state.validUntil}`,
+    );
+  }
+
   client.authManager.setAccessToken(state.accessToken);
 
   return buildSessionHandle({

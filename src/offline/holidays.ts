@@ -3,8 +3,8 @@
  *
  * Polish law (Ordynacja podatkowa, art. 12 §5) excludes both weekends
  * and statutory holidays from business day counts. This module provides
- * the full list of 13 Polish holidays per year, including moveable
- * holidays derived from the Easter date.
+ * the full list of Polish statutory holidays per year (14 since 2025,
+ * 13 before), including moveable holidays derived from the Easter date.
  */
 
 const holidayCache = new Map<number, Set<string>>();

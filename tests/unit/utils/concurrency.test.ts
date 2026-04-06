@@ -68,6 +68,18 @@ describe('runWithConcurrency', () => {
     await expect(runWithConcurrency(tasks, 2)).rejects.toThrow('boom');
   });
 
+  it('stops scheduling new tasks after first error', async () => {
+    const executed: number[] = [];
+    const tasks = Array.from({ length: 20 }, (_, i) => async () => {
+      executed.push(i);
+      if (i === 2) throw new Error('fail');
+      await new Promise((r) => setTimeout(r, 5));
+    });
+
+    await expect(runWithConcurrency(tasks, 1)).rejects.toThrow('fail');
+    expect(executed.length).toBeLessThan(20);
+  });
+
   it('executes all tasks exactly once', async () => {
     const calls: number[] = [];
     const tasks = [1, 2, 3, 4, 5].map((n) => async () => {

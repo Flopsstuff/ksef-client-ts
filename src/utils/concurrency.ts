@@ -14,11 +14,17 @@ export async function runWithConcurrency(
   if (tasks.length === 0) return;
   const limit = Math.max(1, Math.min(parallelism, tasks.length));
   let index = 0;
+  let aborted = false;
   const workers = Array.from({ length: limit }, async () => {
-    while (index < tasks.length) {
+    while (index < tasks.length && !aborted) {
       const current = index;
       index += 1;
-      await tasks[current]!();
+      try {
+        await tasks[current]!();
+      } catch (err) {
+        aborted = true;
+        throw err;
+      }
     }
   });
   await Promise.all(workers);
