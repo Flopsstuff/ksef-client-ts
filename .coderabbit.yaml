@@ -40,6 +40,8 @@ reviews:
       - "main"
 
   tools:
+    oxc:
+      enabled: true
     eslint:
       enabled: true
     shellcheck:
