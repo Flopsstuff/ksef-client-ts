@@ -85,6 +85,7 @@ const send = defineCommand({
     stream: { type: 'boolean', description: 'Use stream-based batch upload (for ZIP files, reduces memory usage)' },
     formCode: { type: 'string', description: 'Document type: FA2, FA3, PEF3, PEFKOR3, FARR1 (default: FA3)' },
     validate: { type: 'boolean', description: 'Validate XML before sending' },
+    parallelism: { type: 'string', description: 'Number of concurrent part uploads (batch mode)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -98,6 +99,11 @@ const send = defineCommand({
       const config = loadConfig();
       const nip = args.nip ?? config.nip;
       const filePath = args.path;
+
+      const parallelism = args.parallelism ? parseInt(args.parallelism as string, 10) : undefined;
+      if (parallelism !== undefined && (isNaN(parallelism) || parallelism < 1)) {
+        throw new Error('--parallelism must be a positive integer');
+      }
 
       const formCodeKey = args.formCode as string | undefined;
       let formCode: FormCode = DEFAULT_FORM_CODE;
@@ -143,6 +149,7 @@ const send = defineCommand({
         const result = await uploadBatchStream(client, zipStreamFactory, zipSize, {
           formCode,
           pollOptions: { intervalMs: 3000 },
+          parallelism,
         });
 
         if (args.json) {
@@ -222,7 +229,7 @@ const send = defineCommand({
         );
 
         saveOnlineSessionRef(openResult.referenceNumber);
-        await client.batchSession.sendParts(openResult, parts);
+        await client.batchSession.sendParts(openResult, parts, parallelism);
         await client.batchSession.closeSession(openResult.referenceNumber);
         clearOnlineSessionRef();
 

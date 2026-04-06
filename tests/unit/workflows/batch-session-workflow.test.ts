@@ -177,6 +177,24 @@ describe('uploadBatch', () => {
     expect(client.sessionStatus.getSessionUpo).toHaveBeenCalledWith('batch-ref-1', 'upo-batch-1');
   });
 
+  it('passes parallelism to sendParts', async () => {
+    await uploadBatch(client, zipData, { parallelism: 3, pollOptions: { intervalMs: 1 } });
+    expect(client.batchSession.sendParts).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      3,
+    );
+  });
+
+  it('passes undefined parallelism when not specified', async () => {
+    await uploadBatch(client, zipData, { pollOptions: { intervalMs: 1 } });
+    expect(client.batchSession.sendParts).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      undefined,
+    );
+  });
+
   it('returns empty pages when upo is undefined', async () => {
     client.sessionStatus.getSessionStatus.mockResolvedValue({
       status: { code: 200, description: 'OK' },
@@ -242,6 +260,24 @@ describe('uploadBatchStream', () => {
     await uploadBatchStream(client, zipStreamFactory, zipData.length, { pollOptions: { intervalMs: 1 } });
     expect(client.batchSession.sendPartsWithStream).toHaveBeenCalled();
     expect(client.batchSession.sendParts).not.toHaveBeenCalled();
+  });
+
+  it('passes parallelism to sendPartsWithStream', async () => {
+    await uploadBatchStream(client, zipStreamFactory, zipData.length, { parallelism: 2, pollOptions: { intervalMs: 1 } });
+    expect(client.batchSession.sendPartsWithStream).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      2,
+    );
+  });
+
+  it('passes undefined parallelism when not specified', async () => {
+    await uploadBatchStream(client, zipStreamFactory, zipData.length, { pollOptions: { intervalMs: 1 } });
+    expect(client.batchSession.sendPartsWithStream).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      undefined,
+    );
   });
 
   it('uploadBatchStreamParsed fetches and parses UPO pages', async () => {

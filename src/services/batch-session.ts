@@ -2,6 +2,7 @@ import { RestClient } from '../http/rest-client.js';
 import { KSEF_FEATURE_HEADER } from '../http/ksef-feature.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
+import { runWithConcurrency } from '../utils/concurrency.js';
 import type { UpoVersion } from '../http/ksef-feature.js';
 import type { OpenBatchSessionRequest, OpenBatchSessionResponse, BatchPartSendingInfo, BatchPartStreamSendingInfo } from '../models/sessions/batch-types.js';
 
@@ -28,9 +29,10 @@ export class BatchSessionService {
   async sendParts(
     openResponse: OpenBatchSessionResponse,
     parts: BatchPartSendingInfo[],
+    parallelism?: number,
   ): Promise<void> {
     const uploadRequests = openResponse.partUploadRequests;
-    const tasks = parts.map(async (part) => {
+    const tasks = parts.map((part) => async () => {
       const uploadReq = uploadRequests.find(
         (r) => r.ordinalNumber === part.ordinalNumber,
       );
@@ -41,26 +43,34 @@ export class BatchSessionService {
       for (const [k, v] of Object.entries(uploadReq.headers)) {
         if (v != null) headers[k] = v;
       }
-      await fetch(uploadReq.url, {
+      const resp = await fetch(uploadReq.url, {
         method: uploadReq.method,
         headers,
         body: part.data,
       });
+      if (!resp.ok) {
+        throw new Error(`Upload failed for part ${part.ordinalNumber}: HTTP ${resp.status}`);
+      }
     });
-    await Promise.all(tasks);
+    if (parallelism !== undefined) {
+      await runWithConcurrency(tasks, parallelism);
+    } else {
+      await Promise.all(tasks.map(t => t()));
+    }
   }
 
   /**
-   * Upload parts sequentially (not in parallel) because each part uses a
-   * streaming body (`duplex: 'half'`). Parallel streaming uploads can cause
-   * backpressure issues and exceed memory limits for large payloads.
+   * Upload parts using streaming bodies (`duplex: 'half'`).
+   * By default uploads sequentially to avoid backpressure issues.
+   * Pass `parallelism` to enable bounded concurrent uploads.
    */
   async sendPartsWithStream(
     openResponse: OpenBatchSessionResponse,
     parts: BatchPartStreamSendingInfo[],
+    parallelism?: number,
   ): Promise<void> {
     const uploadRequests = openResponse.partUploadRequests;
-    for (const part of parts) {
+    const uploadPart = async (part: BatchPartStreamSendingInfo) => {
       const uploadReq = uploadRequests.find(
         (r) => r.ordinalNumber === part.ordinalNumber,
       );
@@ -80,6 +90,14 @@ export class BatchSessionService {
       });
       if (!resp.ok) {
         throw new Error(`Upload failed for part ${part.ordinalNumber}: HTTP ${resp.status}`);
+      }
+    };
+
+    if (parallelism !== undefined) {
+      await runWithConcurrency(parts.map((p) => () => uploadPart(p)), parallelism);
+    } else {
+      for (const part of parts) {
+        await uploadPart(part);
       }
     }
   }
