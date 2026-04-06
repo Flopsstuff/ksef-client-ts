@@ -53,4 +53,10 @@ jobs:
         # --registry override needed for GitHub Packages
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm publish --registry https://npm.pkg.github.com
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if npm view "@flopsstuff/ksef-client-ts@$VERSION" version --registry https://npm.pkg.github.com 2>/dev/null; then
+            echo "Version $VERSION already published to GitHub Packages, skipping"
+            exit 0
+          fi
+          npm publish --registry https://npm.pkg.github.com

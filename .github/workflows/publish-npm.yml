@@ -43,4 +43,10 @@ jobs:
         run: yarn lint && yarn test && yarn build
 
       - name: Publish package
-        run: npm publish --access public
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if npm view ksef-client-ts@"$VERSION" version 2>/dev/null; then
+            echo "Version $VERSION already published to npm, skipping"
+            exit 0
+          fi
+          npm publish --access public
