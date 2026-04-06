@@ -5,14 +5,14 @@ All notable changes to this project will be documented in this file.
 ## [0.6.1] - 2026-04-06
 
 ### Added
-- **Session state serialization** — online sessions can now be serialized to JSON via `handle.getState()` and restored with `resumeOnlineSession(client, state)`. Enables fault-tolerant invoice sending across process restarts without re-opening sessions.
-- **File hash verification** — downloaded invoices and export parts are now verified against the SHA-256 hash from the `x-ms-meta-hash` response header. Export workflows verify encrypted part integrity by default (opt out with `verifyHash: false`). `getInvoice()` returns the hash alongside the XML for caller-side verification.
-- **Parallel batch upload** — configurable `parallelism` option for batch part uploads. Controls how many parts are uploaded concurrently instead of all-at-once (buffer) or one-by-one (stream). Available via `BatchUploadOptions.parallelism` and CLI `--parallelism` flag on `ksef invoice send`.
-- **Documentation** — new VitePress page: Polish Holidays reference with full holiday list, calculation details, and usage examples.
+- **Session state serialization** — online sessions can be saved to JSON and restored across process restarts for fault-tolerant invoice sending.
+- **File hash verification** — downloaded invoices and export parts are verified against SHA-256 checksums to detect corruption or tampering. Enabled by default for exports (opt out with `verifyHash: false`).
+- **Parallel batch upload** — batch parts can be uploaded concurrently with a configurable concurrency limit (CLI: `--parallelism`).
+- **Documentation** — added a Polish Holidays reference page.
 
 ### Fixed
-- **Batch upload error detection** — presigned URL upload errors (4xx/5xx) in buffer-based batch uploads are now detected and thrown instead of being silently ignored.
-- **Polish holidays in deadline calculation** — `nextBusinessDay()` and `addBusinessDays()` now skip 14 Polish statutory holidays (9 fixed + 4 Easter-based + Wigilia since 2025), not just weekends. Fixes legally incorrect deadlines that could fall on holidays like Christmas or Corpus Christi.
+- **Batch upload error detection** — presigned URL upload errors are now surfaced correctly instead of being silently ignored.
+- **Polish holidays in deadline calculation** — business-day calculations now correctly account for all 14 Polish statutory holidays (since 2025), not just weekends.
 
 ## [0.6.0] - 2026-04-05
 
