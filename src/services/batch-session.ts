@@ -31,11 +31,9 @@ export class BatchSessionService {
     parts: BatchPartSendingInfo[],
     parallelism?: number,
   ): Promise<void> {
-    const uploadRequests = openResponse.partUploadRequests;
+    const uploadMap = new Map(openResponse.partUploadRequests.map(r => [r.ordinalNumber, r] as const));
     const tasks = parts.map((part) => async () => {
-      const uploadReq = uploadRequests.find(
-        (r) => r.ordinalNumber === part.ordinalNumber,
-      );
+      const uploadReq = uploadMap.get(part.ordinalNumber);
       if (!uploadReq) {
         throw new Error(`No upload request found for part ${part.ordinalNumber}`);
       }
@@ -72,11 +70,9 @@ export class BatchSessionService {
     parts: BatchPartStreamSendingInfo[],
     parallelism?: number,
   ): Promise<void> {
-    const uploadRequests = openResponse.partUploadRequests;
+    const uploadMap = new Map(openResponse.partUploadRequests.map(r => [r.ordinalNumber, r] as const));
     const uploadPart = async (part: BatchPartStreamSendingInfo) => {
-      const uploadReq = uploadRequests.find(
-        (r) => r.ordinalNumber === part.ordinalNumber,
-      );
+      const uploadReq = uploadMap.get(part.ordinalNumber);
       if (!uploadReq) {
         throw new Error(`No upload request found for part ${part.ordinalNumber}`);
       }
