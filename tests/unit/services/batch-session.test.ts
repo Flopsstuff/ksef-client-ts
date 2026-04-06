@@ -72,16 +72,18 @@ describe('BatchSessionService', () => {
 
     await service.sendParts(openResponse, parts);
 
-    expect(mockFetch).toHaveBeenCalledWith('https://presigned.url/part1', {
+    expect(mockFetch).toHaveBeenCalledWith('https://presigned.url/part1', expect.objectContaining({
       method: 'PUT',
       headers: { 'x-custom': 'val1' },
       body: 'data-part-1',
-    });
-    expect(mockFetch).toHaveBeenCalledWith('https://presigned.url/part2', {
+      signal: expect.any(AbortSignal),
+    }));
+    expect(mockFetch).toHaveBeenCalledWith('https://presigned.url/part2', expect.objectContaining({
       method: 'PUT',
       headers: { 'x-custom': 'val2' },
       body: 'data-part-2',
-    });
+      signal: expect.any(AbortSignal),
+    }));
   });
 
   it('sendParts throws when part ordinalNumber not found in partUploadRequests', async () => {

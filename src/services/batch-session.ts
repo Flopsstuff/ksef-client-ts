@@ -32,7 +32,7 @@ export class BatchSessionService {
     parallelism?: number,
   ): Promise<void> {
     const uploadMap = new Map(openResponse.partUploadRequests.map(r => [r.ordinalNumber, r] as const));
-    const tasks = parts.map((part) => async () => {
+    const tasks = parts.map((part) => async (signal: AbortSignal) => {
       const uploadReq = uploadMap.get(part.ordinalNumber);
       if (!uploadReq) {
         throw new Error(`No upload request found for part ${part.ordinalNumber}`);
@@ -45,6 +45,7 @@ export class BatchSessionService {
         method: uploadReq.method,
         headers,
         body: part.data,
+        signal,
       });
       if (!resp.ok) {
         const body = await resp.text().catch(() => '');
@@ -56,7 +57,8 @@ export class BatchSessionService {
     if (parallelism !== undefined) {
       await runWithConcurrency(tasks, parallelism);
     } else {
-      await Promise.all(tasks.map(t => t()));
+      const ac = new AbortController();
+      await Promise.all(tasks.map(t => t(ac.signal)));
     }
   }
 
@@ -71,7 +73,7 @@ export class BatchSessionService {
     parallelism?: number,
   ): Promise<void> {
     const uploadMap = new Map(openResponse.partUploadRequests.map(r => [r.ordinalNumber, r] as const));
-    const uploadPart = async (part: BatchPartStreamSendingInfo) => {
+    const uploadPart = async (part: BatchPartStreamSendingInfo, signal: AbortSignal) => {
       const uploadReq = uploadMap.get(part.ordinalNumber);
       if (!uploadReq) {
         throw new Error(`No upload request found for part ${part.ordinalNumber}`);
@@ -84,6 +86,7 @@ export class BatchSessionService {
         method: uploadReq.method,
         headers,
         body: part.dataStream,
+        signal,
         // @ts-expect-error -- Node 18+ undici supports duplex for streaming body
         duplex: 'half',
       });
@@ -96,10 +99,11 @@ export class BatchSessionService {
     };
 
     if (parallelism !== undefined) {
-      await runWithConcurrency(parts.map((p) => () => uploadPart(p)), parallelism);
+      await runWithConcurrency(parts.map((p) => (signal: AbortSignal) => uploadPart(p, signal)), parallelism);
     } else {
+      const ac = new AbortController();
       for (const part of parts) {
-        await uploadPart(part);
+        await uploadPart(part, ac.signal);
       }
     }
   }
