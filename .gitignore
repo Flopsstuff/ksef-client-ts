@@ -16,6 +16,10 @@ coverage/
 # Certificates, keys, signed XML
 .certs/
 
+# Claude local settings
+.claude/projects/
+.claude/settings.local.json
+
 # Plans
 plans/
 
