@@ -155,8 +155,8 @@ ksef invoice export-status <ref>                 # Check export status
 | `--dateType <type>` | Issue, Invoicing (default), PermanentStorage |
 | `--sellerNip <nip>` | Filter by seller NIP |
 | `--buyerNip <nip>` | Filter by buyer NIP |
-| `--amountFrom <n>` | Minimum amount |
-| `--amountTo <n>` | Maximum amount |
+| `--amountFrom <n>` | Minimum amount (negative values allowed) |
+| `--amountTo <n>` | Maximum amount (negative values allowed) |
 | `--amountType <type>` | Brutto (default), Netto, Vat |
 | `--currency <code>` | Currency code (PLN, EUR, etc.) |
 | `--page <n>` | Page offset (0-based) |

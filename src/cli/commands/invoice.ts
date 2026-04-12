@@ -71,8 +71,8 @@ const QUERY_FILTER_ARGS = {
   dateType: { type: 'string' as const, description: 'Date type: Issue|Invoicing|PermanentStorage (default: Invoicing)' },
   sellerNip: { type: 'string' as const, description: 'Filter by seller NIP' },
   buyerNip: { type: 'string' as const, description: 'Filter by buyer NIP' },
-  amountFrom: { type: 'string' as const, description: 'Minimum amount' },
-  amountTo: { type: 'string' as const, description: 'Maximum amount' },
+  amountFrom: { type: 'string' as const, description: 'Minimum amount (negative values allowed)' },
+  amountTo: { type: 'string' as const, description: 'Maximum amount (negative values allowed)' },
   amountType: { type: 'string' as const, description: 'Amount type: Brutto|Netto|Vat (default: Brutto)' },
   currency: { type: 'string' as const, description: 'Currency code (e.g. PLN, EUR)' },
 } as const;

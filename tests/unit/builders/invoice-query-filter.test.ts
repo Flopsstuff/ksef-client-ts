@@ -77,6 +77,17 @@ describe('InvoiceQueryFilterBuilder', () => {
     expect(filter.hasAttachment).toBe(false);
   });
 
+  it('accepts negative amounts in withAmount (KSeF API v2.3.0)', () => {
+    const bothNegative = validBuilder().withAmount('Brutto', -500, -100).build();
+    expect(bothNegative.amount).toEqual({ type: 'Brutto', from: -500, to: -100 });
+
+    const straddling = validBuilder().withAmount('Netto', -100, 500).build();
+    expect(straddling.amount).toEqual({ type: 'Netto', from: -100, to: 500 });
+
+    const onlyNegativeTo = validBuilder().withAmount('Vat', undefined, -1).build();
+    expect(onlyNegativeTo.amount).toEqual({ type: 'Vat', to: -1 });
+  });
+
   it('should throw KSeFValidationError when subject type missing', () => {
     const builder = new InvoiceQueryFilterBuilder()
       .withDateRange('InvoicingDate', '2025-01-01');

@@ -502,6 +502,8 @@ interface InvoiceQueryFilters {
 
 Use the `InvoiceQueryFilterBuilder` (see [Builders](#builders)) for fluent construction with validation.
 
+> `InvoiceQueryAmount.from` and `InvoiceQueryAmount.to` accept negative values (KSeF API v2.3.0) — useful for querying corrective invoices and refunds.
+
 ### InvoiceMetadata
 
 Rich metadata returned for each invoice:

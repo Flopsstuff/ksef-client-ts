@@ -146,6 +146,15 @@ describe('invoice', () => {
       );
     });
 
+    it('parses negative amountFrom and amountTo', async () => {
+      mockClient.invoices.queryInvoiceMetadata.mockResolvedValue({ invoices: [], hasMore: false });
+      await runQuery({ from: '2024-01-01', amountFrom: '-100', amountTo: '-50', amountType: 'Netto' });
+      expect(mockClient.invoices.queryInvoiceMetadata).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: { type: 'Netto', from: -100, to: -50 } }),
+        undefined, undefined,
+      );
+    });
+
     it('creates currencyCodes array', async () => {
       mockClient.invoices.queryInvoiceMetadata.mockResolvedValue({ invoices: [], hasMore: false });
       await runQuery({ from: '2024-01-01', currency: 'EUR' });
