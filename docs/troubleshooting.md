@@ -12,12 +12,13 @@ KSeFError (base)
 │   └── KSeFRateLimitError (429)
 ├── KSeFUnauthorizedError (401)
 ├── KSeFForbiddenError (403)
+├── KSeFGoneError (410, operation status retention expired)
 ├── KSeFAuthStatusError
 ├── KSeFSessionExpiredError
 └── KSeFValidationError (client-side validation)
 ```
 
-`RestClient` dispatches errors in order: **429 → 401 → 403 → generic**. The first matching handler throws the corresponding error class.
+`RestClient` dispatches errors in order: **429 → 401 → 403 → 410 → generic**. The first matching handler throws the corresponding error class.
 
 ---
 
@@ -45,6 +46,7 @@ The KSeF API enforces per-subject rate limits. The library automatically retries
 | `detail` | `string` | Human-readable error description |
 | `traceId` | `string?` | Server-side trace identifier |
 | `instance` | `string?` | API instance identifier |
+| `timestamp` | `string?` | UTC timestamp recorded by the server (KSeF API v2.4.0+) |
 
 The library automatically attempts one token refresh on 401. If refresh also fails, the error is thrown.
 
@@ -66,6 +68,7 @@ The library automatically attempts one token refresh on 401. If refresh also fai
 | `traceId` | `string?` | Server-side trace identifier |
 | `instance` | `string?` | API instance identifier |
 | `security` | `Record<string, unknown>?` | Additional security context |
+| `timestamp` | `string?` | UTC timestamp recorded by the server (KSeF API v2.4.0+) |
 
 #### Reason codes
 
@@ -89,6 +92,24 @@ No dedicated error class — thrown as `KSeFApiError`.
 **What to do:**
 - Verify the reference number, KSeF number, or serial number
 - Ensure you're querying the correct environment
+
+### 410 — Gone (operation status retention expired)
+
+**Error class:** `KSeFGoneError` (extends `KSeFError`)
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `detail` | `string` | Human-readable error description |
+| `instance` | `string?` | API instance identifier |
+| `traceId` | `string?` | Server-side trace identifier |
+| `timestamp` | `string?` | UTC timestamp recorded by the server |
+
+KSeF API v2.4.0 enforces retention on async operation status endpoints. After the window expires, polling the status returns 410 Gone. Retention windows: **7 days** for authentication and invoice export operation status, **30 days** for certificate and permission enrollment status.
+
+**What to do:**
+- Re-issue the action (the underlying outcome — e.g., issued certificate, exported package — is not lost; only the polling endpoint forgets the status)
+- Persist completed reference numbers and result URLs locally so you don't depend on long-term server-side polling
+- Reduce poll intervals or download results closer to completion
 
 ### Network Errors
 

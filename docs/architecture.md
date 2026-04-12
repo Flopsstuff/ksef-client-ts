@@ -121,6 +121,7 @@ Service method
 429 → KSeFRateLimitError (parses Retry-After header)
 401 → KSeFUnauthorizedError (if body matches UnauthorizedProblemDetails)
 403 → KSeFForbiddenError (if body matches ForbiddenProblemDetails)
+410 → KSeFGoneError (operation status retention expired, KSeF v2.4.0+)
  *  → KSeFApiError (generic, any non-2xx)
 ```
 
@@ -212,6 +213,7 @@ Error
         │     └── KSeFRateLimitError  # 429 with Retry-After
         ├── KSeFUnauthorizedError     # 401 (ProblemDetails body)
         ├── KSeFForbiddenError        # 403 with reasonCode
+        ├── KSeFGoneError             # 410 (operation status retention expired, KSeF v2.4.0+)
         ├── KSeFAuthStatusError       # Auth operation failed/timed out
         ├── KSeFSessionExpiredError   # Stored session expired
         └── KSeFValidationError       # Client-side validation (builders)

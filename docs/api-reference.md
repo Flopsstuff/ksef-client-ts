@@ -885,6 +885,7 @@ Extends `KSeFError`. Thrown on HTTP 401 responses when the body matches `Unautho
 | `detail`   | `string`  | Error detail from the API        |
 | `traceId`  | `string?` | Trace ID for debugging           |
 | `instance` | `string?` | Request instance identifier      |
+| `timestamp` | `string?` | UTC timestamp recorded by the server (KSeF API v2.4.0+) |
 
 ### KSeFForbiddenError
 
@@ -894,10 +895,23 @@ Extends `KSeFError`. Thrown on HTTP 403 responses when the body matches `Forbidd
 | ------------ | --------------------- | ------------------------------------ |
 | `statusCode` | `403`                 | Always 403                           |
 | `detail`     | `string`              | Error detail from the API            |
-| `reasonCode` | `ForbiddenReasonCode` | One of: `missing-permissions`, `ip-not-allowed`, `insufficient-resource-access`, `auth-method-not-allowed`, `security-service-blocked` |
+| `reasonCode` | `ForbiddenReasonCode` | One of: `missing-permissions`, `ip-not-allowed`, `insufficient-resource-access`, `auth-method-not-allowed`, `security-service-blocked`, `context-type-not-allowed` |
 | `instance`   | `string?`             | Request instance identifier          |
 | `security`   | `Record<string, unknown>?` | Additional security context    |
 | `traceId`    | `string?`             | Trace ID for debugging               |
+| `timestamp`  | `string?`             | UTC timestamp recorded by the server (KSeF API v2.4.0+) |
+
+### KSeFGoneError
+
+Extends `KSeFError`. Thrown on HTTP 410 responses when an async operation status has aged out of the KSeF retention window (KSeF API v2.4.0+). Retention is 7 days for authentication and export operations and 30 days for certificate and permission enrollments.
+
+| Field        | Type      | Description                                  |
+| ------------ | --------- | -------------------------------------------- |
+| `statusCode` | `410`     | Always 410                                   |
+| `detail`     | `string`  | Server detail, or default retention-expired message if absent |
+| `instance`   | `string?` | Request instance identifier                  |
+| `traceId`    | `string?` | Trace ID for debugging                       |
+| `timestamp`  | `string?` | UTC timestamp recorded by the server         |
 
 ### ApiErrorResponse
 
@@ -972,12 +986,13 @@ Error
         │     └── KSeFRateLimitError  // HTTP 429 (too many requests)
         ├── KSeFUnauthorizedError     // HTTP 401 (unauthorized)
         ├── KSeFForbiddenError        // HTTP 403 (forbidden)
+        ├── KSeFGoneError             // HTTP 410 (operation status retention expired)
         ├── KSeFAuthStatusError       // auth operation failed/timed out
         ├── KSeFSessionExpiredError   // stored session expired
         └── KSeFValidationError       // client-side validation failed
 ```
 
-`RestClient.ensureSuccess` dispatches errors in order: 429 → 401 → 403 → generic `KSeFApiError`.
+`RestClient.ensureSuccess` dispatches errors in order: 429 → 401 → 403 → 410 → generic `KSeFApiError`.
 
 ---
 
