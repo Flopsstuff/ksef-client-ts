@@ -198,6 +198,18 @@ interface AuthChallengeResponse {
 
 The `challenge` value must be included in the init request body (either `AuthTokenRequest` or `AuthKsefTokenRequest`).
 
+#### LoginResult
+
+Returned by `client.loginWithToken()`, `client.loginWithCertificate()`, and `client.loginWithPkcs12()`.
+
+```typescript
+interface LoginResult {
+  clientIp: string;  // caller's IP as seen by KSeF during challenge
+}
+```
+
+Use `clientIp` to configure `AuthorizationPolicy.allowedIps` on future auth requests — if the whitelist excludes this IP, KSeF rejects with `ip-not-allowed`.
+
 #### AuthTokenRequest (XAdES certificate login)
 
 ```typescript
@@ -501,6 +513,8 @@ interface InvoiceQueryFilters {
 ```
 
 Use the `InvoiceQueryFilterBuilder` (see [Builders](#builders)) for fluent construction with validation.
+
+> `InvoiceQueryAmount.from` and `InvoiceQueryAmount.to` accept negative values (KSeF API v2.3.0) — useful for querying corrective invoices and refunds.
 
 ### InvoiceMetadata
 

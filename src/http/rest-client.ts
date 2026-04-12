@@ -3,7 +3,10 @@ import { KSeFApiError } from '../errors/ksef-api-error.js';
 import { KSeFRateLimitError } from '../errors/ksef-rate-limit-error.js';
 import { KSeFUnauthorizedError } from '../errors/ksef-unauthorized-error.js';
 import { KSeFForbiddenError } from '../errors/ksef-forbidden-error.js';
-import type { ApiErrorResponse, TooManyRequestsResponse, UnauthorizedProblemDetails, ForbiddenProblemDetails } from '../errors/types.js';
+import { KSeFGoneError } from '../errors/ksef-gone-error.js';
+import { KSeFBatchTimeoutError } from '../errors/ksef-batch-timeout-error.js';
+import { KSeFErrorCode, hasErrorCode } from '../errors/error-codes.js';
+import type { ApiErrorResponse, TooManyRequestsResponse, UnauthorizedProblemDetails, ForbiddenProblemDetails, GoneProblemDetails } from '../errors/types.js';
 import type { ResolvedOptions } from '../config/options.js';
 import { RouteBuilder } from './route-builder.js';
 import { type RestRequest } from './rest-request.js';
@@ -211,6 +214,22 @@ export class RestClient {
       }
     }
 
-    throw KSeFApiError.fromResponse(response.status, parseJson<ApiErrorResponse>());
+    if (response.status === 410) {
+      const body = parseJson<Partial<GoneProblemDetails>>();
+      throw new KSeFGoneError({
+        title: body?.title || 'Gone',
+        status: body?.status || 410,
+        detail: body?.detail || 'Operation status no longer available (retention expired)',
+        instance: body?.instance,
+        traceId: body?.traceId,
+        timestamp: body?.timestamp,
+      });
+    }
+
+    const body = parseJson<ApiErrorResponse>();
+    if (hasErrorCode(body, KSeFErrorCode.BatchTimeout)) {
+      throw KSeFBatchTimeoutError.fromResponse(response.status, body);
+    }
+    throw KSeFApiError.fromResponse(response.status, body);
   }
 }

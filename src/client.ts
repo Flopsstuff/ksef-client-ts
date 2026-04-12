@@ -22,6 +22,7 @@ import { CryptographyService } from './crypto/cryptography-service.js';
 import { VerificationLinkService } from './qr/verification-link-service.js';
 import { buildUnsignedAuthTokenRequestXml } from './crypto/auth-xml-builder.js';
 import { OfflineInvoiceWorkflow } from './workflows/offline-invoice-workflow.js';
+import type { LoginResult } from './models/auth/types.js';
 
 export class KSeFClient {
   readonly auth: AuthService;
@@ -90,7 +91,7 @@ export class KSeFClient {
     return new RestClient(this.options, { ...this._baseRestClientConfig, authManager });
   }
 
-  async loginWithToken(token: string, nip: string): Promise<void> {
+  async loginWithToken(token: string, nip: string): Promise<LoginResult> {
     const challenge = await this.auth.getChallenge();
     await this.crypto.init();
     const encryptedToken = this.crypto.encryptKsefToken(token, challenge.timestamp);
@@ -107,9 +108,11 @@ export class KSeFClient {
 
     this.authManager.setAccessToken(tokens.accessToken.token);
     this.authManager.setRefreshToken(tokens.refreshToken.token);
+
+    return { clientIp: challenge.clientIp };
   }
 
-  async loginWithCertificate(certPem: string, keyPem: string, nip: string, keyPassword?: string): Promise<void> {
+  async loginWithCertificate(certPem: string, keyPem: string, nip: string, keyPassword?: string): Promise<LoginResult> {
     const challenge = await this.auth.getChallenge();
     const authRequestXml = buildAuthTokenRequestXml(challenge.challenge, nip);
 
@@ -123,12 +126,14 @@ export class KSeFClient {
 
     this.authManager.setAccessToken(tokens.accessToken.token);
     this.authManager.setRefreshToken(tokens.refreshToken.token);
+
+    return { clientIp: challenge.clientIp };
   }
 
-  async loginWithPkcs12(p12: Buffer | Uint8Array, password: string, nip: string): Promise<void> {
+  async loginWithPkcs12(p12: Buffer | Uint8Array, password: string, nip: string): Promise<LoginResult> {
     const { Pkcs12Loader } = await import('./crypto/pkcs12-loader.js');
     const { certificatePem, privateKeyPem } = Pkcs12Loader.load(p12, password);
-    await this.loginWithCertificate(certificatePem, privateKeyPem, nip);
+    return this.loginWithCertificate(certificatePem, privateKeyPem, nip);
   }
 
   private async awaitAuthReady(referenceNumber: string, authToken: string): Promise<void> {

@@ -362,7 +362,9 @@ import { KSeFClient } from 'ksef-client-ts';
 
 const client = new KSeFClient({ environment: 'TEST' });
 
-await client.loginWithToken('AAAA-BBBB-CCCC-DDDD', '1234567890');
+const { clientIp } = await client.loginWithToken('AAAA-BBBB-CCCC-DDDD', '1234567890');
+// `clientIp` is the IP KSeF saw during the challenge — useful if you plan to
+// configure AuthorizationPolicy.allowedIps on subsequent requests.
 
 // Tokens are stored in client.authManager — all subsequent API calls
 // inject the Authorization header automatically.
@@ -385,7 +387,8 @@ const client = new KSeFClient({ environment: 'TEST' });
 const certPem = fs.readFileSync('./cert.pem', 'utf-8');
 const keyPem = fs.readFileSync('./private-key.pem', 'utf-8');
 
-await client.loginWithCertificate(certPem, keyPem, '1234567890');
+const { clientIp } = await client.loginWithCertificate(certPem, keyPem, '1234567890');
+// `clientIp` — IP seen by KSeF; same use case as token auth (AuthorizationPolicy).
 
 // Authenticated — use any service method without passing tokens.
 ```

@@ -9,6 +9,7 @@ describe('KSeFUnauthorizedError', () => {
       detail: 'Token expired',
       traceId: 'trace-1',
       instance: '/api/auth',
+      timestamp: '2026-04-12T10:15:30Z',
     });
 
     expect(err.message).toBe('Token expired');
@@ -16,6 +17,7 @@ describe('KSeFUnauthorizedError', () => {
     expect(err.detail).toBe('Token expired');
     expect(err.traceId).toBe('trace-1');
     expect(err.instance).toBe('/api/auth');
+    expect(err.timestamp).toBe('2026-04-12T10:15:30Z');
   });
 
   it('leaves optional fields undefined when not provided', () => {
@@ -28,6 +30,7 @@ describe('KSeFUnauthorizedError', () => {
     expect(err.message).toBe('Bad token');
     expect(err.traceId).toBeUndefined();
     expect(err.instance).toBeUndefined();
+    expect(err.timestamp).toBeUndefined();
   });
 
   it('falls back to "Unauthorized" when detail is empty', () => {

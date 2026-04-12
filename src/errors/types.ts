@@ -31,6 +31,7 @@ export interface UnauthorizedProblemDetails {
   detail: string;
   instance?: string;
   traceId?: string;
+  timestamp?: string;
 }
 
 export type ForbiddenReasonCode =
@@ -50,4 +51,14 @@ export interface ForbiddenProblemDetails {
   reasonCode: ForbiddenReasonCode;
   security?: Record<string, unknown>;
   traceId?: string;
+  timestamp?: string;
+}
+
+export interface GoneProblemDetails {
+  title: string;
+  status: number;
+  detail: string;
+  instance?: string;
+  traceId?: string;
+  timestamp?: string;
 }

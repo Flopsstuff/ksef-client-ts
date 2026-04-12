@@ -12,6 +12,7 @@ describe('KSeFForbiddenError', () => {
       instance: '/api/invoices',
       security: { scope: 'read' },
       traceId: 'trace-2',
+      timestamp: '2026-04-12T10:15:30Z',
     });
 
     expect(err.message).toBe('No permission');
@@ -21,6 +22,7 @@ describe('KSeFForbiddenError', () => {
     expect(err.instance).toBe('/api/invoices');
     expect(err.security).toEqual({ scope: 'read' });
     expect(err.traceId).toBe('trace-2');
+    expect(err.timestamp).toBe('2026-04-12T10:15:30Z');
   });
 
   it('leaves optional fields undefined when not provided', () => {
@@ -35,6 +37,7 @@ describe('KSeFForbiddenError', () => {
     expect(err.instance).toBeUndefined();
     expect(err.security).toBeUndefined();
     expect(err.traceId).toBeUndefined();
+    expect(err.timestamp).toBeUndefined();
   });
 
   it('falls back to "Forbidden" when detail is empty', () => {

@@ -12,6 +12,7 @@ The library provides a structured error hierarchy so that callers can react prec
 
 - **Server errors** (`KSeFApiError`, `KSeFRateLimitError`) carry the HTTP status code and parsed response body.
 - **Auth errors** (`KSeFUnauthorizedError`, `KSeFForbiddenError`) carry RFC 7807 Problem Details with machine-readable reason codes.
+- **Retention errors** (`KSeFGoneError`) signal that a server-side async operation status has aged out (HTTP 410).
 - **Client-side errors** (`KSeFValidationError`) catch invalid requests before they reach the network.
 - **Workflow errors** (`KSeFAuthStatusError`, `KSeFSessionExpiredError`) represent higher-level failures in multi-step operations.
 
@@ -25,9 +26,11 @@ All error classes extend a common base `KSeFError`, so a single `instanceof KSeF
 Error (built-in)
   └── KSeFError                          src/errors/ksef-error.ts
         ├── KSeFApiError                 src/errors/ksef-api-error.ts         (any non-2xx HTTP)
-        │     └── KSeFRateLimitError     src/errors/ksef-rate-limit-error.ts  (429)
+        │     ├── KSeFRateLimitError     src/errors/ksef-rate-limit-error.ts  (429)
+        │     └── KSeFBatchTimeoutError  src/errors/ksef-batch-timeout-error.ts (KSeF code 21208)
         ├── KSeFUnauthorizedError        src/errors/ksef-unauthorized-error.ts (401 + RFC 7807)
         ├── KSeFForbiddenError           src/errors/ksef-forbidden-error.ts   (403 + RFC 7807)
+        ├── KSeFGoneError                src/errors/ksef-gone-error.ts        (410 + RFC 7807, retention expired)
         ├── KSeFAuthStatusError          src/errors/ksef-auth-status-error.ts (auth ceremony failed)
         ├── KSeFSessionExpiredError      src/errors/ksef-session-expired-error.ts (stored session expired)
         └── KSeFValidationError          src/errors/ksef-validation-error.ts  (client-side validation)
@@ -42,9 +45,12 @@ import {
   KSeFRateLimitError,
   KSeFUnauthorizedError,
   KSeFForbiddenError,
+  KSeFGoneError,
   KSeFAuthStatusError,
   KSeFSessionExpiredError,
   KSeFValidationError,
+  KSeFBatchTimeoutError,
+  KSeFErrorCode,
 } from 'ksef-client-ts';
 ```
 
@@ -52,7 +58,7 @@ import {
 
 ## RFC 7807 Problem Details
 
-KSeF returns structured error bodies for 401 and 403 responses following [RFC 7807 (Problem Details for HTTP APIs)](https://www.rfc-editor.org/rfc/rfc7807). These bodies provide machine-readable fields that go beyond a simple status code.
+KSeF returns structured error bodies for 401, 403, and 410 responses following [RFC 7807 (Problem Details for HTTP APIs)](https://www.rfc-editor.org/rfc/rfc7807). These bodies provide machine-readable fields that go beyond a simple status code.
 
 ### 401 Unauthorized -- `UnauthorizedProblemDetails`
 
@@ -64,7 +70,8 @@ KSeF returns structured error bodies for 401 and 403 responses following [RFC 78
   "status": 401,
   "detail": "Token has expired",
   "instance": "/v2/online/Session/Open",
-  "traceId": "abc-123-def-456"
+  "traceId": "abc-123-def-456",
+  "timestamp": "2026-04-12T10:15:30Z"
 }
 ```
 
@@ -75,6 +82,7 @@ KSeF returns structured error bodies for 401 and 403 responses following [RFC 78
 | `detail` | `string` | Specific explanation of why the request was rejected |
 | `instance` | `string?` | The API endpoint path that was called |
 | `traceId` | `string?` | Server-side trace ID for correlating with KSeF support |
+| `timestamp` | `string?` | UTC timestamp recorded by the server when the error was generated (KSeF API v2.4.0+) |
 
 ### 403 Forbidden -- `ForbiddenProblemDetails`
 
@@ -88,7 +96,8 @@ KSeF returns structured error bodies for 401 and 403 responses following [RFC 78
   "instance": "/v2/online/Invoice/Send",
   "reasonCode": "missing-permissions",
   "security": { "requiredPermission": "InvoiceWrite" },
-  "traceId": "abc-123-def-456"
+  "traceId": "abc-123-def-456",
+  "timestamp": "2026-04-12T10:15:30Z"
 }
 ```
 
@@ -101,6 +110,7 @@ KSeF returns structured error bodies for 401 and 403 responses following [RFC 78
 | `reasonCode` | `ForbiddenReasonCode` | Machine-readable reason (see table below) |
 | `security` | `Record<string, unknown>?` | Additional security context from the server |
 | `traceId` | `string?` | Server-side trace ID |
+| `timestamp` | `string?` | UTC timestamp recorded by the server when the error was generated (KSeF API v2.4.0+) |
 
 ### `ForbiddenReasonCode` values
 
@@ -117,11 +127,37 @@ KSeF returns structured error bodies for 401 and 403 responses following [RFC 78
 
 The type also includes `(string & {})` to allow for future reason codes not yet enumerated.
 
+### 410 Gone -- `GoneProblemDetails`
+
+**File:** `src/errors/types.ts`
+
+Returned when polling an async operation status whose server-side record has aged out of KSeF retention windows. KSeF API v2.4.0 enforces 7-day retention for authentication and export operation status, and 30-day retention for certificate and permission enrollment status.
+
+```json
+{
+  "title": "Gone",
+  "status": 410,
+  "detail": "Operation status no longer available (retention expired)",
+  "instance": "/v2/auth/ref-123",
+  "traceId": "abc-123-def-456",
+  "timestamp": "2026-04-12T10:00:00Z"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | `string` | Short human-readable summary |
+| `status` | `number` | Always `410` |
+| `detail` | `string` | Server's explanation (typically references retention expiry) |
+| `instance` | `string?` | The API endpoint path |
+| `traceId` | `string?` | Server-side trace ID |
+| `timestamp` | `string?` | UTC timestamp recorded by the server |
+
 ---
 
 ## Error Dispatch Flow
 
-**File:** `src/http/rest-client.ts`, method `ensureSuccess()` (lines 182-215)
+**File:** `src/http/rest-client.ts`, method `ensureSuccess()`
 
 After the retry loop is exhausted and a non-2xx response remains, `ensureSuccess()` reads the response body **once** as text and attempts to parse it as JSON. It then dispatches errors in a fixed priority order:
 
@@ -140,8 +176,14 @@ Response not OK?
   │                → if body has .reasonCode → throw new KSeFForbiddenError(body)
   │                  (if no .reasonCode, falls through to generic)
   │
+  ├── status 410 → parse as GoneProblemDetails
+  │                → throw new KSeFGoneError(body)
+  │                  (if body is empty, throws with default retention-expired message)
+  │
   └── any other status → parse as ApiErrorResponse
-                         → throw KSeFApiError.fromResponse()
+                         → if body carries KSeF exceptionCode 21208
+                             → throw KSeFBatchTimeoutError.fromResponse()
+                         → otherwise throw KSeFApiError.fromResponse()
                            (generic fallback for all unhandled status codes)
 ```
 
@@ -289,6 +331,28 @@ By the time you catch a `KSeFRateLimitError`, the built-in retry policy has alre
 
 ---
 
+### `KSeFBatchTimeoutError`
+
+**File:** `src/errors/ksef-batch-timeout-error.ts`
+
+Thrown when KSeF responds with error code `21208` — the server-side batch session timed out before processing finished. Extends `KSeFApiError`, so it also carries `statusCode` and `errorResponse`.
+
+```typescript
+class KSeFBatchTimeoutError extends KSeFApiError {
+  readonly errorCode: 21208;
+
+  static fromResponse(statusCode: number, body?: ApiErrorResponse): KSeFBatchTimeoutError;
+}
+```
+
+Use this class to distinguish server-side batch timeouts from other failure modes when orchestrating large batch uploads or finish operations. The numeric code registry for error detection is exposed as `KSeFErrorCode` in `src/errors/error-codes.ts` (currently `BatchTimeout = 21208`, `DuplicateInvoice = 440`).
+
+::: tip
+Pair with a retry-with-smaller-batch strategy rather than a tight loop — the timeout means KSeF is under load, not that the request was malformed.
+:::
+
+---
+
 ### `KSeFUnauthorizedError`
 
 **File:** `src/errors/ksef-unauthorized-error.ts`
@@ -301,6 +365,7 @@ class KSeFUnauthorizedError extends KSeFError {
   readonly detail: string;
   readonly traceId?: string;
   readonly instance?: string;
+  readonly timestamp?: string;
 
   constructor(problemDetails: UnauthorizedProblemDetails);
 }
@@ -312,6 +377,7 @@ class KSeFUnauthorizedError extends KSeFError {
 | `detail` | `string` | Server's explanation (e.g., `"Token has expired"`) |
 | `traceId` | `string?` | Server-side trace ID for support tickets |
 | `instance` | `string?` | The endpoint path that was called |
+| `timestamp` | `string?` | UTC timestamp recorded by the server (KSeF API v2.4.0+); useful for correlating with server-side logs |
 
 ::: info
 By the time you catch this error, the library has already attempted an automatic token refresh via `AuthManager.onUnauthorized()`. If you see this error, it means the refresh also failed or no `AuthManager` is configured.
@@ -333,6 +399,7 @@ class KSeFForbiddenError extends KSeFError {
   readonly instance?: string;
   readonly security?: Record<string, unknown>;
   readonly traceId?: string;
+  readonly timestamp?: string;
 
   constructor(problemDetails: ForbiddenProblemDetails);
 }
@@ -346,6 +413,48 @@ class KSeFForbiddenError extends KSeFError {
 | `instance` | `string?` | The endpoint path |
 | `security` | `Record<string, unknown>?` | Additional security context from KSeF |
 | `traceId` | `string?` | Server-side trace ID |
+| `timestamp` | `string?` | UTC timestamp recorded by the server (KSeF API v2.4.0+); useful for correlating with server-side logs |
+
+---
+
+### `KSeFGoneError`
+
+**File:** `src/errors/ksef-gone-error.ts`
+
+Thrown when KSeF returns HTTP 410 (Gone) — the server-side record for an async operation status has aged out of the retention window. Extends `KSeFError` directly (not `KSeFApiError`) so the retention case is easy to single out.
+
+```typescript
+class KSeFGoneError extends KSeFError {
+  readonly statusCode = 410;
+  readonly detail: string;
+  readonly instance?: string;
+  readonly traceId?: string;
+  readonly timestamp?: string;
+
+  constructor(problemDetails: GoneProblemDetails);
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `statusCode` | `410` | Always 410 |
+| `detail` | `string` | Server's explanation, or `"Operation status no longer available (retention expired)"` if absent |
+| `instance` | `string?` | The endpoint path |
+| `traceId` | `string?` | Server-side trace ID |
+| `timestamp` | `string?` | UTC timestamp recorded by the server |
+
+#### KSeF v2.4.0 retention windows
+
+| Operation status type | Retention |
+|-----------------------|-----------|
+| Authentication operation status | 7 days |
+| Invoice export operation status | 7 days |
+| Certificate enrollment status | 30 days |
+| Permission operation status | 30 days |
+
+::: tip
+A `KSeFGoneError` means the operation likely ran to completion long ago — KSeF only forgets the *status record*, not the underlying outcome (e.g., issued certificate, exported package). If you missed the result, repeat the action rather than re-poll the same reference number.
+:::
 
 ---
 
@@ -449,8 +558,10 @@ import {
   KSeFError,
   KSeFApiError,
   KSeFRateLimitError,
+  KSeFBatchTimeoutError,
   KSeFUnauthorizedError,
   KSeFForbiddenError,
+  KSeFGoneError,
   KSeFValidationError,
 } from 'ksef-client-ts';
 
@@ -462,6 +573,10 @@ try {
     console.warn(`Rate limited. Retry in ${error.recommendedDelay}s`);
     await scheduleRetry(error.recommendedDelay * 1000);
 
+  } else if (error instanceof KSeFBatchTimeoutError) {
+    // KSeF code 21208 — batch session timed out server-side
+    console.warn('Batch timeout. Retry with a smaller batch or fewer parallel parts.');
+
   } else if (error instanceof KSeFUnauthorizedError) {
     // 401 — auth refresh also failed
     console.error(`Auth failed: ${error.detail} (trace: ${error.traceId})`);
@@ -471,6 +586,11 @@ try {
     // 403 — permission or policy denial
     console.error(`Forbidden [${error.reasonCode}]: ${error.detail}`);
     handleForbidden(error);
+
+  } else if (error instanceof KSeFGoneError) {
+    // 410 — operation status retention expired (KSeF v2.4.0+)
+    console.error(`Operation status no longer available: ${error.detail}`);
+    // Re-issue the underlying action; the previous result is unrecoverable from this endpoint.
 
   } else if (error instanceof KSeFValidationError) {
     // Client-side validation failed before sending
@@ -495,7 +615,7 @@ try {
 ```
 
 ::: warning Check order matters
-`KSeFRateLimitError` extends `KSeFApiError`, so always check for `KSeFRateLimitError` **before** `KSeFApiError`. Otherwise, the `KSeFApiError` branch catches rate limit errors too.
+`KSeFRateLimitError` and `KSeFBatchTimeoutError` both extend `KSeFApiError`, so always check the specific subclasses **before** `KSeFApiError`. Otherwise, the `KSeFApiError` branch would catch them too.
 :::
 
 ### React to `ForbiddenReasonCode` values
@@ -782,8 +902,10 @@ try {
 |-------------|------------|-------------|------------|-------------------|
 | `KSeFApiError` | any non-2xx | `ApiErrorResponse` | `statusCode`, `errorResponse` | Retry on 5xx |
 | `KSeFRateLimitError` | 429 | `TooManyRequestsResponse` | `retryAfterSeconds`, `recommendedDelay` | Retry with `Retry-After` |
-| `KSeFUnauthorizedError` | 401 | RFC 7807 `UnauthorizedProblemDetails` | `detail`, `traceId`, `instance` | Token refresh, then retry once |
-| `KSeFForbiddenError` | 403 | RFC 7807 `ForbiddenProblemDetails` | `reasonCode`, `detail`, `traceId`, `security` | None (not retryable) |
+| `KSeFBatchTimeoutError` | any non-2xx (KSeF code 21208) | `ApiErrorResponse` | `errorCode` (21208), `statusCode`, `errorResponse` | None (retry with smaller batch) |
+| `KSeFUnauthorizedError` | 401 | RFC 7807 `UnauthorizedProblemDetails` | `detail`, `traceId`, `instance`, `timestamp` | Token refresh, then retry once |
+| `KSeFForbiddenError` | 403 | RFC 7807 `ForbiddenProblemDetails` | `reasonCode`, `detail`, `traceId`, `security`, `timestamp` | None (not retryable) |
+| `KSeFGoneError` | 410 | RFC 7807 `GoneProblemDetails` | `detail`, `traceId`, `instance`, `timestamp` | None (re-issue the underlying action) |
 | `KSeFAuthStatusError` | -- | -- | `referenceNumber`, `statusDescription` | None |
 | `KSeFSessionExpiredError` | -- | -- | `message` | None |
 | `KSeFValidationError` | -- | -- | `details[]` with `field` and `message` | None (client-side) |
@@ -794,12 +916,15 @@ try {
 
 | File | Contents |
 |------|----------|
-| `src/errors/types.ts` | `ApiErrorResponse`, `ExceptionDetails`, `TooManyRequestsResponse`, `UnauthorizedProblemDetails`, `ForbiddenProblemDetails`, `ForbiddenReasonCode` |
+| `src/errors/types.ts` | `ApiErrorResponse`, `ExceptionDetails`, `TooManyRequestsResponse`, `UnauthorizedProblemDetails`, `ForbiddenProblemDetails`, `ForbiddenReasonCode`, `GoneProblemDetails` |
 | `src/errors/ksef-error.ts` | `KSeFError` base class |
 | `src/errors/ksef-api-error.ts` | `KSeFApiError` with `fromResponse()` factory |
 | `src/errors/ksef-rate-limit-error.ts` | `KSeFRateLimitError` with `fromRetryAfterHeader()` factory |
+| `src/errors/ksef-batch-timeout-error.ts` | `KSeFBatchTimeoutError` with `fromResponse()` factory (KSeF code 21208) |
+| `src/errors/error-codes.ts` | `KSeFErrorCode` numeric code registry + `hasErrorCode()` helper |
 | `src/errors/ksef-unauthorized-error.ts` | `KSeFUnauthorizedError` |
 | `src/errors/ksef-forbidden-error.ts` | `KSeFForbiddenError` |
+| `src/errors/ksef-gone-error.ts` | `KSeFGoneError` (HTTP 410, retention expired) |
 | `src/errors/ksef-auth-status-error.ts` | `KSeFAuthStatusError` |
 | `src/errors/ksef-session-expired-error.ts` | `KSeFSessionExpiredError` |
 | `src/errors/ksef-validation-error.ts` | `KSeFValidationError`, `ValidationDetail` |

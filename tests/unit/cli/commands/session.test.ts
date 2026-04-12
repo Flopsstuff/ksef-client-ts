@@ -324,6 +324,7 @@ describe('session', () => {
             referenceNumber: 'ref-1',
             status: { code: 200, description: 'Active' },
             dateCreated: '2025-01-01',
+            dateUpdated: '2025-01-02',
             totalInvoiceCount: 5,
             successfulInvoiceCount: 4,
             failedInvoiceCount: 1,
@@ -333,8 +334,16 @@ describe('session', () => {
       await runList({});
       expect(mockClient.sessionStatus.getSessions).toHaveBeenCalledWith('Online', undefined);
       expect(mockOutputTable).toHaveBeenCalledWith(
-        [expect.objectContaining({ reference: 'ref-1', status: '200 — Active' })],
-        expect.any(Array),
+        [expect.objectContaining({
+          reference: 'ref-1',
+          status: '200 — Active',
+          created: '2025-01-01',
+          updated: '2025-01-02',
+        })],
+        expect.arrayContaining([
+          { key: 'created', label: 'Created' },
+          { key: 'updated', label: 'Updated' },
+        ]),
         { json: false },
       );
     });

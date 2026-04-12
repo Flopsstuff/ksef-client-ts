@@ -11,6 +11,18 @@
           "Tokeny KSeF"
         ],
         "summary": "Wygenerowanie nowego tokena",
+        "parameters": [
+          {
+            "name": "X-Error-Format",
+            "in": "header",
+            "schema": {
+              "enum": [
+                "problem-details"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -54,6 +66,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ExceptionResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
               }
             },
             "x-summary": "Bad Request"
@@ -88,6 +105,11 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
                 }
               }
             },
@@ -165,6 +187,16 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "X-Error-Format",
+            "in": "header",
+            "schema": {
+              "enum": [
+                "problem-details"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -206,6 +238,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ExceptionResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
               }
             },
             "x-summary": "Bad Request"
@@ -240,6 +277,11 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
                 }
               }
             },
@@ -278,6 +320,16 @@
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
             }
+          },
+          {
+            "name": "X-Error-Format",
+            "in": "header",
+            "schema": {
+              "enum": [
+                "problem-details"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -315,6 +367,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ExceptionResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
               }
             },
             "x-summary": "Bad Request"
@@ -349,6 +406,11 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
                 }
               }
             },
@@ -379,6 +441,16 @@
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
             }
+          },
+          {
+            "name": "X-Error-Format",
+            "in": "header",
+            "schema": {
+              "enum": [
+                "problem-details"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -388,6 +460,11 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
                 }
               }
             },
@@ -424,6 +501,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/TooManyRequestsResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
               }
             },
             "x-summary": "Too Many Requests"
@@ -444,6 +526,26 @@
   },
   "components": {
     "schemas": {
+      "ApiError": {
+        "required": [
+          "code",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
       "AuthenticationTokenStatus": {
         "enum": [
           "Pending",
@@ -453,6 +555,68 @@
           "Failed"
         ],
         "type": "string"
+      },
+      "BadRequestProblemDetails": {
+        "required": [
+          "detail",
+          "errors",
+          "instance",
+          "status",
+          "timestamp",
+          "title",
+          "traceId"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "title": "Bad Request",
+          "status": 400,
+          "instance": "{{uri_path}}",
+          "detail": "Żądanie jest nieprawidłowe.",
+          "errors": [
+            {
+              "code": 21405,
+              "details": [
+                "Wskazany kod formularza nie jest wspierany."
+              ]
+            },
+            {
+              "code": 21157,
+              "details": [
+                "Rozmiar części 1 przekroczył dozwolony rozmiar 100MB."
+              ]
+            }
+          ],
+          "timestamp": "2025-07-11T12:23:56.0154302+00:00",
+          "traceId": "673843e023c432286660bc0501a3af44"
+        }
       },
       "ExceptionDetails": {
         "type": "object",
@@ -539,13 +703,15 @@
             "serviceName": "Undefined",
             "timestamp": "2025-10-11T12:23:56.0154302"
           }
-        }
+        },
+        "deprecated": true
       },
       "ForbiddenProblemDetails": {
         "required": [
           "detail",
           "reasonCode",
           "status",
+          "timestamp",
           "title"
         ],
         "type": "object",
@@ -577,12 +743,17 @@
           "traceId": {
             "type": "string",
             "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "example": {
           "title": "Forbidden",
           "status": 403,
           "detail": "Brak wymaganych uprawnień do wykonania operacji w bieżącym kontekście.",
+          "instance": "{{uri_path}}",
           "reasonCode": "missing-permissions",
           "security": {
             "requiredAnyOfPermissions": [
@@ -590,9 +761,11 @@
               "InvoiceWrite"
             ],
             "presentPermissions": [
-              "CredentialsManage"
+              "CredentialsRead"
             ]
-          }
+          },
+          "traceId": "673843e023c432286660bc0501a3af44",
+          "timestamp": "2025-07-11T12:23:56.0154302+00:00"
         }
       },
       "GenerateTokenRequest": {
@@ -869,6 +1042,47 @@
           }
         }
       },
+      "TooManyRequestsProblemDetails": {
+        "required": [
+          "detail",
+          "instance",
+          "status",
+          "timestamp",
+          "title",
+          "traceId"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "title": "Too Many Requests",
+          "status": 429,
+          "instance": "{{uri_path}}",
+          "detail": "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach.",
+          "timestamp": "2025-07-11T12:23:56.0154302+00:00",
+          "traceId": "673843e023c432286660bc0501a3af44"
+        }
+      },
       "TooManyRequestsResponse": {
         "required": [
           "status"
@@ -902,12 +1116,14 @@
               "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
             ]
           }
-        }
+        },
+        "deprecated": true
       },
       "UnauthorizedProblemDetails": {
         "required": [
           "detail",
           "status",
+          "timestamp",
           "title"
         ],
         "type": "object",
@@ -929,12 +1145,19 @@
           "traceId": {
             "type": "string",
             "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "example": {
           "title": "Unauthorized",
           "status": 401,
-          "detail": "Wymagane jest uwierzytelnienie."
+          "detail": "Wymagane jest uwierzytelnienie.",
+          "instance": "{{uri_path}}",
+          "traceId": "673843e023c432286660bc0501a3af44",
+          "timestamp": "2025-07-11T12:23:56.0154302+00:00"
         }
       }
     }

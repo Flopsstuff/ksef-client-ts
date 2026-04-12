@@ -140,6 +140,17 @@ const client = new KSeFClient({
 });
 ```
 
+### KSeF server-side limits (v2.4.0)
+
+The KSeF API enforces its own per-endpoint caps. If you opt into client-side back-pressure via `endpointLimits`, use the values below to match the current server limits. The library does **not** apply these defaults automatically — the server enforces them regardless.
+
+| Endpoint | req/s | req/min |
+| --- | ---: | ---: |
+| `POST /invoices/exports` | 8 | 16 |
+| `POST /invoices/query/metadata` | 8 | 16 |
+
+Prior to KSeF API v2.4.0, `POST /invoices/exports` was capped at 4 req/s and 8 req/min; v2.4.0 aligned it with `query/metadata`. The client-side token bucket only supports a per-second window — minute-level ceilings are enforced server-side only, so keep `globalRps` at or below the per-second cap to stay within the minute budget under sustained load.
+
 ---
 
 ## Presigned URL Policy

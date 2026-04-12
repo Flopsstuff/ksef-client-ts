@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.2] - Unreleased
+
+### Added
+
+- **KSeF API v2.4.0 support** — aligned with the latest KSeF API contract; see the dedicated entries below for the user-facing changes (KSeF API v2.4.0).
+- **Negative amounts in invoice queries** — invoice metadata queries now accept negative amount filters to target corrective invoices and refunds (KSeF API v2.3.0).
+- **Client IP in login result** — login results expose the client IP observed by KSeF so callers can populate authorization policies on future auth requests (KSeF API v2.2.0).
+- **Batch timeout handling** — batch-session timeouts are now reported distinctly from other failures so callers can apply timeout-specific recovery logic (KSeF API v2.0.0).
+- **Introspection token permission** — KSeF tokens can be issued with the `Introspection` permission for session history browsing and UPO generation (KSeF API v2.1.2).
+- **Retention-expired operations** — polling an aged-out async operation now returns a clear retention-expiry response instead of a generic failure (KSeF API v2.4.0).
+- **Timestamp on auth errors** — authentication and authorization errors now expose the server-recorded UTC timestamp, making it easier to correlate errors with server logs (KSeF API v2.4.0).
+
+### Changed
+
+- **Session list shows last activity** — session listings now display the last-update timestamp alongside the creation date, making it easier to spot stale sessions (KSeF API v2.0.0).
+- **Documented v2.4.0 export rate limits** — invoice export rate limits were increased server-side in KSeF API v2.4.0; the rate-limit guide reflects the new ceilings for users who configure client-side back-pressure.
+
+### Fixed
+
 ## [0.6.1] - 2026-04-06
 
 ### Added

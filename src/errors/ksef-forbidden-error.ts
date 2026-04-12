@@ -8,6 +8,7 @@ export class KSeFForbiddenError extends KSeFError {
   readonly instance?: string;
   readonly security?: Record<string, unknown>;
   readonly traceId?: string;
+  readonly timestamp?: string;
 
   constructor(problemDetails: ForbiddenProblemDetails) {
     super(problemDetails.detail || 'Forbidden');
@@ -17,5 +18,6 @@ export class KSeFForbiddenError extends KSeFError {
     this.instance = problemDetails.instance;
     this.security = problemDetails.security;
     this.traceId = problemDetails.traceId;
+    this.timestamp = problemDetails.timestamp;
   }
 }

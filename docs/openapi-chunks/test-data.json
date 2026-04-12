@@ -11,6 +11,18 @@
           "Dane testowe"
         ],
         "summary": "Utworzenie podmiotu",
+        "parameters": [
+          {
+            "name": "X-Error-Format",
+            "in": "header",
+            "schema": {
+              "enum": [
+                "problem-details"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -42,6 +54,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ExceptionResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
               }
             },
             "x-summary": "Bad Request"
@@ -59,6 +76,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/TooManyRequestsResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
               }
             },
             "x-summary": "Too Many Requests"
@@ -75,6 +97,18 @@
           "Dane testowe"
         ],
         "summary": "Usunięcie podmiotu",
+        "parameters": [
+          {
+            "name": "X-Error-Format",
+            "in": "header",
+            "schema": {
+              "enum": [
+                "problem-details"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -102,6 +136,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ExceptionResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
               }
             },
             "x-summary": "Bad Request"
@@ -119,6 +158,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/TooManyRequestsResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
               }
             },
             "x-summary": "Too Many Requests"
@@ -135,6 +179,18 @@
           "Dane testowe"
         ],
         "summary": "Utworzenie osoby fizycznej",
+        "parameters": [
+          {
+            "name": "X-Error-Format",
+            "in": "header",
+            "schema": {
+              "enum": [
+                "problem-details"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -169,6 +225,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ExceptionResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
               }
             },
             "x-summary": "Bad Request"
@@ -186,6 +247,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/TooManyRequestsResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
               }
             },
             "x-summary": "Too Many Requests"
@@ -202,6 +268,18 @@
           "Dane testowe"
         ],
         "summary": "Usunięcie osoby fizycznej",
+        "parameters": [
+          {
+            "name": "X-Error-Format",
+            "in": "header",
+            "schema": {
+              "enum": [
+                "problem-details"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -229,6 +307,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ExceptionResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
               }
             },
             "x-summary": "Bad Request"
@@ -246,6 +329,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/TooManyRequestsResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
               }
             },
             "x-summary": "Too Many Requests"
@@ -262,6 +350,18 @@
           "Dane testowe"
         ],
         "summary": "Nadanie uprawnień testowemu podmiotowi/osobie fizycznej",
+        "parameters": [
+          {
+            "name": "X-Error-Format",
+            "in": "header",
+            "schema": {
+              "enum": [
+                "problem-details"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -303,6 +403,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ExceptionResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
               }
             },
             "x-summary": "Bad Request"
@@ -320,6 +425,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/TooManyRequestsResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
               }
             },
             "x-summary": "Too Many Requests"
@@ -336,6 +446,18 @@
           "Dane testowe"
         ],
         "summary": "Odebranie uprawnień testowemu podmiotowi/osobie fizycznej",
+        "parameters": [
+          {
+            "name": "X-Error-Format",
+            "in": "header",
+            "schema": {
+              "enum": [
+                "problem-details"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -371,6 +493,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ExceptionResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
               }
             },
             "x-summary": "Bad Request"
@@ -388,6 +515,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/TooManyRequestsResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
               }
             },
             "x-summary": "Too Many Requests"
@@ -404,6 +536,18 @@
           "Dane testowe"
         ],
         "summary": "Umożliwienie wysyłania faktur z załącznikiem",
+        "parameters": [
+          {
+            "name": "X-Error-Format",
+            "in": "header",
+            "schema": {
+              "enum": [
+                "problem-details"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -431,6 +575,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ExceptionResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
               }
             },
             "x-summary": "Bad Request"
@@ -448,6 +597,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/TooManyRequestsResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
               }
             },
             "x-summary": "Too Many Requests"
@@ -464,6 +618,18 @@
           "Dane testowe"
         ],
         "summary": "Odebranie możliwości wysyłania faktur z załącznikiem",
+        "parameters": [
+          {
+            "name": "X-Error-Format",
+            "in": "header",
+            "schema": {
+              "enum": [
+                "problem-details"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -491,6 +657,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ExceptionResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
               }
             },
             "x-summary": "Bad Request"
@@ -508,6 +679,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/TooManyRequestsResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
               }
             },
             "x-summary": "Too Many Requests"
@@ -524,6 +700,18 @@
           "Dane testowe"
         ],
         "summary": "Zablokowanie kontekstu",
+        "parameters": [
+          {
+            "name": "X-Error-Format",
+            "in": "header",
+            "schema": {
+              "enum": [
+                "problem-details"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -545,6 +733,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ExceptionResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
               }
             },
             "x-summary": "Bad Request"
@@ -561,6 +754,11 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
                 }
               }
             },
@@ -580,6 +778,18 @@
           "Dane testowe"
         ],
         "summary": "Odblokowanie kontekstu",
+        "parameters": [
+          {
+            "name": "X-Error-Format",
+            "in": "header",
+            "schema": {
+              "enum": [
+                "problem-details"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -601,6 +811,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/ExceptionResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
               }
             },
             "x-summary": "Bad Request"
@@ -618,6 +833,11 @@
                 "schema": {
                   "$ref": "#/components/schemas/TooManyRequestsResponse"
                 }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
               }
             },
             "x-summary": "Too Many Requests"
@@ -633,6 +853,26 @@
   },
   "components": {
     "schemas": {
+      "ApiError": {
+        "required": [
+          "code",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
       "AttachmentPermissionGrantRequest": {
         "required": [
           "nip"
@@ -658,6 +898,68 @@
             "format": "date",
             "nullable": true
           }
+        }
+      },
+      "BadRequestProblemDetails": {
+        "required": [
+          "detail",
+          "errors",
+          "instance",
+          "status",
+          "timestamp",
+          "title",
+          "traceId"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "title": "Bad Request",
+          "status": 400,
+          "instance": "{{uri_path}}",
+          "detail": "Żądanie jest nieprawidłowe.",
+          "errors": [
+            {
+              "code": 21405,
+              "details": [
+                "Wskazany kod formularza nie jest wspierany."
+              ]
+            },
+            {
+              "code": 21157,
+              "details": [
+                "Rozmiar części 1 przekroczył dozwolony rozmiar 100MB."
+              ]
+            }
+          ],
+          "timestamp": "2025-07-11T12:23:56.0154302+00:00",
+          "traceId": "673843e023c432286660bc0501a3af44"
         }
       },
       "BlockContextAuthenticationRequest": {
@@ -762,7 +1064,8 @@
             "serviceName": "Undefined",
             "timestamp": "2025-10-11T12:23:56.0154302"
           }
-        }
+        },
+        "deprecated": true
       },
       "Nip": {
         "maxLength": 10,
@@ -1069,6 +1372,47 @@
           }
         }
       },
+      "TooManyRequestsProblemDetails": {
+        "required": [
+          "detail",
+          "instance",
+          "status",
+          "timestamp",
+          "title",
+          "traceId"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "traceId": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "title": "Too Many Requests",
+          "status": 429,
+          "instance": "{{uri_path}}",
+          "detail": "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach.",
+          "timestamp": "2025-07-11T12:23:56.0154302+00:00",
+          "traceId": "673843e023c432286660bc0501a3af44"
+        }
+      },
       "TooManyRequestsResponse": {
         "required": [
           "status"
@@ -1102,7 +1446,8 @@
               "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
             ]
           }
-        }
+        },
+        "deprecated": true
       },
       "UnblockContextAuthenticationRequest": {
         "type": "object",

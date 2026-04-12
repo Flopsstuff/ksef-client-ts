@@ -74,6 +74,8 @@ ksef auth login --token <ksef-token> --nip <nip>
 
 The login flow is fully automated: get challenge, encrypt token, submit auth request, redeem access token.
 
+On success, `ksef auth login` prints the client IP KSeF observed during the challenge (as `Seen client IP: <ip>`). With `--json`, the IP is emitted under `clientIp` in the JSON payload. Use this value when configuring `AuthorizationPolicy.allowedIps` on subsequent requests.
+
 ### Certificate Authentication (XAdES)
 
 ```bash
@@ -98,7 +100,7 @@ ksef auth logout                  # Clear stored session
 ksef session open                             # Open online session
 ksef session close [ref]                      # Close session (current or by ref)
 ksef session status [ref]                     # Check session status
-ksef session list [--type online|batch]       # List sessions
+ksef session list [--type online|batch]       # List sessions (tabular view shows Reference, Status, Created, Updated, Total, Success, Failed)
 ksef session invoices [ref] [--pageSize N]    # List session invoices
 ksef session invoice <invoiceRef> [--ref R]   # Get single invoice status
 ksef session failed [ref] [--pageSize N]      # List failed invoices
@@ -155,8 +157,8 @@ ksef invoice export-status <ref>                 # Check export status
 | `--dateType <type>` | Issue, Invoicing (default), PermanentStorage |
 | `--sellerNip <nip>` | Filter by seller NIP |
 | `--buyerNip <nip>` | Filter by buyer NIP |
-| `--amountFrom <n>` | Minimum amount |
-| `--amountTo <n>` | Maximum amount |
+| `--amountFrom <n>` | Minimum amount (negative values allowed) |
+| `--amountTo <n>` | Maximum amount (negative values allowed) |
 | `--amountType <type>` | Brutto (default), Netto, Vat |
 | `--currency <code>` | Currency code (PLN, EUR, etc.) |
 | `--page <n>` | Page offset (0-based) |
