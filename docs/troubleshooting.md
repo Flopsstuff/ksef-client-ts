@@ -18,7 +18,9 @@ KSeFError (base)
 └── KSeFValidationError (client-side validation)
 ```
 
-`RestClient` dispatches errors in order: **429 → 401 → 403 → 410 → generic**. The first matching handler throws the corresponding error class.
+`RestClient` dispatches errors in order: **429 → 401 → 403 → 410 → known KSeF exception codes → generic**. The first matching handler throws the corresponding error class.
+
+Currently, the exception-code branch maps **21208** to `KSeFBatchTimeoutError`.
 
 ---
 
