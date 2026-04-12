@@ -100,7 +100,10 @@ The web portal is used for token generation, permission management, and invoice 
 
 ### Environment variables
 
-`KSEF_TOKEN` and `KSEF_NIP` are set in the current shell environment. Use them for CLI login: `ksef auth login --token "$KSEF_TOKEN" --nip "$KSEF_NIP" --env prod`.
+`KSEF_NIP`, `KSEF_TOKEN` (for PROD) and `KSEF_TOKEN_DEMO` (for DEMO) are set in the current shell environment.
+
+- PROD: `ksef auth login --token "$KSEF_TOKEN" --nip "$KSEF_NIP" --env prod`
+- DEMO: `ksef auth login --token "$KSEF_TOKEN_DEMO" --nip "$KSEF_NIP" --env demo`
 
 ### Invoice upload flow (CLI)
 
