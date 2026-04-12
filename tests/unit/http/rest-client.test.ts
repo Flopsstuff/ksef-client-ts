@@ -440,7 +440,7 @@ describe('RestClient', () => {
       const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
 
       expect(err).toBeInstanceOf(KSeFGoneError);
-      expect((err as KSeFGoneError).detail).toBe('Operation status no longer available (retention expired).');
+      expect((err as KSeFGoneError).detail).toBe('Operation status no longer available (retention expired)');
     });
 
     it('appends query params to the URL', async () => {

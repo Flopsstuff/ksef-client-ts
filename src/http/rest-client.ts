@@ -222,7 +222,7 @@ export class RestClient {
       throw new KSeFGoneError({
         title: 'Gone',
         status: 410,
-        detail: 'Operation status no longer available (retention expired).',
+        detail: 'Operation status no longer available (retention expired)',
       });
     }
 
