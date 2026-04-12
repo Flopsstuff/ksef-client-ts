@@ -215,14 +215,14 @@ export class RestClient {
     }
 
     if (response.status === 410) {
-      const body = parseJson<GoneProblemDetails>();
-      if (body?.detail || body?.title) {
-        throw new KSeFGoneError(body);
-      }
+      const body = parseJson<Partial<GoneProblemDetails>>();
       throw new KSeFGoneError({
-        title: 'Gone',
-        status: 410,
-        detail: 'Operation status no longer available (retention expired)',
+        title: body?.title || 'Gone',
+        status: body?.status || 410,
+        detail: body?.detail || 'Operation status no longer available (retention expired)',
+        instance: body?.instance,
+        traceId: body?.traceId,
+        timestamp: body?.timestamp,
       });
     }
 
