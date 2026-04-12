@@ -26,7 +26,7 @@ describe('KsefTokenPermissionType', () => {
       permissions: ['Introspection'],
     };
 
-    await service.generateToken(request as any);
+    await service.generateToken(request);
 
     const req = getRequest(vi.mocked(client.execute));
     expect(req.getBody()).toEqual(request);
