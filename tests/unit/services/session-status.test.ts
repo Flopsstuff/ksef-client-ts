@@ -3,10 +3,23 @@ import { Routes } from '../../../src/http/routes.js';
 import { createMockRestClient, getRequest, mockResponse, mockRawResponse } from './_helpers.js';
 
 describe('SessionStatusService', () => {
-  it('getSessions sends GET with sessionType query', async () => {
+  it('getSessions sends GET with sessionType query and returns items with metadata dates', async () => {
     const client = createMockRestClient();
     const service = new SessionStatusService(client);
-    const body = { sessions: [] };
+    const body = {
+      sessions: [
+        {
+          referenceNumber: 'sess-1',
+          status: { code: 100, description: 'Open' },
+          dateCreated: '2026-04-12T10:00:00Z',
+          dateUpdated: '2026-04-12T10:15:30Z',
+          validUntil: '2026-04-13T10:00:00Z',
+          totalInvoiceCount: 0,
+          successfulInvoiceCount: 0,
+          failedInvoiceCount: 0,
+        },
+      ],
+    };
     vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(body));
 
     const result = await service.getSessions('online');
@@ -16,6 +29,8 @@ describe('SessionStatusService', () => {
     expect(req.path).toBe(Routes.Sessions.root);
     expect(req.getQuery()).toEqual([['sessionType', 'online']]);
     expect(result).toEqual(body);
+    expect(result.sessions[0].dateCreated).toBe('2026-04-12T10:00:00Z');
+    expect(result.sessions[0].dateUpdated).toBe('2026-04-12T10:15:30Z');
   });
 
   it('getSessions with pagination sets pageSize query and x-continuation-token header', async () => {
@@ -64,10 +79,18 @@ describe('SessionStatusService', () => {
     ]);
   });
 
-  it('getSessionStatus sends GET to sessions/{ref}', async () => {
+  it('getSessionStatus sends GET to sessions/{ref} and returns metadata dates', async () => {
     const client = createMockRestClient();
     const service = new SessionStatusService(client);
-    const body = { sessionRef: 'sess-1', status: 'Open' };
+    const body = {
+      status: { code: 100, description: 'Open' },
+      dateCreated: '2026-04-12T10:00:00Z',
+      dateUpdated: '2026-04-12T10:15:30Z',
+      validUntil: '2026-04-13T10:00:00Z',
+      invoiceCount: 2,
+      successfulInvoiceCount: 2,
+      failedInvoiceCount: 0,
+    };
     vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(body));
 
     const result = await service.getSessionStatus('sess-1');
@@ -76,6 +99,8 @@ describe('SessionStatusService', () => {
     expect(req.method).toBe('GET');
     expect(req.path).toBe(Routes.Sessions.byReference('sess-1'));
     expect(result).toEqual(body);
+    expect(result.dateCreated).toBe('2026-04-12T10:00:00Z');
+    expect(result.dateUpdated).toBe('2026-04-12T10:15:30Z');
   });
 
   it('getSessionInvoices sends GET without pagination params when not provided', async () => {
