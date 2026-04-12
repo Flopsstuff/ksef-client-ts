@@ -1,9 +1,9 @@
 ---
 name: resolve-coderabbit
-description: Walk through unresolved CodeRabbit inline review comments on a GitHub PR one by one — verify each claim against the current code, fix/reject with the user's approval, commit+push, reply to the comment, and resolve the thread. Use this skill whenever the user asks to resolve CodeRabbit comments, address PR review from the CodeRabbit bot, go through inline suggestions, handle the bot review, or anything similar — even when they phrase it as "пройдись по комментам", "resolve review", "fix the bot's suggestions", or just name-drop CodeRabbit alongside a PR number.
+description: Walk through unresolved CodeRabbit inline review comments on a GitHub PR one by one — verify each claim against the current code, fix/reject with the user's approval, commit locally, then validate + push + reply + resolve everything in one batched final step. Use this skill whenever the user asks to resolve CodeRabbit comments, address PR review from the CodeRabbit bot, go through inline suggestions, handle the bot review, or anything similar — even when they phrase it as "пройдись по комментам", "resolve review", "fix the bot's suggestions", or just name-drop CodeRabbit alongside a PR number.
 ---
 
-Resolve unresolved **CodeRabbit** inline review comments on a GitHub PR. Loop through each thread, verify the bot's claim against the current code with the user, apply a fix (or reject with justification), commit + push + reply + resolve the thread.
+Resolve unresolved **CodeRabbit** inline review comments on a GitHub PR. Loop through each thread, verify the bot's claim against the current code with the user, apply a fix (with a full unit-test gate) or reject with justification, and commit locally. After the loop, run any needed E2E, ask the user to confirm, then push once and batch the replies + thread-resolves against the now-published SHAs.
 
 **Input**: `$ARGUMENTS` — optional PR number. If empty, resolve to the PR attached to the current branch via `gh pr view --json number --jq .number`. If that fails, ask the user for the PR number.
 
@@ -100,13 +100,15 @@ Wait for the user's answer before doing anything destructive. The user's `n` can
 
 **3d. Apply the decision**
 
+The loop *commits* every FIX locally, but defers `git push`, the reply, and the thread-resolve until the final step. That keeps the project's `CLAUDE.md` rule honest ("full test suite must pass before committing"), respects the "never push without explicit user authorization" rule, and means no broken SHA ever reaches origin attached to a reply. REJECT decisions, by contrast, don't touch git at all and can be replied + resolved immediately.
+
 **FIX path:**
 
 1. Edit the file(s) — use `Edit` with exact surrounding context from step 3b so we don't drift.
-2. If the fix touches `src/` or `tests/`, run the focused test that covers the change (`yarn vitest run <file>`) to confirm it still passes. If it touches only docs or CHANGELOG, skip focused tests — they'd be pointless.
-3. Commit with a one-line subject + body that cites the review:
+2. **Validate the full unit suite before committing** — if the fix touches `src/` or `tests/`, run `yarn lint && yarn test` (not a focused test). Docs- or CHANGELOG-only fixes skip this step because their test impact is zero. If a test fails, do **not** commit: either refine the fix, flip to REJECT, or SKIP and surface the failure to the user.
+3. Commit locally (no push yet):
 
-   ```
+   ```text
    <type>(<scope>): <short imperative summary>
 
    Per CodeRabbit PR review on #<PR>: <one or two sentences on what
@@ -116,15 +118,13 @@ Wait for the user's answer before doing anything destructive. The user's `n` can
    ```
 
    `<type>` follows this repo's convention (`fix`, `feat`, `docs`, `test`, `chore`, `refactor`).
-4. `git push` — the reply will reference this SHA and the SHA has to exist on origin for the GitHub UI to link it.
-5. Reply to the comment with the SHA + a brief note on what was done. If the fix deviates from the bot's suggested wording, explain why (one sentence).
-6. Resolve the thread.
+4. Record the pending reply — stash `{comment_id, thread_id, sha, short_note}` in an in-memory list to replay after step 5's push. Do **not** reply or resolve yet; the reply would reference a SHA that isn't on origin.
 
 **REJECT path:**
 
 1. No edit. No commit.
 2. Reply explaining *why* the claim doesn't apply here — specific (not "disagree"): cite the file/line, the project convention, or the existing test that already covers it.
-3. Resolve the thread anyway — the goal is a clean thread list, not an endless debate with a bot.
+3. Resolve the thread immediately — REJECT replies don't depend on any SHA, so there's no reason to batch them.
 
 **SKIP path:**
 
@@ -151,15 +151,16 @@ Two traps that are easy to hit:
 - The GraphQL input is an **object**, not a string. `input:"PRRT_..."` → `argumentLiteralsIncompatible`. Always `input:{threadId:"..."}`.
 - If the `$REPLY_BODY` has apostrophes (`'`), don't try to nest HEREDOCs inside `gh api ... -f body="$(cat <<EOF…EOF)"` — bash quote-nesting will bite you. Put the body in a shell variable first and pass `-f body="$REPLY_BODY"`.
 
-### 5. After the loop — one final check
+### 5. After the loop — validate, push once, batch the replies
 
-If any fixes touched `src/` or `tests/`, run the full unit suite one last time:
+Now that every FIX-commit is locally validated against unit tests, run the final gates before anything leaves the machine:
 
-```bash
-yarn lint && yarn test
-```
+1. **E2E if needed** — `yarn test:e2e` is slow (~30 s, hits live KSeF TEST), so only run it when any commit in the batch touched HTTP/auth/session-level code where unit mocks can't catch real regressions. If the whole batch is docs + trivial refactors, skip E2E.
+2. **Ask the user to confirm the push** — the project's convention (CLAUDE.md) is that push is always an explicit action. Show the user the list of queued commits (`git log origin/<branch>..HEAD --oneline`) and the queued replies, then wait for a yes.
+3. `git push`.
+4. Replay the queued replies — for each `{comment_id, thread_id, sha, short_note}`, post the reply *then* resolve the thread. Doing both in the same step keeps the PR UI consistent.
 
-E2E (`yarn test:e2e`) is heavier and hits real KSeF TEST — run it only when the fixes touched HTTP/auth/session-level code where unit mocks can't catch real regressions.
+If E2E fails, do **not** push. Fix the offending commit(s) (likely `git reset` or follow-up fix), re-validate, then come back to step 2. The queued replies still apply as long as the SHAs don't change.
 
 Report back to the user with a short summary:
 
