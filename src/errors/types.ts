@@ -51,3 +51,12 @@ export interface ForbiddenProblemDetails {
   security?: Record<string, unknown>;
   traceId?: string;
 }
+
+export interface GoneProblemDetails {
+  title: string;
+  status: number;
+  detail: string;
+  instance?: string;
+  traceId?: string;
+  timestamp?: string;
+}

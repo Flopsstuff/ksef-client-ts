@@ -8,6 +8,7 @@ import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.j
 import { KSeFApiError } from '../../../src/errors/ksef-api-error.js';
 import { KSeFRateLimitError } from '../../../src/errors/ksef-rate-limit-error.js';
 import { KSeFForbiddenError } from '../../../src/errors/ksef-forbidden-error.js';
+import { KSeFGoneError } from '../../../src/errors/ksef-gone-error.js';
 import { KSeFBatchTimeoutError } from '../../../src/errors/ksef-batch-timeout-error.js';
 
 const defaultOptions: ResolvedOptions = {
@@ -408,6 +409,38 @@ describe('RestClient', () => {
       const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
       expect(err).toBeInstanceOf(KSeFApiError);
       expect(err).not.toBeInstanceOf(KSeFForbiddenError);
+    });
+
+    it('throws KSeFGoneError on 410 with problem details', async () => {
+      const transport = vi.fn<TransportFn>()
+        .mockResolvedValue(mockResponse(410, {
+          title: 'Gone',
+          status: 410,
+          detail: 'Retention expired',
+          traceId: 't-1',
+          instance: '/v2/auth/ref-abc',
+        }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFGoneError);
+      expect(err).not.toBeInstanceOf(KSeFApiError);
+      expect((err as KSeFGoneError).statusCode).toBe(410);
+      expect((err as KSeFGoneError).detail).toBe('Retention expired');
+      expect((err as KSeFGoneError).traceId).toBe('t-1');
+      expect((err as KSeFGoneError).instance).toBe('/v2/auth/ref-abc');
+    });
+
+    it('throws KSeFGoneError on 410 without body', async () => {
+      const response = new Response('', { status: 410 });
+      const transport = vi.fn<TransportFn>().mockResolvedValue(response);
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFGoneError);
+      expect((err as KSeFGoneError).detail).toBe('Operation status no longer available (retention expired).');
     });
 
     it('appends query params to the URL', async () => {
