@@ -6,13 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- **Negative amounts in invoice queries** — `amount.from` and `amount.to` filters on invoice metadata queries now accept negative values, allowing queries to target corrective invoices and refunds (KSeF API v2.3.0).
-- **Client IP in login result** — `loginWithToken`, `loginWithCertificate`, and `loginWithPkcs12` now return `{ clientIp }` with the IP address KSeF observed during the challenge. CLI `ksef auth login` prints it so users can correctly populate `AuthorizationPolicy.allowedIps` on future auth requests (KSeF API v2.2.0).
-- **Batch timeout error** — batch-session timeouts (KSeF error code 21208) now surface as a dedicated `KSeFBatchTimeoutError` instead of a generic API error, so callers can reliably distinguish server-side processing timeouts from other failures and decide to re-close / re-poll the session (KSeF API v2.0.0).
+- **Negative amounts in invoice queries** — invoice metadata queries now accept negative amount filters to target corrective invoices and refunds (KSeF API v2.3.0).
+- **Client IP in login result** — login results expose the client IP observed by KSeF so callers can populate authorization policies on future auth requests (KSeF API v2.2.0).
+- **Batch timeout error** — batch-session timeouts surface as a dedicated error type, letting callers distinguish processing timeouts from other failures (KSeF API v2.0.0).
+- **Introspection token permission** — KSeF tokens can be issued with the `Introspection` permission for session history browsing and UPO generation (KSeF API v2.1.2).
 
 ### Changed
 
-- **Session list shows last activity** — `ksef session list` now displays the last-update timestamp alongside the creation date, making it easier to spot stale sessions (KSeF API v2.0.0 `dateUpdated`).
+- **Session list shows last activity** — session listings now display the last-update timestamp alongside the creation date, making it easier to spot stale sessions (KSeF API v2.0.0).
 
 ### Fixed
 

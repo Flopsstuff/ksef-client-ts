@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { OfflineInvoiceWorkflow } from '../../../src/workflows/offline-invoice-workflow.js';
 import { InMemoryOfflineInvoiceStorage } from '../../../src/offline/storage.js';
 import type { VerificationLinkService } from '../../../src/qr/verification-link-service.js';
@@ -118,6 +118,14 @@ describe('OfflineInvoiceWorkflow', () => {
   });
 
   describe('submit', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-04-08T10:00:00Z'));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('submits all pending invoices', async () => {
       const storage = new InMemoryOfflineInvoiceStorage();
       const inv1 = await workflow.generate(makeInput({ invoiceNumber: 'FV/001' }), { storage });

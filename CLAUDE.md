@@ -159,7 +159,7 @@ Feature descriptions live in two places that must be kept in sync: `README.md` (
 ## Rules
 
 - Do not push commits or create files unless explicitly asked. Do not push to remote unless the user explicitly says "push" — committing and pushing are separate actions. Do not assume the user wants additional actions beyond what was requested.
-- When writing CHANGELOG entries, describe the feature's purpose and user-facing impact, NOT implementation details like method names, parameters, or internal references. Keep entries concise.
+- When writing CHANGELOG entries, describe the feature's purpose and user-facing impact, NOT implementation details. Keep entries concise — one sentence per bullet, no method names, class names, parameter names, option names, header names, CLI flags, internal field names, or error class identifiers. If an API version reference is useful (e.g. "KSeF API v2.2.0"), keep it in parentheses at the end.
 - Always run the full test suite (unit + e2e) before committing. Ensure all tests pass before creating commits.
 - When debugging issues, investigate root causes before suggesting surface-level fixes. Don't suggest simple retries or config changes without first checking if the value is hardcoded or the real problem is deeper.
 - Always merge PRs with `--squash`. Merge commits are disabled on this repository.
