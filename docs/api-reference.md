@@ -992,7 +992,7 @@ Error
         └── KSeFValidationError       // client-side validation failed
 ```
 
-`RestClient.ensureSuccess` dispatches errors in order: 429 → 401 → 403 → 410 → generic `KSeFApiError`.
+`RestClient.ensureSuccess` dispatches errors in order: 429 → 401 → 403 → 410 → (exceptionCode `21208` → `KSeFBatchTimeoutError`) → generic `KSeFApiError`.
 
 ---
 
