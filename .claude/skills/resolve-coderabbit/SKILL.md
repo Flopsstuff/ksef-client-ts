@@ -78,7 +78,7 @@ If the claim is a real problem in the current code, it's a **fix**. If the code 
 
 Output a compact block per comment:
 
-```
+```text
 ━━━ C<N>/<TOTAL> · 🟠 Major · path/to/file.ts:42 ━━━
 
 Claim: <one-line bold summary from the bot>
@@ -163,7 +163,7 @@ E2E (`yarn test:e2e`) is heavier and hits real KSeF TEST — run it only when th
 
 Report back to the user with a short summary:
 
-```
+```text
 Processed <N> CodeRabbit comments on PR #<N>:
   ✅ <K> fixed and resolved (commits: <sha1>, <sha2>, …)
   ⚠️  <M> rejected with justification and resolved
@@ -176,7 +176,7 @@ All threads that remain open: <list>
 
 **Good commit message** (from the real PR #10 workflow):
 
-```
+```text
 fix(http): normalize partial 410 payloads before constructing KSeFGoneError
 
 Per CodeRabbit PR review on #10: the 410 branch accepted any body with
@@ -191,7 +191,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
 
 **Good reply** (adopted partial, explains what was skipped):
 
-```
+```text
 Applied in d5167fd. Took the intent of the suggestion but kept the original
 wording where it was already user-focused:
 - dropped "PRD rollout 2026-04-16" (rollout timing, not user impact)
@@ -202,7 +202,7 @@ wording where it was already user-focused:
 
 **Good reject reply**:
 
-```
+```text
 Leaving as-is: our `CLAUDE.md:162` rule explicitly forbids method/class
 names in CHANGELOG entries, which is what this suggestion would add back.
 The current wording is the user-facing rewording that satisfies both the
