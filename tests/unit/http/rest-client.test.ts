@@ -8,6 +8,7 @@ import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.j
 import { KSeFApiError } from '../../../src/errors/ksef-api-error.js';
 import { KSeFRateLimitError } from '../../../src/errors/ksef-rate-limit-error.js';
 import { KSeFForbiddenError } from '../../../src/errors/ksef-forbidden-error.js';
+import { KSeFBatchTimeoutError } from '../../../src/errors/ksef-batch-timeout-error.js';
 
 const defaultOptions: ResolvedOptions = {
   baseUrl: 'https://ksef-test.mf.gov.pl/api',
@@ -361,6 +362,42 @@ describe('RestClient', () => {
 
       const client = createClient(transport);
       await expect(client.execute(RestRequest.get('/test'))).rejects.toThrow(KSeFForbiddenError);
+    });
+
+    it('throws KSeFBatchTimeoutError when body contains exceptionCode 21208', async () => {
+      const body = {
+        exception: {
+          exceptionDetailList: [
+            { exceptionCode: 21208, exceptionDescription: 'Batch finish timed out' },
+          ],
+        },
+      };
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(408, body));
+
+      // 408 is not retryable by default config
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFBatchTimeoutError);
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect((err as KSeFBatchTimeoutError).errorCode).toBe(21208);
+      expect((err as KSeFBatchTimeoutError).statusCode).toBe(408);
+      expect((err as KSeFBatchTimeoutError).message).toBe('Batch finish timed out');
+    });
+
+    it('throws generic KSeFApiError when status is 408 but exceptionCode is unrelated', async () => {
+      const body = {
+        exception: {
+          exceptionDetailList: [{ exceptionCode: 9999, exceptionDescription: 'Other' }],
+        },
+      };
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(408, body));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect(err).not.toBeInstanceOf(KSeFBatchTimeoutError);
     });
 
     it('throws generic KSeFApiError on 403 without reasonCode', async () => {

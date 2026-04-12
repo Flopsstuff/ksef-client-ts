@@ -9,3 +9,5 @@ export { KSeFForbiddenError } from './ksef-forbidden-error.js';
 export { KSeFAuthStatusError } from './ksef-auth-status-error.js';
 export { KSeFSessionExpiredError } from './ksef-session-expired-error.js';
 export { KSeFValidationError } from './ksef-validation-error.js';
+export { KSeFBatchTimeoutError } from './ksef-batch-timeout-error.js';
+export { KSeFErrorCode } from './error-codes.js';

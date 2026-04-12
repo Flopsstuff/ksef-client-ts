@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - **Negative amounts in invoice queries** — `amount.from` and `amount.to` filters on invoice metadata queries now accept negative values, allowing queries to target corrective invoices and refunds (KSeF API v2.3.0).
 - **Client IP in login result** — `loginWithToken`, `loginWithCertificate`, and `loginWithPkcs12` now return `{ clientIp }` with the IP address KSeF observed during the challenge. CLI `ksef auth login` prints it so users can correctly populate `AuthorizationPolicy.allowedIps` on future auth requests (KSeF API v2.2.0).
+- **Batch timeout error** — batch-session timeouts (KSeF error code 21208) now surface as a dedicated `KSeFBatchTimeoutError` instead of a generic API error, so callers can reliably distinguish server-side processing timeouts from other failures and decide to re-close / re-poll the session (KSeF API v2.0.0).
 
 ### Changed
 

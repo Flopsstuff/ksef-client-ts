@@ -3,6 +3,8 @@ import { KSeFApiError } from '../errors/ksef-api-error.js';
 import { KSeFRateLimitError } from '../errors/ksef-rate-limit-error.js';
 import { KSeFUnauthorizedError } from '../errors/ksef-unauthorized-error.js';
 import { KSeFForbiddenError } from '../errors/ksef-forbidden-error.js';
+import { KSeFBatchTimeoutError } from '../errors/ksef-batch-timeout-error.js';
+import { KSeFErrorCode, hasErrorCode } from '../errors/error-codes.js';
 import type { ApiErrorResponse, TooManyRequestsResponse, UnauthorizedProblemDetails, ForbiddenProblemDetails } from '../errors/types.js';
 import type { ResolvedOptions } from '../config/options.js';
 import { RouteBuilder } from './route-builder.js';
@@ -211,6 +213,10 @@ export class RestClient {
       }
     }
 
-    throw KSeFApiError.fromResponse(response.status, parseJson<ApiErrorResponse>());
+    const body = parseJson<ApiErrorResponse>();
+    if (hasErrorCode(body, KSeFErrorCode.BatchTimeout)) {
+      throw KSeFBatchTimeoutError.fromResponse(response.status, body);
+    }
+    throw KSeFApiError.fromResponse(response.status, body);
   }
 }
