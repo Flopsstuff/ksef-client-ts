@@ -25,7 +25,8 @@ All error classes extend a common base `KSeFError`, so a single `instanceof KSeF
 Error (built-in)
   └── KSeFError                          src/errors/ksef-error.ts
         ├── KSeFApiError                 src/errors/ksef-api-error.ts         (any non-2xx HTTP)
-        │     └── KSeFRateLimitError     src/errors/ksef-rate-limit-error.ts  (429)
+        │     ├── KSeFRateLimitError     src/errors/ksef-rate-limit-error.ts  (429)
+        │     └── KSeFBatchTimeoutError  src/errors/ksef-batch-timeout-error.ts (KSeF code 21208)
         ├── KSeFUnauthorizedError        src/errors/ksef-unauthorized-error.ts (401 + RFC 7807)
         ├── KSeFForbiddenError           src/errors/ksef-forbidden-error.ts   (403 + RFC 7807)
         ├── KSeFAuthStatusError          src/errors/ksef-auth-status-error.ts (auth ceremony failed)
@@ -45,6 +46,8 @@ import {
   KSeFAuthStatusError,
   KSeFSessionExpiredError,
   KSeFValidationError,
+  KSeFBatchTimeoutError,
+  KSeFErrorCode,
 } from 'ksef-client-ts';
 ```
 
@@ -141,7 +144,9 @@ Response not OK?
   │                  (if no .reasonCode, falls through to generic)
   │
   └── any other status → parse as ApiErrorResponse
-                         → throw KSeFApiError.fromResponse()
+                         → if body carries KSeF exceptionCode 21208
+                             → throw KSeFBatchTimeoutError.fromResponse()
+                         → otherwise throw KSeFApiError.fromResponse()
                            (generic fallback for all unhandled status codes)
 ```
 
@@ -285,6 +290,28 @@ If the header is missing or unparseable, `retryAfterSeconds` is `undefined` and 
 
 ::: tip
 By the time you catch a `KSeFRateLimitError`, the built-in retry policy has already retried up to 3 times with backoff. This error means all retries were exhausted. Use `recommendedDelay` to schedule a later retry.
+:::
+
+---
+
+### `KSeFBatchTimeoutError`
+
+**File:** `src/errors/ksef-batch-timeout-error.ts`
+
+Thrown when KSeF responds with error code `21208` — the server-side batch session timed out before processing finished. Extends `KSeFApiError`, so it also carries `statusCode` and `errorResponse`.
+
+```typescript
+class KSeFBatchTimeoutError extends KSeFApiError {
+  readonly errorCode: 21208;
+
+  static fromResponse(statusCode: number, body?: ApiErrorResponse): KSeFBatchTimeoutError;
+}
+```
+
+Use this class to distinguish server-side batch timeouts from other failure modes when orchestrating large batch uploads or finish operations. The numeric code registry for error detection is exposed as `KSeFErrorCode` in `src/errors/error-codes.ts` (currently `BatchTimeout = 21208`, `DuplicateInvoice = 440`).
+
+::: tip
+Pair with a retry-with-smaller-batch strategy rather than a tight loop — the timeout means KSeF is under load, not that the request was malformed.
 :::
 
 ---
@@ -449,6 +476,7 @@ import {
   KSeFError,
   KSeFApiError,
   KSeFRateLimitError,
+  KSeFBatchTimeoutError,
   KSeFUnauthorizedError,
   KSeFForbiddenError,
   KSeFValidationError,
@@ -461,6 +489,10 @@ try {
     // 429 — all retries exhausted
     console.warn(`Rate limited. Retry in ${error.recommendedDelay}s`);
     await scheduleRetry(error.recommendedDelay * 1000);
+
+  } else if (error instanceof KSeFBatchTimeoutError) {
+    // KSeF code 21208 — batch session timed out server-side
+    console.warn('Batch timeout. Retry with a smaller batch or fewer parallel parts.');
 
   } else if (error instanceof KSeFUnauthorizedError) {
     // 401 — auth refresh also failed
@@ -495,7 +527,7 @@ try {
 ```
 
 ::: warning Check order matters
-`KSeFRateLimitError` extends `KSeFApiError`, so always check for `KSeFRateLimitError` **before** `KSeFApiError`. Otherwise, the `KSeFApiError` branch catches rate limit errors too.
+`KSeFRateLimitError` and `KSeFBatchTimeoutError` both extend `KSeFApiError`, so always check the specific subclasses **before** `KSeFApiError`. Otherwise, the `KSeFApiError` branch would catch them too.
 :::
 
 ### React to `ForbiddenReasonCode` values
@@ -782,6 +814,7 @@ try {
 |-------------|------------|-------------|------------|-------------------|
 | `KSeFApiError` | any non-2xx | `ApiErrorResponse` | `statusCode`, `errorResponse` | Retry on 5xx |
 | `KSeFRateLimitError` | 429 | `TooManyRequestsResponse` | `retryAfterSeconds`, `recommendedDelay` | Retry with `Retry-After` |
+| `KSeFBatchTimeoutError` | any non-2xx (KSeF code 21208) | `ApiErrorResponse` | `errorCode` (21208), `statusCode`, `errorResponse` | None (retry with smaller batch) |
 | `KSeFUnauthorizedError` | 401 | RFC 7807 `UnauthorizedProblemDetails` | `detail`, `traceId`, `instance` | Token refresh, then retry once |
 | `KSeFForbiddenError` | 403 | RFC 7807 `ForbiddenProblemDetails` | `reasonCode`, `detail`, `traceId`, `security` | None (not retryable) |
 | `KSeFAuthStatusError` | -- | -- | `referenceNumber`, `statusDescription` | None |
@@ -798,6 +831,8 @@ try {
 | `src/errors/ksef-error.ts` | `KSeFError` base class |
 | `src/errors/ksef-api-error.ts` | `KSeFApiError` with `fromResponse()` factory |
 | `src/errors/ksef-rate-limit-error.ts` | `KSeFRateLimitError` with `fromRetryAfterHeader()` factory |
+| `src/errors/ksef-batch-timeout-error.ts` | `KSeFBatchTimeoutError` with `fromResponse()` factory (KSeF code 21208) |
+| `src/errors/error-codes.ts` | `KSeFErrorCode` numeric code registry + `hasErrorCode()` helper |
 | `src/errors/ksef-unauthorized-error.ts` | `KSeFUnauthorizedError` |
 | `src/errors/ksef-forbidden-error.ts` | `KSeFForbiddenError` |
 | `src/errors/ksef-auth-status-error.ts` | `KSeFAuthStatusError` |
