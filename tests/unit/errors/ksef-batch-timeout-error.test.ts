@@ -70,6 +70,26 @@ describe('KSeFBatchTimeoutError', () => {
     expect(err.errorResponse).toBeUndefined();
   });
 
+  it('fromResponse() falls back to default message when description is an empty string', () => {
+    const body = {
+      exception: { exceptionDetailList: [{ exceptionCode: 21208, exceptionDescription: '' }] },
+    };
+    const err = KSeFBatchTimeoutError.fromResponse(408, body);
+
+    expect(err.message).toContain('21208');
+    expect(err.message).toContain('timed out');
+    expect(err.errorResponse).toBe(body);
+  });
+
+  it('fromResponse() falls back to default message when description is whitespace only', () => {
+    const err = KSeFBatchTimeoutError.fromResponse(408, {
+      exception: { exceptionDetailList: [{ exceptionCode: 21208, exceptionDescription: '   ' }] },
+    });
+
+    expect(err.message).toContain('21208');
+    expect(err.message).toContain('timed out');
+  });
+
   it('preserves the original errorResponse for debugging', () => {
     const body = {
       exception: {
