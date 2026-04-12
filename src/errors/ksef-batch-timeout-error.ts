@@ -15,7 +15,7 @@ export class KSeFBatchTimeoutError extends KSeFApiError {
       (d) => d.exceptionCode === KSeFErrorCode.BatchTimeout,
     );
     const message =
-      detail?.exceptionDescription ??
+      detail?.exceptionDescription?.trim() ||
       'Batch session timed out before the server completed processing (KSeF 21208).';
     return new KSeFBatchTimeoutError(message, statusCode, body);
   }
