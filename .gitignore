@@ -19,6 +19,7 @@ coverage/
 # Claude local settings
 .claude/projects/
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
 
 # Plans
 plans/
