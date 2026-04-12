@@ -6,12 +6,12 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- **KSeF API v2.4.0 support** — aligned with the latest KSeF API contract (PRD rollout 2026-04-16), covering retention-expired async operations, server timestamps on authentication errors, and updated server-side export rate limits.
+- **KSeF API v2.4.0 support** — aligned with the latest KSeF API contract, covering retention-expiry handling on aged polls, server-recorded timestamps on auth failures, and updated export rate limit guidance (KSeF API v2.4.0).
 - **Negative amounts in invoice queries** — invoice metadata queries now accept negative amount filters to target corrective invoices and refunds (KSeF API v2.3.0).
 - **Client IP in login result** — login results expose the client IP observed by KSeF so callers can populate authorization policies on future auth requests (KSeF API v2.2.0).
-- **Batch timeout error** — batch-session timeouts surface as a dedicated error type, letting callers distinguish processing timeouts from other failures (KSeF API v2.0.0).
+- **Batch timeout handling** — batch-session timeouts are now reported distinctly from other failures so callers can apply timeout-specific recovery logic (KSeF API v2.0.0).
 - **Introspection token permission** — KSeF tokens can be issued with the `Introspection` permission for session history browsing and UPO generation (KSeF API v2.1.2).
-- **Retention-expired operations** — polling an async operation whose server-side status has aged out now surfaces a dedicated error class so callers can distinguish retention expiry from generic failures (KSeF API v2.4.0).
+- **Retention-expired operations** — polling an aged-out async operation now returns a clear retention-expiry response instead of a generic failure (KSeF API v2.4.0).
 - **Timestamp on auth errors** — authentication and authorization errors now expose the server-recorded UTC timestamp, making it easier to correlate errors with server logs (KSeF API v2.4.0).
 
 ### Changed
