@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **KSeF API v2.4.0 support** — aligned with the latest KSeF API contract (PRD rollout 2026-04-16), covering retention-expired async operations, server timestamps on authentication errors, and updated server-side export rate limits.
 - **Negative amounts in invoice queries** — invoice metadata queries now accept negative amount filters to target corrective invoices and refunds (KSeF API v2.3.0).
 - **Client IP in login result** — login results expose the client IP observed by KSeF so callers can populate authorization policies on future auth requests (KSeF API v2.2.0).
 - **Batch timeout error** — batch-session timeouts surface as a dedicated error type, letting callers distinguish processing timeouts from other failures (KSeF API v2.0.0).
