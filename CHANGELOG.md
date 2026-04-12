@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - **Session list shows last activity** — session listings now display the last-update timestamp alongside the creation date, making it easier to spot stale sessions (KSeF API v2.0.0).
+- **Documented v2.4.0 export rate limits** — invoice export rate limits were increased server-side in KSeF API v2.4.0; the rate-limit guide reflects the new ceilings for users who configure client-side back-pressure.
 
 ### Fixed
 
