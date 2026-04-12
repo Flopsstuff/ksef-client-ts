@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - **Batch timeout error** — batch-session timeouts surface as a dedicated error type, letting callers distinguish processing timeouts from other failures (KSeF API v2.0.0).
 - **Introspection token permission** — KSeF tokens can be issued with the `Introspection` permission for session history browsing and UPO generation (KSeF API v2.1.2).
 - **Retention-expired operations** — polling an async operation whose server-side status has aged out now surfaces a dedicated error class so callers can distinguish retention expiry from generic failures (KSeF API v2.4.0).
+- **Timestamp on auth errors** — authentication and authorization errors now expose the server-recorded UTC timestamp, making it easier to correlate errors with server logs (KSeF API v2.4.0).
 
 ### Changed
 

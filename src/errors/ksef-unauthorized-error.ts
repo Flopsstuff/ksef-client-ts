@@ -6,6 +6,7 @@ export class KSeFUnauthorizedError extends KSeFError {
   readonly detail: string;
   readonly traceId?: string;
   readonly instance?: string;
+  readonly timestamp?: string;
 
   constructor(problemDetails: UnauthorizedProblemDetails) {
     super(problemDetails.detail || 'Unauthorized');
@@ -13,5 +14,6 @@ export class KSeFUnauthorizedError extends KSeFError {
     this.detail = problemDetails.detail;
     this.traceId = problemDetails.traceId;
     this.instance = problemDetails.instance;
+    this.timestamp = problemDetails.timestamp;
   }
 }
