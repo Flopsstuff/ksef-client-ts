@@ -81,17 +81,18 @@ const login = defineCommand({
       }
 
       const token = args.token ?? loadCredentials()?.token;
+      let loginResult;
       if (token) {
-        await client.loginWithToken(token, nip);
+        loginResult = await client.loginWithToken(token, nip);
       } else if (args.p12) {
         const fs = await import('node:fs');
         const p12Buffer = fs.readFileSync(args.p12);
-        await client.loginWithPkcs12(p12Buffer, (args['p12-password'] as string) ?? '', nip);
+        loginResult = await client.loginWithPkcs12(p12Buffer, (args['p12-password'] as string) ?? '', nip);
       } else if (args.cert && args.key) {
         const fs = await import('node:fs');
         const certPem = fs.readFileSync(args.cert, 'utf-8');
         const keyPem = fs.readFileSync(args.key, 'utf-8');
-        await client.loginWithCertificate(certPem, keyPem, nip, args['key-password'] as string | undefined);
+        loginResult = await client.loginWithCertificate(certPem, keyPem, nip, args['key-password'] as string | undefined);
       } else {
         throw new Error('Provide --token, --p12, or both --cert and --key for authentication.');
       }
@@ -106,7 +107,12 @@ const login = defineCommand({
       if (args.env && args.env !== config.environment) {
         saveConfig({ ...config, environment: session.environment });
       }
-      outputSuccess('Logged in successfully.');
+      if (args.json) {
+        console.log(JSON.stringify({ status: 'ok', clientIp: loginResult.clientIp }, null, 2));
+      } else {
+        consola.info(`Seen client IP: ${loginResult.clientIp}`);
+        outputSuccess('Logged in successfully.');
+      }
     });
   },
 });
@@ -287,6 +293,7 @@ const loginExternal = defineCommand({
 
         process.stderr.write(`Challenge: ${challengeResult.challenge}\n`);
         process.stderr.write(`Timestamp: ${challengeResult.timestamp}\n`);
+        process.stderr.write(`Seen client IP: ${challengeResult.clientIp}\n`);
         process.stderr.write(`Note: Sign this XML and submit with --submit before the challenge expires.\n`);
       }
 

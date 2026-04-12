@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - **Negative amounts in invoice queries** — `amount.from` and `amount.to` filters on invoice metadata queries now accept negative values, allowing queries to target corrective invoices and refunds (KSeF API v2.3.0).
+- **Client IP in login result** — `loginWithToken`, `loginWithCertificate`, and `loginWithPkcs12` now return `{ clientIp }` with the IP address KSeF observed during the challenge. CLI `ksef auth login` prints it so users can correctly populate `AuthorizationPolicy.allowedIps` on future auth requests (KSeF API v2.2.0).
 
 ### Fixed
 

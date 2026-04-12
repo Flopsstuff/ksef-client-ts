@@ -175,6 +175,25 @@ describe('auth', () => {
       await runLogin({ token: 'tok-123' });
       expect(mockClient.loginWithToken).toHaveBeenCalledWith('tok-123', '9999999999');
     });
+
+    it('prints seen client IP after successful login (human mode)', async () => {
+      mockClient.loginWithToken.mockResolvedValue({ clientIp: '203.0.113.5' });
+      const { consola } = await import('consola');
+      await runLogin({ token: 'tok-123', nip: '1234567890' });
+      expect(consola.info).toHaveBeenCalledWith('Seen client IP: 203.0.113.5');
+      expect(mockOutputSuccess).toHaveBeenCalledWith('Logged in successfully.');
+    });
+
+    it('emits JSON with clientIp when --json', async () => {
+      mockClient.loginWithToken.mockResolvedValue({ clientIp: '203.0.113.5' });
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      await runLogin({ token: 'tok-123', nip: '1234567890', json: true });
+      const emitted = logSpy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(emitted).toContain('"clientIp": "203.0.113.5"');
+      expect(emitted).toContain('"status": "ok"');
+      expect(mockOutputSuccess).not.toHaveBeenCalled();
+      logSpy.mockRestore();
+    });
   });
 
   describe('logout', () => {
@@ -386,6 +405,7 @@ describe('auth', () => {
       expect(mockClient.auth.getChallenge).toHaveBeenCalled();
       expect(stdoutSpy).toHaveBeenCalledWith('<UnsignedXml/>');
       expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('Challenge:'));
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('Seen client IP: 127.0.0.1'));
       stdoutSpy.mockRestore();
       stderrSpy.mockRestore();
     });

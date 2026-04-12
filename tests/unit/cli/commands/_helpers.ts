@@ -12,9 +12,9 @@ export function createMockClient() {
       setAccessToken: vi.fn(),
       setRefreshToken: vi.fn(),
     },
-    loginWithToken: vi.fn(),
-    loginWithCertificate: vi.fn(),
-    loginWithPkcs12: vi.fn(),
+    loginWithToken: vi.fn().mockResolvedValue({ clientIp: '127.0.0.1' }),
+    loginWithCertificate: vi.fn().mockResolvedValue({ clientIp: '127.0.0.1' }),
+    loginWithPkcs12: vi.fn().mockResolvedValue({ clientIp: '127.0.0.1' }),
     auth: mockService(['getChallenge', 'getAuthStatus', 'refreshAccessToken', 'submitXadesAuthRequest', 'getAccessToken']),
     invoices: mockService(['getInvoice', 'queryInvoiceMetadata', 'exportInvoices', 'getInvoiceExportStatus']),
     permissions: mockService([

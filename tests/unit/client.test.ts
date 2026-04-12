@@ -151,6 +151,11 @@ describe('KSeFClient', () => {
       expect(authManager.setRefreshToken).toHaveBeenCalledWith('refresh-token-final-def');
     });
 
+    it('returns clientIp from challenge', async () => {
+      const result = await client.loginWithToken(FIXTURES.token, FIXTURES.nip);
+      expect(result).toEqual({ clientIp: '192.168.1.1' });
+    });
+
     it('calls crypto.init before encryptKsefToken', async () => {
       const callOrder: string[] = [];
       cryptoInitSpy.mockImplementation(async () => { callOrder.push('init'); });
@@ -241,6 +246,11 @@ describe('KSeFClient', () => {
       expect(getAccessTokenSpy).toHaveBeenCalledWith('auth-token-xyz789');
       expect(authManager.setAccessToken).toHaveBeenCalledWith('access-token-final-abc');
       expect(authManager.setRefreshToken).toHaveBeenCalledWith('refresh-token-final-def');
+    });
+
+    it('returns clientIp from challenge', async () => {
+      const result = await client.loginWithCertificate(FIXTURES.certPem, FIXTURES.keyPem, FIXTURES.nip);
+      expect(result).toEqual({ clientIp: '192.168.1.1' });
     });
 
     it('generates auth request XML containing challenge and NIP', async () => {
@@ -367,6 +377,11 @@ describe('KSeFClient', () => {
 
       expect(authManager.setAccessToken).toHaveBeenCalledWith('access-token-final-abc');
       expect(authManager.setRefreshToken).toHaveBeenCalledWith('refresh-token-final-def');
+    });
+
+    it('returns clientIp from challenge', async () => {
+      const result = await client.loginWithPkcs12(Buffer.from('mock-p12'), 'pass', FIXTURES.nip);
+      expect(result).toEqual({ clientIp: '192.168.1.1' });
     });
 
     it('propagates Pkcs12Loader error', async () => {

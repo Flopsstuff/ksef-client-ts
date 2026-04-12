@@ -7,6 +7,11 @@ export interface AuthChallengeResponse {
   clientIp: string;
 }
 
+export interface LoginResult {
+  /** Client IP as seen by KSeF during the challenge — use to configure AuthorizationPolicy.allowedIps. */
+  clientIp: string;
+}
+
 export interface AuthenticationInitResponse {
   referenceNumber: string;
   authenticationToken: TokenInfo;
