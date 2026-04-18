@@ -296,6 +296,22 @@ async function managePermissions() {
 - Use `revokeCommonGrant()` for person/entity/subunit grants, and `revokeAuthorizationGrant()` for authorization grants.
 - The `EntityPermissionGrantBuilder` and `AuthorizationPermissionGrantBuilder` follow the same pattern for entity and authorization permissions respectively.
 
+### Filter by subunit InternalId (VatGroup)
+
+When the current context is a VAT group, personal and entity permission queries can be narrowed to a specific subunit by its 16-char `InternalId`:
+
+```typescript
+const grants = await client.permissions.queryPersonalGrants({
+  contextIdentifier: { type: 'InternalId', value: '7762811692-12345' },
+});
+
+const entityGrants = await client.permissions.queryEntitiesGrants({
+  contextIdentifier: { type: 'InternalId', value: '7762811692-12345' },
+});
+```
+
+Passing `{ type: 'Nip', value: '<10-digit NIP>' }` is also accepted. `InternalId` values must be 10-16 characters — shorter/longer values fail client-side with a validation error before any request is sent.
+
 ---
 
 ## 6. Generate QR Code

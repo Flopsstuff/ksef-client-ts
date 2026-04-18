@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - **Typed 403 permission context** — forbidden errors now expose structured required/present permission lists for easier troubleshooting.
 - **Safer server-error handling** — applications can handle every documented Problem Details response with compile-time exhaustiveness checks.
 - **One-step self-revoke** — a new CLI command revokes the token used for the current login and clears local state in a single step (KSeF API v2.4.0).
+- **Subunit permission filtering** — personal and entity permission queries can now be filtered by subunit `InternalId` (VAT-group member identifier), matching the KSeF API v2.2.0 contract.
 
 ### Changed
 

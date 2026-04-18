@@ -269,6 +269,8 @@ const search = defineCommand({
     identifier: { type: 'string', description: 'Subject identifier value' },
     identifierType: { type: 'string', description: 'Subject identifier type' },
     queryType: { type: 'string', description: 'Query type (e.g. PermissionsInCurrentContext, Granted)' },
+    contextType: { type: 'string', description: 'Context identifier type: Nip | InternalId (for --type personal and --type entities-grants)' },
+    contextValue: { type: 'string', description: 'Context identifier value (NIP or 10-16 char InternalId)' },
     page: { type: 'string', description: 'Page offset (default: 0)' },
     pageSize: { type: 'string', description: 'Page size' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
@@ -286,7 +288,10 @@ const search = defineCommand({
 
       switch (args.type) {
         case 'personal': {
-          const response = await client.permissions.queryPersonalGrants({}, page, pageSize);
+          const body = args.contextType && args.contextValue
+            ? { contextIdentifier: { type: args.contextType as 'Nip' | 'InternalId', value: args.contextValue } }
+            : {};
+          const response = await client.permissions.queryPersonalGrants(body, page, pageSize);
 
           if (args.json) {
             outputResult(response, { json: true });
@@ -410,7 +415,10 @@ const search = defineCommand({
         }
 
         case 'entities-grants': {
-          const response = await client.permissions.queryEntitiesGrants({}, page, pageSize);
+          const body = args.contextType && args.contextValue
+            ? { contextIdentifier: { type: args.contextType as 'Nip' | 'InternalId', value: args.contextValue } }
+            : {};
+          const response = await client.permissions.queryEntitiesGrants(body, page, pageSize);
 
           if (args.json) {
             outputResult(response, { json: true });

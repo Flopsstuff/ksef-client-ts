@@ -250,6 +250,57 @@ describe('PermissionsService', () => {
       expect(result).toEqual(expected);
     });
 
+    it('queryEntitiesGrants forwards InternalId contextIdentifier in body', async () => {
+      const options = { contextIdentifier: { type: 'InternalId' as const, value: '7762811692-12345' } };
+      const expected = { permissions: [], hasMore: false };
+      vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
+
+      await service.queryEntitiesGrants(options);
+
+      const req = getRequest(vi.mocked(client.execute));
+      expect(req.getBody()).toEqual(options);
+    });
+
+    it('queryPersonalGrants forwards InternalId contextIdentifier in body', async () => {
+      const options = { contextIdentifier: { type: 'InternalId' as const, value: '7762811692-12345' } };
+      const expected = { permissions: [], hasMore: false };
+      vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
+
+      await service.queryPersonalGrants(options);
+
+      const req = getRequest(vi.mocked(client.execute));
+      expect(req.getBody()).toEqual(options);
+    });
+
+    it('queryPersonalGrants throws KSeFValidationError when InternalId is shorter than 10 chars', async () => {
+      const options = { contextIdentifier: { type: 'InternalId' as const, value: '123456789' } };
+      await expect(service.queryPersonalGrants(options)).rejects.toThrow(/InternalId must be 10-16 characters/);
+      expect(client.execute).not.toHaveBeenCalled();
+    });
+
+    it('queryPersonalGrants throws KSeFValidationError when InternalId is longer than 16 chars', async () => {
+      const options = { contextIdentifier: { type: 'InternalId' as const, value: '12345678901234567' } };
+      await expect(service.queryPersonalGrants(options)).rejects.toThrow(/InternalId must be 10-16 characters/);
+      expect(client.execute).not.toHaveBeenCalled();
+    });
+
+    it('queryEntitiesGrants throws KSeFValidationError when InternalId is out of range', async () => {
+      const options = { contextIdentifier: { type: 'InternalId' as const, value: 'short' } };
+      await expect(service.queryEntitiesGrants(options)).rejects.toThrow(/InternalId must be 10-16 characters/);
+      expect(client.execute).not.toHaveBeenCalled();
+    });
+
+    it('queryPersonalGrants accepts Nip contextIdentifier with any length (validation scoped to InternalId)', async () => {
+      const options = { contextIdentifier: { type: 'Nip' as const, value: '1' } };
+      const expected = { permissions: [], hasMore: false };
+      vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
+
+      await service.queryPersonalGrants(options);
+
+      const req = getRequest(vi.mocked(client.execute));
+      expect(req.getBody()).toEqual(options);
+    });
+
     it('querySubordinateEntitiesRoles sends POST with body defaulting to empty object', async () => {
       const expected = { roles: [], hasMore: false };
       vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));

@@ -1,3 +1,4 @@
+import { KSeFValidationError } from '../errors/ksef-validation-error.js';
 import { RestClient } from '../http/rest-client.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
@@ -117,6 +118,7 @@ export class PermissionsService {
     pageOffset?: number,
     pageSize?: number,
   ): Promise<PagedPermissionsResponse<PersonalPermission>> {
+    PermissionsService.validateContextIdentifier(options?.contextIdentifier);
     const req = RestRequest.post(Routes.Permissions.Query.personalGrants)
       .body(options ?? {});
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
@@ -166,6 +168,7 @@ export class PermissionsService {
     pageOffset?: number,
     pageSize?: number,
   ): Promise<PagedPermissionsResponse<EntityPermissionItem>> {
+    PermissionsService.validateContextIdentifier(options?.contextIdentifier);
     const req = RestRequest.post(Routes.Permissions.Query.entitiesGrants)
       .body(options ?? {});
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
@@ -225,5 +228,18 @@ export class PermissionsService {
     const req = RestRequest.get(Routes.Permissions.Attachments.status);
     const response = await this.restClient.execute<PermissionsAttachmentAllowedResponse>(req);
     return response.body;
+  }
+
+  private static validateContextIdentifier(ctx?: { type: string; value: string } | null): void {
+    if (!ctx) return;
+    if (ctx.type === 'InternalId') {
+      const len = ctx.value.length;
+      if (len < 10 || len > 16) {
+        throw KSeFValidationError.fromField(
+          'contextIdentifier.value',
+          `InternalId must be 10-16 characters, got ${len}`,
+        );
+      }
+    }
   }
 }
