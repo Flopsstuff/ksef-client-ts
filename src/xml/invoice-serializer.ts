@@ -46,7 +46,8 @@ function classifyUnknownObject(input: Record<string, unknown>): KSeFValidationEr
  * encoded `Buffer`.
  *
  * Input dispatch:
- *   - `Buffer`           — returned byte-for-byte
+ *   - `Buffer`           — returned byte-for-byte as the same reference;
+ *                          callers must not mutate the buffer after the call
  *   - `string`           — UTF-8 BOM stripped, wrapped in a `Buffer`
  *   - pre-parsed `XmlDocument` array — rebuilt via the engine
  *   - `FakturaInput`     — FA2/FA3 builder (default schema: FA3)
