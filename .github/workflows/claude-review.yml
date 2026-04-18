@@ -1,0 +1,77 @@
+name: Claude PR Review
+
+# Runs Claude Code against a PR when a maintainer posts `@claude-review`
+# in a PR comment. Complements codex-pr-review.yml (which runs automatically).
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: claude-review-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # Only on PR comments (not plain issues), only if the trigger phrase is present,
+    # and never react to the bot's own comments (avoid loops).
+    if: >
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '@claude-review') &&
+      github.event.comment.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve PR head SHA
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number,
+            });
+            core.setOutput('head_sha', pr.head.sha);
+            core.setOutput('base_ref', pr.base.ref);
+            core.setOutput('number', pr.number);
+
+      - name: Checkout PR merge ref
+        uses: actions/checkout@v5
+        with:
+          ref: refs/pull/${{ steps.pr.outputs.number }}/merge
+          fetch-depth: 0
+
+      - name: Run Claude review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          trigger_phrase: "@claude-review"
+          claude_args: "--max-turns 8 --model claude-sonnet-4-6"
+          prompt: |
+            You are reviewing PR #${{ steps.pr.outputs.number }} against `${{ steps.pr.outputs.base_ref }}`.
+
+            Read `CLAUDE.md` at the repo root and treat its Rules and Key conventions as authoritative.
+            Use `git diff origin/${{ steps.pr.outputs.base_ref }}...HEAD` to scope your review to PR changes.
+
+            Check specifically:
+
+            1. **Import style** — TypeScript imports of local modules must use `.js` extensions (ESM resolution convention).
+            2. **CHANGELOG entries** (if `CHANGELOG.md` changed) — each bullet must be one sentence, user-facing, no class/method/field names, no CLI flags, no header names. KSeF API version in parentheses at the end if relevant.
+            3. **Fenced code blocks** in `README.md`, `docs/**`, `plans/**`, `CHANGELOG.md` — ASCII tables, tree diagrams, plain text must use ` ```text ` tag, never bare ` ``` `.
+            4. **Error hierarchy** — new server-side HTTP error classes must extend `KSeFApiError` and expose a `toProblemFields()` override so the CLI renderer picks them up automatically.
+            5. **Naming collisions** — watch for name clashes with `CertificateService`/`CertificateApiService`, `SubjectIdentifierType`/`PermissionSubjectIdentifierType`, `InvoicingMode`/`InvoiceFilterInvoicingMode`.
+            6. **Test coverage** — any new public method or new error path should have a unit test. New CLI commands should have a CLI test under `tests/unit/cli/`.
+            7. **README.md ↔ docs/index.md sync** — feature-list changes must land in both.
+            8. **Security sanity** — any new file that takes user input (CLI args, HTTP bodies, file paths) or touches crypto should be spot-checked for obvious injection / path-traversal / unsafe defaults.
+
+            Skip:
+            - Style nits on existing code outside the diff.
+            - Generic "consider using X library" suggestions.
+            - Tests you cannot run — just note what's untested, don't speculate on outcomes.
+
+            Output a single concise comment with one section per finding: severity (nit / warning / must-fix), file:line, what's wrong, suggested fix. If the PR is clean, say so in one sentence. Do not paraphrase the diff.
