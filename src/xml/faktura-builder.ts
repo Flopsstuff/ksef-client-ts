@@ -111,11 +111,15 @@ export function buildFakturaXml(faktura: FakturaInput, options: BuildFakturaOpti
 
   const normalized = normalizeTopLevel(faktura);
   const ordered = orderXmlObject(normalized, 'Faktura');
+  // Builder-injected namespaces always win over any `@_xmlns` / `@_xmlns:etd`
+  // a caller may have slipped into the FakturaInput via the index signature —
+  // `options.fakturaNamespace` / `options.etdNamespace` are the supported
+  // override path.
   const document: XmlObject = {
     Faktura: {
+      ...ordered,
       '@_xmlns': fakturaNamespace,
       '@_xmlns:etd': etdNamespace,
-      ...ordered,
     },
   };
 

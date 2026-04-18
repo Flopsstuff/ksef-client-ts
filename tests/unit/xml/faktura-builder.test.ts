@@ -265,3 +265,24 @@ describe('isFakturaInput', () => {
     expect(isFakturaInput([])).toBe(false);
   });
 });
+
+// ── null vs undefined rendering ────────────────────────────────────────
+//
+// Pins the contract documented in docs/xml-serialization.md ("null vs
+// undefined"): `undefined` values are omitted from the output, `null`
+// renders as a self-closing empty element. Catches a fast-xml-parser
+// version/config drift where `suppressEmptyNode` or null-handling would
+// silently change the emitted shape.
+
+describe('buildFakturaXml — null vs undefined rendering', () => {
+  it('omits `undefined` child elements entirely', () => {
+    const xml = buildFakturaXml(minimalFa3({ Fa: { P_1: '2026-04-18', P_2: 'X', P_15: undefined } }));
+    expect(xml).not.toContain('<P_15');
+  });
+
+  it('renders `null` child elements as self-closing empty elements', () => {
+    const xml = buildFakturaXml(minimalFa3({ Fa: { P_1: '2026-04-18', P_2: 'X', P_15: null } }));
+    expect(xml).toContain('<P_15/>');
+    expect(xml).not.toContain('<P_15></P_15>');
+  });
+});

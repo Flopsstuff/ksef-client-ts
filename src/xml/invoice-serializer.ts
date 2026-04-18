@@ -13,6 +13,10 @@ import { buildXml, buildXmlFromObject, stripBom } from './xml-engine.js';
 const FAKTURA_SCHEMAS = new Set(['FA2', 'FA3']);
 const PEF_SCHEMAS = new Set(['PEF', 'PEF_KOR']);
 
+function isNonArrayObject(value: unknown): boolean {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
 function classifyUnknownObject(input: Record<string, unknown>): KSeFValidationError {
   // Diagnose what the input looks like and report the first missing key.
   const looksLikeFaktura =
@@ -24,6 +28,19 @@ function classifyUnknownObject(input: Record<string, unknown>): KSeFValidationEr
     return new KSeFValidationError(
       'Input must contain exactly one of `Invoice` or `CreditNote`, not both.',
     );
+  }
+
+  // Exactly one PEF root key present but its value is not a non-array object —
+  // isPefUblDocumentInput rejected it for that reason. Report it explicitly
+  // instead of falling through to the generic "Unsupported invoice input shape".
+  if (hasInvoice !== hasCreditNote) {
+    const rootKey = hasInvoice ? 'Invoice' : 'CreditNote';
+    if (!isNonArrayObject(input[rootKey])) {
+      return KSeFValidationError.fromField(
+        rootKey,
+        `PEF \`${rootKey}\` value must be a non-array object.`,
+      );
+    }
   }
 
   if (looksLikeFaktura) {
