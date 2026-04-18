@@ -28,6 +28,13 @@ export interface KSeFClientOptions {
   rateLimit?: Partial<RateLimitConfig> | null;
   presignedUrlHosts?: string[];
   authManager?: AuthManager;
+  /**
+   * Request format for server-returned error bodies. Defaults to
+   * `'problem-details'` (RFC 7807, KSeF API v2.4.0+). Set to `'legacy'`
+   * to suppress the `X-Error-Format` header and receive legacy error
+   * bodies from older servers or proxies.
+   */
+  errorFormat?: 'problem-details' | 'legacy';
 }
 
 export interface ResolvedOptions {
@@ -38,6 +45,7 @@ export interface ResolvedOptions {
   timeout: number;
   customHeaders: Record<string, string>;
   environmentName?: EnvironmentName;
+  errorFormat: 'problem-details' | 'legacy';
 }
 
 const DEFAULT_API_VERSION = 'v2';
@@ -56,5 +64,6 @@ export function resolveOptions(options: KSeFClientOptions = {}): ResolvedOptions
     timeout: options.timeout ?? DEFAULT_TIMEOUT,
     customHeaders: options.customHeaders ?? {},
     environmentName: options.environment ?? (options.baseUrl ? undefined : 'TEST'),
+    errorFormat: options.errorFormat ?? 'problem-details',
   };
 }

@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Structured 400 validation errors** — KSeF server-side validation failures now expose the full list of error codes and descriptions instead of a single flat message (KSeF API v2.4.0).
+- **Richer rate-limit errors** — 429 responses now surface server-provided context (trace ID, instance, timestamp) alongside existing retry-after metadata (KSeF API v2.4.0).
+- **Typed 403 permission context** — forbidden errors now expose structured required/present permission lists for easier troubleshooting.
+- **Exhaustive error dispatch** — new union type makes pattern-matching all server-returned Problem Details errors compile-time safe.
+
+### Changed
+
+- **Unified error hierarchy** — all server HTTP errors now share a common base class, so one `catch` branch can handle every server-returned failure.
+- **Error format header** — client requests RFC 7807 Problem Details by default; callers can opt out via the `errorFormat` option when they need legacy bodies.
+
 ### Fixed
 
 ## [0.6.2] - 2026-04-12

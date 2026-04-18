@@ -150,7 +150,7 @@ Feature descriptions live in two places that must be kept in sync: `README.md` (
 
 ### Reference implementations
 
-`ref/` directory (gitignored) contains Java (`ref/ksef-client-java`), C# (`ref/ksef-client-csharp`), TS refs (`ref/ksef-client-typescript`, `ref/ksef-client-ts`), official docs (`ref/ksef-docs`), and translations (`ref/ksef-docs-translated`). See `ref/ref-index.md` for full index.
+`ref/` directory (gitignored) contains reference implementations, official docs, and related projects. See `ref/ref-index.md` for the full index.
 
 ### WebCrypto typing quirk
 

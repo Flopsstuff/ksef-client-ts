@@ -1,15 +1,15 @@
-import { KSeFError } from './ksef-error.js';
+import { KSeFApiError } from './ksef-api-error.js';
 import type { GoneProblemDetails } from './types.js';
 
-export class KSeFGoneError extends KSeFError {
-  readonly statusCode = 410;
+export class KSeFGoneError extends KSeFApiError {
+  override readonly statusCode: 410 = 410;
   readonly detail: string;
   readonly instance?: string;
   readonly traceId?: string;
   readonly timestamp?: string;
 
   constructor(problemDetails: GoneProblemDetails) {
-    super(problemDetails.detail || 'Operation status no longer available (retention expired)');
+    super(problemDetails.detail || 'Operation status no longer available (retention expired)', 410);
     this.name = 'KSeFGoneError';
     this.detail = problemDetails.detail;
     this.instance = problemDetails.instance;

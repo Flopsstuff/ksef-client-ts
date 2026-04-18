@@ -43,13 +43,18 @@ export type ForbiddenReasonCode =
   | 'context-type-not-allowed'
   | (string & {});
 
+export interface ForbiddenSecurityInfo {
+  requiredAnyOfPermissions?: string[];
+  presentPermissions?: string[];
+}
+
 export interface ForbiddenProblemDetails {
   title: string;
   status: number;
   detail: string;
   instance?: string;
   reasonCode: ForbiddenReasonCode;
-  security?: Record<string, unknown>;
+  security?: ForbiddenSecurityInfo & Record<string, unknown>;
   traceId?: string;
   timestamp?: string;
 }
@@ -61,4 +66,29 @@ export interface GoneProblemDetails {
   instance?: string;
   traceId?: string;
   timestamp?: string;
+}
+
+export interface BadRequestErrorDetail {
+  code: number;
+  description: string;
+  details: string[];
+}
+
+export interface BadRequestProblemDetails {
+  title: string;
+  status: number;
+  detail?: string;
+  instance?: string;
+  errors: BadRequestErrorDetail[];
+  timestamp?: string;
+  traceId?: string;
+}
+
+export interface TooManyRequestsProblemDetails {
+  title: string;
+  status: number;
+  detail?: string;
+  instance?: string;
+  timestamp?: string;
+  traceId?: string;
 }

@@ -54,15 +54,15 @@ describe('KSeFUnauthorizedError', () => {
     expect(err.statusCode).toBe(401);
   });
 
-  it('extends KSeFError and Error, but not KSeFApiError', () => {
+  it('extends KSeFApiError, KSeFError, and Error', () => {
     const err = new KSeFUnauthorizedError({
       title: 'Unauthorized',
       status: 401,
       detail: 'test',
     });
 
+    expect(err).toBeInstanceOf(KSeFApiError);
     expect(err).toBeInstanceOf(KSeFError);
     expect(err).toBeInstanceOf(Error);
-    expect(err).not.toBeInstanceOf(KSeFApiError);
   });
 });

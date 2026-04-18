@@ -4,9 +4,18 @@ import { KSeFRateLimitError } from '../errors/ksef-rate-limit-error.js';
 import { KSeFUnauthorizedError } from '../errors/ksef-unauthorized-error.js';
 import { KSeFForbiddenError } from '../errors/ksef-forbidden-error.js';
 import { KSeFGoneError } from '../errors/ksef-gone-error.js';
+import { KSeFBadRequestError } from '../errors/ksef-bad-request-error.js';
 import { KSeFBatchTimeoutError } from '../errors/ksef-batch-timeout-error.js';
 import { KSeFErrorCode, hasErrorCode } from '../errors/error-codes.js';
-import type { ApiErrorResponse, TooManyRequestsResponse, UnauthorizedProblemDetails, ForbiddenProblemDetails, GoneProblemDetails } from '../errors/types.js';
+import type {
+  ApiErrorResponse,
+  TooManyRequestsResponse,
+  TooManyRequestsProblemDetails,
+  UnauthorizedProblemDetails,
+  ForbiddenProblemDetails,
+  GoneProblemDetails,
+  BadRequestProblemDetails,
+} from '../errors/types.js';
 import type { ResolvedOptions } from '../config/options.js';
 import { RouteBuilder } from './route-builder.js';
 import { type RestRequest } from './rest-request.js';
@@ -139,6 +148,10 @@ export class RestClient {
       ...request.getHeaders(),
     };
 
+    if (this.options.errorFormat !== 'legacy' && !headers['X-Error-Format']) {
+      headers['X-Error-Format'] = 'problem-details';
+    }
+
     // Auth header injection: explicit token on request takes precedence
     if (!headers['Authorization'] && this.authManager) {
       const token = overrideToken ?? this.authManager.getAccessToken();
@@ -191,12 +204,33 @@ export class RestClient {
       try { return JSON.parse(text) as T; } catch { return undefined; }
     };
 
+    const tryParseProblem = <T>(guard: (value: unknown) => value is T): T | undefined => {
+      const parsed = parseJson<unknown>();
+      return parsed !== undefined && guard(parsed) ? parsed : undefined;
+    };
+
+    if (response.status === 400) {
+      const problem = tryParseProblem(isBadRequestProblem);
+      if (problem) {
+        throw new KSeFBadRequestError(problem);
+      }
+      const legacy = parseJson<ApiErrorResponse>();
+      if (hasErrorCode(legacy, KSeFErrorCode.BatchTimeout)) {
+        throw KSeFBatchTimeoutError.fromResponse(400, legacy);
+      }
+      throw KSeFApiError.fromResponse(400, legacy);
+    }
+
     if (response.status === 429) {
-      const parsed = parseJson<TooManyRequestsResponse & ApiErrorResponse>();
+      const problem = tryParseProblem(isTooManyRequestsProblem);
+      const legacy = problem
+        ? undefined
+        : parseJson<TooManyRequestsResponse & ApiErrorResponse>();
       throw KSeFRateLimitError.fromRetryAfterHeader(
         response.status,
         response.headers.get('Retry-After'),
-        parsed,
+        legacy,
+        problem,
       );
     }
 
@@ -232,4 +266,20 @@ export class RestClient {
     }
     throw KSeFApiError.fromResponse(response.status, body);
   }
+}
+
+function isBadRequestProblem(value: unknown): value is BadRequestProblemDetails {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.title === 'string'
+    && typeof v.status === 'number'
+    && Array.isArray(v.errors);
+}
+
+function isTooManyRequestsProblem(value: unknown): value is TooManyRequestsProblemDetails {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.title === 'string'
+    && typeof v.status === 'number'
+    && typeof v.traceId === 'string';
 }

@@ -80,7 +80,7 @@ describe('KSeFForbiddenError', () => {
     expect(err.statusCode).toBe(403);
   });
 
-  it('extends KSeFError and Error, but not KSeFApiError', () => {
+  it('extends KSeFApiError, KSeFError, and Error', () => {
     const err = new KSeFForbiddenError({
       title: 'Forbidden',
       status: 403,
@@ -88,8 +88,24 @@ describe('KSeFForbiddenError', () => {
       reasonCode: 'missing-permissions',
     });
 
+    expect(err).toBeInstanceOf(KSeFApiError);
     expect(err).toBeInstanceOf(KSeFError);
     expect(err).toBeInstanceOf(Error);
-    expect(err).not.toBeInstanceOf(KSeFApiError);
+  });
+
+  it('exposes typed security info (requiredAnyOfPermissions, presentPermissions)', () => {
+    const err = new KSeFForbiddenError({
+      title: 'Forbidden',
+      status: 403,
+      detail: 'Missing perms',
+      reasonCode: 'missing-permissions',
+      security: {
+        requiredAnyOfPermissions: ['InvoiceRead', 'InvoiceWrite'],
+        presentPermissions: ['SessionOwn'],
+      },
+    });
+
+    expect(err.security?.requiredAnyOfPermissions).toEqual(['InvoiceRead', 'InvoiceWrite']);
+    expect(err.security?.presentPermissions).toEqual(['SessionOwn']);
   });
 });
