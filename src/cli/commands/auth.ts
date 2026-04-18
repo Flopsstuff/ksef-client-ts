@@ -192,7 +192,14 @@ const revokeSelfToken = defineCommand({
       // last-resort fallback when discovery fails, because the cache is written at
       // `auth login --token` time and can be stale if the user later re-authenticated via
       // certificate or external-signature flow (cached ref would point at the OLD token).
-      const discoveredRef = await client.tokens.findSelfReferenceNumber(session.accessToken);
+      // Catch discovery errors (network flap, KSeF 5xx) so CI/disposable-host flows can
+      // still fall back to the cached reference instead of hard-failing.
+      let discoveredRef: string | undefined;
+      try {
+        discoveredRef = await client.tokens.findSelfReferenceNumber(session.accessToken);
+      } catch {
+        discoveredRef = undefined;
+      }
       const cachedRef = discoveredRef ? undefined : loadCredentials()?.tokenReferenceNumber;
       const ref = discoveredRef ?? cachedRef;
       const source: 'discovery' | 'cache-fallback' | 'none' =

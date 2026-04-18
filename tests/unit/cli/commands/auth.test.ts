@@ -600,6 +600,26 @@ describe('auth', () => {
       );
     });
 
+    it('falls back to cached reference when discovery throws (e.g. network flap)', async () => {
+      mockLoadCredentials.mockReset();
+      mockLoadCredentials.mockReturnValue({ token: 'tok', tokenReferenceNumber: 'cached-ref' });
+      mockClient.tokens.findSelfReferenceNumber.mockRejectedValue(new Error('fetch failed'));
+      mockClient.tokens.revokeSelf.mockResolvedValue({
+        referenceNumber: 'cached-ref',
+        alreadyRevoked: false,
+      });
+
+      await runRevokeSelfToken({});
+
+      expect(mockClient.tokens.revokeSelf).toHaveBeenCalledWith({
+        referenceNumber: 'cached-ref',
+        accessToken: validSession.accessToken,
+      });
+      expect(mockOutputWarning).toHaveBeenCalledWith(
+        expect.stringContaining('Using cached reference'),
+      );
+    });
+
     it('--json cache-fallback sets source=cache-fallback and suppresses human warning', async () => {
       mockLoadCredentials.mockReset();
       mockLoadCredentials.mockReturnValue({ token: 'tok', tokenReferenceNumber: 'cached-ref' });
