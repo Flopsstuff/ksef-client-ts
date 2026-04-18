@@ -32,6 +32,7 @@ import type {
   QuerySubordinateEntitiesRolesRequest,
   QueryAuthorizationsGrantsRequest,
   QueryEuEntitiesGrantsRequest,
+  EntityPermissionsContextIdentifier,
 } from '../models/permissions/types.js';
 
 export class PermissionsService {
@@ -230,7 +231,9 @@ export class PermissionsService {
     return response.body;
   }
 
-  private static validateContextIdentifier(ctx?: { type: string; value: string } | null): void {
+  private static validateContextIdentifier(
+    ctx?: EntityPermissionsContextIdentifier | null,
+  ): void {
     if (!ctx) return;
     if (ctx.type === 'InternalId') {
       const len = ctx.value.length;
