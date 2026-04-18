@@ -271,4 +271,28 @@ describe('validate (combined)', () => {
     // Should at least detect the schema type
     expect(result.schemaType).toBe('FA3');
   });
+
+  it('short-circuits on Level 1a char-validity failure with XML_PROCESSING_INSTRUCTION', async () => {
+    const xml = '<?xml version="1.0"?><?xml-stylesheet href="x"?><tns:Faktura xmlns:tns="http://crd.gov.pl/wzor/2025/06/25/13775/"/>';
+    const result = await validate(xml);
+    expect(result.valid).toBe(false);
+    expect(result.schemaType).toBeNull();
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]!.code).toBe('XML_PROCESSING_INSTRUCTION');
+  });
+
+  it('skipCharValidity: true bypasses Level 1a', async () => {
+    const xml = '<?xml version="1.0"?><?xml-stylesheet href="x"?><tns:Faktura xmlns:tns="http://crd.gov.pl/wzor/2025/06/25/13775/"/>';
+    const result = await validate(xml, { skipCharValidity: true });
+    // With L1a skipped we now hit the schema/well-formedness pipeline.
+    // No XML_PROCESSING_INSTRUCTION error must remain.
+    expect(result.errors.every(e => e.code !== 'XML_PROCESSING_INSTRUCTION')).toBe(true);
+  });
+
+  it('does not emit schema errors when Level 1a fails (short-circuit before L2)', async () => {
+    // PI + otherwise-invalid schema body. Only PI error should surface.
+    const xml = '<?xml version="1.0"?><?xml-stylesheet href="x"?><Unknown/>';
+    const result = await validate(xml);
+    expect(result.errors.every(e => e.code === 'XML_PROCESSING_INSTRUCTION')).toBe(true);
+  });
 });

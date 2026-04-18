@@ -86,16 +86,44 @@ RUNTIME (every validate() call)
 
 Each level short-circuits: if Level 1 fails, Levels 2-3 are skipped. See [Generated schemas](#generated-schemas) for details on the build-time pipeline and how to update schemas when KSeF publishes new versions.
 
-### Three validation levels
+### Four validation levels
 
-The validator runs three independent levels, each callable separately or combined:
+The validator runs four independent levels, each callable separately or combined:
 
 | Level | Function | What it checks |
 |-------|----------|---------------|
+| 1a | `validateCharValidity(xml)` | Pre-parse: no XML processing instructions outside the `<?xml?>` prolog; no W3C-discouraged Unicode code points |
 | 1 | `validateWellFormedness(xml)` | XML is parseable (no unclosed tags, no encoding errors) |
 | 2 | `validateSchema(xml, options?)` | Structure matches the KSeF XSD schema (required elements, patterns, enums, occurrence limits) |
 | 3 | `validateBusinessRules(xml)` | Business logic beyond XSD (NIP/PESEL checksum verification) |
-| All | `validate(xml, options?)` | Runs all three levels, short-circuits on first failure |
+| All | `validate(xml, options?)` | Runs all four levels, short-circuits on first failure |
+
+#### Level 1a — Character validity
+
+KSeF API v2.4.0 rejects XML containing:
+
+- **Processing instructions outside the prolog.** The XML declaration `<?xml version="1.0" encoding="UTF-8"?>` is allowed only as the first non-whitespace content; any other `<?...?>` token (e.g. `<?xml-stylesheet ...?>`) triggers `XML_PROCESSING_INSTRUCTION`.
+- **Discouraged Unicode characters.** 19 code-point ranges are rejected per W3C XML 1.0 §2.2. Hitting any of them triggers `XML_DISCOURAGED_UNICODE`. The check de-duplicates by range, so a block of bad characters produces one error per distinct range, not one per character.
+
+Discouraged ranges:
+
+```
+[#x7F-#x84]       [#x86-#x9F]       [#xFDD0-#xFDEF]
+[#x1FFFE-#x1FFFF] [#x2FFFE-#x2FFFF] [#x3FFFE-#x3FFFF]
+[#x4FFFE-#x4FFFF] [#x5FFFE-#x5FFFF] [#x6FFFE-#x6FFFF]
+[#x7FFFE-#x7FFFF] [#x8FFFE-#x8FFFF] [#x9FFFE-#x9FFFF]
+[#xAFFFE-#xAFFFF] [#xBFFFE-#xBFFFF] [#xCFFFE-#xCFFFF]
+[#xDFFFE-#xDFFFF] [#xEFFFE-#xEFFFF] [#xFFFFE-#xFFFFF]
+[#x10FFFE-#x10FFFF]
+```
+
+Server-side enforcement on KSeF production is strict from **2026-07-16**. Running this check client-side gives callers precise offsets (`path: "offset:123"`) and avoids a server round-trip for issues detectable locally.
+
+Opt out via `skipCharValidity: true` on `validate()` if you need the legacy behavior:
+
+```typescript
+await validate(xml, { skipCharValidity: true });
+```
 
 ### CLI usage
 
