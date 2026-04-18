@@ -33,6 +33,23 @@ describe('validateCharValidity', () => {
       expect(errors[0]!.path).toBe(`offset:${xml.indexOf('<?xml')}`);
     });
 
+    it('accepts prolog preceded by a single UTF-8 BOM (W3C XML 1.0 Appendix F)', () => {
+      const xml = '\uFEFF<?xml version="1.0"?><Faktura/>';
+      expect(validateCharValidity(xml)).toEqual([]);
+    });
+
+    it('rejects prolog preceded by BOM + whitespace (only BOM is allowed, not whitespace)', () => {
+      const xml = '\uFEFF  <?xml version="1.0"?><Faktura/>';
+      const errors = validateCharValidity(xml);
+      expect(errors).toHaveLength(1);
+      expect(errors[0]!.code).toBe('XML_PROCESSING_INSTRUCTION');
+    });
+
+    it('accepts a BOM-only document with no PIs at all', () => {
+      const xml = '\uFEFF<Faktura/>';
+      expect(validateCharValidity(xml)).toEqual([]);
+    });
+
     it('rejects <?xml-stylesheet?> PI inside body', () => {
       const xml = '<?xml version="1.0"?><?xml-stylesheet href="x"?><Faktura/>';
       const errors = validateCharValidity(xml);

@@ -76,11 +76,14 @@ function findProcessingInstructions(xml: string): InvoiceValidationError[] {
   const matches = findProcessingInstructionTokens(xml);
   if (matches.length === 0) return errors;
 
-  // W3C XML 1.0 §2.8: the XML declaration, if present, must be the very first
-  // thing in the document entity — no preceding whitespace, BOM excluded.
+  // W3C XML 1.0 §2.8 + Appendix F: the XML declaration, if present, must be
+  // the very first thing in the document entity — no preceding whitespace,
+  // comments, or PIs. A single UTF-8 BOM (U+FEFF) is allowed to precede it.
   const firstMatch = matches[0]!;
   const firstTarget = firstMatch.token.match(PI_TARGET_RE)?.[1];
-  const firstIsProlog = firstMatch.index === 0 && firstTarget === 'xml';
+  const hasBom = xml.charCodeAt(0) === 0xFEFF;
+  const prologPosition = hasBom ? 1 : 0;
+  const firstIsProlog = firstMatch.index === prologPosition && firstTarget === 'xml';
 
   for (let i = 0; i < matches.length; i++) {
     if (i === 0 && firstIsProlog) continue;
