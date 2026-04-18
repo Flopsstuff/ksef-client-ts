@@ -82,18 +82,19 @@ export class TokenService {
 
   /**
    * Resolves the reference number of the token currently in use for authentication.
-   * Tries JWT payload first (opportunistic — not part of the documented KSeF JWT shape),
-   * then falls back to `GET /tokens` filtered by author and context. Requires exactly
-   * one active match in the fallback; returns undefined when ambiguous.
+   * The only JWT payload field treated as authoritative is the KSeF-specific `trn`
+   * (token reference number). Standard RFC 7519 claims such as `jti` are NOT a safe
+   * fallback — a `jti` that differs from the KSeF reference would cause a DELETE to
+   * hit a non-existent path, which `revokeSelf` treats as already-revoked, falsely
+   * reporting success while leaving the token active on the server. When `trn` is
+   * absent, we fall back to `GET /tokens` filtered by author and context; requires
+   * exactly one active match and returns undefined when ambiguous.
    */
   async findSelfReferenceNumber(accessToken: string): Promise<string | undefined> {
     if (!accessToken) return undefined;
 
     const payload = decodeJwtPayload(accessToken);
-    if (payload) {
-      if (typeof payload['trn'] === 'string') return payload['trn'];
-      if (typeof payload['jti'] === 'string') return payload['jti'];
-    }
+    if (payload && typeof payload['trn'] === 'string') return payload['trn'];
 
     const ctx = parseKSeFTokenContext(accessToken);
     const author = ctx?.authorSubjectIdentifier as { type?: string; value?: string } | undefined;

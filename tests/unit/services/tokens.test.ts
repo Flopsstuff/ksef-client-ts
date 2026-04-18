@@ -140,15 +140,19 @@ describe('TokenService', () => {
       expect(client.execute).not.toHaveBeenCalled();
     });
 
-    it('returns payload.jti when trn absent but jti present', async () => {
+    it('does not use JWT jti as authoritative reference (falls through to list-fallback)', async () => {
       const client = createMockRestClient();
       const service = new TokenService(client);
-      const jwt = buildTestJwt({ ...CTX_TOKEN_PAYLOAD, jti: 'ref-from-jti' });
+      const jwt = buildTestJwt({ ...CTX_TOKEN_PAYLOAD, jti: 'jti-value' });
+      vi.mocked(client.execute).mockResolvedValueOnce(
+        mockResponse({ tokens: [makeListItem({ referenceNumber: 'real-ref' })] }),
+      );
 
       const ref = await service.findSelfReferenceNumber(jwt);
 
-      expect(ref).toBe('ref-from-jti');
-      expect(client.execute).not.toHaveBeenCalled();
+      expect(ref).toBe('real-ref');
+      expect(ref).not.toBe('jti-value');
+      expect(client.execute).toHaveBeenCalledTimes(1);
     });
 
     it('falls back to list and returns the single active match', async () => {
@@ -301,6 +305,24 @@ describe('TokenService', () => {
       const req = getRequest(vi.mocked(client.executeVoid));
       expect(req.path).toBe(Routes.Tokens.byReference('jwt-ref'));
       expect(result.referenceNumber).toBe('jwt-ref');
+    });
+
+    it('does not revoke JWT jti value when list-fallback disagrees', async () => {
+      const client = createMockRestClient();
+      const service = new TokenService(client);
+      const jwt = buildTestJwt({ ...CTX_TOKEN_PAYLOAD, jti: 'wrong-ref' });
+      vi.mocked(client.execute).mockResolvedValueOnce(
+        mockResponse({ tokens: [makeListItem({ referenceNumber: 'real-ref' })] }),
+      );
+
+      const result = await service.revokeSelf({ accessToken: jwt });
+
+      const deleteReq = getRequest(vi.mocked(client.executeVoid));
+      expect(deleteReq.method).toBe('DELETE');
+      expect(deleteReq.path).toBe(Routes.Tokens.byReference('real-ref'));
+      expect(deleteReq.path).not.toBe(Routes.Tokens.byReference('wrong-ref'));
+      expect(result.referenceNumber).toBe('real-ref');
+      expect(result.alreadyRevoked).toBe(false);
     });
 
     it('discovers via list-fallback when JWT lacks reference', async () => {
