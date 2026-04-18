@@ -14,6 +14,7 @@ Complete usage examples for `ksef-client-ts`. All examples target the KSeF TEST 
 6. [Generate QR Code](#6-generate-qr-code)
 7. [Self-Signed Certificate](#7-self-signed-certificate)
 8. [Workflows (High-Level API)](#8-workflows-high-level-api)
+9. [Build Invoice XML](#9-build-invoice-xml)
 
 ---
 
@@ -509,3 +510,78 @@ async function exportWorkflow() {
 - `exportAndDownload()` initiates export, polls until ready, downloads all parts, and decrypts them with AES-256-CBC.
 - All workflows support `PollOptions` for configuring polling interval and max attempts.
 - See the [API Reference — Workflows](/api-reference#workflows) for the full list of functions and types.
+
+---
+
+## 9. Build Invoice XML
+
+Build a KSeF-compliant FA3 invoice from a typed TypeScript object and submit it in one flow. The serializer handles element ordering (including the FA3 per-VAT-rate `P_13 / P_14 / P_14W` interleave) and namespace injection.
+
+```typescript
+import {
+  KSeFClient,
+  serializeInvoiceXml,
+  type FakturaInput,
+} from 'ksef-client-ts';
+
+async function buildAndSendFa3() {
+  const client = new KSeFClient({ environment: 'TEST' });
+  await client.loginWithToken('your-token', '1234567890');
+  await client.crypto.init();
+
+  // 1. Assemble a typed FA3 invoice — field order in the input is irrelevant,
+  //    the serializer reorders per XSD.
+  const faktura: FakturaInput = {
+    Naglowek: {
+      KodFormularza: { systemCode: 'FA (3)', schemaVersion: '1-0E', value: 'FA' },
+      WariantFormularza: 3,
+      DataWytworzeniaFa: '2026-04-18T10:00:00Z',
+    },
+    Podmiot1: {
+      DaneIdentyfikacyjne: { NIP: '5261040828', Nazwa: 'Sprzedawca sp. z o.o.' },
+      Adres: { KodKraju: 'PL', AdresL1: 'ul. Marszałkowska 1', AdresL2: '00-001 Warszawa' },
+    },
+    Podmiot2: {
+      DaneIdentyfikacyjne: { NIP: '1234567890', Nazwa: 'Nabywca S.A.' },
+      Adres: { KodKraju: 'PL', AdresL1: 'ul. Krakowska 2', AdresL2: '30-001 Kraków' },
+    },
+    Fa: {
+      KodWaluty: 'PLN',
+      P_1: '2026-04-18',
+      P_2: 'FV/2026/04/001',
+      P_13_1: '100.00',
+      P_14_1: '23.00',
+      P_15: '123.00',
+      FaWiersz: [
+        {
+          NrWierszaFa: 1,
+          P_7: 'Usługa konsultingowa',
+          P_8A: 'godz.',
+          P_8B: '1.00',
+          P_9A: '100.00',
+          P_11: '100.00',
+          P_12: '23',
+        },
+      ],
+    },
+  };
+
+  // 2. Serialize to bytes — ready for session.sendInvoice().
+  const invoiceBytes: Buffer = serializeInvoiceXml(faktura);
+
+  // 3. Encrypt and send as usual (see example 3 for the full send flow).
+  const encryption = client.crypto.getEncryptionData();
+  const session = await client.onlineSession.openSession({
+    formCode: { systemCode: 'FA (3)', schemaVersion: '1-0E', value: 'FA' },
+    encryption: encryption.encryptionInfo,
+  });
+
+  // ... encrypt invoiceBytes with AES, compute hashes, sendInvoice, close ...
+}
+```
+
+**Notes:**
+- `serializeInvoiceXml()` is polymorphic: typed `FakturaInput` / `PefUblDocumentInput` objects dispatch to the right builder, while `Buffer` and `string` inputs are passed through (no reordering, no validation — `Buffer` is returned by reference).
+- Default schema for `FakturaInput` is FA3. Pass `{ schema: 'FA2' }` in `options` to target the legacy schema.
+- For PEF (UBL) invoices, use `{ Invoice: { ... } }` or `{ CreditNote: { ... } }` — the schema is inferred from the root key.
+- See [XML Serialization](./xml-serialization.md) for the full guide, including the multi-rate interleave rule and limitations.
