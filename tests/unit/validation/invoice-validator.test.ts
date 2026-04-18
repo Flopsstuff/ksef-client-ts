@@ -281,11 +281,16 @@ describe('validate (combined)', () => {
     expect(result.errors[0]!.code).toBe('XML_PROCESSING_INSTRUCTION');
   });
 
-  it('skipCharValidity: true bypasses Level 1a', async () => {
+  it('skipCharValidity: true bypasses Level 1a and continues into schema detection', async () => {
     const xml = '<?xml version="1.0"?><?xml-stylesheet href="x"?><tns:Faktura xmlns:tns="http://crd.gov.pl/wzor/2025/06/25/13775/"/>';
     const result = await validate(xml, { skipCharValidity: true });
-    // With L1a skipped we now hit the schema/well-formedness pipeline.
-    // No XML_PROCESSING_INSTRUCTION error must remain.
+    // L1a skipped → L1 well-formedness passes → L2 schema detection picks up
+    // FA3 from the namespace, then the near-empty Faktura body triggers L2
+    // structural failures. The PI must not surface, and the pipeline must
+    // have progressed past char validity.
+    expect(result.valid).toBe(false);
+    expect(result.schemaType).toBe('FA3');
+    expect(result.errors.length).toBeGreaterThan(0);
     expect(result.errors.every(e => e.code !== 'XML_PROCESSING_INSTRUCTION')).toBe(true);
   });
 
