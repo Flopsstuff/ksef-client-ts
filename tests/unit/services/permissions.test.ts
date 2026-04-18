@@ -290,6 +290,19 @@ describe('PermissionsService', () => {
       expect(client.execute).not.toHaveBeenCalled();
     });
 
+    it('queryPersonalGrants accepts InternalId at the 10-char lower boundary', async () => {
+      // Boundary pin: the previous tests cover 9 (rejected) and 16 (accepted)
+      // — this one catches an off-by-one regression that rejects exactly 10.
+      const options = { contextIdentifier: { type: 'InternalId' as const, value: '1234567890' } };
+      const expected = { permissions: [], hasMore: false };
+      vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
+
+      await service.queryPersonalGrants(options);
+
+      const req = getRequest(vi.mocked(client.execute));
+      expect(req.getBody()).toEqual(options);
+    });
+
     it('queryPersonalGrants accepts Nip contextIdentifier with any length (validation scoped to InternalId)', async () => {
       const options = { contextIdentifier: { type: 'Nip' as const, value: '1' } };
       const expected = { permissions: [], hasMore: false };
