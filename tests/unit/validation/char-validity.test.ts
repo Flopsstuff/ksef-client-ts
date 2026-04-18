@@ -67,6 +67,25 @@ describe('validateCharValidity', () => {
       expect(errors).toHaveLength(1);
       expect(errors[0]!.code).toBe('XML_PROCESSING_INSTRUCTION');
     });
+
+    it('does not flag PI-looking text inside a comment', () => {
+      const xml = '<?xml version="1.0"?><Faktura><!-- <?target data?> --></Faktura>';
+      expect(validateCharValidity(xml)).toEqual([]);
+    });
+
+    it('does not flag PI-looking text inside CDATA', () => {
+      const xml = '<?xml version="1.0"?><Faktura><![CDATA[<?target data?>]]></Faktura>';
+      expect(validateCharValidity(xml)).toEqual([]);
+    });
+
+    it('still flags a real PI outside CDATA even when CDATA also contains PI-like text', () => {
+      const xml =
+        '<?xml version="1.0"?><Faktura><![CDATA[<?ignored data?>]]><?real target?></Faktura>';
+      const errors = validateCharValidity(xml);
+      expect(errors).toHaveLength(1);
+      expect(errors[0]!.code).toBe('XML_PROCESSING_INSTRUCTION');
+      expect(errors[0]!.message).toContain('real');
+    });
   });
 
   describe('discouraged Unicode code points', () => {

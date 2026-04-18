@@ -37,24 +37,55 @@ export function validateCharValidity(xml: string): InvoiceValidationError[] {
 
 // ─── Processing instructions ────────────────────────────────────────────────
 
-const PI_TOKEN_RE = /<\?[\s\S]*?\?>/g;
 const PI_TARGET_RE = /^<\?(\S+)/;
+
+interface ProcessingInstructionToken {
+  token: string;
+  index: number;
+}
+
+function findProcessingInstructionTokens(xml: string): ProcessingInstructionToken[] {
+  const tokens: ProcessingInstructionToken[] = [];
+
+  for (let i = 0; i < xml.length;) {
+    if (xml.startsWith('<!--', i)) {
+      const end = xml.indexOf('-->', i + 4);
+      i = end === -1 ? xml.length : end + 3;
+      continue;
+    }
+    if (xml.startsWith('<![CDATA[', i)) {
+      const end = xml.indexOf(']]>', i + 9);
+      i = end === -1 ? xml.length : end + 3;
+      continue;
+    }
+    if (xml.startsWith('<?', i)) {
+      const end = xml.indexOf('?>', i + 2);
+      if (end === -1) break;
+      tokens.push({ token: xml.slice(i, end + 2), index: i });
+      i = end + 2;
+      continue;
+    }
+    i += 1;
+  }
+
+  return tokens;
+}
 
 function findProcessingInstructions(xml: string): InvoiceValidationError[] {
   const errors: InvoiceValidationError[] = [];
-  const matches = Array.from(xml.matchAll(PI_TOKEN_RE));
+  const matches = findProcessingInstructionTokens(xml);
   if (matches.length === 0) return errors;
 
   const firstNonWs = xml.search(/\S/);
   const firstMatch = matches[0]!;
-  const firstTarget = firstMatch[0].match(PI_TARGET_RE)?.[1];
+  const firstTarget = firstMatch.token.match(PI_TARGET_RE)?.[1];
   const firstIsProlog =
     firstMatch.index === firstNonWs && firstTarget === 'xml';
 
   for (let i = 0; i < matches.length; i++) {
     if (i === 0 && firstIsProlog) continue;
     const m = matches[i]!;
-    const target = m[0].match(PI_TARGET_RE)?.[1] ?? '?';
+    const target = m.token.match(PI_TARGET_RE)?.[1] ?? '?';
     errors.push({
       code: 'XML_PROCESSING_INSTRUCTION',
       message: `Processing instruction <?${target}?> at offset ${m.index} is not allowed (only <?xml ... ?> prolog is permitted)`,
