@@ -69,6 +69,7 @@ export default defineConfig({
           { text: 'Offline Mode', link: '/offline-mode' },
           { text: 'Polish Holidays', link: '/polish-holidays' },
           { text: 'Validation', link: '/validation' },
+          { text: 'XML Serialization', link: '/xml-serialization' },
           { text: 'Error Handling', link: '/error-handling' },
           { text: 'External Signing', link: '/external-signing' },
           { text: 'Models & Types', link: '/models' },

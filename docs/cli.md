@@ -228,6 +228,15 @@ ksef permission attachment-status                              # Check if attach
 
 Search types: `personal`, `persons`, `subunits`, `entities`, `entities-grants`, `subordinate-entities`, `authorizations`, `eu-entities`.
 
+For `--type personal` and `--type entities-grants`, results can be filtered by a context identifier (NIP or a VAT-group subunit `InternalId`, 10-16 characters — typically 16):
+
+```bash
+ksef permission search --type entities-grants --context-type InternalId --context-value 7762811692-12345
+ksef permission search --type personal        --context-type Nip        --context-value 1234567890
+```
+
+`InternalId` values must be 10-16 characters; invalid lengths fail client-side before the request is sent.
+
 ## Tokens
 
 ```bash

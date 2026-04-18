@@ -1,5 +1,6 @@
 import { PermissionsService } from '../../../src/services/permissions.js';
 import { Routes } from '../../../src/http/routes.js';
+import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
 import { createMockRestClient, getRequest, mockResponse } from './_helpers.js';
 
 describe('PermissionsService', () => {
@@ -248,6 +249,73 @@ describe('PermissionsService', () => {
       expect(req.path).toBe(Routes.Permissions.Query.entitiesGrants);
       expect(req.getBody()).toEqual(options);
       expect(result).toEqual(expected);
+    });
+
+    it('queryEntitiesGrants forwards InternalId contextIdentifier in body', async () => {
+      const options = { contextIdentifier: { type: 'InternalId' as const, value: '7762811692-12345' } };
+      const expected = { permissions: [], hasMore: false };
+      vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
+
+      await service.queryEntitiesGrants(options);
+
+      const req = getRequest(vi.mocked(client.execute));
+      expect(req.getBody()).toEqual(options);
+    });
+
+    it('queryPersonalGrants forwards InternalId contextIdentifier in body', async () => {
+      const options = { contextIdentifier: { type: 'InternalId' as const, value: '7762811692-12345' } };
+      const expected = { permissions: [], hasMore: false };
+      vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
+
+      await service.queryPersonalGrants(options);
+
+      const req = getRequest(vi.mocked(client.execute));
+      expect(req.getBody()).toEqual(options);
+    });
+
+    it('queryPersonalGrants throws KSeFValidationError when InternalId is shorter than 10 chars', async () => {
+      const options = { contextIdentifier: { type: 'InternalId' as const, value: '123456789' } };
+      await expect(service.queryPersonalGrants(options)).rejects.toThrow(KSeFValidationError);
+      await expect(service.queryPersonalGrants(options)).rejects.toThrow(/InternalId must be 10-16 characters/);
+      expect(client.execute).not.toHaveBeenCalled();
+    });
+
+    it('queryPersonalGrants throws KSeFValidationError when InternalId is longer than 16 chars', async () => {
+      const options = { contextIdentifier: { type: 'InternalId' as const, value: '12345678901234567' } };
+      await expect(service.queryPersonalGrants(options)).rejects.toThrow(KSeFValidationError);
+      await expect(service.queryPersonalGrants(options)).rejects.toThrow(/InternalId must be 10-16 characters/);
+      expect(client.execute).not.toHaveBeenCalled();
+    });
+
+    it('queryEntitiesGrants throws KSeFValidationError when InternalId is out of range', async () => {
+      const options = { contextIdentifier: { type: 'InternalId' as const, value: 'short' } };
+      await expect(service.queryEntitiesGrants(options)).rejects.toThrow(KSeFValidationError);
+      await expect(service.queryEntitiesGrants(options)).rejects.toThrow(/InternalId must be 10-16 characters/);
+      expect(client.execute).not.toHaveBeenCalled();
+    });
+
+    it('queryPersonalGrants accepts InternalId at the 10-char lower boundary', async () => {
+      // Boundary pin: the previous tests cover 9 (rejected) and 16 (accepted)
+      // — this one catches an off-by-one regression that rejects exactly 10.
+      const options = { contextIdentifier: { type: 'InternalId' as const, value: '1234567890' } };
+      const expected = { permissions: [], hasMore: false };
+      vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
+
+      await service.queryPersonalGrants(options);
+
+      const req = getRequest(vi.mocked(client.execute));
+      expect(req.getBody()).toEqual(options);
+    });
+
+    it('queryPersonalGrants accepts Nip contextIdentifier with any length (validation scoped to InternalId)', async () => {
+      const options = { contextIdentifier: { type: 'Nip' as const, value: '1' } };
+      const expected = { permissions: [], hasMore: false };
+      vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
+
+      await service.queryPersonalGrants(options);
+
+      const req = getRequest(vi.mocked(client.execute));
+      expect(req.getBody()).toEqual(options);
     });
 
     it('querySubordinateEntitiesRoles sends POST with body defaulting to empty object', async () => {

@@ -44,7 +44,7 @@ Data flows **top-down**: `KSeFClient` → `Service` → `RestClient` → `fetch`
 
 ## Source Layout
 
-```
+```text
 src/
 ├── client.ts              # KSeFClient — main entry point, wires everything
 ├── index.ts               # Barrel re-exports for the public API
@@ -68,6 +68,8 @@ src/
 ├── builders/              # Fluent builders for complex request payloads
 ├── crypto/                # Cryptography layer (see below)
 ├── qr/                    # QR code + verification link generation
+├── offline/               # Offline invoice mode (types, deadlines, storage)
+├── xml/                   # Invoice XML layer (UPO parser, field extractor, serialization)
 ├── errors/                # Error hierarchy (see below)
 ├── validation/            # Regex patterns, checksum validators, constraints
 ├── workflows/             # High-level orchestration (auth, sessions, export, polling)
@@ -171,6 +173,44 @@ Separate from services because it does not map 1:1 to API endpoints. Uses `node:
 **Initialization:** `CryptographyService` requires `init()` before encryption methods work. This fetches the KSeF public certificates. `init()` is NOT called automatically in the `KSeFClient` constructor — the user must call `client.crypto.init()` explicitly, or use `loginWithToken()` which calls it internally.
 
 **Dynamic import:** `loginWithCertificate()` uses `await import('./crypto/signature-service.js')` so that `xml-crypto` and `@xmldom/xmldom` are only loaded when XAdES signing is actually needed.
+
+---
+
+## XML Layer (`src/xml/`)
+
+Invoice XML read/write utilities. Separate from services because these helpers operate on local XML rather than calling the KSeF API.
+
+| File | Purpose |
+|------|---------|
+| `xml-engine.ts` | `fast-xml-parser` wrapper. Exposes `parseXml`, `buildXml`, `buildXmlFromObject`, `stripBom`. Manually prepends the XML declaration (the parser's `declaration` option is a no-op) |
+| `order-map.ts` | `ORDER_MAP` per XSD parent + `comparePKey` natural sort (so `P_13_10` follows `P_13_9`). Also interleaves per-VAT-rate `P_13_N / P_14_N / P_14_NW` for FA3 |
+| `faktura-builder.ts` | FA2/FA3 builder. Normalizes `KodFormularza` (typed `FormCode` → attribute-shaped children), orders children via `orderXmlObject`, injects `xmlns` + `xmlns:etd` on `<Faktura>` |
+| `pef-builder.ts` | PEF (`Invoice`) and PEF_KOR (`CreditNote`) UBL 2.1 builder. Injects the UBL namespace set (`xmlns`, `xmlns:ext`, `xmlns:cbc`, `xmlns:cac`, `xmlns:cbc-pl`, `xmlns:cac-pl`) on the root |
+| `invoice-serializer.ts` | Polymorphic `serializeInvoiceXml(input, options?)` → `Buffer`. Dispatches on `Buffer` / `string` / `XmlDocument` / `FakturaInput` / `PefUblDocumentInput`. Also exports `buildRawXmlString` for pre-shaped `XmlObject` inputs |
+| `upo-parser.ts` | Parses the official KSeF UPO receipt XML into a typed `UpoPotwierdzenie` tree |
+| `invoice-field-extractor.ts` | Extracts `P_1` / `P_2` / `P_4B` / `P_4C` from an invoice XML string |
+| `types.ts` | Public types: `FakturaInput`, `PefUblInvoiceInput`, `PefUblCreditNoteInput`, `SerializeInvoiceOptions`, `XmlDocument`, etc. |
+
+**Default schema:** `buildFakturaXml` defaults to FA3 (required on DEMO and PROD since February 2026). Pass `{ schema: 'FA2' }` to target the legacy schema. `buildPefXml` infers the schema from the root key; an explicit `{ schema: 'PEF' | 'PEF_KOR' }` that contradicts the root throws `KSeFValidationError`.
+
+**Pass-through:** `serializeInvoiceXml` is deliberately polymorphic — `Buffer` inputs are returned byte-for-byte (as the same reference), `string` inputs are BOM-stripped and wrapped in a `Buffer`. Neither path is validated or reordered. Combine with the [invoice XML validator](./validation.md) for a client-side safety net.
+
+See [XML Serialization](./xml-serialization.md) for the full usage guide.
+
+---
+
+## Offline Layer (`src/offline/`)
+
+Full lifecycle for the four KSeF offline modes (`offline24`, `offline`, `awaryjny`, `awaria_calkowita`). Separate from services because the library owns local state — invoices signed offline sit in a local store until the API is reachable again.
+
+| File | Purpose |
+|------|---------|
+| `types.ts` | `OfflineMode`, `OfflineInvoiceStatus`, `OfflineInvoiceMetadata`, `OfflineCertificate` |
+| `deadline.ts` | `calculateOfflineDeadline()`, business-day helpers, maintenance-window cascading |
+| `storage.ts` | `OfflineInvoiceStorage` interface + `InMemoryOfflineInvoiceStorage` |
+| `file-storage.ts` | `FileOfflineInvoiceStorage` rooted at `~/.ksef/offline/` |
+
+See [Offline Mode](./offline-mode.md) for usage.
 
 ---
 

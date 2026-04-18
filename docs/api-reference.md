@@ -26,11 +26,12 @@ Complete API reference for the `ksef-client-ts` library — a TypeScript client 
 18. [CertificateService (static)](#certificateservice-static)
 19. [QrCodeService (static)](#qrcodeservice-static)
 20. [Builders](#builders)
-21. [Error Types](#error-types)
-22. [Validation](#validation)
-23. [Workflows](#workflows)
-24. [KSeF Feature Constants](#ksef-feature-constants)
-23. [Configuration](#configuration)
+21. [XML Serialization](#xml-serialization)
+22. [Error Types](#error-types)
+23. [Validation](#validation)
+24. [Workflows](#workflows)
+25. [KSeF Feature Constants](#ksef-feature-constants)
+26. [Configuration](#configuration)
 
 ---
 
@@ -309,30 +310,41 @@ Revoke an authorization permission grant by ID.
 
 ### Query Methods
 
+`queryPersonalGrants` and `queryEntitiesGrants` accept an optional `contextIdentifier` in the request body that narrows results to a NIP or a VAT-group subunit. `contextIdentifier.type` is `'Nip' | 'InternalId'`; `InternalId` values must be 10-16 characters (otherwise the call throws `KSeFValidationError` client-side before the request is sent).
+
 ```ts
-queryPersonalGrants(options?: QueryPersonalGrantsRequest): Promise<PagedPermissionsResponse<PersonalPermission>>
+queryPersonalGrants(
+  options?: QueryPersonalGrantsRequest,
+  pageOffset?: number,
+  pageSize?: number,
+): Promise<PagedPermissionsResponse<PersonalPermission>>
 ```
-Query the caller's own permissions.
+
+Query the caller's own permissions. Supports `contextIdentifier` filtering.
 
 ```ts
 queryPersonsGrants(options: QueryPersonsGrantsRequest, pageOffset?: number, pageSize?: number): Promise<PagedPermissionsResponse<PersonPermission>>
 ```
+
 Query permissions granted to persons.
 
 ```ts
 querySubunitsGrants(options?: QuerySubunitsGrantsRequest): Promise<PagedPermissionsResponse<SubunitPermission>>
 ```
+
 Query permissions granted to subunits.
 
 ```ts
 queryEntitiesRoles(options?: QueryEntitiesRolesRequest): Promise<PagedRolesResponse<EntityRole>>
 ```
+
 Query roles assigned to entities.
 
 ```ts
 queryEntitiesGrants(options?: QueryEntitiesGrantsRequest, pageOffset?: number, pageSize?: number): Promise<PagedPermissionsResponse<EntityPermissionItem>>
 ```
-Query permissions granted to entities.
+
+Query permissions granted to entities. Supports `contextIdentifier` filtering (NIP or 10-16-char VAT-group subunit `InternalId`).
 
 ```ts
 querySubordinateEntitiesRoles(options?: QuerySubordinateEntitiesRolesRequest): Promise<PagedRolesResponse<SubordinateEntityRole>>
@@ -829,6 +841,87 @@ Builds a `GrantPermissionsAuthorizationRequest`.
 new AuthorizationPermissionGrantBuilder()
   .withPermission(permission: EntityAuthorizationPermissionType)
   .build(): GrantPermissionsAuthorizationRequest
+```
+
+---
+
+## XML Serialization
+
+Invoice XML builders in `src/xml/`, exported from the package root. Build FA2, FA3, PEF, or PEF_KOR XML from typed TypeScript objects with correct element ordering (including the FA3 per-VAT-rate `P_13 / P_14 / P_14W` interleave) and automatic namespace injection. See [XML Serialization](./xml-serialization.md) for the full guide.
+
+```ts
+serializeInvoiceXml(
+  input: string | Buffer | XmlDocument | FakturaInput | PefUblDocumentInput,
+  options?: SerializeInvoiceOptions,
+): Buffer
+```
+
+Polymorphic entry point. `Buffer` inputs are returned byte-for-byte (as the same reference — callers must not mutate); `string` inputs are UTF-8 BOM-stripped and wrapped; `XmlDocument` arrays are rebuilt via the engine; typed inputs dispatch to the right builder. Throws `KSeFValidationError` naming the first missing top-level key if the input does not match any known shape.
+
+```ts
+buildFakturaXml(faktura: FakturaInput, options?: BuildFakturaOptions): string
+```
+
+FA2/FA3 builder. Normalizes `Naglowek.KodFormularza` (typed `FormCode` → attribute-shaped children), orders children via `ORDER_MAP` + natural `P_*` sort, and injects `xmlns` + `xmlns:etd` on `<Faktura>`. Default schema is `FA3`.
+
+```ts
+buildPefXml(input: PefUblDocumentInput, options?: BuildPefOptions): string
+```
+
+PEF / PEF_KOR UBL 2.1 builder. Detects the schema from the root key (`Invoice` → PEF, `CreditNote` → PEF_KOR). Injects the UBL namespace set on the root. Throws `KSeFValidationError` when `options.schema` contradicts the detected root.
+
+```ts
+buildRawXmlString(document: XmlObject, options?: { pretty?: boolean }): string
+```
+
+Low-level escape hatch for pre-shaped `XmlObject` inputs (e.g. produced by `parseXml`). Returns a `string` — wrap with `Buffer.from(xml, 'utf8')` for byte-ready output.
+
+```ts
+parseXml(xml: string): XmlDocument
+buildXml(document: XmlDocument): string
+stripBom(text: string): string
+ORDER_MAP: Record<string, string[]>
+comparePKey(a: string, b: string): number
+orderXmlObject(obj: XmlObject, contextKey?: string): XmlObject
+```
+
+Lower-level primitives re-exported for advanced use. `ORDER_MAP` keys each XSD parent to its expected child order; `comparePKey` is a natural-sort comparator over `P_*` ordinals; `orderXmlObject` recursively reorders an `XmlObject` tree.
+
+### BuildFakturaOptions
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `schema` | `'FA2' \| 'FA3'` | `'FA3'` | Target schema (also switches default namespaces) |
+| `fakturaNamespace` | `string` | per-schema constant | Override the `xmlns` attribute on `<Faktura>` |
+| `etdNamespace` | `string` | per-schema constant | Override the `xmlns:etd` attribute on `<Faktura>` |
+| `pretty` | `boolean` | `false` | Emit indented output |
+
+### BuildPefOptions
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `schema` | `'PEF' \| 'PEF_KOR'` | inferred from root | Must match the detected root or `KSeFValidationError` is thrown |
+| `pretty` | `boolean` | `false` | Emit indented output |
+
+### SerializeInvoiceOptions
+
+Union of the above — `schema` accepts any of `'FA2' \| 'FA3' \| 'PEF' \| 'PEF_KOR'`, but the value must be compatible with the dispatched builder.
+
+### Constants
+
+| Constant | Type | Description |
+|----------|------|-------------|
+| `FAKTURA_NAMESPACE` | `Record<FakturaSchema, string>` | `xmlns` defaults for FA2 and FA3 |
+| `ETD_NAMESPACE` | `Record<FakturaSchema, string>` | `xmlns:etd` defaults for FA2 and FA3 |
+| `PEF_NAMESPACE` | `Record<PefSchema, string>` | UBL Invoice-2 / CreditNote-2 namespaces |
+
+### Type guards
+
+```ts
+isFakturaInput(input: unknown): input is FakturaInput
+isPefUblDocumentInput(input: unknown): input is PefUblDocumentInput
+isFormCodeShape(value: unknown): value is FormCode
+toKodFormularza(formCode: FormCode): XmlObject
 ```
 
 ---

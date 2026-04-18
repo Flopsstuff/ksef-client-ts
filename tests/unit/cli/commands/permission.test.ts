@@ -445,6 +445,61 @@ describe('permission', () => {
       await runSearch({ type: 'personal', page: '2', pageSize: '10' });
       expect(mockClient.permissions.queryPersonalGrants).toHaveBeenCalledWith({}, 2, 10);
     });
+
+    it('personal — forwards InternalId contextIdentifier', async () => {
+      mockClient.permissions.queryPersonalGrants.mockResolvedValue({ permissions: [] });
+      await runSearch({ type: 'personal', contextType: 'InternalId', contextValue: '7762811692-12345' });
+      expect(mockClient.permissions.queryPersonalGrants).toHaveBeenCalledWith(
+        { contextIdentifier: { type: 'InternalId', value: '7762811692-12345' } },
+        undefined,
+        undefined,
+      );
+    });
+
+    it('personal — forwards Nip contextIdentifier', async () => {
+      mockClient.permissions.queryPersonalGrants.mockResolvedValue({ permissions: [] });
+      await runSearch({ type: 'personal', contextType: 'Nip', contextValue: '1234567890' });
+      expect(mockClient.permissions.queryPersonalGrants).toHaveBeenCalledWith(
+        { contextIdentifier: { type: 'Nip', value: '1234567890' } },
+        undefined,
+        undefined,
+      );
+    });
+
+    it('personal — throws when contextType provided without contextValue', async () => {
+      await expect(
+        runSearch({ type: 'personal', contextType: 'InternalId' }),
+      ).rejects.toThrow(/context-type and --context-value must be provided together/);
+      expect(mockClient.permissions.queryPersonalGrants).not.toHaveBeenCalled();
+    });
+
+    it('personal — throws when contextValue provided without contextType', async () => {
+      await expect(
+        runSearch({ type: 'personal', contextValue: '1234567890' }),
+      ).rejects.toThrow(/context-type and --context-value must be provided together/);
+      expect(mockClient.permissions.queryPersonalGrants).not.toHaveBeenCalled();
+    });
+
+    it('personal — throws on invalid contextType value (e.g. typo)', async () => {
+      await expect(
+        runSearch({ type: 'personal', contextType: 'internalId', contextValue: 'x' }),
+      ).rejects.toThrow(/must be "Nip" or "InternalId"/);
+      expect(mockClient.permissions.queryPersonalGrants).not.toHaveBeenCalled();
+    });
+
+    it('entities-grants — throws on invalid contextType value', async () => {
+      await expect(
+        runSearch({ type: 'entities-grants', contextType: 'Pesel', contextValue: 'x' }),
+      ).rejects.toThrow(/must be "Nip" or "InternalId"/);
+      expect(mockClient.permissions.queryEntitiesGrants).not.toHaveBeenCalled();
+    });
+
+    it('entities-grants — throws when only contextValue is provided', async () => {
+      await expect(
+        runSearch({ type: 'entities-grants', contextValue: '1234567890' }),
+      ).rejects.toThrow(/context-type and --context-value must be provided together/);
+      expect(mockClient.permissions.queryEntitiesGrants).not.toHaveBeenCalled();
+    });
   });
 
   describe('search persons', () => {
@@ -631,6 +686,16 @@ describe('permission', () => {
       mockClient.permissions.queryEntitiesGrants.mockResolvedValue(data);
       await runSearch({ type: 'entities-grants', json: true });
       expect(mockOutputResult).toHaveBeenCalledWith(data, { json: true });
+    });
+
+    it('entities-grants — forwards InternalId contextIdentifier', async () => {
+      mockClient.permissions.queryEntitiesGrants.mockResolvedValue({ permissions: [] });
+      await runSearch({ type: 'entities-grants', contextType: 'InternalId', contextValue: '7762811692-12345' });
+      expect(mockClient.permissions.queryEntitiesGrants).toHaveBeenCalledWith(
+        { contextIdentifier: { type: 'InternalId', value: '7762811692-12345' } },
+        undefined,
+        undefined,
+      );
     });
   });
 

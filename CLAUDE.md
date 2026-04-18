@@ -67,6 +67,17 @@ Offline layer (src/offline/)
   ├── storage — OfflineInvoiceStorage interface + InMemoryOfflineInvoiceStorage
   └── file-storage — FileOfflineInvoiceStorage (~/.ksef/offline/)
 
+XML layer (src/xml/)
+  ├── upo-parser — parses official KSeF UPO receipt XML into typed objects
+  ├── invoice-field-extractor — extracts P_1/P_2/P_4B/P_4C from invoice XML
+  ├── xml-engine — fast-xml-parser wrapper (preserveOrder); parseXml/buildXml/stripBom
+  ├── order-map — ORDER_MAP per XSD parent + comparePKey natural sort +
+  │   multi-rate P_13/P_14/P_14W interleave per VAT group
+  ├── faktura-builder — FA2/FA3 builder; injects xmlns + xmlns:etd on <Faktura>
+  ├── pef-builder — PEF (Invoice) / PEF_KOR (CreditNote) UBL builder
+  └── invoice-serializer — polymorphic serializeInvoiceXml(input, options) → Buffer
+      dispatching on FakturaInput / PefUblDocumentInput / string / Buffer / XmlDocument
+
 CLI (src/cli/) — 15 command groups via citty
   ├── auth, session, invoice, permission, token, cert, lighthouse, limits,
   │   peppol, test-data, qr, config, doctor, completion, offline

@@ -1,0 +1,138 @@
+import type { FormCode } from '../models/common.js';
+import type { FakturaInput, FakturaSchema, XmlObject, XmlValue } from './types.js';
+import { buildXmlFromObject } from './xml-engine.js';
+import { orderXmlObject } from './order-map.js';
+
+export const FAKTURA_NAMESPACE: Record<FakturaSchema, string> = {
+  FA2: 'http://crd.gov.pl/wzor/2023/06/29/12648/',
+  FA3: 'http://crd.gov.pl/wzor/2025/06/25/13775/',
+};
+
+export const ETD_NAMESPACE: Record<FakturaSchema, string> = {
+  FA2: 'http://crd.gov.pl/xml/schematy/2020/10/08/eDokumenty',
+  FA3: 'http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/',
+};
+
+export interface BuildFakturaOptions {
+  schema?: FakturaSchema;
+  fakturaNamespace?: string;
+  etdNamespace?: string;
+  pretty?: boolean;
+}
+
+export function toKodFormularza(formCode: FormCode): XmlObject {
+  return {
+    '@_kodSystemowy': formCode.systemCode,
+    '@_wersjaSchemy': formCode.schemaVersion,
+    '#text': formCode.value,
+  };
+}
+
+export function isFormCodeShape(value: unknown): value is FormCode {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const candidate = value as { systemCode?: unknown; schemaVersion?: unknown; value?: unknown };
+  return (
+    typeof candidate.systemCode === 'string' &&
+    typeof candidate.schemaVersion === 'string' &&
+    typeof candidate.value === 'string'
+  );
+}
+
+function isObject(value: unknown): value is XmlObject {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+// Normalises a top-level FakturaInput child (the direct children of the
+// Faktura root: Naglowek, Podmiot1, Fa, …). The only key-specific case is
+// `Naglowek`, which needs its own pass to convert the `KodFormularza`
+// FormCode into the attribute shape expected by the XSD — order-map's
+// generic `orderXmlObject` recursion does not know about FormCode.
+function normalizeTopLevelChild(key: string, value: XmlValue): XmlValue {
+  if (key === 'Naglowek' && isObject(value)) {
+    return normalizeNaglowek(value as XmlObject);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => (isObject(item) ? orderXmlObject(item as XmlObject, key) : item));
+  }
+  if (isObject(value)) return orderXmlObject(value as XmlObject, key);
+  return value;
+}
+
+// Naglowek has one key-specific case — `KodFormularza` arrives as a typed
+// FormCode and must be emitted with attribute-shaped children rather than
+// element-shaped children. Other Naglowek keys (WariantFormularza,
+// DataWytworzeniaFa, SystemInfo) are passed through via orderXmlObject.
+function normalizeNaglowek(value: XmlObject): XmlObject {
+  const result: XmlObject = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (item === undefined) continue;
+    if (key === 'KodFormularza' && isFormCodeShape(item)) {
+      result[key] = toKodFormularza(item);
+      continue;
+    }
+    if (Array.isArray(item)) {
+      result[key] = item.map((entry) =>
+        isObject(entry) ? orderXmlObject(entry as XmlObject, key) : entry,
+      );
+      continue;
+    }
+    if (isObject(item)) {
+      result[key] = orderXmlObject(item as XmlObject, key);
+      continue;
+    }
+    result[key] = item;
+  }
+  return result;
+}
+
+function normalizeTopLevel(input: FakturaInput): XmlObject {
+  const result: XmlObject = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (value === undefined) continue;
+    result[key] = normalizeTopLevelChild(key, value as XmlValue);
+  }
+  return result;
+}
+
+/**
+ * Builds a Faktura XML string from a typed FakturaInput.
+ *
+ * Applies ORDER_MAP-driven element ordering (with multi-rate P_13/P_14
+ * interleaving) and injects FA2/FA3 namespace attributes on the root
+ * `<Faktura>` element.
+ *
+ * Default schema is FA3. The `fakturaNamespace` / `etdNamespace` options
+ * override the per-schema defaults for advanced use cases.
+ */
+export function buildFakturaXml(faktura: FakturaInput, options: BuildFakturaOptions = {}): string {
+  const schema = options.schema ?? 'FA3';
+  const fakturaNamespace = options.fakturaNamespace ?? FAKTURA_NAMESPACE[schema];
+  const etdNamespace = options.etdNamespace ?? ETD_NAMESPACE[schema];
+
+  const normalized = normalizeTopLevel(faktura);
+  const ordered = orderXmlObject(normalized, 'Faktura');
+  // Builder-injected namespaces always win over any `@_xmlns` / `@_xmlns:etd`
+  // a caller may have slipped into the FakturaInput via the index signature —
+  // `options.fakturaNamespace` / `options.etdNamespace` are the supported
+  // override path.
+  const document: XmlObject = {
+    Faktura: {
+      ...ordered,
+      '@_xmlns': fakturaNamespace,
+      '@_xmlns:etd': etdNamespace,
+    },
+  };
+
+  return buildXmlFromObject(document, { pretty: options.pretty });
+}
+
+export function isFakturaInput(input: unknown): input is FakturaInput {
+  if (!isObject(input)) return false;
+  const candidate = input as Record<string, unknown>;
+  if (!Object.prototype.hasOwnProperty.call(candidate, 'Naglowek')) return false;
+  if (!Object.prototype.hasOwnProperty.call(candidate, 'Fa')) return false;
+  // Tight check — both required nodes must be non-null, non-array objects.
+  // Loose presence-only shape-checking let values like `Naglowek: 'x'` or
+  // `Fa: 1` through and produced malformed XML that only failed at XSD time.
+  return isObject(candidate.Naglowek) && isObject(candidate.Fa);
+}

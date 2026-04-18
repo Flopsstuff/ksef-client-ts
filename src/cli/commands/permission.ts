@@ -2,6 +2,7 @@ import { defineCommand } from 'citty';
 import { requireSession } from '../client-factory.js';
 import { outputResult, outputKeyValue, outputTable, outputSuccess, outputWarning } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
+import { KSeFValidationError } from '../../errors/ksef-validation-error.js';
 import type { GlobalOptions } from '../types.js';
 import type { PermissionSubjectIdentifierType } from '../../models/common.js';
 import type {
@@ -269,6 +270,8 @@ const search = defineCommand({
     identifier: { type: 'string', description: 'Subject identifier value' },
     identifierType: { type: 'string', description: 'Subject identifier type' },
     queryType: { type: 'string', description: 'Query type (e.g. PermissionsInCurrentContext, Granted)' },
+    contextType: { type: 'string', description: 'Context identifier type: Nip | InternalId (for --type personal and --type entities-grants)' },
+    contextValue: { type: 'string', description: 'Context identifier value (NIP or 10-16 char InternalId)' },
     page: { type: 'string', description: 'Page offset (default: 0)' },
     pageSize: { type: 'string', description: 'Page size' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
@@ -284,9 +287,34 @@ const search = defineCommand({
       const page = args.page ? parseInt(args.page, 10) : undefined;
       const pageSize = args.pageSize ? parseInt(args.pageSize, 10) : undefined;
 
+      const resolveContextBody = (): { contextIdentifier?: { type: 'Nip' | 'InternalId'; value: string } } => {
+        const hasType = Boolean(args.contextType);
+        const hasValue = Boolean(args.contextValue);
+        if (hasType !== hasValue) {
+          throw KSeFValidationError.fromField(
+            hasType ? '--context-value' : '--context-type',
+            '--context-type and --context-value must be provided together.',
+          );
+        }
+        if (!hasType) return {};
+        if (args.contextType !== 'Nip' && args.contextType !== 'InternalId') {
+          throw KSeFValidationError.fromField(
+            '--context-type',
+            `--context-type must be "Nip" or "InternalId", got "${args.contextType}".`,
+          );
+        }
+        return {
+          contextIdentifier: {
+            type: args.contextType,
+            value: args.contextValue!,
+          },
+        };
+      };
+
       switch (args.type) {
         case 'personal': {
-          const response = await client.permissions.queryPersonalGrants({}, page, pageSize);
+          const body = resolveContextBody();
+          const response = await client.permissions.queryPersonalGrants(body, page, pageSize);
 
           if (args.json) {
             outputResult(response, { json: true });
@@ -410,7 +438,8 @@ const search = defineCommand({
         }
 
         case 'entities-grants': {
-          const response = await client.permissions.queryEntitiesGrants({}, page, pageSize);
+          const body = resolveContextBody();
+          const response = await client.permissions.queryEntitiesGrants(body, page, pageSize);
 
           if (args.json) {
             outputResult(response, { json: true });
