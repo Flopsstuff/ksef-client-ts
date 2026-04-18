@@ -140,6 +140,20 @@ describe('TokenService', () => {
       expect(client.execute).not.toHaveBeenCalled();
     });
 
+    it('ignores empty payload.trn and falls through to list-fallback', async () => {
+      const client = createMockRestClient();
+      const service = new TokenService(client);
+      const jwt = buildTestJwt({ ...CTX_TOKEN_PAYLOAD, trn: '' });
+      vi.mocked(client.execute).mockResolvedValueOnce(
+        mockResponse({ tokens: [makeListItem({ referenceNumber: 'real-ref' })] }),
+      );
+
+      const ref = await service.findSelfReferenceNumber(jwt);
+
+      expect(ref).toBe('real-ref');
+      expect(client.execute).toHaveBeenCalledTimes(1);
+    });
+
     it('does not use JWT jti as authoritative reference (falls through to list-fallback)', async () => {
       const client = createMockRestClient();
       const service = new TokenService(client);

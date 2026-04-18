@@ -94,7 +94,9 @@ export class TokenService {
     if (!accessToken) return undefined;
 
     const payload = decodeJwtPayload(accessToken);
-    if (payload && typeof payload['trn'] === 'string') return payload['trn'];
+    if (payload && typeof payload['trn'] === 'string' && payload['trn'].length > 0) {
+      return payload['trn'];
+    }
 
     const ctx = parseKSeFTokenContext(accessToken);
     const author = ctx?.authorSubjectIdentifier as { type?: string; value?: string } | undefined;
