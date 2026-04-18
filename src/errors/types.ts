@@ -97,7 +97,7 @@ export interface ProblemFields {
   detail?: string;
   reasonCode?: string;
   errors?: BadRequestErrorDetail[];
-  security?: ForbiddenSecurityInfo;
+  security?: ForbiddenSecurityInfo & Record<string, unknown>;
   traceId?: string;
   instance?: string;
   timestamp?: string;
