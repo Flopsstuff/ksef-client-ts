@@ -89,7 +89,7 @@ function classifyUnknownObject(input: Record<string, unknown>): KSeFValidationEr
  * Structured inputs that match none of the known shapes throw
  * `KSeFValidationError` naming the first missing top-level key. Callers
  * with an already-shaped `XmlObject` that deliberately sidesteps schema
- * dispatch can use `buildRawXmlObject` directly.
+ * dispatch can use `buildRawXmlString` directly.
  */
 export function serializeInvoiceXml(
   input: InvoiceSerializerInput,
