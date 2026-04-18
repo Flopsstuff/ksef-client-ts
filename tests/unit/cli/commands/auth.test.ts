@@ -632,9 +632,11 @@ describe('auth', () => {
       await runRevokeSelfToken({ json: true });
 
       expect(mockOutputResult).toHaveBeenCalledWith(
-        { status: 'revoked', referenceNumber: 'ref-XYZ' },
+        { status: 'revoked', referenceNumber: 'ref-XYZ', localCleared: true },
         { json: true },
       );
+      expect(mockOutputWarning).not.toHaveBeenCalled();
+      expect(mockOutputSuccess).not.toHaveBeenCalled();
     });
 
     it('--json with alreadyRevoked emits status already-revoked', async () => {
@@ -647,9 +649,11 @@ describe('auth', () => {
       await runRevokeSelfToken({ json: true });
 
       expect(mockOutputResult).toHaveBeenCalledWith(
-        { status: 'already-revoked', referenceNumber: 'ref-XYZ' },
+        { status: 'already-revoked', referenceNumber: 'ref-XYZ', localCleared: true },
         { json: true },
       );
+      expect(mockOutputWarning).not.toHaveBeenCalled();
+      expect(mockOutputSuccess).not.toHaveBeenCalled();
     });
   });
 });

@@ -188,13 +188,26 @@ const revokeSelfToken = defineCommand({
 
       if (args['dry-run']) {
         const ref = cachedRef ?? (await client.tokens.findSelfReferenceNumber(session.accessToken));
+        const source = cachedRef ? 'cache' : ref ? 'discovery' : 'none';
+        if (args.json) {
+          outputResult(
+            {
+              status: 'dry-run',
+              referenceNumber: ref ?? null,
+              source,
+              wouldClearLocal: !args['keep-local'],
+            },
+            { json: true },
+          );
+          return;
+        }
         outputKeyValue(
           {
             'Would revoke': ref ?? '(unknown — discovery failed)',
-            Source: cachedRef ? 'cache' : ref ? 'discovery' : 'none',
+            Source: source,
             'Would clear local': args['keep-local'] ? 'no' : 'yes',
           },
-          { json: args.json },
+          { json: false },
         );
         return;
       }
@@ -204,23 +217,26 @@ const revokeSelfToken = defineCommand({
         accessToken: session.accessToken,
       });
 
-      if (alreadyRevoked) {
-        outputWarning(`Token ${referenceNumber} was already revoked on the server.`);
-      } else {
-        outputSuccess(`Token ${referenceNumber} revoked.`);
-      }
-
-      if (!args['keep-local']) {
+      const localCleared = !args['keep-local'];
+      if (localCleared) {
         clearSession();
         clearCredentials();
-        outputSuccess('Local session and credentials cleared.');
       }
 
       if (args.json) {
         outputResult(
-          { status: alreadyRevoked ? 'already-revoked' : 'revoked', referenceNumber },
+          { status: alreadyRevoked ? 'already-revoked' : 'revoked', referenceNumber, localCleared },
           { json: true },
         );
+      } else {
+        if (alreadyRevoked) {
+          outputWarning(`Token ${referenceNumber} was already revoked on the server.`);
+        } else {
+          outputSuccess(`Token ${referenceNumber} revoked.`);
+        }
+        if (localCleared) {
+          outputSuccess('Local session and credentials cleared.');
+        }
       }
     }, { json: Boolean(args.json) });
   },
