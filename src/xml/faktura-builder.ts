@@ -42,33 +42,26 @@ function isObject(value: unknown): value is XmlObject {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function normalizeValueForKey(key: string, value: XmlValue): XmlValue {
-  if (key === 'KodFormularza' && isFormCodeShape(value)) {
-    return toKodFormularza(value);
+// Normalises a top-level FakturaInput child (the direct children of the
+// Faktura root: Naglowek, Podmiot1, Fa, …). The only key-specific case is
+// `Naglowek`, which needs its own pass to convert the `KodFormularza`
+// FormCode into the attribute shape expected by the XSD — order-map's
+// generic `orderXmlObject` recursion does not know about FormCode.
+function normalizeTopLevelChild(key: string, value: XmlValue): XmlValue {
+  if (key === 'Naglowek' && isObject(value)) {
+    return normalizeNaglowek(value as XmlObject);
   }
   if (Array.isArray(value)) {
-    return value.map((item) => {
-      if (isObject(item)) return orderXmlObject(item as XmlObject, key);
-      return item;
-    });
+    return value.map((item) => (isObject(item) ? orderXmlObject(item as XmlObject, key) : item));
   }
   if (isObject(value)) return orderXmlObject(value as XmlObject, key);
   return value;
 }
 
-function normalizeTopLevel(input: FakturaInput): XmlObject {
-  const result: XmlObject = {};
-  for (const [key, value] of Object.entries(input)) {
-    if (value === undefined) continue;
-    if (key === 'Naglowek' && isObject(value)) {
-      result[key] = normalizeNaglowek(value as XmlObject);
-      continue;
-    }
-    result[key] = normalizeValueForKey(key, value as XmlValue);
-  }
-  return result;
-}
-
+// Naglowek has one key-specific case — `KodFormularza` arrives as a typed
+// FormCode and must be emitted with attribute-shaped children rather than
+// element-shaped children. Other Naglowek keys (WariantFormularza,
+// DataWytworzeniaFa, SystemInfo) are passed through via orderXmlObject.
 function normalizeNaglowek(value: XmlObject): XmlObject {
   const result: XmlObject = {};
   for (const [key, item] of Object.entries(value)) {
@@ -77,7 +70,26 @@ function normalizeNaglowek(value: XmlObject): XmlObject {
       result[key] = toKodFormularza(item);
       continue;
     }
-    result[key] = normalizeValueForKey(key, item as XmlValue);
+    if (Array.isArray(item)) {
+      result[key] = item.map((entry) =>
+        isObject(entry) ? orderXmlObject(entry as XmlObject, key) : entry,
+      );
+      continue;
+    }
+    if (isObject(item)) {
+      result[key] = orderXmlObject(item as XmlObject, key);
+      continue;
+    }
+    result[key] = item;
+  }
+  return result;
+}
+
+function normalizeTopLevel(input: FakturaInput): XmlObject {
+  const result: XmlObject = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (value === undefined) continue;
+    result[key] = normalizeTopLevelChild(key, value as XmlValue);
   }
   return result;
 }
