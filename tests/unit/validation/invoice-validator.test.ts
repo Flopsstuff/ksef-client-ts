@@ -293,6 +293,9 @@ describe('validate (combined)', () => {
     // PI + otherwise-invalid schema body. Only PI error should surface.
     const xml = '<?xml version="1.0"?><?xml-stylesheet href="x"?><Unknown/>';
     const result = await validate(xml);
-    expect(result.errors.every(e => e.code === 'XML_PROCESSING_INSTRUCTION')).toBe(true);
+    expect(result.valid).toBe(false);
+    expect(result.schemaType).toBeNull();
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]!.code).toBe('XML_PROCESSING_INSTRUCTION');
   });
 });
