@@ -109,15 +109,19 @@ const login = defineCommand({
       }
 
       if (args.token) {
+        const prev = { ...(loadCredentials() ?? {}) };
+        delete prev.tokenReferenceNumber;
+        let ref: string | undefined;
         try {
-          const ref = await client.tokens.findSelfReferenceNumber(session.accessToken);
-          if (ref) {
-            const prev = loadCredentials() ?? {};
-            saveCredentials({ ...prev, token: args.token, tokenReferenceNumber: ref });
-          }
+          ref = await client.tokens.findSelfReferenceNumber(session.accessToken);
         } catch {
           // Non-fatal: future `auth revoke-self-token` will retry discovery at revoke time.
         }
+        saveCredentials({
+          ...prev,
+          token: args.token,
+          ...(ref ? { tokenReferenceNumber: ref } : {}),
+        });
       }
 
       if (args.json) {
