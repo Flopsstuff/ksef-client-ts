@@ -84,10 +84,18 @@ const nameArb = fc
   .stringMatching(/^[A-Za-z][A-Za-z ]{2,30}$/)
   .map((s) => s.trim());
 
-/** Simple address-line-1 string. */
-const addressLineArb = fc
-  .stringMatching(/^[A-Za-z0-9 .]{3,40}$/)
-  .map((s) => s.trim());
+/**
+ * Simple address-line-1 string.
+ *
+ * The regex pins both boundary characters to alphanumeric/dot so the result
+ * always has a non-whitespace prefix AND suffix — XSD `TAdresPolskiL1` and
+ * its foreign equivalents require `minLength=1`, and an earlier iteration
+ * that relied on `.trim()` after an unconstrained `[A-Za-z0-9 .]{3,40}`
+ * regex could shrink to an empty string.
+ */
+const addressLineArb = fc.stringMatching(
+  /^[A-Za-z0-9][A-Za-z0-9 .]{1,38}[A-Za-z0-9.]$/,
+);
 
 // ── Structural sub-arbitraries ─────────────────────────────────────────
 
