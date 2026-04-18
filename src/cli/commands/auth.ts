@@ -166,7 +166,7 @@ const logout = defineCommand({
 const revokeSelfToken = defineCommand({
   meta: {
     name: 'revoke-self-token',
-    description: 'Revoke the token currently used for authentication. Reference number is resolved from local cache, then the JWT payload (opportunistic), then a filtered active-token list; revocation is idempotent (404/409/410 treated as already-revoked).',
+    description: 'Revoke the token currently used for authentication. Reference number is resolved via discovery first (JWT payload, then a filtered active-token list), falling back to local cache only if discovery fails; revocation is idempotent (404/409/410 treated as already-revoked).',
   },
   args: {
     'keep-local': { type: 'boolean', description: 'Revoke server-side but keep local session' },
@@ -187,11 +187,18 @@ const revokeSelfToken = defineCommand({
         );
       }
 
-      const cachedRef = loadCredentials()?.tokenReferenceNumber;
+      // Discovery-first: always try to resolve the current token's reference number from
+      // the active access token. The cached `tokenReferenceNumber` is only used as a
+      // last-resort fallback when discovery fails, because the cache is written at
+      // `auth login --token` time and can be stale if the user later re-authenticated via
+      // certificate or external-signature flow (cached ref would point at the OLD token).
+      const discoveredRef = await client.tokens.findSelfReferenceNumber(session.accessToken);
+      const cachedRef = discoveredRef ? undefined : loadCredentials()?.tokenReferenceNumber;
+      const ref = discoveredRef ?? cachedRef;
+      const source: 'discovery' | 'cache-fallback' | 'none' =
+        discoveredRef ? 'discovery' : cachedRef ? 'cache-fallback' : 'none';
 
       if (args['dry-run']) {
-        const ref = cachedRef ?? (await client.tokens.findSelfReferenceNumber(session.accessToken));
-        const source = cachedRef ? 'cache' : ref ? 'discovery' : 'none';
         if (args.json) {
           outputResult(
             {
@@ -204,6 +211,11 @@ const revokeSelfToken = defineCommand({
           );
           return;
         }
+        if (source === 'cache-fallback') {
+          outputWarning(
+            'Using cached reference (discovery failed). Verify this is the token you intend to revoke.',
+          );
+        }
         outputKeyValue(
           {
             'Would revoke': ref ?? '(unknown — discovery failed)',
@@ -215,8 +227,14 @@ const revokeSelfToken = defineCommand({
         return;
       }
 
+      if (source === 'cache-fallback' && !args.json) {
+        outputWarning(
+          'Using cached reference (discovery failed). Verify this is the token you intend to revoke.',
+        );
+      }
+
       const { referenceNumber, alreadyRevoked } = await client.tokens.revokeSelf({
-        referenceNumber: cachedRef,
+        referenceNumber: ref,
         accessToken: session.accessToken,
       });
 
@@ -228,7 +246,12 @@ const revokeSelfToken = defineCommand({
 
       if (args.json) {
         outputResult(
-          { status: alreadyRevoked ? 'already-revoked' : 'revoked', referenceNumber, localCleared },
+          {
+            status: alreadyRevoked ? 'already-revoked' : 'revoked',
+            referenceNumber,
+            source,
+            localCleared,
+          },
           { json: true },
         );
       } else {
