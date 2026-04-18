@@ -148,7 +148,10 @@ export class RestClient {
       ...request.getHeaders(),
     };
 
-    if (this.options.errorFormat !== 'legacy' && !headers['X-Error-Format']) {
+    const hasHeader = (name: string) =>
+      Object.keys(headers).some((header) => header.toLowerCase() === name.toLowerCase());
+
+    if (this.options.errorFormat !== 'legacy' && !hasHeader('x-error-format')) {
       headers['X-Error-Format'] = 'problem-details';
     }
 
