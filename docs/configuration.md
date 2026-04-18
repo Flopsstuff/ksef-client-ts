@@ -18,6 +18,7 @@ const client = new KSeFClient({
   rateLimit: { globalRps: 20 },// Partial rate limit config (or null to disable)
   presignedUrlHosts: ['*.my-storage.com'], // Additional allowed hosts
   authManager: customAuthMgr,  // Custom AuthManager implementation
+  errorFormat: 'problem-details', // 'problem-details' (default) | 'legacy'
 });
 ```
 
@@ -37,6 +38,7 @@ const client = new KSeFClient({
 | `rateLimit` | `Partial<RateLimitConfig> \| null` | `{ globalRps: 10 }` | Rate limit config, or `null` to disable |
 | `presignedUrlHosts` | `string[]` | — | Additional allowed hosts for presigned URLs |
 | `authManager` | `AuthManager` | `DefaultAuthManager` | Custom auth/token manager |
+| `errorFormat` | `'problem-details' \| 'legacy'` | `'problem-details'` | Request format for server error bodies. `'legacy'` suppresses the `X-Error-Format` header for older servers/proxies (KSeF API v2.4.0+) |
 
 ---
 

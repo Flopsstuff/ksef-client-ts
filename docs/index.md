@@ -42,8 +42,8 @@ features:
     details: Support for all KSeF document types — FA (2)/(3), PEF (3), PEF_KOR (3), FA_RR (1). Typed FormCode constants, session-type validation, and structured UPO parsing with discriminated unions.
   - title: Invoice XML Validation
     details: Three-level client-side validation against official KSeF XSD schemas — well-formedness, schema structure (via generated Zod validators), and business rules (NIP/PESEL checksums, future date rejection). Supports all 6 invoice types with auto-detection. CLI batch validation, programmatic API, and opt-in pre-send validation in workflows.
-  - title: Typed Errors & Fluent Builders
-    details: KSeFError hierarchy with specific classes for 401, 403, 429, and validation errors. Fluent request builders catch mistakes at compile time before they hit the network.
+  - title: Typed Errors with RFC 7807 Problem Details
+    details: KSeFError hierarchy with dedicated classes for 400, 401, 403, 410, and 429 carrying structured diagnostic context (trace IDs, required-vs-present permissions, validation error lists). Exhaustive dispatch via the KSeFApiProblem union and assertNever helper. Fluent request builders catch mistakes at compile time before they hit the network.
   - title: Comprehensive Test Coverage
     details: 1400+ Vitest unit and E2E tests across HTTP, crypto, services, workflows, builders, and CLI. CI runs the full suite on every change so regressions are caught early.
   - title: Interactive Setup Wizard
