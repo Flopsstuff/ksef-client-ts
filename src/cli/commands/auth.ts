@@ -170,7 +170,7 @@ const revokeSelfToken = defineCommand({
   },
   args: {
     'keep-local': { type: 'boolean', description: 'Revoke server-side but keep local session' },
-    'dry-run': { type: 'boolean', description: 'Print what would happen without calling the API' },
+    'dry-run': { type: 'boolean', description: 'Print what would happen without revoking the token (discovery may still query the API)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
