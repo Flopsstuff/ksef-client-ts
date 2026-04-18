@@ -319,26 +319,31 @@ queryPersonalGrants(
   pageSize?: number,
 ): Promise<PagedPermissionsResponse<PersonalPermission>>
 ```
+
 Query the caller's own permissions. Supports `contextIdentifier` filtering.
 
 ```ts
 queryPersonsGrants(options: QueryPersonsGrantsRequest, pageOffset?: number, pageSize?: number): Promise<PagedPermissionsResponse<PersonPermission>>
 ```
+
 Query permissions granted to persons.
 
 ```ts
 querySubunitsGrants(options?: QuerySubunitsGrantsRequest): Promise<PagedPermissionsResponse<SubunitPermission>>
 ```
+
 Query permissions granted to subunits.
 
 ```ts
 queryEntitiesRoles(options?: QueryEntitiesRolesRequest): Promise<PagedRolesResponse<EntityRole>>
 ```
+
 Query roles assigned to entities.
 
 ```ts
 queryEntitiesGrants(options?: QueryEntitiesGrantsRequest, pageOffset?: number, pageSize?: number): Promise<PagedPermissionsResponse<EntityPermissionItem>>
 ```
+
 Query permissions granted to entities. Supports `contextIdentifier` filtering (NIP or 10-16-char VAT-group subunit `InternalId`).
 
 ```ts
@@ -850,21 +855,25 @@ serializeInvoiceXml(
   options?: SerializeInvoiceOptions,
 ): Buffer
 ```
+
 Polymorphic entry point. `Buffer` inputs are returned byte-for-byte (as the same reference — callers must not mutate); `string` inputs are UTF-8 BOM-stripped and wrapped; `XmlDocument` arrays are rebuilt via the engine; typed inputs dispatch to the right builder. Throws `KSeFValidationError` naming the first missing top-level key if the input does not match any known shape.
 
 ```ts
 buildFakturaXml(faktura: FakturaInput, options?: BuildFakturaOptions): string
 ```
+
 FA2/FA3 builder. Normalizes `Naglowek.KodFormularza` (typed `FormCode` → attribute-shaped children), orders children via `ORDER_MAP` + natural `P_*` sort, and injects `xmlns` + `xmlns:etd` on `<Faktura>`. Default schema is `FA3`.
 
 ```ts
 buildPefXml(input: PefUblDocumentInput, options?: BuildPefOptions): string
 ```
+
 PEF / PEF_KOR UBL 2.1 builder. Detects the schema from the root key (`Invoice` → PEF, `CreditNote` → PEF_KOR). Injects the UBL namespace set on the root. Throws `KSeFValidationError` when `options.schema` contradicts the detected root.
 
 ```ts
 buildRawXmlString(document: XmlObject, options?: { pretty?: boolean }): string
 ```
+
 Low-level escape hatch for pre-shaped `XmlObject` inputs (e.g. produced by `parseXml`). Returns a `string` — wrap with `Buffer.from(xml, 'utf8')` for byte-ready output.
 
 ```ts
@@ -873,8 +882,9 @@ buildXml(document: XmlDocument): string
 stripBom(text: string): string
 ORDER_MAP: Record<string, string[]>
 comparePKey(a: string, b: string): number
-orderXmlObject(obj: XmlObject, parent: string): XmlObject
+orderXmlObject(obj: XmlObject, contextKey?: string): XmlObject
 ```
+
 Lower-level primitives re-exported for advanced use. `ORDER_MAP` keys each XSD parent to its expected child order; `comparePKey` is a natural-sort comparator over `P_*` ordinals; `orderXmlObject` recursively reorders an `XmlObject` tree.
 
 ### BuildFakturaOptions
