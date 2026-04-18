@@ -203,8 +203,13 @@ export class RestClient {
 
     const text = await response.text().catch(() => '');
 
+    let jsonCache: { value: unknown } | null = null;
     const parseJson = <T>(): T | undefined => {
-      try { return JSON.parse(text) as T; } catch { return undefined; }
+      if (jsonCache === null) {
+        try { jsonCache = { value: JSON.parse(text) }; }
+        catch { jsonCache = { value: undefined }; }
+      }
+      return jsonCache.value as T | undefined;
     };
 
     const tryParseProblem = <T>(guard: (value: unknown) => value is T): T | undefined => {
@@ -283,7 +288,7 @@ function isTooManyRequestsProblem(value: unknown): value is TooManyRequestsProbl
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
   return typeof v.title === 'string'
-    && v.status === 429
+    && (v.status === undefined || typeof v.status === 'number')
     && (v.detail === undefined || typeof v.detail === 'string')
     && (v.instance === undefined || typeof v.instance === 'string')
     && (v.traceId === undefined || typeof v.traceId === 'string')

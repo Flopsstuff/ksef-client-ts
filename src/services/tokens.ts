@@ -11,6 +11,7 @@ import type {
 } from '../models/tokens/types.js';
 import { decodeJwtPayload, parseKSeFTokenContext } from '../utils/jwt.js';
 import { KSeFApiError } from '../errors/ksef-api-error.js';
+import { KSeFError } from '../errors/ksef-error.js';
 
 const TOKEN_AUTHOR_IDENTIFIER_TYPES: ReadonlySet<TokenAuthorIdentifierType> = new Set([
   'Nip',
@@ -139,9 +140,8 @@ export class TokenService {
       ref = await this.findSelfReferenceNumber(opts.accessToken);
     }
     if (!ref) {
-      throw new KSeFApiError(
+      throw new KSeFError(
         'Could not determine the current token reference number: no cache, JWT lacks the field, and the active-token list had 0 or 2+ matches in the current context.',
-        400,
       );
     }
     try {

@@ -585,6 +585,43 @@ describe('RestClient', () => {
       expect((err as KSeFRateLimitError).problem).toBeUndefined();
     });
 
+    it('parses 429 Problem Details body even when status field is missing', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(
+        429,
+        {
+          title: 'Too Many Requests',
+          detail: 'Quota exceeded',
+          traceId: 't-no-status',
+        },
+        { 'Retry-After': '0' },
+      ));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFRateLimitError);
+      expect((err as KSeFRateLimitError).problem?.traceId).toBe('t-no-status');
+      expect((err as KSeFRateLimitError).problem?.detail).toBe('Quota exceeded');
+    });
+
+    it('parses 429 Problem Details body when status is a non-429 number', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(
+        429,
+        {
+          title: 'Too Many Requests',
+          status: 200,
+          traceId: 't-wrong',
+        },
+        { 'Retry-After': '0' },
+      ));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFRateLimitError);
+      expect((err as KSeFRateLimitError).problem?.traceId).toBe('t-wrong');
+    });
+
     it('sends X-Error-Format: problem-details by default', async () => {
       const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, {}));
 

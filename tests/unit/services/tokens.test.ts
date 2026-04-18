@@ -1,6 +1,7 @@
 import { TokenService } from '../../../src/services/tokens.js';
 import { Routes } from '../../../src/http/routes.js';
 import { KSeFApiError } from '../../../src/errors/ksef-api-error.js';
+import { KSeFError } from '../../../src/errors/ksef-error.js';
 import { createMockRestClient, getRequest, mockResponse } from './_helpers.js';
 
 function buildTestJwt(payload: Record<string, unknown>): string {
@@ -317,11 +318,11 @@ describe('TokenService', () => {
       expect(deleteReq.path).toBe(Routes.Tokens.byReference('list-ref'));
     });
 
-    it('throws KSeFApiError(400) on ambiguous discovery', async () => {
+    it('throws KSeFError on ambiguous discovery', async () => {
       const client = createMockRestClient();
       const service = new TokenService(client);
       const jwt = buildTestJwt(CTX_TOKEN_PAYLOAD);
-      vi.mocked(client.execute).mockResolvedValueOnce(
+      vi.mocked(client.execute).mockResolvedValue(
         mockResponse({
           tokens: [
             makeListItem({ referenceNumber: 'a' }),
@@ -330,10 +331,9 @@ describe('TokenService', () => {
         }),
       );
 
-      await expect(service.revokeSelf({ accessToken: jwt })).rejects.toMatchObject({
-        name: 'KSeFApiError',
-        statusCode: 400,
-      });
+      const err = await service.revokeSelf({ accessToken: jwt }).catch((e) => e);
+      expect(err).toBeInstanceOf(KSeFError);
+      expect(err.name).toBe('KSeFError');
       expect(client.executeVoid).not.toHaveBeenCalled();
     });
 
@@ -341,7 +341,7 @@ describe('TokenService', () => {
       const client = createMockRestClient();
       const service = new TokenService(client);
 
-      await expect(service.revokeSelf({})).rejects.toBeInstanceOf(KSeFApiError);
+      await expect(service.revokeSelf({})).rejects.toBeInstanceOf(KSeFError);
       expect(client.executeVoid).not.toHaveBeenCalled();
     });
 
