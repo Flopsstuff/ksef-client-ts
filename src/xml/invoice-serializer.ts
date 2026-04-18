@@ -30,8 +30,16 @@ function classifyUnknownObject(input: Record<string, unknown>): KSeFValidationEr
     const missing: string[] = [];
     if (!('Naglowek' in input)) missing.push('Naglowek');
     if (!('Fa' in input)) missing.push('Fa');
+    if (missing.length === 0) {
+      // Both Naglowek and Fa are present yet isFakturaInput rejected the
+      // input — likely a non-own property (prototype / accessor). Emit a
+      // diagnostic message rather than "missing key(s): .".
+      return new KSeFValidationError(
+        'Faktura-like input failed shape validation: `Naglowek` and `Fa` must be own enumerable properties on the input object.',
+      );
+    }
     return KSeFValidationError.fromField(
-      missing[0] ?? 'Faktura',
+      missing[0]!,
       `Faktura input is missing required top-level key(s): ${missing.join(', ')}.`,
     );
   }
