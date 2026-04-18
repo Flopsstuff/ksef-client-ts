@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Invoice XML serialization** — build XSD-compliant FA2, FA3, PEF, and PEF_KOR invoice XML from typed TypeScript objects, with correct element ordering (including the FA3 per-VAT-rate interleave) and namespace injection handled automatically (KSeF API v2.4.0).
 - **Stricter invoice XML validation** — invoices containing XML processing instructions or characters discouraged by the W3C XML specification are now rejected client-side with precise offsets, matching server-side rules enforced on the KSeF production environment from 2026-07-16 (KSeF API v2.4.0).
 - **Structured 400 validation errors** — KSeF server-side validation failures now expose the full list of error codes and descriptions instead of a single flat message (KSeF API v2.4.0).
 - **Richer rate-limit errors** — 429 responses now surface server-provided context (trace ID, instance, timestamp) alongside existing retry-after metadata (KSeF API v2.4.0).

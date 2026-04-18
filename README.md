@@ -16,6 +16,7 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 - **Streaming batch uploads** — constant-memory batch upload via Web Streams API with ZIP bomb protection
 - **Incremental export** — HWM-based paginated export with file-based state persistence
 - **Multiple document structures** — FA, PEF, PEF_KOR, FA_RR with typed FormCode constants and UPO parsing
+- **Invoice XML serialization (FA2/FA3/PEF/PEF_KOR)** — build XSD-compliant invoice XML from typed TypeScript objects with correct element ordering (including the FA3 per-VAT-rate interleave) and namespace injection
 - **Invoice XML validation** — three-level client-side validation (well-formedness, XSD schema via Zod, NIP/PESEL checksums, future date rejection) with auto-detection for all 6 invoice types
 - **Typed errors with RFC 7807 Problem Details** — `KSeFError` hierarchy with dedicated classes for 400/401/403/410/429 carrying structured diagnostic context; exhaustive dispatch via the `KSeFApiProblem` union and `assertNever`; fluent request builders
 - **Comprehensive test coverage** — unit + E2E tests across HTTP, crypto, services, workflows; CI on every change
