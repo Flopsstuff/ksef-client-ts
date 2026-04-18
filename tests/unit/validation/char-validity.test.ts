@@ -25,9 +25,12 @@ describe('validateCharValidity', () => {
       expect(validateCharValidity(xml)).toEqual([]);
     });
 
-    it('accepts prolog after leading whitespace', () => {
+    it('rejects prolog preceded by whitespace (W3C XML 1.0 §2.8 requires offset 0)', () => {
       const xml = '  \n<?xml version="1.0"?><Faktura/>';
-      expect(validateCharValidity(xml)).toEqual([]);
+      const errors = validateCharValidity(xml);
+      expect(errors).toHaveLength(1);
+      expect(errors[0]!.code).toBe('XML_PROCESSING_INSTRUCTION');
+      expect(errors[0]!.path).toBe(`offset:${xml.indexOf('<?xml')}`);
     });
 
     it('rejects <?xml-stylesheet?> PI inside body', () => {

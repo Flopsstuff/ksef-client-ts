@@ -76,11 +76,11 @@ function findProcessingInstructions(xml: string): InvoiceValidationError[] {
   const matches = findProcessingInstructionTokens(xml);
   if (matches.length === 0) return errors;
 
-  const firstNonWs = xml.search(/\S/);
+  // W3C XML 1.0 §2.8: the XML declaration, if present, must be the very first
+  // thing in the document entity — no preceding whitespace, BOM excluded.
   const firstMatch = matches[0]!;
   const firstTarget = firstMatch.token.match(PI_TARGET_RE)?.[1];
-  const firstIsProlog =
-    firstMatch.index === firstNonWs && firstTarget === 'xml';
+  const firstIsProlog = firstMatch.index === 0 && firstTarget === 'xml';
 
   for (let i = 0; i < matches.length; i++) {
     if (i === 0 && firstIsProlog) continue;
