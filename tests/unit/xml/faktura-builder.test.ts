@@ -56,10 +56,13 @@ describe('buildFakturaXml — namespace injection', () => {
     );
   });
 
-  it('injects FA2 default namespaces on <Faktura> root', () => {
+  it('injects FA2 default namespaces on <Faktura> root and does NOT leak FA3 URIs', () => {
     const xml = buildFakturaXml(minimalFa2(), { schema: 'FA2' });
     expect(xml).toContain(`xmlns="${FAKTURA_NAMESPACE.FA2}"`);
     expect(xml).toContain(`xmlns:etd="${ETD_NAMESPACE.FA2}"`);
+    // Exclusivity check — mirror of the FA3 override test at line 76.
+    expect(xml).not.toContain(FAKTURA_NAMESPACE.FA3);
+    expect(xml).not.toContain(ETD_NAMESPACE.FA3);
   });
 
   it('defaults to FA3 namespaces when schema is not specified', () => {
