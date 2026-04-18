@@ -107,7 +107,7 @@ KSeF API v2.4.0 rejects XML containing:
 
 Discouraged ranges:
 
-```
+```text
 [#x7F-#x84]       [#x86-#x9F]       [#xFDD0-#xFDEF]
 [#x1FFFE-#x1FFFF] [#x2FFFE-#x2FFFF] [#x3FFFE-#x3FFFF]
 [#x4FFFE-#x4FFFF] [#x5FFFE-#x5FFFF] [#x6FFFE-#x6FFFF]
