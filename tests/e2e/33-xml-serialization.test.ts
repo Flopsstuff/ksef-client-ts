@@ -125,35 +125,51 @@ async function openSendCloseVerify(
     encryption: encryptionData.encryptionInfo,
   });
   const sessionRef = openResponse.referenceNumber;
+  let closed = false;
 
-  const sendResponse = await client.onlineSession.sendInvoice(sessionRef, sendRequest);
-  const invoiceRef = sendResponse.referenceNumber;
-  expect(invoiceRef).toBeTruthy();
+  try {
+    const sendResponse = await client.onlineSession.sendInvoice(sessionRef, sendRequest);
+    const invoiceRef = sendResponse.referenceNumber;
+    expect(invoiceRef).toBeTruthy();
 
-  await pollUntil(
-    () => client.sessionStatus.getSessionStatus(sessionRef),
-    (s) => (s.successfulInvoiceCount ?? 0) > 0 || (s.failedInvoiceCount ?? 0) > 0,
-    { intervalMs: 3000, maxAttempts: 30, description: 'invoice processing' },
-  );
+    await pollUntil(
+      () => client.sessionStatus.getSessionStatus(sessionRef),
+      (s) => (s.successfulInvoiceCount ?? 0) > 0 || (s.failedInvoiceCount ?? 0) > 0,
+      { intervalMs: 3000, maxAttempts: 30, description: 'invoice processing' },
+    );
 
-  await client.onlineSession.closeSession(sessionRef);
+    await client.onlineSession.closeSession(sessionRef);
+    closed = true;
 
-  const finalStatus = await pollUntil(
-    () => client.sessionStatus.getSessionStatus(sessionRef),
-    (s) => s.status.code === 200 || s.status.code >= 400,
-    { intervalMs: 3000, maxAttempts: 30, description: 'session close + UPO' },
-  );
+    const finalStatus = await pollUntil(
+      () => client.sessionStatus.getSessionStatus(sessionRef),
+      (s) => s.status.code === 200 || s.status.code >= 400,
+      { intervalMs: 3000, maxAttempts: 30, description: 'session close + UPO' },
+    );
 
-  expect(finalStatus.status.code).toBe(200);
-  expect(finalStatus.successfulInvoiceCount).toBe(1);
-  expect(finalStatus.failedInvoiceCount ?? 0).toBe(0);
+    expect(finalStatus.status.code).toBe(200);
+    expect(finalStatus.successfulInvoiceCount).toBe(1);
+    expect(finalStatus.failedInvoiceCount ?? 0).toBe(0);
 
-  const invoicesResponse = await client.sessionStatus.getSessionInvoices(sessionRef);
-  const invoiceStatus = invoicesResponse.invoices[0]!;
-  expect(invoiceStatus.status.code).toBe(200);
-  expect(invoiceStatus.ksefNumber).toBeTruthy();
+    const invoicesResponse = await client.sessionStatus.getSessionInvoices(sessionRef);
+    const invoiceStatus = invoicesResponse.invoices[0]!;
+    expect(invoiceStatus.status.code).toBe(200);
+    expect(invoiceStatus.ksefNumber).toBeTruthy();
 
-  return { ksefNumber: invoiceStatus.ksefNumber!, invoiceRef, sessionRef };
+    return { ksefNumber: invoiceStatus.ksefNumber!, invoiceRef, sessionRef };
+  } finally {
+    // Best-effort close on the failure path — prevents leaking an open
+    // session on KSeF TEST when send / pollUntil / verify throws before
+    // the normal closeSession call above.
+    if (!closed) {
+      try {
+        await client.onlineSession.closeSession(sessionRef);
+      } catch {
+        // Swallow: the primary error should propagate; close failure is
+        // diagnostic noise that would mask the real cause.
+      }
+    }
+  }
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────
