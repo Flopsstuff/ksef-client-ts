@@ -122,7 +122,7 @@ Pass `{ schema: 'FA2' }` in `options` to build against the legacy FA2 namespace.
 
 ## PEF Invoice
 
-PEF invoices are UBL 2.1 documents wrapped with the KSeF UBL namespace set. The builder injects the five UBL namespaces (`xmlns`, `xmlns:ext`, `xmlns:cbc`, `xmlns:cac`, `xmlns:cbc-pl`, `xmlns:cac-pl`) on the root element — callers only supply the body.
+PEF invoices are UBL 2.1 documents wrapped with the KSeF UBL namespace set. The builder injects the default `xmlns` plus five prefixed UBL namespaces (`xmlns:ext`, `xmlns:cbc`, `xmlns:cac`, `xmlns:cbc-pl`, `xmlns:cac-pl`) on the root element — callers only supply the body.
 
 ```typescript
 import { buildPefXml, type PefUblInvoiceInput } from 'ksef-client-ts';
