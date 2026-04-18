@@ -279,9 +279,18 @@ export class RestClient {
 function isBadRequestProblem(value: unknown): value is BadRequestProblemDetails {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
-  return typeof v.title === 'string'
-    && typeof v.status === 'number'
-    && Array.isArray(v.errors);
+  if (typeof v.title !== 'string') return false;
+  if (v.status !== undefined && typeof v.status !== 'number') return false;
+  if (v.errors !== undefined) {
+    if (!Array.isArray(v.errors)) return false;
+    for (const item of v.errors) {
+      if (typeof item !== 'object' || item === null) return false;
+      const detail = item as Record<string, unknown>;
+      if (typeof detail.code !== 'number') return false;
+      if (typeof detail.description !== 'string') return false;
+    }
+  }
+  return true;
 }
 
 function isTooManyRequestsProblem(value: unknown): value is TooManyRequestsProblemDetails {

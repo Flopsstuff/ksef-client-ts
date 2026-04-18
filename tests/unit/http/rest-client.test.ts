@@ -523,6 +523,37 @@ describe('RestClient', () => {
       expect((err as KSeFBadRequestError).traceId).toBe('t-400');
     });
 
+    it('accepts 400 Problem Details without errors field', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        detail: 'Query rejected',
+        traceId: 't-noerrors',
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFBadRequestError);
+      expect((err as KSeFBadRequestError).errors).toEqual([]);
+      expect((err as KSeFBadRequestError).detail).toBe('Query rejected');
+      expect((err as KSeFBadRequestError).traceId).toBe('t-noerrors');
+    });
+
+    it('rejects 400 Problem Details whose errors items are malformed', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: 'not-a-number', description: 'oops' }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect(err).not.toBeInstanceOf(KSeFBadRequestError);
+    });
+
     it('falls back to generic KSeFApiError on 400 with legacy body', async () => {
       const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
         exception: {
