@@ -46,32 +46,24 @@ jobs:
           ref: refs/pull/${{ steps.pr.outputs.number }}/merge
           fetch-depth: 0
 
+      - name: Render review prompt
+        id: render
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          BASE_REF: ${{ steps.pr.outputs.base_ref }}
+        # envsubst with an explicit allowlist — only $PR_NUMBER and $BASE_REF
+        # get substituted; any other $var in the prompt is left verbatim.
+        run: |
+          {
+            echo 'prompt<<PROMPT_EOF'
+            envsubst '$PR_NUMBER $BASE_REF' < .github/claude/prompts/review.md
+            echo 'PROMPT_EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Run Claude review
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           trigger_phrase: "@claude-review"
           claude_args: "--max-turns 8 --model claude-sonnet-4-6"
-          prompt: |
-            You are reviewing PR #${{ steps.pr.outputs.number }} against `${{ steps.pr.outputs.base_ref }}`.
-
-            Read `CLAUDE.md` at the repo root and treat its Rules and Key conventions as authoritative.
-            Use `git diff origin/${{ steps.pr.outputs.base_ref }}...HEAD` to scope your review to PR changes.
-
-            Check specifically:
-
-            1. **Import style** — TypeScript imports of local modules must use `.js` extensions (ESM resolution convention).
-            2. **CHANGELOG entries** (if `CHANGELOG.md` changed) — each bullet must be one sentence, user-facing, no class/method/field names, no CLI flags, no header names. KSeF API version in parentheses at the end if relevant.
-            3. **Fenced code blocks** in `README.md`, `docs/**`, `plans/**`, `CHANGELOG.md` — ASCII tables, tree diagrams, plain text must use ` ```text ` tag, never bare ` ``` `.
-            4. **Error hierarchy** — new server-side HTTP error classes must extend `KSeFApiError` and expose a `toProblemFields()` override so the CLI renderer picks them up automatically.
-            5. **Naming collisions** — watch for name clashes with `CertificateService`/`CertificateApiService`, `SubjectIdentifierType`/`PermissionSubjectIdentifierType`, `InvoicingMode`/`InvoiceFilterInvoicingMode`.
-            6. **Test coverage** — any new public method or new error path should have a unit test. New CLI commands should have a CLI test under `tests/unit/cli/`.
-            7. **README.md ↔ docs/index.md sync** — feature-list changes must land in both.
-            8. **Security sanity** — any new file that takes user input (CLI args, HTTP bodies, file paths) or touches crypto should be spot-checked for obvious injection / path-traversal / unsafe defaults.
-
-            Skip:
-            - Style nits on existing code outside the diff.
-            - Generic "consider using X library" suggestions.
-            - Tests you cannot run — just note what's untested, don't speculate on outcomes.
-
-            Output a single concise comment with one section per finding: severity (nit / warning / must-fix), file:line, what's wrong, suggested fix. If the PR is clean, say so in one sentence. Do not paraphrase the diff.
+          prompt: ${{ steps.render.outputs.prompt }}
