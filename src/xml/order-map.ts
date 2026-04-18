@@ -178,7 +178,9 @@ export function comparePKey(a: string, b: string): number {
     }
     const leftStr = String(left);
     const rightStr = String(right);
-    if (leftStr !== rightStr) return leftStr.localeCompare(rightStr);
+    // Locale-independent, code-point order — keeps sort stable across CI
+    // matrix entries where the default ICU locale may differ.
+    if (leftStr !== rightStr) return leftStr < rightStr ? -1 : 1;
   }
   return 0;
 }
