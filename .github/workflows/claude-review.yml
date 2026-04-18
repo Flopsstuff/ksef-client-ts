@@ -13,7 +13,9 @@ permissions:
   id-token: write  # required by anthropics/claude-code-action@v1 (fetches OIDC token)
 
 concurrency:
-  group: claude-review-${{ github.event.issue.number }}
+  # Include the commenter type so bot-authored comments (which are filtered
+  # out by the `if:` below) do not cancel a valid in-progress human review.
+  group: claude-review-${{ github.event.issue.number }}-${{ github.event.comment.user.type }}
   cancel-in-progress: true
 
 jobs:
