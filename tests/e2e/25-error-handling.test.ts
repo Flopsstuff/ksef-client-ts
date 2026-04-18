@@ -54,15 +54,16 @@ describe('25 - Error Handling E2E', { timeout: 60_000 }, () => {
       const apiErr = e as KSeFApiError;
       expect(apiErr.statusCode).toBe(400);
 
+      if (!process.env.ALLOW_LEGACY_400) {
+        expect(e).toBeInstanceOf(KSeFBadRequestError);
+      }
       if (e instanceof KSeFBadRequestError) {
-        // Server honored X-Error-Format: problem-details
         expect(e.errors.length).toBeGreaterThan(0);
         expect(e.errors[0]!.code).toBeTypeOf('number');
         expect(e.errors[0]!.description).toBeTypeOf('string');
       } else {
-        // Server returned legacy body (older server or proxy) — still 400 via KSeFApiError
         // eslint-disable-next-line no-console
-        console.warn('Server returned legacy 400 body; skipping Problem Details assertions');
+        console.warn('ALLOW_LEGACY_400 set: server returned legacy 400 body; skipping Problem Details assertions');
       }
     }
   });
