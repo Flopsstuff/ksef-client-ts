@@ -104,7 +104,8 @@ ksef auth revoke-self-token [--keep-local] [--dry-run] [--json]
 One-shot command for CI jobs and disposable hosts: after `ksef auth login --token $T`, `ksef auth revoke-self-token` revokes `$T` on the server and clears the local session and credentials. Reference-number lookup is automatic — cached during login when possible, otherwise discovered via the active-token list filtered by the caller's context (requires exactly one active match; ambiguous cases are refused).
 
 - `--keep-local` — revoke server-side but keep local session (test scenarios).
-- `--dry-run` — print the resolved reference and planned actions without calling the API.
+- `--dry-run` — print the resolved reference and planned actions without revoking the token.
+- `--json` — emit a structured status payload. On revoke: `{ status: 'revoked' | 'already-revoked', referenceNumber, source, localCleared }`. On dry-run: `{ status: 'dry-run', referenceNumber, source, wouldClearLocal }`. The `source` field is `'discovery'` when resolved from the live session token, `'cache-fallback'` when discovery failed and the locally cached reference was used instead, or `'none'` when neither yielded a value.
 - An already-revoked token (server returns 404/409/410) produces a warning and still clears local state, so repeated calls are safe.
 
 
