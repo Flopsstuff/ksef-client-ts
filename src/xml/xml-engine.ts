@@ -1,6 +1,13 @@
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
 import type { XmlDocument, XmlObject } from './types.js';
 
+// fast-xml-parser's XMLBuilder has no built-in declaration option (the
+// `declaration:{include,encoding}` config above was silently ignored in 4.x/5.x),
+// so the XML prolog is prepended manually on every build. The canonical KSeF
+// invoices carry a UTF-8 prolog; emitting it keeps our output byte-comparable
+// to the vendored fixtures and maximises server-side parser compatibility.
+const XML_DECLARATION = '<?xml version="1.0" encoding="UTF-8"?>\n';
+
 const parser = new XMLParser({
   ignoreAttributes: false,
   preserveOrder: true,
@@ -23,10 +30,6 @@ const builder = new XMLBuilder({
   suppressBooleanAttributes: false,
   suppressEmptyNode: false,
   processEntities: true,
-  declaration: {
-    include: true,
-    encoding: 'utf-8',
-  },
 } as ConstructorParameters<typeof XMLBuilder>[0]);
 
 function createObjectBuilder(pretty = false): XMLBuilder {
@@ -39,11 +42,12 @@ function createObjectBuilder(pretty = false): XMLBuilder {
     suppressBooleanAttributes: false,
     suppressEmptyNode: false,
     processEntities: true,
-    declaration: {
-      include: true,
-      encoding: 'utf-8',
-    },
   } as ConstructorParameters<typeof XMLBuilder>[0]);
+}
+
+function prependDeclaration(xml: string): string {
+  // Never double-declare when the caller already emitted a prolog.
+  return xml.startsWith('<?xml') ? xml : `${XML_DECLARATION}${xml}`;
 }
 
 export function parseXml(xml: string): XmlDocument {
@@ -51,11 +55,11 @@ export function parseXml(xml: string): XmlDocument {
 }
 
 export function buildXml(document: XmlDocument): string {
-  return builder.build(document);
+  return prependDeclaration(builder.build(document));
 }
 
 export function buildXmlFromObject(document: XmlObject, options?: { pretty?: boolean }): string {
-  return createObjectBuilder(options?.pretty).build(document);
+  return prependDeclaration(createObjectBuilder(options?.pretty).build(document));
 }
 
 export function stripBom(input: string): string {
