@@ -148,6 +148,11 @@ Feature descriptions live in two places that must be kept in sync: `README.md` (
 
 `plans/` directory (gitignored) contains development plans and roadmaps. Not tracked in git.
 
+- `plans/references.md` — reference-project comparison: maturity, crypto, feature gaps, KSeF API changelog
+- `plans/shipped.md` — feature history by version
+- `plans/backlog.md` — pending work, release proposals, deferred items
+- `plans/p<priority>-<id>-<slug>.md` — individual feature sub-plans; each is cross-referenced from `backlog.md`
+
 ### Reference implementations
 
 `ref/` directory (gitignored) contains reference implementations, official docs, and related projects. See `ref/ref-index.md` for the full index.
