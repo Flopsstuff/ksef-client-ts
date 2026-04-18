@@ -45,4 +45,26 @@ describe('comparePKey', () => {
     const sorted = ['P_14_2W', 'P_14_1W'].sort(comparePKey);
     expect(sorted).toEqual(['P_14_1W', 'P_14_2W']);
   });
+
+  // ── Edge cases pinned to catch silent future regressions ────────────
+
+  it('pin: mixed numeric/alpha at the same depth compares consistently (P_14_1 < P_14_1W)', () => {
+    // P_14_1 normalises to [14, 1]; P_14_1W to [14, "1W"]. The generic path
+    // falls through to String(1).localeCompare("1W") which yields < 0.
+    // ORDER_MAP.Fa lists both explicitly, so this only fires for undeclared
+    // keys — but a refactor that touched comparePKey should keep this stable.
+    const sorted = ['P_14_1W', 'P_14_1'].sort(comparePKey);
+    expect(sorted).toEqual(['P_14_1', 'P_14_1W']);
+    expect(comparePKey('P_14_1', 'P_14_1W')).toBeLessThan(0);
+  });
+
+  it('pin: malformed keys with empty segments (e.g. P__1) do not throw', () => {
+    // Number("") is 0, not NaN, so `P__1` normalises to [0, 1] and compares
+    // as a numeric tuple without throwing. Not a bug per se — just the
+    // current silent behaviour we want to prevent a future refactor from
+    // flipping into a throw.
+    expect(() => comparePKey('P__1', 'P_1_1')).not.toThrow();
+    // P__1 ([0, 1]) sorts before P_1_1 ([1, 1]) numerically.
+    expect(comparePKey('P__1', 'P_1_1')).toBeLessThan(0);
+  });
 });
