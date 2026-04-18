@@ -269,12 +269,20 @@ Adding a new RFC 7807 subclass to the union causes `assertNever` to fail type-ch
 
 After the retry loop is exhausted and a non-2xx response remains, `ensureSuccess()` reads the response body **once** as text and attempts to parse it as JSON. It then dispatches errors in a fixed priority order:
 
-```
+```text
 Response not OK?
   │
-  ├── status 429 → parse as TooManyRequestsResponse + ApiErrorResponse
-  │                → throw KSeFRateLimitError.fromRetryAfterHeader()
-  │                  (includes Retry-After header parsing)
+  ├── status 400 → try BadRequestProblemDetails guard
+  │                → matches → throw new KSeFBadRequestError(problem)
+  │                → else legacy ApiErrorResponse; if it carries KSeF
+  │                  exceptionCode 21208 → throw KSeFBatchTimeoutError
+  │                  otherwise throw KSeFApiError.fromResponse()
+  │
+  ├── status 429 → try TooManyRequestsProblemDetails guard
+  │                → if matches, pass to KSeFRateLimitError.fromRetryAfterHeader()
+  │                  alongside the Retry-After header
+  │                → else fall back to legacy TooManyRequestsResponse body
+  │                → throw KSeFRateLimitError (always carries retry metadata)
   │
   ├── status 401 → parse as UnauthorizedProblemDetails
   │                → if body has .detail → throw new KSeFUnauthorizedError(body)
@@ -1009,7 +1017,8 @@ try {
 | Error class | HTTP status | Body format | Key fields | Automatic recovery |
 |-------------|------------|-------------|------------|-------------------|
 | `KSeFApiError` | any non-2xx | `ApiErrorResponse` | `statusCode`, `errorResponse` | Retry on 5xx |
-| `KSeFRateLimitError` | 429 | `TooManyRequestsResponse` | `retryAfterSeconds`, `recommendedDelay` | Retry with `Retry-After` |
+| `KSeFBadRequestError` | 400 | RFC 7807 `BadRequestProblemDetails` | `errors[]`, `detail`, `traceId`, `instance`, `timestamp` | None (fix the request) |
+| `KSeFRateLimitError` | 429 | RFC 7807 `TooManyRequestsProblemDetails` or legacy `TooManyRequestsResponse` | `retryAfterSeconds`, `recommendedDelay`, `problem?` | Retry with `Retry-After` |
 | `KSeFBatchTimeoutError` | any non-2xx (KSeF code 21208) | `ApiErrorResponse` | `errorCode` (21208), `statusCode`, `errorResponse` | None (retry with smaller batch) |
 | `KSeFUnauthorizedError` | 401 | RFC 7807 `UnauthorizedProblemDetails` | `detail`, `traceId`, `instance`, `timestamp` | Token refresh, then retry once |
 | `KSeFForbiddenError` | 403 | RFC 7807 `ForbiddenProblemDetails` | `reasonCode`, `detail`, `traceId`, `security`, `timestamp` | None (not retryable) |
