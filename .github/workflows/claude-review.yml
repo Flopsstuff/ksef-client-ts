@@ -1,0 +1,69 @@
+name: Claude PR Review
+
+# Runs Claude Code against a PR when a maintainer posts `@claude-review`
+# in a PR comment. Complements codex-pr-review.yml (which runs automatically).
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: claude-review-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # Only on PR comments (not plain issues), only if the trigger phrase is present,
+    # and never react to the bot's own comments (avoid loops).
+    if: >
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '@claude-review') &&
+      github.event.comment.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve PR head SHA
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number,
+            });
+            core.setOutput('head_sha', pr.head.sha);
+            core.setOutput('base_ref', pr.base.ref);
+            core.setOutput('number', pr.number);
+
+      - name: Checkout PR merge ref
+        uses: actions/checkout@v5
+        with:
+          ref: refs/pull/${{ steps.pr.outputs.number }}/merge
+          fetch-depth: 0
+
+      - name: Render review prompt
+        id: render
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          BASE_REF: ${{ steps.pr.outputs.base_ref }}
+        # envsubst with an explicit allowlist — only $PR_NUMBER and $BASE_REF
+        # get substituted; any other $var in the prompt is left verbatim.
+        run: |
+          {
+            echo 'prompt<<PROMPT_EOF'
+            envsubst '$PR_NUMBER $BASE_REF' < .github/claude/prompts/review.md
+            echo 'PROMPT_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run Claude review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          trigger_phrase: "@claude-review"
+          claude_args: "--max-turns 8 --model claude-sonnet-4-6"
+          prompt: ${{ steps.render.outputs.prompt }}
