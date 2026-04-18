@@ -112,6 +112,41 @@ describe('buildPefXml — XOR validation of Invoice / CreditNote', () => {
   });
 });
 
+// ── Namespace override guard ────────────────────────────────────────────
+//
+// Regression pin: payload must not be able to shadow the UBL namespace set.
+// Spreading `input.Invoice` / `input.CreditNote` before the namespace attrs
+// guarantees the builder always wins even if a caller put their own
+// `@_xmlns*` attrs into the payload.
+
+describe('buildPefXml — builder namespaces override payload', () => {
+  it('ignores @_xmlns in Invoice payload and emits canonical PEF namespace', () => {
+    const xml = buildPefXml({
+      Invoice: {
+        '@_xmlns': 'http://evil.example/override',
+        '@_xmlns:cbc': 'http://evil.example/override-cbc',
+        ID: 'INV-1',
+      },
+    });
+    expect(xml).toContain(`xmlns="${PEF_NAMESPACE.PEF}"`);
+    expect(xml).not.toContain('http://evil.example/override');
+    expect(xml).toContain(
+      'xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"',
+    );
+  });
+
+  it('ignores @_xmlns in CreditNote payload and emits canonical PEF_KOR namespace', () => {
+    const xml = buildPefXml({
+      CreditNote: {
+        '@_xmlns': 'http://evil.example/override',
+        ID: 'CN-1',
+      },
+    });
+    expect(xml).toContain(`xmlns="${PEF_NAMESPACE.PEF_KOR}"`);
+    expect(xml).not.toContain('http://evil.example/override');
+  });
+});
+
 // ── Schema / root mismatch ──────────────────────────────────────────────
 
 describe('buildPefXml — schema option vs detected root', () => {

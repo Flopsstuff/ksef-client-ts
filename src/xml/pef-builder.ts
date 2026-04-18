@@ -88,20 +88,23 @@ export function buildPefXml(input: PefUblDocumentInput, options: BuildPefOptions
     '@_xmlns:cac-pl': UBL_CAC_PL_NS,
   };
 
+  // Builder-injected UBL namespaces always win over any `@_xmlns*` attrs a
+  // caller may have placed in `input.Invoice` / `input.CreditNote`. Same
+  // guarantee as `buildFakturaXml`.
   const document: XmlObject =
     'Invoice' in input
       ? {
           Invoice: {
+            ...input.Invoice,
             '@_xmlns': PEF_NAMESPACE.PEF,
             ...commonNamespaces,
-            ...input.Invoice,
           },
         }
       : {
           CreditNote: {
+            ...input.CreditNote,
             '@_xmlns': PEF_NAMESPACE.PEF_KOR,
             ...commonNamespaces,
-            ...input.CreditNote,
           },
         };
 

@@ -128,8 +128,11 @@ export function buildFakturaXml(faktura: FakturaInput, options: BuildFakturaOpti
 
 export function isFakturaInput(input: unknown): input is FakturaInput {
   if (!isObject(input)) return false;
-  return (
-    Object.prototype.hasOwnProperty.call(input, 'Naglowek') &&
-    Object.prototype.hasOwnProperty.call(input, 'Fa')
-  );
+  const candidate = input as Record<string, unknown>;
+  if (!Object.prototype.hasOwnProperty.call(candidate, 'Naglowek')) return false;
+  if (!Object.prototype.hasOwnProperty.call(candidate, 'Fa')) return false;
+  // Tight check — both required nodes must be non-null, non-array objects.
+  // Loose presence-only shape-checking let values like `Naglowek: 'x'` or
+  // `Fa: 1` through and produced malformed XML that only failed at XSD time.
+  return isObject(candidate.Naglowek) && isObject(candidate.Fa);
 }

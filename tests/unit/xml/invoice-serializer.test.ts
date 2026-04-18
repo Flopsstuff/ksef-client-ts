@@ -145,6 +145,30 @@ describe('serializeInvoiceXml — unknown-shape validation', () => {
     expect(() => serializeInvoiceXml({ Unknown: 'x' })).toThrow(KSeFValidationError);
   });
 
+  // Tight-type regression pin. Before this contract, inputs like
+  // `{ Naglowek: 'x', Fa: 1 }` slipped past presence-only `isFakturaInput`
+  // and serialized into malformed XML that only failed at XSD time.
+  it.each([
+    ['Naglowek', { Naglowek: 'bad', Fa: { P_1: '2026-04-18' } }],
+    ['Naglowek', { Naglowek: null, Fa: { P_1: '2026-04-18' } }],
+    ['Naglowek', { Naglowek: [], Fa: { P_1: '2026-04-18' } }],
+    ['Fa', { Naglowek: { WariantFormularza: 3 }, Fa: 1 }],
+    ['Fa', { Naglowek: { WariantFormularza: 3 }, Fa: 'bad' }],
+    ['Fa', { Naglowek: { WariantFormularza: 3 }, Fa: [] }],
+  ] as const)(
+    'throws KSeFValidationError naming `%s` when that value is not a non-array object',
+    (field, input) => {
+      try {
+        serializeInvoiceXml(input as unknown as FakturaInput);
+        throw new Error('expected throw');
+      } catch (err) {
+        expect(err).toBeInstanceOf(KSeFValidationError);
+        expect((err as Error).message).toMatch(new RegExp(field));
+        expect((err as Error).message).toMatch(/non-null, non-array object/);
+      }
+    },
+  );
+
   it('accepts a Faktura-shaped object and dispatches to buildFakturaXml', () => {
     const out = serializeInvoiceXml({
       Naglowek: { WariantFormularza: 3 },

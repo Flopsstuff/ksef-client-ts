@@ -4631,6 +4631,9 @@ __metadata:
     yauzl: "npm:^3.2.1"
     yazl: "npm:^3.3.1"
     zod: "npm:^4.3.6"
+  dependenciesMeta:
+    libxmljs2:
+      optional: true
   bin:
     ksef: ./dist/cli.js
   languageName: unknown

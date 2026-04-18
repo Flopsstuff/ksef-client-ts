@@ -264,6 +264,36 @@ describe('isFakturaInput', () => {
     expect(isFakturaInput('<Faktura/>')).toBe(false);
     expect(isFakturaInput([])).toBe(false);
   });
+
+  // Tight check: presence alone is not enough — malformed values like
+  // `Naglowek: 'x'` used to pass and produce broken XML at XSD time.
+  it('returns false when Naglowek or Fa values are not non-array objects', () => {
+    expect(isFakturaInput({ Naglowek: 'x', Fa: {} })).toBe(false);
+    expect(isFakturaInput({ Naglowek: {}, Fa: 1 })).toBe(false);
+    expect(isFakturaInput({ Naglowek: null, Fa: {} })).toBe(false);
+    expect(isFakturaInput({ Naglowek: {}, Fa: null })).toBe(false);
+    expect(isFakturaInput({ Naglowek: [], Fa: {} })).toBe(false);
+    expect(isFakturaInput({ Naglowek: {}, Fa: [] })).toBe(false);
+  });
+});
+
+// ── Builder namespaces override payload ────────────────────────────────
+//
+// Regression pin for the symmetric PEF behaviour: a caller cannot shadow
+// the FA2/FA3 xmlns / xmlns:etd attrs by slipping `@_xmlns` into the input
+// via the index signature. `options.fakturaNamespace` / `etdNamespace` are
+// the supported override path.
+
+describe('buildFakturaXml — builder namespaces override payload', () => {
+  it('ignores @_xmlns in payload and emits canonical FA3 namespace', () => {
+    const fa = minimalFa3() as FakturaInput & Record<string, string>;
+    fa['@_xmlns'] = 'http://evil.example/override';
+    fa['@_xmlns:etd'] = 'http://evil.example/override-etd';
+    const xml = buildFakturaXml(fa);
+    expect(xml).toContain(`xmlns="${FAKTURA_NAMESPACE.FA3}"`);
+    expect(xml).toContain(`xmlns:etd="${ETD_NAMESPACE.FA3}"`);
+    expect(xml).not.toContain('http://evil.example/override');
+  });
 });
 
 // ── null vs undefined rendering ────────────────────────────────────────
