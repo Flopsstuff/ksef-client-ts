@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 - **Unified error hierarchy** — all server HTTP errors now share a common base class, so one `catch` branch can handle every server-returned failure.
 - **Problem Details responses** — the client requests structured error responses by default while preserving compatibility with legacy error bodies.
 - **Richer CLI error output** — the CLI now prints the full server-side diagnostic context for every failure and can emit structured payloads for machine consumption.
+- **Cached token reference in local credentials** — `ksef auth login --token ...` now persists the token's reference number alongside the token in `~/.ksef/credentials.json` so self-revoke can proceed without additional discovery.
 
 ### Fixed
 

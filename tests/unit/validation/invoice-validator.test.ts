@@ -290,7 +290,7 @@ describe('validate (combined)', () => {
   });
 
   it('does not emit schema errors when Level 1a fails (short-circuit before L2)', async () => {
-    // PI + otherwise-invalid schema body. Only PI error should surface.
+    // PI + unrecognized root element. Only PI error should surface; schema detection must be short-circuited.
     const xml = '<?xml version="1.0"?><?xml-stylesheet href="x"?><Unknown/>';
     const result = await validate(xml);
     expect(result.valid).toBe(false);

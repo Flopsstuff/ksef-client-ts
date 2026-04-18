@@ -25,6 +25,7 @@ export function renderCliError(error: unknown, opts?: { json?: boolean }): void 
 
     renderProblemDetails(error.toProblemFields());
 
+    // Legacy body path: errorResponse is populated only when Problem Details parsing fell back (pre-v2.4.0 servers / non-400/429 codes).
     const legacyDetails = error.errorResponse?.exception?.exceptionDetailList;
     if (legacyDetails?.length) {
       for (const d of legacyDetails) {

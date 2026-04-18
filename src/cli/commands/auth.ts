@@ -164,7 +164,10 @@ const logout = defineCommand({
 });
 
 const revokeSelfToken = defineCommand({
-  meta: { name: 'revoke-self-token', description: 'Revoke the token currently used for authentication' },
+  meta: {
+    name: 'revoke-self-token',
+    description: 'Revoke the token currently used for authentication. Reference number is resolved from local cache, then the JWT payload (opportunistic), then a filtered active-token list; revocation is idempotent (404/409/410 treated as already-revoked).',
+  },
   args: {
     'keep-local': { type: 'boolean', description: 'Revoke server-side but keep local session' },
     'dry-run': { type: 'boolean', description: 'Print what would happen without calling the API' },
