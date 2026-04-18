@@ -283,6 +283,9 @@ function isTooManyRequestsProblem(value: unknown): value is TooManyRequestsProbl
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
   return typeof v.title === 'string'
-    && typeof v.status === 'number'
-    && typeof v.traceId === 'string';
+    && v.status === 429
+    && (v.detail === undefined || typeof v.detail === 'string')
+    && (v.instance === undefined || typeof v.instance === 'string')
+    && (v.traceId === undefined || typeof v.traceId === 'string')
+    && (v.timestamp === undefined || typeof v.timestamp === 'string');
 }
