@@ -48,4 +48,4 @@ export {
   type BuildPefOptions,
 } from './pef-builder.js';
 
-export { serializeInvoiceXml, buildRawXmlObject } from './invoice-serializer.js';
+export { serializeInvoiceXml, buildRawXmlString } from './invoice-serializer.js';

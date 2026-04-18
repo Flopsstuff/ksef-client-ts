@@ -124,9 +124,16 @@ export function serializeInvoiceXml(
 }
 
 /**
- * Low-level helper for callers that already have a plain XML-shaped object
- * (e.g. produced by `parseXml`) and want to build it back out.
+ * Low-level escape hatch for callers that already have a plain XML-shaped
+ * object (e.g. produced by `parseXml`) and want to build it back out without
+ * running through the FakturaInput / PefUblDocumentInput dispatch.
+ *
+ * Returns a `string` (not a `Buffer`) — consumers that need bytes should
+ * wrap the result with `Buffer.from(xml, 'utf8')` before handing it off to
+ * `session.sendInvoice(...)`. The naming reflects the return type: the sibling
+ * `serializeInvoiceXml` entry point stays the preferred API for byte-ready
+ * output.
  */
-export function buildRawXmlObject(document: XmlObject, options?: { pretty?: boolean }): string {
+export function buildRawXmlString(document: XmlObject, options?: { pretty?: boolean }): string {
   return buildXmlFromObject(document, options);
 }
