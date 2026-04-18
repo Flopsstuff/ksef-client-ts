@@ -90,7 +90,7 @@ describe('KSeFRateLimitError', () => {
 
   it('statusCode is literal 429', () => {
     const err = KSeFRateLimitError.fromRetryAfterHeader(429, '10');
-    // type-level literal check (informational — TS narrows at use sites)
-    expect(err.statusCode).toBe(429);
+    const _statusCode: 429 = err.statusCode;
+    expect(_statusCode).toBe(429);
   });
 });
