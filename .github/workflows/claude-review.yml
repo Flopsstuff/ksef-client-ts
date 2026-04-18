@@ -47,24 +47,12 @@ jobs:
           ref: refs/pull/${{ steps.pr.outputs.number }}/merge
           fetch-depth: 0
 
-      - name: Render review prompt
-        id: render
-        env:
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
-          BASE_REF: ${{ steps.pr.outputs.base_ref }}
-        # envsubst with an explicit allowlist — only $PR_NUMBER and $BASE_REF
-        # get substituted; any other $var in the prompt is left verbatim.
-        run: |
-          {
-            echo 'prompt<<PROMPT_EOF'
-            envsubst '$PR_NUMBER $BASE_REF' < .github/claude/prompts/review.md
-            echo 'PROMPT_EOF'
-          } >> "$GITHUB_OUTPUT"
-
       - name: Run Claude review
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           trigger_phrase: "@claude-review"
+          # Omitting `prompt:` keeps the action in tag mode so Claude's
+          # response is posted as a PR comment. The review checklist lives
+          # in .github/claude/prompts/review.md, surfaced via CLAUDE.md.
           claude_args: "--max-turns 25 --model claude-sonnet-4-6"
-          prompt: ${{ steps.render.outputs.prompt }}
