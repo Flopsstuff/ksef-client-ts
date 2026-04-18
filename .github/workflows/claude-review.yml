@@ -57,4 +57,4 @@ jobs:
           # Omitting `prompt:` keeps the action in tag mode so Claude's
           # response is posted as a PR comment. The review checklist lives
           # in .github/claude/prompts/review.md, surfaced via CLAUDE.md.
-          claude_args: "--max-turns 25 --model claude-sonnet-4-6"
+          claude_args: "--max-turns 80 --model claude-sonnet-4-6"
