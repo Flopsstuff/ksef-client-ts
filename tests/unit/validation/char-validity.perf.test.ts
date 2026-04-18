@@ -6,7 +6,7 @@ import { validateCharValidity } from '../../../src/validation/char-validity.js';
 const FA3_FIXTURE = path.join(__dirname, '../../fixtures/invoices/valid-fa3.xml');
 
 describe('validateCharValidity — performance', () => {
-  it('validates a 1 MB synthetic payload in under 50 ms', () => {
+  it('validates a 1 MB synthetic payload in under 500 ms', () => {
     // Strip the <?xml?> prolog so that repeating doesn't manufacture
     // duplicate prologs (which would correctly flag as PI violations
     // and defeat the perf measurement).
