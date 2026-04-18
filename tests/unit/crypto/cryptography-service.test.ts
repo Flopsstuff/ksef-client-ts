@@ -77,11 +77,20 @@ describe('CryptographyService', () => {
       expect(decrypted.toString()).toBe('test');
     });
 
-    it('decrypt with wrong key throws', () => {
+    it('decrypt with wrong key fails to recover plaintext', () => {
       const plaintext = new Uint8Array(Buffer.from('Hello KSeF!'));
       const ciphertext = service.encryptAES256(plaintext, key, iv);
       const wrongKey = crypto.randomBytes(32);
-      expect(() => service.decryptAES256(ciphertext, wrongKey, iv)).toThrow();
+      // AES-CBC has no MAC: decryption with a random key throws only when the
+      // PKCS padding byte lands in [1..16] by chance (~1/256 probability it
+      // does not throw). Either throws, or returns garbage bytes that do not
+      // match the original plaintext.
+      try {
+        const decrypted = service.decryptAES256(ciphertext, wrongKey, iv);
+        expect(Buffer.from(decrypted).equals(Buffer.from(plaintext))).toBe(false);
+      } catch {
+        // Also acceptable — bad padding rejected by OpenSSL.
+      }
     });
 
     it('decrypt with wrong IV produces different first block', () => {
