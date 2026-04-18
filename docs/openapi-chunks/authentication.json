@@ -29,16 +29,6 @@
               "format": "int32",
               "default": 10
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -152,18 +142,6 @@
           "Aktywne sesje"
         ],
         "summary": "Unieważnienie aktualnej sesji uwierzytelnienia",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "204": {},
           "400": {
@@ -248,16 +226,6 @@
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -336,18 +304,6 @@
           "Uzyskiwanie dostępu"
         ],
         "summary": "Inicjalizacja uwierzytelnienia",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -419,16 +375,6 @@
             "in": "query",
             "schema": {
               "type": "boolean"
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],
@@ -509,18 +455,6 @@
           "Uzyskiwanie dostępu"
         ],
         "summary": "Uwierzytelnienie z wykorzystaniem tokena KSeF",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -620,16 +554,6 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],
@@ -821,18 +745,6 @@
           "Uzyskiwanie dostępu"
         ],
         "summary": "Pobranie tokenów dostępowych",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -925,18 +837,6 @@
           "Uzyskiwanie dostępu"
         ],
         "summary": "Odświeżenie tokena dostępowego",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {

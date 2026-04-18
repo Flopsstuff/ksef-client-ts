@@ -11,18 +11,6 @@
           "Tokeny KSeF"
         ],
         "summary": "Wygenerowanie nowego tokena",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -187,16 +175,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -320,16 +298,6 @@
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -440,16 +408,6 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],

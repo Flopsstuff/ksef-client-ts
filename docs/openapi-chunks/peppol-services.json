@@ -32,16 +32,6 @@
               "format": "int32",
               "default": 10
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {

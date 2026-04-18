@@ -11,18 +11,6 @@
           "Dane testowe"
         ],
         "summary": "Utworzenie podmiotu",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -97,18 +85,6 @@
           "Dane testowe"
         ],
         "summary": "Usunięcie podmiotu",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -179,18 +155,6 @@
           "Dane testowe"
         ],
         "summary": "Utworzenie osoby fizycznej",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -268,18 +232,6 @@
           "Dane testowe"
         ],
         "summary": "Usunięcie osoby fizycznej",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -350,18 +302,6 @@
           "Dane testowe"
         ],
         "summary": "Nadanie uprawnień testowemu podmiotowi/osobie fizycznej",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -446,18 +386,6 @@
           "Dane testowe"
         ],
         "summary": "Odebranie uprawnień testowemu podmiotowi/osobie fizycznej",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -536,18 +464,6 @@
           "Dane testowe"
         ],
         "summary": "Umożliwienie wysyłania faktur z załącznikiem",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -618,18 +534,6 @@
           "Dane testowe"
         ],
         "summary": "Odebranie możliwości wysyłania faktur z załącznikiem",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -700,18 +604,6 @@
           "Dane testowe"
         ],
         "summary": "Zablokowanie kontekstu",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -778,18 +670,6 @@
           "Dane testowe"
         ],
         "summary": "Odblokowanie kontekstu",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {

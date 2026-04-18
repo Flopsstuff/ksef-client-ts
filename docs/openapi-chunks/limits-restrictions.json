@@ -11,18 +11,6 @@
           "Limity i ograniczenia"
         ],
         "summary": "Pobranie limitów dla bieżącego kontekstu",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -119,18 +107,6 @@
           "Limity i ograniczenia"
         ],
         "summary": "Pobranie limitów dla bieżącego podmiotu",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -223,18 +199,6 @@
           "Limity i ograniczenia"
         ],
         "summary": "Pobranie aktualnie obowiązujących limitów API",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -381,18 +345,6 @@
           "Limity i ograniczenia"
         ],
         "summary": "Zmiana limitów sesji dla bieżącego kontekstu",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -484,18 +436,6 @@
           "Limity i ograniczenia"
         ],
         "summary": "Przywrócenie domyślnych wartości limitów sesji dla bieżącego kontekstu",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {},
           "400": {
@@ -572,18 +512,6 @@
           "Limity i ograniczenia"
         ],
         "summary": "Zmiana limitów certyfikatów dla bieżącego podmiotu",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -671,18 +599,6 @@
           "Limity i ograniczenia"
         ],
         "summary": "Przywrócenie domyślnych wartości limitów certyfikatów dla bieżącego podmiotu",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {},
           "400": {
@@ -759,18 +675,6 @@
           "Limity i ograniczenia"
         ],
         "summary": "Zmiana limitów API dla bieżącego kontekstu",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -861,18 +765,6 @@
           "Limity i ograniczenia"
         ],
         "summary": "Przywrócenie domyślnych wartości limitów API dla bieżącego kontekstu",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {},
           "400": {
@@ -949,18 +841,6 @@
           "Limity i ograniczenia"
         ],
         "summary": "Zmiana limitów API dla bieżącego kontekstu na wartości produkcyjne",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {},
           "400": {

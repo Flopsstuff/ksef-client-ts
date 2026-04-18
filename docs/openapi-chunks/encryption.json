@@ -11,18 +11,6 @@
           "Certyfikaty klucza publicznego"
         ],
         "summary": "Pobranie certyfikatów",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {

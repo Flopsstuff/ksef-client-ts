@@ -11,18 +11,6 @@
           "Nadawanie uprawnień"
         ],
         "summary": "Nadanie osobom fizycznym uprawnień do pracy w KSeF",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -151,18 +139,6 @@
           "Nadawanie uprawnień"
         ],
         "summary": "Nadanie podmiotom uprawnień do obsługi faktur",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -291,18 +267,6 @@
           "Nadawanie uprawnień"
         ],
         "summary": "Nadanie uprawnień podmiotowych",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -422,18 +386,6 @@
           "Nadawanie uprawnień"
         ],
         "summary": "Nadanie uprawnień w sposób pośredni",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -564,18 +516,6 @@
           "Nadawanie uprawnień"
         ],
         "summary": "Nadanie uprawnień administratora podmiotu podrzędnego",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -703,18 +643,6 @@
           "Nadawanie uprawnień"
         ],
         "summary": "Nadanie uprawnień administratora podmiotu unijnego",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -852,18 +780,6 @@
           "Nadawanie uprawnień"
         ],
         "summary": "Nadanie uprawnień reprezentanta podmiotu unijnego",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1002,16 +918,6 @@
             "schema": {
               "$ref": "#/components/schemas/PermissionId"
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -1114,16 +1020,6 @@
             "schema": {
               "$ref": "#/components/schemas/PermissionId"
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -1223,16 +1119,6 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],
@@ -1342,18 +1228,6 @@
           "Operacje"
         ],
         "summary": "Sprawdzenie statusu zgody na wystawianie faktur z załącznikiem",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -1462,16 +1336,6 @@
               "type": "integer",
               "format": "int32",
               "default": 10
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],
@@ -1632,16 +1496,6 @@
               "type": "integer",
               "format": "int32",
               "default": 10
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],
@@ -1818,16 +1672,6 @@
               "format": "int32",
               "default": 10
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "requestBody": {
@@ -1991,16 +1835,6 @@
               "format": "int32",
               "default": 10
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "requestBody": {
@@ -2156,16 +1990,6 @@
               "format": "int32",
               "default": 10
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -2295,16 +2119,6 @@
               "type": "integer",
               "format": "int32",
               "default": 10
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],
@@ -2459,16 +2273,6 @@
               "type": "integer",
               "format": "int32",
               "default": 10
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],
@@ -2641,16 +2445,6 @@
               "type": "integer",
               "format": "int32",
               "default": 10
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],
