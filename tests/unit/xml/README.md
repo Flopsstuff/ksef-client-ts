@@ -2,7 +2,7 @@
 
 ## XSD harness architecture
 
-The tests in `xsd-validation.test.ts` validate the serializer's output against the real KSeF FA2/FA3 XSDs vendored under `docs/schemas/FA/`. Validation runs through `libxmljs2`, a native Node binding to libxml2, via the helper in `xsd-validator.ts`. That helper loads the target XSD, rewrites the upstream `<xsd:import schemaLocation="http://crd.gov.pl/...">` URL to a local `file://` path pointing at `docs/schemas/FA/bazowe/StrukturyDanych_v10-0E.xsd`, and uses libxmljs2's `baseUrl` option so that further relative `<xsd:include>` directives (e.g. `KodyKrajow_v10-0E.xsd` inside `bazowe/`) resolve offline. Canonical fixtures are vendored from `tests/fixtures/xml/` with MIT attribution — no network calls are made at test time.
+The tests in `xsd-validation.test.ts` validate the serializer's output against the real KSeF FA2/FA3 XSDs vendored under `docs/schemas/FA/`. Validation runs through `libxmljs2`, a native Node binding to libxml2, via the helper in `xsd-validator.ts`. That helper loads the target XSD, rewrites the upstream `<xsd:import schemaLocation="http://crd.gov.pl/...">` URL to a local `file://` path pointing at `docs/schemas/FA/bazowe/StrukturyDanych_v10-0E.xsd`, and uses libxmljs2's `baseUrl` option so that further relative `<xsd:include>` directives (e.g. `KodyKrajow_v10-0E.xsd` inside `bazowe/`) resolve offline. Canonical fixtures are vendored into `tests/fixtures/xml/` from the MIT-licensed `ksef-client-csharp` reference — no network calls are made at test time.
 
 ## Graceful fallback
 
