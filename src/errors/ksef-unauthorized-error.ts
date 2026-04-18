@@ -1,5 +1,5 @@
 import { KSeFApiError } from './ksef-api-error.js';
-import type { UnauthorizedProblemDetails } from './types.js';
+import type { ProblemFields, UnauthorizedProblemDetails } from './types.js';
 
 export class KSeFUnauthorizedError extends KSeFApiError {
   override readonly statusCode: 401 = 401;
@@ -15,5 +15,14 @@ export class KSeFUnauthorizedError extends KSeFApiError {
     this.traceId = problemDetails.traceId;
     this.instance = problemDetails.instance;
     this.timestamp = problemDetails.timestamp;
+  }
+
+  override toProblemFields(): ProblemFields {
+    return {
+      detail: this.detail,
+      traceId: this.traceId,
+      instance: this.instance,
+      timestamp: this.timestamp,
+    };
   }
 }

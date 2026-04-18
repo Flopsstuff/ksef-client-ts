@@ -78,7 +78,7 @@ const createSubject = defineCommand({
 
       await createClient(globalOpts).testData.createSubject(request);
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -99,7 +99,7 @@ const removeSubject = defineCommand({
       const request: SubjectRemoveRequest = { subjectNip: args.nip as string };
       await createClient(globalOpts).testData.removeSubject(request);
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -133,7 +133,7 @@ const createPerson = defineCommand({
 
       await createClient(globalOpts).testData.createPerson(request);
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -154,7 +154,7 @@ const removePerson = defineCommand({
       const request: PersonRemoveRequest = { nip: args.nip as string };
       await createClient(globalOpts).testData.removePerson(request);
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -191,7 +191,7 @@ const grantPermissions = defineCommand({
 
       await createClient(globalOpts).testData.grantPermissions(request);
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -222,7 +222,7 @@ const revokePermissions = defineCommand({
 
       await createClient(globalOpts).testData.revokePermissions(request);
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -243,7 +243,7 @@ const enableAttachment = defineCommand({
       const request: AttachmentPermissionGrantRequest = { nip: args.nip as string };
       await createClient(globalOpts).testData.enableAttachment(request);
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -269,7 +269,7 @@ const disableAttachment = defineCommand({
 
       await createClient(globalOpts).testData.disableAttachment(request);
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -310,7 +310,7 @@ const changeSessionLimits = defineCommand({
 
       await client.testData.changeSessionLimits(request);
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -331,7 +331,7 @@ const restoreSessionLimits = defineCommand({
       const { client } = await requireSession(globalOpts);
       await client.testData.restoreDefaultSessionLimits();
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -366,7 +366,7 @@ const changeCertLimits = defineCommand({
 
       await client.testData.changeCertificatesLimit(request);
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -387,7 +387,7 @@ const restoreCertLimits = defineCommand({
       const { client } = await requireSession(globalOpts);
       await client.testData.restoreDefaultCertificatesLimit();
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -414,7 +414,7 @@ const setRateLimits = defineCommand({
 
       await client.testData.setRateLimits(request);
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -435,7 +435,7 @@ const restoreRateLimits = defineCommand({
       const { client } = await requireSession(globalOpts);
       await client.testData.restoreDefaultRateLimits();
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -457,7 +457,7 @@ const setProductionRateLimits = defineCommand({
 
       await client.testData.setProductionRateLimits();
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -489,7 +489,7 @@ const blockContext = defineCommand({
 
       await client.testData.blockContext(request);
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -520,7 +520,7 @@ const unblockContext = defineCommand({
 
       await client.testData.unblockContext(request);
       outputDone(args.json);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 

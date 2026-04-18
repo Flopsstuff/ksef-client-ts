@@ -69,7 +69,7 @@ const invoice = defineCommand({
           console.log(buffer.toString('base64'));
         }
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -137,7 +137,7 @@ const certificate = defineCommand({
           console.log(buffer.toString('base64'));
         }
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -164,7 +164,7 @@ const url = defineCommand({
       } else {
         console.log(verificationUrl);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 

@@ -112,4 +112,26 @@ describe('withErrorHandler', () => {
     expect(consola.error).toHaveBeenCalledWith('Unknown error', 'string error');
     expect(mockExit).toHaveBeenCalledWith(1);
   });
+
+  it('passes opts.json through so errors serialize to stdout', async () => {
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    try {
+      const error = new KSeFApiError('Boom', 500);
+
+      await withErrorHandler(throwingFn(error), { json: true });
+
+      expect(consola.error).not.toHaveBeenCalled();
+      expect(stdoutSpy).toHaveBeenCalledTimes(1);
+      const parsed = JSON.parse(String(stdoutSpy.mock.calls[0]![0]));
+      expect(parsed.error).toMatchObject({ name: 'KSeFApiError', statusCode: 500, message: 'Boom' });
+      expect(mockExit).toHaveBeenCalledWith(1);
+    } finally {
+      stdoutSpy.mockRestore();
+    }
+  });
+
+  it('does not call exit on success path', async () => {
+    await withErrorHandler(async () => { /* no throw */ });
+    expect(mockExit).not.toHaveBeenCalled();
+  });
 });

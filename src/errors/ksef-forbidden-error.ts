@@ -1,5 +1,10 @@
 import { KSeFApiError } from './ksef-api-error.js';
-import type { ForbiddenProblemDetails, ForbiddenReasonCode, ForbiddenSecurityInfo } from './types.js';
+import type {
+  ForbiddenProblemDetails,
+  ForbiddenReasonCode,
+  ForbiddenSecurityInfo,
+  ProblemFields,
+} from './types.js';
 
 export class KSeFForbiddenError extends KSeFApiError {
   override readonly statusCode: 403 = 403;
@@ -19,5 +24,16 @@ export class KSeFForbiddenError extends KSeFApiError {
     this.security = problemDetails.security;
     this.traceId = problemDetails.traceId;
     this.timestamp = problemDetails.timestamp;
+  }
+
+  override toProblemFields(): ProblemFields {
+    return {
+      detail: this.detail,
+      reasonCode: this.reasonCode,
+      security: this.security,
+      traceId: this.traceId,
+      instance: this.instance,
+      timestamp: this.timestamp,
+    };
   }
 }

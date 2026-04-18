@@ -41,7 +41,7 @@ const context = defineCommand({
           'Batch — Max Invoices': result.batchSession.maxInvoices,
         }, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -68,7 +68,7 @@ const subject = defineCommand({
           'Max Certificates': result.certificate?.maxCertificates ?? 'Unlimited',
         }, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -109,7 +109,7 @@ const rate = defineCommand({
         ],
         { json: false },
       );
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 

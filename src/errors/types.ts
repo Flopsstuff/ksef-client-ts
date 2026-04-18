@@ -92,3 +92,13 @@ export interface TooManyRequestsProblemDetails {
   timestamp?: string;
   traceId?: string;
 }
+
+export interface ProblemFields {
+  detail?: string;
+  reasonCode?: string;
+  errors?: BadRequestErrorDetail[];
+  security?: ForbiddenSecurityInfo;
+  traceId?: string;
+  instance?: string;
+  timestamp?: string;
+}

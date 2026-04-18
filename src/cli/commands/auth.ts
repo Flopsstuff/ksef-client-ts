@@ -45,7 +45,7 @@ const challenge = defineCommand({
       const client = createClient(globalOpts);
       const result = await client.auth.getChallenge();
       outputResult(result, { json: args.json });
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -126,7 +126,7 @@ const login = defineCommand({
         consola.info(`Seen client IP: ${loginResult.clientIp}`);
         outputSuccess('Logged in successfully.');
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -145,7 +145,7 @@ const status = defineCommand({
       const { client, session } = await requireSession(globalOpts);
       const result = await client.auth.getAuthStatus(args.ref, session.accessToken);
       outputResult(result, { json: args.json });
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -218,7 +218,7 @@ const revokeSelfToken = defineCommand({
           { json: true },
         );
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -247,7 +247,7 @@ const refresh = defineCommand({
       session.expiresAt = result.accessToken.validUntil;
       saveSession(session);
       outputSuccess('Token refreshed successfully.');
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -305,7 +305,7 @@ const whoami = defineCommand({
       }
 
       outputKeyValue(info, { json: args.json });
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -410,7 +410,7 @@ const loginExternal = defineCommand({
         clearPendingChallenge();
         outputSuccess('Logged in successfully via external signature.');
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 

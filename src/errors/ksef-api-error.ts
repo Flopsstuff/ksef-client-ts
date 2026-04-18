@@ -1,5 +1,5 @@
 import { KSeFError } from './ksef-error.js';
-import type { ApiErrorResponse } from './types.js';
+import type { ApiErrorResponse, ProblemFields } from './types.js';
 
 export class KSeFApiError extends KSeFError {
   readonly statusCode: number;
@@ -18,5 +18,9 @@ export class KSeFApiError extends KSeFError {
       ? details.map((d) => d.exceptionDescription ?? '').filter(Boolean).join('; ') || `KSeF API error: HTTP ${statusCode}`
       : `KSeF API error: HTTP ${statusCode}`;
     return new KSeFApiError(message, statusCode, body);
+  }
+
+  toProblemFields(): ProblemFields {
+    return { detail: this.message };
   }
 }

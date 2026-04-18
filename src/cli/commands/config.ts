@@ -49,7 +49,7 @@ const set = defineCommand({
 
       saveConfig(config);
       outputSuccess('Configuration updated.');
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -62,7 +62,7 @@ const show = defineCommand({
     return withErrorHandler(async () => {
       const config = loadConfig();
       outputKeyValue(config as unknown as Record<string, unknown>, { json: args.json });
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 

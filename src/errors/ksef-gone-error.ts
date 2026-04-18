@@ -1,5 +1,5 @@
 import { KSeFApiError } from './ksef-api-error.js';
-import type { GoneProblemDetails } from './types.js';
+import type { GoneProblemDetails, ProblemFields } from './types.js';
 
 export class KSeFGoneError extends KSeFApiError {
   override readonly statusCode: 410 = 410;
@@ -15,5 +15,14 @@ export class KSeFGoneError extends KSeFApiError {
     this.instance = problemDetails.instance;
     this.traceId = problemDetails.traceId;
     this.timestamp = problemDetails.timestamp;
+  }
+
+  override toProblemFields(): ProblemFields {
+    return {
+      detail: this.detail,
+      traceId: this.traceId,
+      instance: this.instance,
+      timestamp: this.timestamp,
+    };
   }
 }

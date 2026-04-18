@@ -118,6 +118,6 @@ export const exportIncremental = defineCommand({
         consola.info(`Final HWM: ${continuationPoints[subjectType] ?? 'complete'}`);
         consola.info(`Output: ${outputDir}`);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });

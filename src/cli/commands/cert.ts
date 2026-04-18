@@ -107,7 +107,7 @@ const generate = defineCommand({
           'Private Key': keyPath,
         }, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -151,7 +151,7 @@ const enroll = defineCommand({
           'Timestamp': result.timestamp,
         }, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -186,7 +186,7 @@ const status = defineCommand({
         }
         outputKeyValue(kv, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -257,7 +257,7 @@ const list = defineCommand({
       if (result.hasMore) {
         consola.info('More results available. Use --page to paginate.');
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -289,7 +289,7 @@ const revoke = defineCommand({
       } else {
         outputSuccess(`Certificate ${serial} revoked.`);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -320,7 +320,7 @@ const limits = defineCommand({
           'Certificate Remaining': result.certificate.remaining,
         }, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -354,7 +354,7 @@ const enrollmentData = defineCommand({
         if (result.organizationIdentifier) kv['Organization ID'] = result.organizationIdentifier;
         outputKeyValue(kv, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -403,7 +403,7 @@ const retrieve = defineCommand({
         ],
         { json: false },
       );
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 

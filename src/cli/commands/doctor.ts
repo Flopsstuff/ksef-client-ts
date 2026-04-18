@@ -123,6 +123,6 @@ export const doctorCommand = defineCommand({
       } else {
         consola.warn(`\n${passed}/${total} checks passed.`);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });

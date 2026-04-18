@@ -225,7 +225,7 @@ const grant = defineCommand({
       } else {
         outputSuccess(`Permission granted. Ref: ${result.referenceNumber}`);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -258,7 +258,7 @@ const revoke = defineCommand({
       } else {
         outputSuccess(`Permission grant ${args.grantId} revoked. Ref: ${result.referenceNumber}`);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -533,7 +533,7 @@ const search = defineCommand({
         default:
           throw new Error(`Unknown search type: ${args.type}. Use: personal, persons, subunits, entities, entities-grants, subordinate-entities, authorizations, eu-entities`);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -562,7 +562,7 @@ const status = defineCommand({
           'Status Description': result.status.description,
         }, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -589,7 +589,7 @@ const attachmentStatus = defineCommand({
           'Attachments': result.isAttachmentAllowed ? 'Allowed' : 'Not Allowed',
         }, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 

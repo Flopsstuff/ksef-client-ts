@@ -8,6 +8,7 @@ export type {
   BadRequestErrorDetail,
   BadRequestProblemDetails,
   TooManyRequestsProblemDetails,
+  ProblemFields,
 } from './types.js';
 export type { ValidationDetail } from './ksef-validation-error.js';
 export { KSeFError } from './ksef-error.js';

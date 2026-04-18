@@ -1,4 +1,4 @@
-import type { ApiErrorResponse, TooManyRequestsProblemDetails } from './types.js';
+import type { ApiErrorResponse, ProblemFields, TooManyRequestsProblemDetails } from './types.js';
 import { KSeFApiError } from './ksef-api-error.js';
 
 export class KSeFRateLimitError extends KSeFApiError {
@@ -51,5 +51,14 @@ export class KSeFRateLimitError extends KSeFApiError {
       : problem?.detail ?? 'Rate limited by KSeF API';
 
     return new KSeFRateLimitError(message, statusCode, body, retryAfterSeconds, retryAfterDate, problem);
+  }
+
+  override toProblemFields(): ProblemFields {
+    return {
+      detail: this.problem?.detail,
+      traceId: this.problem?.traceId,
+      instance: this.problem?.instance,
+      timestamp: this.problem?.timestamp,
+    };
   }
 }

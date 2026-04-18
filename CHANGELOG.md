@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 
 - **Unified error hierarchy** — all server HTTP errors now share a common base class, so one `catch` branch can handle every server-returned failure.
 - **Error format header** — client requests RFC 7807 Problem Details by default; callers can opt out via the `errorFormat` option when they need legacy bodies.
+- **Richer CLI error output** — the CLI now prints the full server-side diagnostic context (error list, required permissions, trace identifier) for every failure, and `--json` returns structured error payloads for machine consumption.
 
 ### Fixed
 
