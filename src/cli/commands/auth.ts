@@ -4,7 +4,7 @@ import { consola } from 'consola';
 import { createClient, requireSession } from '../client-factory.js';
 import { saveSession, clearSession, loadSession, isSessionExpired } from '../session-store.js';
 import { loadConfig, saveConfig } from '../config-store.js';
-import { loadCredentials } from '../credentials-store.js';
+import { loadCredentials, saveCredentials, clearCredentials } from '../credentials-store.js';
 import { savePendingChallenge, clearPendingChallenge } from '../pending-challenge-store.js';
 import { recoverSession } from '../session-recovery.js';
 import { outputResult, outputKeyValue, outputSuccess, outputWarning } from '../output.js';
@@ -107,6 +107,19 @@ const login = defineCommand({
       if (args.env && args.env !== config.environment) {
         saveConfig({ ...config, environment: session.environment });
       }
+
+      if (args.token) {
+        try {
+          const ref = await client.tokens.findSelfReferenceNumber(session.accessToken);
+          if (ref) {
+            const prev = loadCredentials() ?? {};
+            saveCredentials({ ...prev, token: args.token, tokenReferenceNumber: ref });
+          }
+        } catch {
+          // Non-fatal: future `auth revoke-self-token` will retry discovery at revoke time.
+        }
+      }
+
       if (args.json) {
         console.log(JSON.stringify({ status: 'ok', clientIp: loginResult.clientIp }, null, 2));
       } else {
@@ -142,6 +155,69 @@ const logout = defineCommand({
     return withErrorHandler(async () => {
       clearSession();
       outputSuccess('Logged out. Session cleared.');
+    });
+  },
+});
+
+const revokeSelfToken = defineCommand({
+  meta: { name: 'revoke-self-token', description: 'Revoke the token currently used for authentication' },
+  args: {
+    'keep-local': { type: 'boolean', description: 'Revoke server-side but keep local session' },
+    'dry-run': { type: 'boolean', description: 'Print what would happen without calling the API' },
+    env: { type: 'string', description: 'Environment (test/demo/prod)' },
+    json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
+    timeout: { type: 'string', description: 'Request timeout (ms)' },
+  },
+  run({ args }) {
+    return withErrorHandler(async () => {
+      const globalOpts = getGlobalOpts(args);
+      const { client, session } = await requireSession(globalOpts);
+
+      if (args.env && args.env !== session.environment) {
+        throw new Error(
+          `Current session is '${session.environment}', but --env='${args.env}'. Refusing to revoke a token from a different environment.`,
+        );
+      }
+
+      const cachedRef = loadCredentials()?.tokenReferenceNumber;
+
+      if (args['dry-run']) {
+        const ref = cachedRef ?? (await client.tokens.findSelfReferenceNumber(session.accessToken));
+        outputKeyValue(
+          {
+            'Would revoke': ref ?? '(unknown — discovery failed)',
+            Source: cachedRef ? 'cache' : ref ? 'discovery' : 'none',
+            'Would clear local': args['keep-local'] ? 'no' : 'yes',
+          },
+          { json: args.json },
+        );
+        return;
+      }
+
+      const { referenceNumber, alreadyRevoked } = await client.tokens.revokeSelf({
+        referenceNumber: cachedRef,
+        accessToken: session.accessToken,
+      });
+
+      if (alreadyRevoked) {
+        outputWarning(`Token ${referenceNumber} was already revoked on the server.`);
+      } else {
+        outputSuccess(`Token ${referenceNumber} revoked.`);
+      }
+
+      if (!args['keep-local']) {
+        clearSession();
+        clearCredentials();
+        outputSuccess('Local session and credentials cleared.');
+      }
+
+      if (args.json) {
+        outputResult(
+          { status: alreadyRevoked ? 'already-revoked' : 'revoked', referenceNumber },
+          { json: true },
+        );
+      }
     });
   },
 });
@@ -340,5 +416,14 @@ const loginExternal = defineCommand({
 
 export const authCommand = defineCommand({
   meta: { name: 'auth', description: 'Authentication commands' },
-  subCommands: { challenge, login, 'login-external': loginExternal, status, logout, refresh, whoami },
+  subCommands: {
+    challenge,
+    login,
+    'login-external': loginExternal,
+    status,
+    logout,
+    'revoke-self-token': revokeSelfToken,
+    refresh,
+    whoami,
+  },
 });

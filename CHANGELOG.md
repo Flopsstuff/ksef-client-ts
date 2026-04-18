@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - **Richer rate-limit errors** — 429 responses now surface server-provided context (trace ID, instance, timestamp) alongside existing retry-after metadata (KSeF API v2.4.0).
 - **Typed 403 permission context** — forbidden errors now expose structured required/present permission lists for easier troubleshooting.
 - **Exhaustive error dispatch** — new union type makes pattern-matching all server-returned Problem Details errors compile-time safe.
+- **Self-revoke for the current token** — a new CLI command revokes the KSeF token used for the current login in one step and clears local state, eliminating the need to look up its reference number manually (KSeF API v2.4.0).
 
 ### Changed
 

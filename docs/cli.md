@@ -92,7 +92,21 @@ ksef auth status <ref>            # Check auth operation status
 ksef auth refresh                 # Refresh access token (requires refreshToken)
 ksef auth whoami                  # Show current session info (exit 1 if no session or expired)
 ksef auth logout                  # Clear stored session
+ksef auth revoke-self-token       # Revoke the token used for the current login (then clear local state)
 ```
+
+### Self-Revoke Token
+
+```bash
+ksef auth revoke-self-token [--keep-local] [--dry-run] [--json]
+```
+
+One-shot command for CI jobs and disposable hosts: after `ksef auth login --token $T`, `ksef auth revoke-self-token` revokes `$T` on the server and clears the local session and credentials. Reference-number lookup is automatic — cached during login when possible, otherwise discovered via the active-token list filtered by the caller's context (requires exactly one active match; ambiguous cases are refused).
+
+- `--keep-local` — revoke server-side but keep local session (test scenarios).
+- `--dry-run` — print the resolved reference and planned actions without calling the API.
+- An already-revoked token (server returns 404/409/410) produces a warning and still clears local state, so repeated calls are safe.
+
 
 ## Sessions
 

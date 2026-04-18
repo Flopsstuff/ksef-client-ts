@@ -34,7 +34,7 @@ export function createMockClient() {
     ]),
     activeSessions: mockService(['getActiveSessions', 'revokeCurrentSession', 'revokeSession']),
     lighthouse: mockService(['getStatus', 'getMessages']),
-    tokens: mockService(['generateToken', 'queryTokens', 'getToken', 'revokeToken']),
+    tokens: mockService(['generateToken', 'queryTokens', 'getToken', 'revokeToken', 'revokeSelf', 'findSelfReferenceNumber']),
     certificates: mockService(['enroll', 'getEnrollmentStatus', 'query', 'revoke', 'getLimits', 'getEnrollmentData', 'retrieve']),
     limits: mockService(['getContextLimits', 'getSubjectLimits', 'getRateLimits']),
     testData: mockService([
