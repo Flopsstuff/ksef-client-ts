@@ -299,7 +299,7 @@ async function managePermissions() {
 
 ### Filter by subunit InternalId (VatGroup)
 
-When the current context is a VAT group, personal and entity permission queries can be narrowed to a specific subunit by its 16-char `InternalId`:
+When the current context is a VAT group, personal and entity permission queries can be narrowed to a specific subunit by its `InternalId` (10-16 characters, typically 16):
 
 ```typescript
 const grants = await client.permissions.queryPersonalGrants({
