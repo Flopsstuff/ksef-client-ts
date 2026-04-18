@@ -10,14 +10,14 @@ All notable changes to this project will be documented in this file.
 - **Structured 400 validation errors** — KSeF server-side validation failures now expose the full list of error codes and descriptions instead of a single flat message (KSeF API v2.4.0).
 - **Richer rate-limit errors** — 429 responses now surface server-provided context (trace ID, instance, timestamp) alongside existing retry-after metadata (KSeF API v2.4.0).
 - **Typed 403 permission context** — forbidden errors now expose structured required/present permission lists for easier troubleshooting.
-- **Exhaustive error dispatch** — new union type makes pattern-matching all server-returned Problem Details errors compile-time safe.
-- **Self-revoke for the current token** — a new CLI command revokes the KSeF token used for the current login in one step and clears local state, eliminating the need to look up its reference number manually (KSeF API v2.4.0).
+- **Safer server-error handling** — applications can handle every documented Problem Details response with compile-time exhaustiveness checks.
+- **One-step self-revoke** — a new CLI command revokes the token used for the current login and clears local state in a single step (KSeF API v2.4.0).
 
 ### Changed
 
 - **Unified error hierarchy** — all server HTTP errors now share a common base class, so one `catch` branch can handle every server-returned failure.
-- **Error format header** — client requests RFC 7807 Problem Details by default; callers can opt out via the `errorFormat` option when they need legacy bodies.
-- **Richer CLI error output** — the CLI now prints the full server-side diagnostic context (error list, required permissions, trace identifier) for every failure, and `--json` returns structured error payloads for machine consumption.
+- **Problem Details responses** — the client requests structured error responses by default while preserving compatibility with legacy error bodies.
+- **Richer CLI error output** — the CLI now prints the full server-side diagnostic context for every failure and can emit structured payloads for machine consumption.
 
 ### Fixed
 
