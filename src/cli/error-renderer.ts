@@ -103,10 +103,10 @@ function safeValue(value: unknown): unknown {
 function serializeError(error: Error): Record<string, unknown> {
   if (error instanceof KSeFApiError) {
     return {
+      ...error.toProblemFields(),
       name: error.name,
       statusCode: error.statusCode,
       message: error.message,
-      ...error.toProblemFields(),
     };
   }
   if (error instanceof KSeFValidationError) {
