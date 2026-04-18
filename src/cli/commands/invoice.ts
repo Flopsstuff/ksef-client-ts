@@ -287,7 +287,7 @@ const send = defineCommand({
           outputSuccess(`Invoice sent. Ref: ${result.referenceNumber}`);
         }
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -319,7 +319,7 @@ const get = defineCommand({
       } else {
         console.log(xml);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -383,7 +383,7 @@ const query = defineCommand({
       if (result.hasMore) {
         consola.info('More results available. Use --page to fetch the next page.');
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -418,7 +418,7 @@ const exportCmd = defineCommand({
         outputSuccess(`Export started. Ref: ${result.referenceNumber}`);
         consola.info('Check status with: ksef invoice export-status ' + result.referenceNumber);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -474,7 +474,7 @@ const exportStatus = defineCommand({
           );
         }
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -558,7 +558,7 @@ const validateCmd = defineCommand({
       if (invalidCount > 0) {
         process.exitCode = 1;
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 

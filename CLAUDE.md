@@ -31,7 +31,7 @@ Tests live in `tests/**/*.test.ts` (vitest, globals enabled). Unit tests in `tes
 
 ### Layered design
 
-```
+```text
 KSeFClient (src/client.ts)
   ├── 13 API services + crypto + qr + offline (16 properties total)
   ├── each service wraps RestClient for its API domain
@@ -148,9 +148,14 @@ Feature descriptions live in two places that must be kept in sync: `README.md` (
 
 `plans/` directory (gitignored) contains development plans and roadmaps. Not tracked in git.
 
+- `plans/references.md` — reference-project comparison: maturity, crypto, feature gaps, KSeF API changelog
+- `plans/shipped.md` — feature history by version
+- `plans/backlog.md` — pending work, release proposals, deferred items
+- `plans/p<priority>-<id>-<slug>.md` — individual feature sub-plans; each is cross-referenced from `backlog.md`
+
 ### Reference implementations
 
-`ref/` directory (gitignored) contains Java (`ref/ksef-client-java`), C# (`ref/ksef-client-csharp`), TS refs (`ref/ksef-client-typescript`, `ref/ksef-client-ts`), official docs (`ref/ksef-docs`), and translations (`ref/ksef-docs-translated`). See `ref/ref-index.md` for full index.
+`ref/` directory (gitignored) contains reference implementations, official docs, and related projects. See `ref/ref-index.md` for the full index.
 
 ### WebCrypto typing quirk
 
@@ -165,4 +170,5 @@ Feature descriptions live in two places that must be kept in sync: `README.md` (
 - Always merge PRs with `--squash`. Merge commits are disabled on this repository.
 - When squash-merging, edit the combined commit message to remove duplicate `Co-Authored-By` lines from individual commits — keep only a single `Co-Authored-By` at the very end.
 - Name version branches with `version/` prefix (e.g. `version/v0.6.1`) to avoid conflicts with release tags.
+- When writing documentation (README, docs/**, plans/**, CHANGELOG, etc.), always tag fenced code blocks containing ASCII tables, tree diagrams, or other non-code content with ` ```text ` instead of a bare ` ``` `. Reserve language-less fences only for genuinely untyped snippets.
 - When responding to a `@claude-review` comment on a pull request, read `.github/claude/prompts/review.md` from the repo root and follow its checklist and output format as the review instructions.

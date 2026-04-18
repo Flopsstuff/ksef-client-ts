@@ -9,6 +9,7 @@ import { KSeFApiError } from '../../../src/errors/ksef-api-error.js';
 import { KSeFRateLimitError } from '../../../src/errors/ksef-rate-limit-error.js';
 import { KSeFForbiddenError } from '../../../src/errors/ksef-forbidden-error.js';
 import { KSeFGoneError } from '../../../src/errors/ksef-gone-error.js';
+import { KSeFBadRequestError } from '../../../src/errors/ksef-bad-request-error.js';
 import { KSeFBatchTimeoutError } from '../../../src/errors/ksef-batch-timeout-error.js';
 
 const defaultOptions: ResolvedOptions = {
@@ -18,6 +19,7 @@ const defaultOptions: ResolvedOptions = {
   apiVersion: 'v2',
   timeout: 5000,
   customHeaders: {},
+  errorFormat: 'problem-details',
 };
 
 function mockResponse(status: number, body: unknown = {}, headers: Record<string, string> = {}): Response {
@@ -425,7 +427,7 @@ describe('RestClient', () => {
       const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
 
       expect(err).toBeInstanceOf(KSeFGoneError);
-      expect(err).not.toBeInstanceOf(KSeFApiError);
+      expect(err).toBeInstanceOf(KSeFApiError);
       expect((err as KSeFGoneError).statusCode).toBe(410);
       expect((err as KSeFGoneError).detail).toBe('Retention expired');
       expect((err as KSeFGoneError).traceId).toBe('t-1');
@@ -495,6 +497,239 @@ describe('RestClient', () => {
 
       const client = createClient(transport);
       await expect(client.executeRaw(RestRequest.get('/test'))).rejects.toThrow(KSeFApiError);
+    });
+  });
+
+  describe('Problem Details (400/429) + X-Error-Format', () => {
+    it('throws KSeFBadRequestError on 400 Problem Details body', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        detail: 'Validation failed',
+        errors: [
+          { code: 21200, description: 'Invalid date', details: ['dateFrom > dateTo'] },
+        ],
+        traceId: 't-400',
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFBadRequestError);
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect((err as KSeFBadRequestError).statusCode).toBe(400);
+      expect((err as KSeFBadRequestError).errors).toHaveLength(1);
+      expect((err as KSeFBadRequestError).errors[0]!.code).toBe(21200);
+      expect((err as KSeFBadRequestError).traceId).toBe('t-400');
+    });
+
+    it('accepts 400 Problem Details without errors field', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        detail: 'Query rejected',
+        traceId: 't-noerrors',
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFBadRequestError);
+      expect((err as KSeFBadRequestError).errors).toEqual([]);
+      expect((err as KSeFBadRequestError).detail).toBe('Query rejected');
+      expect((err as KSeFBadRequestError).traceId).toBe('t-noerrors');
+    });
+
+    it('rejects 400 Problem Details whose errors items are malformed', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: 'not-a-number', description: 'oops' }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect(err).not.toBeInstanceOf(KSeFBadRequestError);
+    });
+
+    it('falls back to generic KSeFApiError on 400 with legacy body', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        exception: {
+          exceptionDetailList: [{ exceptionCode: 9999, exceptionDescription: 'legacy' }],
+        },
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect(err).not.toBeInstanceOf(KSeFBadRequestError);
+      expect((err as KSeFApiError).statusCode).toBe(400);
+    });
+
+    it('falls back to KSeFApiError on 400 with malformed body', async () => {
+      const response = new Response('not json', { status: 400 });
+      const transport = vi.fn<TransportFn>().mockResolvedValue(response);
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect((err as KSeFApiError).statusCode).toBe(400);
+    });
+
+    it('surfaces 429 Problem Details body alongside Retry-After header', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(
+        429,
+        {
+          title: 'Too Many Requests',
+          status: 429,
+          detail: 'Quota exceeded',
+          instance: '/v2/sessions',
+          traceId: 'trace-429',
+          timestamp: '2026-04-18T10:00:00Z',
+        },
+        { 'Retry-After': '0' },
+      ));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFRateLimitError);
+      expect((err as KSeFRateLimitError).retryAfterSeconds).toBe(0);
+      expect((err as KSeFRateLimitError).problem?.traceId).toBe('trace-429');
+      expect((err as KSeFRateLimitError).problem?.detail).toBe('Quota exceeded');
+    });
+
+    it('still parses 429 header-only responses', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(
+        429, {}, { 'Retry-After': '0' },
+      ));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFRateLimitError);
+      expect((err as KSeFRateLimitError).retryAfterSeconds).toBe(0);
+      expect((err as KSeFRateLimitError).problem).toBeUndefined();
+    });
+
+    it('parses 429 Problem Details body even when status field is missing', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(
+        429,
+        {
+          title: 'Too Many Requests',
+          detail: 'Quota exceeded',
+          traceId: 't-no-status',
+        },
+        { 'Retry-After': '0' },
+      ));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFRateLimitError);
+      expect((err as KSeFRateLimitError).problem?.traceId).toBe('t-no-status');
+      expect((err as KSeFRateLimitError).problem?.detail).toBe('Quota exceeded');
+    });
+
+    it('parses 429 Problem Details body when status is a non-429 number', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(
+        429,
+        {
+          title: 'Too Many Requests',
+          status: 200,
+          traceId: 't-wrong',
+        },
+        { 'Retry-After': '0' },
+      ));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFRateLimitError);
+      expect((err as KSeFRateLimitError).problem?.traceId).toBe('t-wrong');
+    });
+
+    it('sends X-Error-Format: problem-details by default', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, {}));
+
+      const client = createClient(transport);
+      await client.execute(RestRequest.get('/test'));
+
+      const headers = transport.mock.calls[0]![1].headers as Record<string, string>;
+      expect(headers['X-Error-Format']).toBe('problem-details');
+    });
+
+    it('omits X-Error-Format when errorFormat is legacy', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, {}));
+
+      const client = new RestClient(
+        { ...defaultOptions, errorFormat: 'legacy' },
+        {
+          transport,
+          retryPolicy: { maxRetries: 0, baseDelayMs: 1, maxDelayMs: 10, retryableStatusCodes: [], retryNetworkErrors: false },
+        },
+      );
+      await client.execute(RestRequest.get('/test'));
+
+      const headers = transport.mock.calls[0]![1].headers as Record<string, string>;
+      expect(headers['X-Error-Format']).toBeUndefined();
+    });
+
+    it('customHeaders can override X-Error-Format default', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, {}));
+
+      const client = new RestClient(
+        { ...defaultOptions, customHeaders: { 'X-Error-Format': 'custom' } },
+        {
+          transport,
+          retryPolicy: { maxRetries: 0, baseDelayMs: 1, maxDelayMs: 10, retryableStatusCodes: [], retryNetworkErrors: false },
+        },
+      );
+      await client.execute(RestRequest.get('/test'));
+
+      const headers = transport.mock.calls[0]![1].headers as Record<string, string>;
+      expect(headers['X-Error-Format']).toBe('custom');
+    });
+
+    it('respects lowercase custom x-error-format override', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, {}));
+
+      const client = new RestClient(
+        { ...defaultOptions, customHeaders: { 'x-error-format': 'legacy' } },
+        {
+          transport,
+          retryPolicy: { maxRetries: 0, baseDelayMs: 1, maxDelayMs: 10, retryableStatusCodes: [], retryNetworkErrors: false },
+        },
+      );
+      await client.execute(RestRequest.get('/test'));
+
+      const headers = transport.mock.calls[0]![1].headers as Record<string, string>;
+      expect(headers['x-error-format']).toBe('legacy');
+      expect(headers['X-Error-Format']).toBeUndefined();
+    });
+
+    it('surfaces typed security info on 403 Problem Details', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(403, {
+        title: 'Forbidden',
+        status: 403,
+        detail: 'Missing perms',
+        reasonCode: 'missing-permissions',
+        security: {
+          requiredAnyOfPermissions: ['InvoiceRead', 'InvoiceWrite'],
+          presentPermissions: ['SessionOwn'],
+        },
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFForbiddenError);
+      expect((err as KSeFForbiddenError).security?.requiredAnyOfPermissions).toEqual(['InvoiceRead', 'InvoiceWrite']);
+      expect((err as KSeFForbiddenError).security?.presentPermissions).toEqual(['SessionOwn']);
     });
   });
 

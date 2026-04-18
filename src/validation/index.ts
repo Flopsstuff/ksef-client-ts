@@ -20,3 +20,4 @@ export {
   type InvoiceValidationResult, type InvoiceValidationError,
   type InvoiceValidationErrorCode, type ValidateOptions, type BatchValidationResult,
 } from './invoice-validator.js';
+export { validateCharValidity, DISCOURAGED_UNICODE_RANGES } from './char-validity.js';

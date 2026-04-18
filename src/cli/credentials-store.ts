@@ -7,6 +7,7 @@ const CREDENTIALS_FILE = path.join(CREDENTIALS_DIR, 'credentials.json');
 
 export interface CliCredentials {
   token?: string;
+  tokenReferenceNumber?: string;
 }
 
 export function loadCredentials(): CliCredentials | null {

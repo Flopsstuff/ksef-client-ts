@@ -5,6 +5,7 @@ import * as configStore from '../../../../src/cli/config-store.js';
 import * as sessionStore from '../../../../src/cli/session-store.js';
 import * as output from '../../../../src/cli/output.js';
 import * as sessionRecovery from '../../../../src/cli/session-recovery.js';
+import * as credentialsStore from '../../../../src/cli/credentials-store.js';
 import { createMockClient, defaultConfig, validSession } from './_helpers.js';
 
 vi.mock('consola', () => ({ consola: { level: 0, info: vi.fn(), warn: vi.fn() } }));
@@ -40,6 +41,8 @@ vi.mock('../../../../src/cli/output.js', () => ({
 
 vi.mock('../../../../src/cli/credentials-store.js', () => ({
   loadCredentials: vi.fn().mockReturnValue(null),
+  saveCredentials: vi.fn(),
+  clearCredentials: vi.fn(),
 }));
 
 vi.mock('../../../../src/cli/pending-challenge-store.js', () => ({
@@ -75,6 +78,9 @@ const mockOutputSuccess = vi.mocked(output.outputSuccess);
 const mockOutputWarning = vi.mocked(output.outputWarning);
 const mockOutputKeyValue = vi.mocked(output.outputKeyValue);
 const mockRecoverSession = vi.mocked(sessionRecovery.recoverSession);
+const mockLoadCredentials = vi.mocked(credentialsStore.loadCredentials);
+const mockClearCredentials = vi.mocked(credentialsStore.clearCredentials);
+const mockOutputResult = vi.mocked(output.outputResult);
 const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
 let mockClient: ReturnType<typeof createMockClient>;
@@ -521,6 +527,287 @@ describe('auth', () => {
       mockLoadConfig.mockReturnValue({ ...defaultConfig, environment: 'test' as any });
       await runLogin({ token: 'tok-123', nip: '1234567890' });
       expect(vi.mocked(configStore.saveConfig)).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('revoke-self-token', () => {
+    async function runRevokeSelfToken(args: Record<string, unknown> = {}) {
+      return (authCommand.subCommands!['revoke-self-token'] as any).run!({ args });
+    }
+
+    beforeEach(() => {
+      mockClient.tokens.revokeSelf.mockResolvedValue({
+        referenceNumber: 'ref-XYZ',
+        alreadyRevoked: false,
+      });
+      mockClient.tokens.findSelfReferenceNumber.mockResolvedValue('ref-XYZ');
+    });
+
+    it('happy path — discovery resolves ref, passes it + accessToken and clears local state', async () => {
+      mockLoadCredentials.mockReturnValueOnce({ token: 'tok', tokenReferenceNumber: 'ref-XYZ' });
+
+      await runRevokeSelfToken({});
+
+      expect(mockClient.tokens.findSelfReferenceNumber).toHaveBeenCalledWith(validSession.accessToken);
+      expect(mockClient.tokens.revokeSelf).toHaveBeenCalledWith({
+        referenceNumber: 'ref-XYZ',
+        accessToken: validSession.accessToken,
+      });
+      expect(mockOutputSuccess).toHaveBeenCalledWith('Token ref-XYZ revoked.');
+      expect(mockClearSession).toHaveBeenCalled();
+      expect(mockClearCredentials).toHaveBeenCalled();
+    });
+
+    it('prefers discovery over stale cached reference', async () => {
+      // Cache has an old ref from a previous `auth login --token`, but the current session
+      // was obtained via a different auth method — discovery must override the stale cache.
+      mockLoadCredentials.mockReturnValue({ token: 'tok', tokenReferenceNumber: 'old-ref' });
+      mockClient.tokens.findSelfReferenceNumber.mockResolvedValue('new-ref');
+      mockClient.tokens.revokeSelf.mockResolvedValue({
+        referenceNumber: 'new-ref',
+        alreadyRevoked: false,
+      });
+
+      await runRevokeSelfToken({});
+
+      expect(mockClient.tokens.findSelfReferenceNumber).toHaveBeenCalledWith(validSession.accessToken);
+      expect(mockClient.tokens.revokeSelf).toHaveBeenCalledWith({
+        referenceNumber: 'new-ref',
+        accessToken: validSession.accessToken,
+      });
+      expect(mockOutputWarning).not.toHaveBeenCalledWith(
+        expect.stringContaining('Using cached reference'),
+      );
+    });
+
+    it('falls back to cached reference with warning when discovery returns undefined', async () => {
+      mockLoadCredentials.mockReset();
+      mockLoadCredentials.mockReturnValue({ token: 'tok', tokenReferenceNumber: 'cached-ref' });
+      mockClient.tokens.findSelfReferenceNumber.mockImplementation(async () => undefined);
+      mockClient.tokens.revokeSelf.mockResolvedValue({
+        referenceNumber: 'cached-ref',
+        alreadyRevoked: false,
+      });
+
+      await runRevokeSelfToken({});
+
+      expect(mockClient.tokens.revokeSelf).toHaveBeenCalledWith({
+        referenceNumber: 'cached-ref',
+        accessToken: validSession.accessToken,
+      });
+      expect(mockOutputWarning).toHaveBeenCalledWith(
+        expect.stringContaining('Using cached reference'),
+      );
+    });
+
+    it('falls back to cached reference when discovery throws (e.g. network flap)', async () => {
+      mockLoadCredentials.mockReset();
+      mockLoadCredentials.mockReturnValue({ token: 'tok', tokenReferenceNumber: 'cached-ref' });
+      mockClient.tokens.findSelfReferenceNumber.mockRejectedValue(new Error('fetch failed'));
+      mockClient.tokens.revokeSelf.mockResolvedValue({
+        referenceNumber: 'cached-ref',
+        alreadyRevoked: false,
+      });
+
+      await runRevokeSelfToken({});
+
+      expect(mockClient.tokens.revokeSelf).toHaveBeenCalledWith({
+        referenceNumber: 'cached-ref',
+        accessToken: validSession.accessToken,
+      });
+      expect(mockOutputWarning).toHaveBeenCalledWith(
+        expect.stringContaining('Using cached reference'),
+      );
+    });
+
+    it('--json cache-fallback sets source=cache-fallback and suppresses human warning', async () => {
+      mockLoadCredentials.mockReset();
+      mockLoadCredentials.mockReturnValue({ token: 'tok', tokenReferenceNumber: 'cached-ref' });
+      mockClient.tokens.findSelfReferenceNumber.mockImplementation(async () => undefined);
+      mockClient.tokens.revokeSelf.mockResolvedValue({
+        referenceNumber: 'cached-ref',
+        alreadyRevoked: false,
+      });
+
+      await runRevokeSelfToken({ json: true });
+
+      expect(mockOutputResult).toHaveBeenCalledWith(
+        {
+          status: 'revoked',
+          referenceNumber: 'cached-ref',
+          source: 'cache-fallback',
+          localCleared: true,
+        },
+        { json: true },
+      );
+      // Human-readable warning is suppressed in JSON mode; callers read `source` instead.
+      expect(mockOutputWarning).not.toHaveBeenCalled();
+    });
+
+    it('fails with KSeFError when both discovery and cache are empty', async () => {
+      mockLoadCredentials.mockReset();
+      mockLoadCredentials.mockReturnValue(null);
+      mockClient.tokens.findSelfReferenceNumber.mockImplementation(async () => undefined);
+      mockClient.tokens.revokeSelf.mockImplementation(async ({ referenceNumber, accessToken }) => {
+        // Simulate the real service behavior: when referenceNumber is undefined and
+        // discovery (called inside revokeSelf too) yields nothing, it throws.
+        if (!referenceNumber) {
+          // Service would also try discovery again — we forced it to undefined above.
+          const { KSeFError } = await import('../../../../src/errors/ksef-error.js');
+          throw new KSeFError(
+            'Could not determine the current token reference number: no cache, JWT lacks the field, and the active-token list had 0 or 2+ matches in the current context.',
+          );
+        }
+        return { referenceNumber: referenceNumber!, alreadyRevoked: false };
+      });
+
+      await expect(runRevokeSelfToken({})).rejects.toThrow(
+        /Could not determine the current token reference number/,
+      );
+      expect(mockClient.tokens.revokeSelf).toHaveBeenCalledWith({
+        referenceNumber: undefined,
+        accessToken: validSession.accessToken,
+      });
+    });
+
+    it('--keep-local does not clear session or credentials', async () => {
+      mockLoadCredentials.mockReturnValueOnce({ token: 't', tokenReferenceNumber: 'ref-XYZ' });
+
+      await runRevokeSelfToken({ 'keep-local': true });
+
+      expect(mockClient.tokens.revokeSelf).toHaveBeenCalled();
+      expect(mockClearSession).not.toHaveBeenCalled();
+      expect(mockClearCredentials).not.toHaveBeenCalled();
+    });
+
+    it('--dry-run always runs discovery and does not revoke', async () => {
+      mockLoadCredentials.mockReturnValueOnce(null);
+
+      await runRevokeSelfToken({ 'dry-run': true });
+
+      expect(mockClient.tokens.findSelfReferenceNumber).toHaveBeenCalledWith(validSession.accessToken);
+      expect(mockClient.tokens.revokeSelf).not.toHaveBeenCalled();
+      expect(mockOutputKeyValue).toHaveBeenCalled();
+      expect(mockClearSession).not.toHaveBeenCalled();
+    });
+
+    it('--dry-run uses discovery result when present (ignores cache)', async () => {
+      mockLoadCredentials.mockReturnValue({ token: 't', tokenReferenceNumber: 'old-ref' });
+      mockClient.tokens.findSelfReferenceNumber.mockResolvedValue('new-ref');
+
+      await runRevokeSelfToken({ 'dry-run': true, json: true });
+
+      expect(mockClient.tokens.findSelfReferenceNumber).toHaveBeenCalled();
+      expect(mockClient.tokens.revokeSelf).not.toHaveBeenCalled();
+      expect(mockOutputResult).toHaveBeenCalledWith(
+        {
+          status: 'dry-run',
+          referenceNumber: 'new-ref',
+          source: 'discovery',
+          wouldClearLocal: true,
+        },
+        { json: true },
+      );
+    });
+
+    it('--dry-run JSON reports source=cache-fallback when discovery fails', async () => {
+      mockLoadCredentials.mockReset();
+      mockLoadCredentials.mockReturnValue({ token: 't', tokenReferenceNumber: 'cached-ref' });
+      mockClient.tokens.findSelfReferenceNumber.mockImplementation(async () => undefined);
+
+      await runRevokeSelfToken({ 'dry-run': true, json: true });
+
+      expect(mockOutputResult).toHaveBeenCalledWith(
+        {
+          status: 'dry-run',
+          referenceNumber: 'cached-ref',
+          source: 'cache-fallback',
+          wouldClearLocal: true,
+        },
+        { json: true },
+      );
+    });
+
+    it('--dry-run JSON reports source=none when discovery + cache both empty', async () => {
+      mockLoadCredentials.mockReset();
+      mockLoadCredentials.mockReturnValue(null);
+      mockClient.tokens.findSelfReferenceNumber.mockImplementation(async () => undefined);
+
+      await runRevokeSelfToken({ 'dry-run': true, json: true });
+
+      expect(mockOutputResult).toHaveBeenCalledWith(
+        {
+          status: 'dry-run',
+          referenceNumber: null,
+          source: 'none',
+          wouldClearLocal: true,
+        },
+        { json: true },
+      );
+    });
+
+    it('env mismatch throws before any API call', async () => {
+      mockRequireSession.mockResolvedValueOnce({
+        client: mockClient as any,
+        session: { ...validSession, environment: 'demo' },
+      });
+
+      await expect(runRevokeSelfToken({ env: 'prod' })).rejects.toThrow(
+        /Refusing to revoke a token from a different environment/,
+      );
+      expect(mockClient.tokens.revokeSelf).not.toHaveBeenCalled();
+      expect(mockClient.tokens.findSelfReferenceNumber).not.toHaveBeenCalled();
+    });
+
+    it('alreadyRevoked=true shows warning and still clears local state', async () => {
+      mockLoadCredentials.mockReturnValueOnce({ token: 't', tokenReferenceNumber: 'ref-XYZ' });
+      mockClient.tokens.revokeSelf.mockResolvedValueOnce({
+        referenceNumber: 'ref-XYZ',
+        alreadyRevoked: true,
+      });
+
+      await runRevokeSelfToken({});
+
+      expect(mockOutputWarning).toHaveBeenCalledWith(
+        expect.stringContaining('already revoked'),
+      );
+      expect(mockClearSession).toHaveBeenCalled();
+      expect(mockClearCredentials).toHaveBeenCalled();
+    });
+
+    it('--json outputs structured result with source=discovery', async () => {
+      mockLoadCredentials.mockReturnValueOnce({ token: 't', tokenReferenceNumber: 'ref-XYZ' });
+
+      await runRevokeSelfToken({ json: true });
+
+      expect(mockOutputResult).toHaveBeenCalledWith(
+        { status: 'revoked', referenceNumber: 'ref-XYZ', source: 'discovery', localCleared: true },
+        { json: true },
+      );
+      expect(mockOutputWarning).not.toHaveBeenCalled();
+      expect(mockOutputSuccess).not.toHaveBeenCalled();
+    });
+
+    it('--json with alreadyRevoked emits status already-revoked', async () => {
+      mockLoadCredentials.mockReturnValueOnce({ token: 't', tokenReferenceNumber: 'ref-XYZ' });
+      mockClient.tokens.revokeSelf.mockResolvedValueOnce({
+        referenceNumber: 'ref-XYZ',
+        alreadyRevoked: true,
+      });
+
+      await runRevokeSelfToken({ json: true });
+
+      expect(mockOutputResult).toHaveBeenCalledWith(
+        {
+          status: 'already-revoked',
+          referenceNumber: 'ref-XYZ',
+          source: 'discovery',
+          localCleared: true,
+        },
+        { json: true },
+      );
+      expect(mockOutputWarning).not.toHaveBeenCalled();
+      expect(mockOutputSuccess).not.toHaveBeenCalled();
     });
   });
 });

@@ -41,7 +41,7 @@ const status = defineCommand({
           'Timestamp': result.timestamp,
         }, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -88,7 +88,7 @@ const messages = defineCommand({
         ],
         { json: false },
       );
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 

@@ -53,15 +53,15 @@ describe('KSeFGoneError', () => {
     expect(err.statusCode).toBe(410);
   });
 
-  it('extends KSeFError and Error, but not KSeFApiError', () => {
+  it('extends KSeFApiError, KSeFError, and Error', () => {
     const err = new KSeFGoneError({
       title: 'Gone',
       status: 410,
       detail: 'test',
     });
 
+    expect(err).toBeInstanceOf(KSeFApiError);
     expect(err).toBeInstanceOf(KSeFError);
     expect(err).toBeInstanceOf(Error);
-    expect(err).not.toBeInstanceOf(KSeFApiError);
   });
 });

@@ -4,7 +4,7 @@ import { consola } from 'consola';
 import { createClient, requireSession } from '../client-factory.js';
 import { saveSession, clearSession, loadSession, isSessionExpired } from '../session-store.js';
 import { loadConfig, saveConfig } from '../config-store.js';
-import { loadCredentials } from '../credentials-store.js';
+import { loadCredentials, saveCredentials, clearCredentials } from '../credentials-store.js';
 import { savePendingChallenge, clearPendingChallenge } from '../pending-challenge-store.js';
 import { recoverSession } from '../session-recovery.js';
 import { outputResult, outputKeyValue, outputSuccess, outputWarning } from '../output.js';
@@ -45,7 +45,7 @@ const challenge = defineCommand({
       const client = createClient(globalOpts);
       const result = await client.auth.getChallenge();
       outputResult(result, { json: args.json });
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -107,13 +107,30 @@ const login = defineCommand({
       if (args.env && args.env !== config.environment) {
         saveConfig({ ...config, environment: session.environment });
       }
+
+      if (args.token) {
+        const prev = { ...(loadCredentials() ?? {}) };
+        delete prev.tokenReferenceNumber;
+        let ref: string | undefined;
+        try {
+          ref = await client.tokens.findSelfReferenceNumber(session.accessToken);
+        } catch {
+          // Non-fatal: future `auth revoke-self-token` will retry discovery at revoke time.
+        }
+        saveCredentials({
+          ...prev,
+          token: args.token,
+          ...(ref ? { tokenReferenceNumber: ref } : {}),
+        });
+      }
+
       if (args.json) {
         console.log(JSON.stringify({ status: 'ok', clientIp: loginResult.clientIp }, null, 2));
       } else {
         consola.info(`Seen client IP: ${loginResult.clientIp}`);
         outputSuccess('Logged in successfully.');
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -132,7 +149,7 @@ const status = defineCommand({
       const { client, session } = await requireSession(globalOpts);
       const result = await client.auth.getAuthStatus(args.ref, session.accessToken);
       outputResult(result, { json: args.json });
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -143,6 +160,118 @@ const logout = defineCommand({
       clearSession();
       outputSuccess('Logged out. Session cleared.');
     });
+  },
+});
+
+const revokeSelfToken = defineCommand({
+  meta: {
+    name: 'revoke-self-token',
+    description: 'Revoke the token currently used for authentication. Reference number is resolved via discovery first (JWT payload, then a filtered active-token list), falling back to local cache only if discovery fails; revocation is idempotent (404/409/410 treated as already-revoked).',
+  },
+  args: {
+    'keep-local': { type: 'boolean', description: 'Revoke server-side but keep local session' },
+    'dry-run': { type: 'boolean', description: 'Print what would happen without revoking the token (discovery may still query the API)' },
+    env: { type: 'string', description: 'Environment (test/demo/prod)' },
+    json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
+    timeout: { type: 'string', description: 'Request timeout (ms)' },
+  },
+  run({ args }) {
+    return withErrorHandler(async () => {
+      const globalOpts = getGlobalOpts(args);
+      const { client, session } = await requireSession(globalOpts);
+
+      if (args.env && args.env !== session.environment) {
+        throw new Error(
+          `Current session is '${session.environment}', but --env='${args.env}'. Refusing to revoke a token from a different environment.`,
+        );
+      }
+
+      // Discovery-first: always try to resolve the current token's reference number from
+      // the active access token. The cached `tokenReferenceNumber` is only used as a
+      // last-resort fallback when discovery fails, because the cache is written at
+      // `auth login --token` time and can be stale if the user later re-authenticated via
+      // certificate or external-signature flow (cached ref would point at the OLD token).
+      // Catch discovery errors (network flap, KSeF 5xx) so CI/disposable-host flows can
+      // still fall back to the cached reference instead of hard-failing.
+      let discoveredRef: string | undefined;
+      try {
+        discoveredRef = await client.tokens.findSelfReferenceNumber(session.accessToken);
+      } catch {
+        discoveredRef = undefined;
+      }
+      const cachedRef = discoveredRef ? undefined : loadCredentials()?.tokenReferenceNumber;
+      const ref = discoveredRef ?? cachedRef;
+      const source: 'discovery' | 'cache-fallback' | 'none' =
+        discoveredRef ? 'discovery' : cachedRef ? 'cache-fallback' : 'none';
+
+      if (args['dry-run']) {
+        if (args.json) {
+          outputResult(
+            {
+              status: 'dry-run',
+              referenceNumber: ref ?? null,
+              source,
+              wouldClearLocal: !args['keep-local'],
+            },
+            { json: true },
+          );
+          return;
+        }
+        if (source === 'cache-fallback') {
+          outputWarning(
+            'Using cached reference (discovery failed). Verify this is the token you intend to revoke.',
+          );
+        }
+        outputKeyValue(
+          {
+            'Would revoke': ref ?? '(unknown — discovery failed)',
+            Source: source,
+            'Would clear local': args['keep-local'] ? 'no' : 'yes',
+          },
+          { json: false },
+        );
+        return;
+      }
+
+      if (source === 'cache-fallback' && !args.json) {
+        outputWarning(
+          'Using cached reference (discovery failed). Verify this is the token you intend to revoke.',
+        );
+      }
+
+      const { referenceNumber, alreadyRevoked } = await client.tokens.revokeSelf({
+        referenceNumber: ref,
+        accessToken: session.accessToken,
+      });
+
+      const localCleared = !args['keep-local'];
+      if (localCleared) {
+        clearSession();
+        clearCredentials();
+      }
+
+      if (args.json) {
+        outputResult(
+          {
+            status: alreadyRevoked ? 'already-revoked' : 'revoked',
+            referenceNumber,
+            source,
+            localCleared,
+          },
+          { json: true },
+        );
+      } else {
+        if (alreadyRevoked) {
+          outputWarning(`Token ${referenceNumber} was already revoked on the server.`);
+        } else {
+          outputSuccess(`Token ${referenceNumber} revoked.`);
+        }
+        if (localCleared) {
+          outputSuccess('Local session and credentials cleared.');
+        }
+      }
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -171,7 +300,7 @@ const refresh = defineCommand({
       session.expiresAt = result.accessToken.validUntil;
       saveSession(session);
       outputSuccess('Token refreshed successfully.');
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -229,7 +358,7 @@ const whoami = defineCommand({
       }
 
       outputKeyValue(info, { json: args.json });
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -334,11 +463,20 @@ const loginExternal = defineCommand({
         clearPendingChallenge();
         outputSuccess('Logged in successfully via external signature.');
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
 export const authCommand = defineCommand({
   meta: { name: 'auth', description: 'Authentication commands' },
-  subCommands: { challenge, login, 'login-external': loginExternal, status, logout, refresh, whoami },
+  subCommands: {
+    challenge,
+    login,
+    'login-external': loginExternal,
+    status,
+    logout,
+    'revoke-self-token': revokeSelfToken,
+    refresh,
+    whoami,
+  },
 });

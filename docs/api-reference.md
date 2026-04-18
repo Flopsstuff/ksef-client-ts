@@ -863,21 +863,48 @@ static fromResponse(statusCode: number, body?: ApiErrorResponse): KSeFApiError
 
 ### KSeFRateLimitError
 
-Extends `KSeFApiError`. Thrown on HTTP 429 responses (too many requests).
+Extends `KSeFApiError`. Thrown on HTTP 429 responses (too many requests). `statusCode` is a `429` literal.
 
-| Field               | Type      | Description                                    |
-| ------------------- | --------- | ---------------------------------------------- |
-| `retryAfterSeconds` | `number?` | Seconds to wait (from `Retry-After` header)    |
-| `retryAfterDate`    | `Date?`   | Absolute retry time (if header was a date)     |
-| `recommendedDelay`  | `number`  | Seconds to wait (falls back to 60 if unknown)  |
+| Field               | Type                                  | Description                                    |
+| ------------------- | ------------------------------------- | ---------------------------------------------- |
+| `retryAfterSeconds` | `number?`                             | Seconds to wait (from `Retry-After` header)    |
+| `retryAfterDate`    | `Date?`                               | Absolute retry time (if header was a date)     |
+| `recommendedDelay`  | `number`                              | Seconds to wait (falls back to 60 if unknown)  |
+| `problem`           | `TooManyRequestsProblemDetails?`      | RFC 7807 body (KSeF API v2.4.0+): `detail`, `traceId`, `instance`, `timestamp` |
 
 ```ts
-static fromRetryAfterHeader(statusCode: number, retryAfterHeader?: string | null, body?: ApiErrorResponse): KSeFRateLimitError
+static fromRetryAfterHeader(
+  statusCode: number,
+  retryAfterHeader?: string | null,
+  body?: ApiErrorResponse,
+  problem?: TooManyRequestsProblemDetails,
+): KSeFRateLimitError
+```
+
+### KSeFBadRequestError
+
+Extends `KSeFApiError`. Thrown on HTTP 400 responses when the body matches `BadRequestProblemDetails` (KSeF API v2.4.0+). When the server returns a legacy 400 body, the client falls back to generic `KSeFApiError` with `statusCode === 400`.
+
+| Field        | Type                       | Description                                      |
+| ------------ | -------------------------- | ------------------------------------------------ |
+| `statusCode` | `400`                      | Always 400                                       |
+| `detail`     | `string?`                  | Human-readable summary of what failed            |
+| `instance`   | `string?`                  | The endpoint path that was called                |
+| `errors`     | `BadRequestErrorDetail[]`  | Structured list of validation failures           |
+| `traceId`    | `string?`                  | Trace ID for debugging                           |
+| `timestamp`  | `string?`                  | UTC timestamp recorded by the server             |
+
+```ts
+interface BadRequestErrorDetail {
+  code: number;
+  description: string;
+  details: string[];
+}
 ```
 
 ### KSeFUnauthorizedError
 
-Extends `KSeFError`. Thrown on HTTP 401 responses when the body matches `UnauthorizedProblemDetails`.
+Extends `KSeFApiError`. Thrown on HTTP 401 responses when the body matches `UnauthorizedProblemDetails`.
 
 | Field      | Type      | Description                      |
 | ---------- | --------- | -------------------------------- |
@@ -889,7 +916,7 @@ Extends `KSeFError`. Thrown on HTTP 401 responses when the body matches `Unautho
 
 ### KSeFForbiddenError
 
-Extends `KSeFError`. Thrown on HTTP 403 responses when the body matches `ForbiddenProblemDetails`.
+Extends `KSeFApiError`. Thrown on HTTP 403 responses when the body matches `ForbiddenProblemDetails`.
 
 | Field        | Type                  | Description                          |
 | ------------ | --------------------- | ------------------------------------ |
@@ -897,13 +924,20 @@ Extends `KSeFError`. Thrown on HTTP 403 responses when the body matches `Forbidd
 | `detail`     | `string`              | Error detail from the API            |
 | `reasonCode` | `ForbiddenReasonCode` | One of: `missing-permissions`, `ip-not-allowed`, `insufficient-resource-access`, `auth-method-not-allowed`, `security-service-blocked`, `context-type-not-allowed` |
 | `instance`   | `string?`             | Request instance identifier          |
-| `security`   | `Record<string, unknown>?` | Additional security context    |
+| `security`   | `ForbiddenSecurityInfo & Record<string, unknown>?` | Typed `requiredAnyOfPermissions` / `presentPermissions` lists plus any forward-compat fields |
 | `traceId`    | `string?`             | Trace ID for debugging               |
 | `timestamp`  | `string?`             | UTC timestamp recorded by the server (KSeF API v2.4.0+) |
 
+```ts
+interface ForbiddenSecurityInfo {
+  requiredAnyOfPermissions?: string[];
+  presentPermissions?: string[];
+}
+```
+
 ### KSeFGoneError
 
-Extends `KSeFError`. Thrown on HTTP 410 responses when an async operation status has aged out of the KSeF retention window (KSeF API v2.4.0+). Retention is 7 days for authentication and export operations and 30 days for certificate and permission enrollments.
+Extends `KSeFApiError`. Thrown on HTTP 410 responses when an async operation status has aged out of the KSeF retention window (KSeF API v2.4.0+). Retention is 7 days for authentication and export operations and 30 days for certificate and permission enrollments.
 
 | Field        | Type      | Description                                  |
 | ------------ | --------- | -------------------------------------------- |
@@ -981,18 +1015,58 @@ interface ValidationDetail {
 
 ```
 Error
-  └── KSeFError                       // base class for all library errors
-        ├── KSeFApiError              // HTTP API errors (non-2xx, generic)
-        │     └── KSeFRateLimitError  // HTTP 429 (too many requests)
-        ├── KSeFUnauthorizedError     // HTTP 401 (unauthorized)
-        ├── KSeFForbiddenError        // HTTP 403 (forbidden)
-        ├── KSeFGoneError             // HTTP 410 (operation status retention expired)
-        ├── KSeFAuthStatusError       // auth operation failed/timed out
-        ├── KSeFSessionExpiredError   // stored session expired
-        └── KSeFValidationError       // client-side validation failed
+  └── KSeFError                         // base class for all library errors
+        ├── KSeFApiError                // any non-2xx HTTP response
+        │     ├── KSeFBadRequestError   // HTTP 400 (RFC 7807)
+        │     ├── KSeFUnauthorizedError // HTTP 401 (RFC 7807)
+        │     ├── KSeFForbiddenError    // HTTP 403 (RFC 7807)
+        │     ├── KSeFGoneError         // HTTP 410 (RFC 7807, retention expired)
+        │     ├── KSeFRateLimitError    // HTTP 429 (RFC 7807)
+        │     └── KSeFBatchTimeoutError // KSeF exception code 21208
+        ├── KSeFAuthStatusError         // auth operation failed/timed out
+        ├── KSeFSessionExpiredError     // stored session expired
+        └── KSeFValidationError         // client-side validation failed
 ```
 
-`RestClient.ensureSuccess` dispatches errors in order: 429 → 401 → 403 → 410 → (exceptionCode `21208` → `KSeFBatchTimeoutError`) → generic `KSeFApiError`.
+All server-returned HTTP errors extend `KSeFApiError`, so a single `instanceof KSeFApiError` check covers every response-side failure. `RestClient.ensureSuccess` dispatches errors in order: 429 → 401 → 403 → 410 → 400 → (exceptionCode `21208` → `KSeFBatchTimeoutError`) → generic `KSeFApiError`.
+
+### KSeFApiProblem
+
+Discriminated union of every RFC 7807 error class, keyed by `statusCode` literal.
+
+```ts
+type KSeFApiProblem =
+  | KSeFBadRequestError    // statusCode: 400
+  | KSeFUnauthorizedError  // statusCode: 401
+  | KSeFForbiddenError     // statusCode: 403
+  | KSeFGoneError          // statusCode: 410
+  | KSeFRateLimitError;    // statusCode: 429
+```
+
+Use with `assertNever` for exhaustive compile-time dispatch:
+
+```ts
+import { assertNever, type KSeFApiProblem } from 'ksef-client-ts';
+
+function describe(err: KSeFApiProblem): string {
+  switch (err.statusCode) {
+    case 400: return `Validation: ${err.errors.length} error(s)`;
+    case 401: return 'Authenticate and retry';
+    case 403: return `Forbidden: ${err.reasonCode}`;
+    case 410: return 'Operation status expired';
+    case 429: return `Rate limited, retry in ${err.recommendedDelay}s`;
+    default: return assertNever(err);
+  }
+}
+```
+
+### assertNever
+
+```ts
+function assertNever(value: never): never
+```
+
+Throws `Error('Unexpected value: ...')` at runtime. Its primary purpose is compile-time: adding a new variant to `KSeFApiProblem` causes `assertNever` to fail type-checking at every dispatch site until handled.
 
 ---
 
@@ -1090,6 +1164,7 @@ interface KSeFClientOptions {
   retry?: Partial<RetryPolicy>;            // Retry policy overrides
   rateLimit?: { globalRps?: number; endpointLimits?: ... } | null; // null disables
   presignedUrlHosts?: string[];            // Additional allowed hosts for presigned URLs
+  errorFormat?: 'problem-details' | 'legacy'; // Default: 'problem-details' (RFC 7807)
 }
 ```
 
@@ -1105,6 +1180,8 @@ interface ResolvedOptions {
   apiVersion: string;
   timeout: number;
   customHeaders: Record<string, string>;
+  environmentName?: EnvironmentName;
+  errorFormat: 'problem-details' | 'legacy';
 }
 ```
 

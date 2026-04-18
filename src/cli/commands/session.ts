@@ -80,7 +80,7 @@ const open = defineCommand({
           'Valid Until': result.validUntil,
         }, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -107,7 +107,7 @@ const close = defineCommand({
       await client.onlineSession.closeSession(ref);
       clearOnlineSessionRef();
       outputSuccess(`Session ${ref} closed.`);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -145,7 +145,7 @@ const status = defineCommand({
           'Failed': result.failedInvoiceCount ?? 0,
         }, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -203,7 +203,7 @@ const list = defineCommand({
       if (result.continuationToken) {
         consola.info(`More results available. Continuation token: ${result.continuationToken}`);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -261,7 +261,7 @@ const invoices = defineCommand({
       if (result.continuationToken) {
         consola.info(`More results available. Continuation token: ${result.continuationToken}`);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -319,7 +319,7 @@ const failed = defineCommand({
       if (result.continuationToken) {
         consola.info(`More results available. Continuation token: ${result.continuationToken}`);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -378,7 +378,7 @@ const upo = defineCommand({
       } else {
         console.log(result.upo);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -430,7 +430,7 @@ const active = defineCommand({
       if (result.continuationToken) {
         consola.info(`More results available. Continuation token: ${result.continuationToken}`);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -466,7 +466,7 @@ const revoke = defineCommand({
       } else {
         throw new Error('Provide a session reference or use --current to revoke the current session.');
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -506,7 +506,7 @@ const invoice = defineCommand({
           'Invoicing Mode': result.invoicingMode ?? 'N/A',
         }, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 

@@ -92,7 +92,22 @@ ksef auth status <ref>            # Check auth operation status
 ksef auth refresh                 # Refresh access token (requires refreshToken)
 ksef auth whoami                  # Show current session info (exit 1 if no session or expired)
 ksef auth logout                  # Clear stored session
+ksef auth revoke-self-token       # Revoke the token used for the current login (then clear local state)
 ```
+
+### Self-Revoke Token
+
+```bash
+ksef auth revoke-self-token [--keep-local] [--dry-run] [--json]
+```
+
+One-shot command for CI jobs and disposable hosts: after `ksef auth login --token $T`, `ksef auth revoke-self-token` revokes `$T` on the server and clears the local session and credentials. Reference-number lookup is automatic — cached during login when possible, otherwise discovered via the active-token list filtered by the caller's context (requires exactly one active match; ambiguous cases are refused).
+
+- `--keep-local` — revoke server-side but keep local session (test scenarios).
+- `--dry-run` — print the resolved reference and planned actions without revoking the token.
+- `--json` — emit a structured status payload. On revoke: `{ status: 'revoked' | 'already-revoked', referenceNumber, source, localCleared }`. On dry-run: `{ status: 'dry-run', referenceNumber, source, wouldClearLocal }`. The `source` field is `'discovery'` when resolved from the live session token, `'cache-fallback'` when discovery failed and the locally cached reference was used instead, or `'none'` when neither yielded a value.
+- An already-revoked token (server returns 404/409/410) produces a warning and still clears local state, so repeated calls are safe.
+
 
 ## Sessions
 
@@ -427,10 +442,57 @@ The CLI provides contextual hints after common errors:
 
 | Error | Hint |
 |-------|------|
-| HTTP 401/403 | Run `ksef auth login` to authenticate. |
+| HTTP 400 | Review the error list above; fix the flagged fields and retry. |
+| HTTP 401 | Your session may have expired. Run `ksef auth login` to re-authenticate. |
+| HTTP 403 | Check your permissions for this operation. |
 | HTTP 404 | Check if the resource reference is correct. |
-| Network error | Run `ksef doctor` to diagnose connectivity issues. |
+| HTTP 410 | The operation has aged out. Re-submit the request if still relevant. |
 | Rate limited | Retry after N seconds. |
+| Network error | Run `ksef doctor` to diagnose connectivity issues. |
+
+## Reading CLI Errors
+
+Every server-returned failure is rendered with its full RFC 7807 Problem Details context so you can act on issues without re-running in verbose mode:
+
+```text
+✖ KSeF API error (HTTP 400): Invalid query payload
+  └ Detail: Invalid query payload
+  └ Errors:
+    • [21105] Invoice number must not be empty
+    • [21106] Buyer NIP has invalid checksum
+      └ "NIP 1234567890"
+  └ Trace ID: 68f4fa84-5a3d-4a9f-9f0e-a0c1234567ab
+  └ Timestamp: 2026-04-18T14:22:11.457Z
+ℹ Hint: Review the error list above; fix the flagged fields and retry.
+```
+
+| Field | What it tells you |
+|-------|-------------------|
+| `Detail` | Server-provided explanation of the failure |
+| `Reason` (403 only) | Why access was denied (`missing-permissions`, `ip-not-allowed`, etc.) |
+| `Required (any of)` / `Present` (403 only) | Which permissions are needed vs. which the current principal holds |
+| `Errors` (400 only) | Structured per-field validation failures with their codes |
+| `Trace ID` | Server-side correlation ID — quote this when filing support tickets |
+| `Instance` | Request path that produced the error |
+| `Timestamp` | Server time when the error occurred |
+
+Passing `--json` on any command emits a machine-readable error payload on stdout instead of the pretty-printed form:
+
+```json
+{
+  "error": {
+    "name": "KSeFBadRequestError",
+    "statusCode": 400,
+    "message": "Invalid query payload",
+    "detail": "Invalid query payload",
+    "errors": [
+      { "code": 21105, "description": "Invoice number must not be empty", "details": [] }
+    ],
+    "traceId": "68f4fa84-5a3d-4a9f-9f0e-a0c1234567ab",
+    "timestamp": "2026-04-18T14:22:11.457Z"
+  }
+}
+```
 
 ## Setup Wizard
 

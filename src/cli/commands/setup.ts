@@ -298,6 +298,6 @@ export const setupCommand = defineCommand({
         '  ksef session open           — Open an online session',
         '  ksef auth whoami            — Check current session',
       ].join('\n'));
-    });
+    }, { json: Boolean(args.json) });
   },
 });

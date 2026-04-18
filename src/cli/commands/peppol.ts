@@ -61,7 +61,7 @@ const providers = defineCommand({
       if (result.hasMore) {
         consola.info('More results available. Use --page to paginate.');
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 

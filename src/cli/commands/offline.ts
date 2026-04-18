@@ -150,7 +150,7 @@ const generate = defineCommand({
           'KOD II': metadata.kod2Url ?? '(not generated)',
         }, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -203,7 +203,7 @@ const list = defineCommand({
         ],
         { json: args.json as boolean },
       );
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -241,7 +241,7 @@ const status = defineCommand({
           Error: invoice.error ? `${invoice.error.code}: ${invoice.error.message}` : '-',
         }, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -307,7 +307,7 @@ const submit = defineCommand({
           );
         }
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -341,7 +341,7 @@ const correct = defineCommand({
       } else {
         outputSuccess(`Correction submitted. KSeF ref: ${result.ksefReferenceNumber ?? 'pending'}`);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -395,7 +395,7 @@ const del = defineCommand({
       }
       await storage.delete(args.id as string);
       outputSuccess(`Deleted offline invoice ${args.id}`);
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 

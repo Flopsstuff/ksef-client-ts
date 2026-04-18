@@ -11,18 +11,6 @@
           "Certyfikaty"
         ],
         "summary": "Pobranie danych o limitach certyfikatów",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -107,18 +95,6 @@
           "Certyfikaty"
         ],
         "summary": "Pobranie danych do wniosku certyfikacyjnego",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
@@ -211,18 +187,6 @@
           "Certyfikaty"
         ],
         "summary": "Wysyłka wniosku certyfikacyjnego",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -343,16 +307,6 @@
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -462,18 +416,6 @@
           "Certyfikaty"
         ],
         "summary": "Pobranie certyfikatu lub listy certyfikatów",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -598,16 +540,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "requestBody": {
@@ -719,16 +651,6 @@
               "type": "integer",
               "format": "int32",
               "default": 0
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],

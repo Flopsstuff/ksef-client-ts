@@ -54,7 +54,7 @@ const generate = defineCommand({
           'Token': result.token,
         }, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -120,7 +120,7 @@ const list = defineCommand({
       if (result.continuationToken) {
         consola.info(`More results available. Continuation token: ${result.continuationToken}`);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -156,7 +156,7 @@ const get = defineCommand({
           'Last Used': result.lastUseDate ?? 'Never',
         }, { json: false });
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 
@@ -183,7 +183,7 @@ const revoke = defineCommand({
       } else {
         outputSuccess(`Token ${ref} revoked.`);
       }
-    });
+    }, { json: Boolean(args.json) });
   },
 });
 

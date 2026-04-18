@@ -19,16 +19,6 @@
             "schema": {
               "$ref": "#/components/schemas/KsefNumber"
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -157,16 +147,6 @@
               "type": "integer",
               "format": "int32",
               "default": 10
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],
@@ -394,18 +374,6 @@
           "Pobieranie faktur"
         ],
         "summary": "Eksport paczki faktur",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -546,16 +514,6 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],
@@ -794,16 +752,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -937,16 +885,6 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],
@@ -1084,16 +1022,6 @@
               "type": "integer",
               "format": "int32",
               "default": 10
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],
@@ -1239,16 +1167,6 @@
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -1382,16 +1300,6 @@
               "format": "int32",
               "default": 10
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -1522,16 +1430,6 @@
             "schema": {
               "$ref": "#/components/schemas/KsefNumber"
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -1646,16 +1544,6 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],
@@ -1772,16 +1660,6 @@
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -1881,18 +1759,6 @@
           "Wysyłka interaktywna"
         ],
         "summary": "Otwarcie sesji interaktywnej",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2021,16 +1887,6 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],
@@ -2162,16 +2018,6 @@
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
             }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -2255,18 +2101,6 @@
           "Wysyłka wsadowa"
         ],
         "summary": "Otwarcie sesji wsadowej",
-        "parameters": [
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2416,16 +2250,6 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ReferenceNumber"
-            }
-          },
-          {
-            "name": "X-Error-Format",
-            "in": "header",
-            "schema": {
-              "enum": [
-                "problem-details"
-              ],
-              "type": "string"
             }
           }
         ],

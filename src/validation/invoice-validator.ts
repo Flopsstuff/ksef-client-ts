@@ -1,20 +1,24 @@
 /**
  * Invoice XML validation service.
  *
- * Three independent validation levels:
- * - Level 1: XML well-formedness (xmldom parse)
- * - Level 2: Schema validation (xml→object→Zod safeParse)
- * - Level 3: Business rules (NIP/PESEL checksum verification)
+ * Four independent validation levels:
+ * - Level 1a: Char validity (processing instructions + discouraged Unicode)
+ * - Level 1:  XML well-formedness (xmldom parse)
+ * - Level 2:  Schema validation (xml→object→Zod safeParse)
+ * - Level 3:  Business rules (NIP/PESEL checksum verification)
  */
 
 import type { SchemaType } from './schemas/index.js';
 import { type XmlConversionResult, xmlToObject } from './xml-to-object.js';
 import { SchemaRegistry } from './schema-registry.js';
+import { validateCharValidity } from './char-validity.js';
 import { isValidNip, isValidPesel } from './patterns.js';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export type InvoiceValidationErrorCode =
+  | 'XML_PROCESSING_INSTRUCTION'
+  | 'XML_DISCOURAGED_UNICODE'
   | 'MALFORMED_XML'
   | 'MISSING_REQUIRED_ELEMENT'
   | 'INVALID_VALUE'
@@ -49,6 +53,12 @@ export interface InvoiceValidationResult {
 export interface ValidateOptions {
   /** Explicit schema type override (skip auto-detection). */
   schema?: SchemaType;
+  /**
+   * Skip Level 1a char-validity pre-parse check (processing instructions and
+   * discouraged Unicode code points). Defaults to `false` — the check runs and
+   * short-circuits the pipeline on failure.
+   */
+  skipCharValidity?: boolean;
 }
 
 // ─── Level 1: Well-formedness ───────────────────────────────────────────────
@@ -282,6 +292,14 @@ export async function validate(
   xml: string,
   options?: ValidateOptions,
 ): Promise<InvoiceValidationResult> {
+  // Level 1a: Char validity (pre-parse). Runs before xmldom sees the document.
+  if (!options?.skipCharValidity) {
+    const l1aErrors = validateCharValidity(xml);
+    if (l1aErrors.length > 0) {
+      return { valid: false, schemaType: null, errors: l1aErrors };
+    }
+  }
+
   // Parse XML once upfront — reused by all three levels.
   // The empty-input guard in validateWellFormedness runs before accessing
   // the parsed result, so passing undefined for empty strings is safe.

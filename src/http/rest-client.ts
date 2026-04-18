@@ -4,9 +4,18 @@ import { KSeFRateLimitError } from '../errors/ksef-rate-limit-error.js';
 import { KSeFUnauthorizedError } from '../errors/ksef-unauthorized-error.js';
 import { KSeFForbiddenError } from '../errors/ksef-forbidden-error.js';
 import { KSeFGoneError } from '../errors/ksef-gone-error.js';
+import { KSeFBadRequestError } from '../errors/ksef-bad-request-error.js';
 import { KSeFBatchTimeoutError } from '../errors/ksef-batch-timeout-error.js';
 import { KSeFErrorCode, hasErrorCode } from '../errors/error-codes.js';
-import type { ApiErrorResponse, TooManyRequestsResponse, UnauthorizedProblemDetails, ForbiddenProblemDetails, GoneProblemDetails } from '../errors/types.js';
+import type {
+  ApiErrorResponse,
+  TooManyRequestsResponse,
+  TooManyRequestsProblemDetails,
+  UnauthorizedProblemDetails,
+  ForbiddenProblemDetails,
+  GoneProblemDetails,
+  BadRequestProblemDetails,
+} from '../errors/types.js';
 import type { ResolvedOptions } from '../config/options.js';
 import { RouteBuilder } from './route-builder.js';
 import { type RestRequest } from './rest-request.js';
@@ -139,6 +148,13 @@ export class RestClient {
       ...request.getHeaders(),
     };
 
+    const hasHeader = (name: string) =>
+      Object.keys(headers).some((header) => header.toLowerCase() === name.toLowerCase());
+
+    if (this.options.errorFormat !== 'legacy' && !hasHeader('x-error-format')) {
+      headers['X-Error-Format'] = 'problem-details';
+    }
+
     // Auth header injection: explicit token on request takes precedence
     if (!headers['Authorization'] && this.authManager) {
       const token = overrideToken ?? this.authManager.getAccessToken();
@@ -187,16 +203,42 @@ export class RestClient {
 
     const text = await response.text().catch(() => '');
 
+    let jsonCache: { value: unknown } | null = null;
     const parseJson = <T>(): T | undefined => {
-      try { return JSON.parse(text) as T; } catch { return undefined; }
+      if (jsonCache === null) {
+        try { jsonCache = { value: JSON.parse(text) }; }
+        catch { jsonCache = { value: undefined }; }
+      }
+      return jsonCache.value as T | undefined;
     };
 
+    const tryParseProblem = <T>(guard: (value: unknown) => value is T): T | undefined => {
+      const parsed = parseJson<unknown>();
+      return parsed !== undefined && guard(parsed) ? parsed : undefined;
+    };
+
+    if (response.status === 400) {
+      const problem = tryParseProblem(isBadRequestProblem);
+      if (problem) {
+        throw new KSeFBadRequestError(problem);
+      }
+      const legacy = parseJson<ApiErrorResponse>();
+      if (hasErrorCode(legacy, KSeFErrorCode.BatchTimeout)) {
+        throw KSeFBatchTimeoutError.fromResponse(400, legacy);
+      }
+      throw KSeFApiError.fromResponse(400, legacy);
+    }
+
     if (response.status === 429) {
-      const parsed = parseJson<TooManyRequestsResponse & ApiErrorResponse>();
+      const problem = tryParseProblem(isTooManyRequestsProblem);
+      const legacy = problem
+        ? undefined
+        : parseJson<TooManyRequestsResponse & ApiErrorResponse>();
       throw KSeFRateLimitError.fromRetryAfterHeader(
         response.status,
         response.headers.get('Retry-After'),
-        parsed,
+        legacy,
+        problem,
       );
     }
 
@@ -232,4 +274,32 @@ export class RestClient {
     }
     throw KSeFApiError.fromResponse(response.status, body);
   }
+}
+
+function isBadRequestProblem(value: unknown): value is BadRequestProblemDetails {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  if (typeof v.title !== 'string') return false;
+  if (v.status !== undefined && typeof v.status !== 'number') return false;
+  if (v.errors !== undefined) {
+    if (!Array.isArray(v.errors)) return false;
+    for (const item of v.errors) {
+      if (typeof item !== 'object' || item === null) return false;
+      const detail = item as Record<string, unknown>;
+      if (typeof detail.code !== 'number') return false;
+      if (typeof detail.description !== 'string') return false;
+    }
+  }
+  return true;
+}
+
+function isTooManyRequestsProblem(value: unknown): value is TooManyRequestsProblemDetails {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.title === 'string'
+    && (v.status === undefined || typeof v.status === 'number')
+    && (v.detail === undefined || typeof v.detail === 'string')
+    && (v.instance === undefined || typeof v.instance === 'string')
+    && (v.traceId === undefined || typeof v.traceId === 'string')
+    && (v.timestamp === undefined || typeof v.timestamp === 'string');
 }

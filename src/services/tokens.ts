@@ -1,7 +1,41 @@
 import { RestClient } from '../http/rest-client.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
-import type { KsefTokenRequest, KsefTokenResponse, TokenStatusResponse, QueryKsefTokensResponse, QueryKsefTokensOptions } from '../models/tokens/types.js';
+import type {
+  KsefTokenRequest,
+  KsefTokenResponse,
+  TokenStatusResponse,
+  QueryKsefTokensResponse,
+  QueryKsefTokensOptions,
+  TokenAuthorIdentifierType,
+} from '../models/tokens/types.js';
+import { decodeJwtPayload, parseKSeFTokenContext } from '../utils/jwt.js';
+import { KSeFApiError } from '../errors/ksef-api-error.js';
+import { KSeFError } from '../errors/ksef-error.js';
+
+const TOKEN_AUTHOR_IDENTIFIER_TYPES: ReadonlySet<TokenAuthorIdentifierType> = new Set([
+  'Nip',
+  'Pesel',
+  'Fingerprint',
+]);
+
+function toTokenAuthorIdentifierType(value: string): TokenAuthorIdentifierType | undefined {
+  return TOKEN_AUTHOR_IDENTIFIER_TYPES.has(value as TokenAuthorIdentifierType)
+    ? (value as TokenAuthorIdentifierType)
+    : undefined;
+}
+
+export interface RevokeSelfOptions {
+  /** Known reference number — skips discovery. */
+  referenceNumber?: string;
+  /** Access token used to infer the caller's context when discovery is needed. */
+  accessToken?: string;
+}
+
+export interface RevokeSelfResult {
+  referenceNumber: string;
+  alreadyRevoked: boolean;
+}
 
 export class TokenService {
   private readonly restClient: RestClient;
@@ -44,5 +78,86 @@ export class TokenService {
   async revokeToken(ref: string): Promise<void> {
     const req = RestRequest.delete(Routes.Tokens.byReference(ref));
     await this.restClient.executeVoid(req);
+  }
+
+  /**
+   * Resolves the reference number of the token currently in use for authentication.
+   * The only JWT payload field treated as authoritative is the KSeF-specific `trn`
+   * (token reference number). Standard RFC 7519 claims such as `jti` are NOT a safe
+   * fallback — a `jti` that differs from the KSeF reference would cause a DELETE to
+   * hit a non-existent path, which `revokeSelf` treats as already-revoked, falsely
+   * reporting success while leaving the token active on the server. When `trn` is
+   * absent, we fall back to `GET /tokens` filtered by author and context; requires
+   * exactly one active match and returns undefined when ambiguous.
+   */
+  async findSelfReferenceNumber(accessToken: string): Promise<string | undefined> {
+    if (!accessToken) return undefined;
+
+    const payload = decodeJwtPayload(accessToken);
+    if (payload && typeof payload['trn'] === 'string' && payload['trn'].length > 0) {
+      return payload['trn'];
+    }
+
+    const ctx = parseKSeFTokenContext(accessToken);
+    const author = ctx?.authorSubjectIdentifier as { type?: string; value?: string } | undefined;
+    if (!author?.type || !author.value) return undefined;
+    if (!ctx?.contextIdentifierType || !ctx?.contextIdentifierValue) return undefined;
+
+    const authorType = toTokenAuthorIdentifierType(author.type);
+    if (!authorType) return undefined;
+
+    let continuationToken: string | undefined;
+    let match: string | undefined;
+    do {
+      const list = await this.queryTokens({
+        status: ['Active'],
+        authorIdentifier: author.value,
+        authorIdentifierType: authorType,
+        pageSize: 50,
+        continuationToken,
+      });
+      for (const t of list.tokens) {
+        if (
+          t.status === 'Active' &&
+          t.contextIdentifier?.value === ctx.contextIdentifierValue &&
+          t.contextIdentifier?.type === ctx.contextIdentifierType
+        ) {
+          if (match) return undefined;
+          match = t.referenceNumber;
+        }
+      }
+      continuationToken = list.continuationToken ?? undefined;
+    } while (continuationToken);
+
+    return match;
+  }
+
+  /**
+   * Revokes the token currently used for authentication.
+   * Treats 404/409/410 on DELETE as "already revoked" and returns successfully with
+   * `alreadyRevoked: true` so callers can still clear local state.
+   */
+  async revokeSelf(opts: RevokeSelfOptions = {}): Promise<RevokeSelfResult> {
+    let ref = opts.referenceNumber;
+    if (!ref && opts.accessToken) {
+      ref = await this.findSelfReferenceNumber(opts.accessToken);
+    }
+    if (!ref) {
+      throw new KSeFError(
+        'Could not determine the current token reference number: no cache, JWT lacks the field, and the active-token list had 0 or 2+ matches in the current context.',
+      );
+    }
+    try {
+      await this.revokeToken(ref);
+      return { referenceNumber: ref, alreadyRevoked: false };
+    } catch (err) {
+      if (
+        err instanceof KSeFApiError &&
+        (err.statusCode === 404 || err.statusCode === 409 || err.statusCode === 410)
+      ) {
+        return { referenceNumber: ref, alreadyRevoked: true };
+      }
+      throw err;
+    }
   }
 }
