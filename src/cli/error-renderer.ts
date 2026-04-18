@@ -11,8 +11,11 @@ import {
 import type { ProblemFields } from '../errors/index.js';
 
 export function renderCliError(error: unknown, opts?: { json?: boolean }): void {
-  if (opts?.json && error instanceof Error) {
-    process.stdout.write(JSON.stringify({ error: serializeError(error) }, null, 2) + '\n');
+  if (opts?.json) {
+    const payload = error instanceof Error
+      ? serializeError(error)
+      : { name: 'UnknownError', value: safeValue(error) };
+    process.stdout.write(JSON.stringify({ error: payload }, null, 2) + '\n');
     return;
   }
 
@@ -86,6 +89,15 @@ function renderProblemDetails(fields: ProblemFields): void {
   if (fields.traceId) consola.error(`  └ Trace ID: ${fields.traceId}`);
   if (fields.instance) consola.error(`  └ Instance: ${fields.instance}`);
   if (fields.timestamp) consola.error(`  └ Timestamp: ${fields.timestamp}`);
+}
+
+function safeValue(value: unknown): unknown {
+  try {
+    // Round-trip to verify JSON-serializable.
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return String(value);
+  }
 }
 
 function serializeError(error: Error): Record<string, unknown> {

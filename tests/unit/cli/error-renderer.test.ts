@@ -362,10 +362,52 @@ describe('renderCliError — JSON mode', () => {
     expect(parsed.error).toEqual({ name: 'Error', message: 'network down' });
   });
 
-  it('falls through to pretty output for non-Error values even with json flag', () => {
-    renderCliError('string error', { json: true });
+  it('emits JSON envelope for a thrown string in JSON mode', () => {
+    renderCliError('just a string', { json: true });
 
-    expect(stdoutSpy).not.toHaveBeenCalled();
-    expect(consola.error).toHaveBeenCalledWith('Unknown error', 'string error');
+    expect(consola.error).not.toHaveBeenCalled();
+    expect(consola.info).not.toHaveBeenCalled();
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+    const parsed = JSON.parse(String(stdoutSpy.mock.calls[0]![0]));
+    expect(parsed).toEqual({
+      error: { name: 'UnknownError', value: 'just a string' },
+    });
+  });
+
+  it('emits JSON envelope for a thrown plain object in JSON mode', () => {
+    renderCliError({ code: 42, detail: 'oops' }, { json: true });
+
+    expect(consola.error).not.toHaveBeenCalled();
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+    const parsed = JSON.parse(String(stdoutSpy.mock.calls[0]![0]));
+    expect(parsed).toEqual({
+      error: { name: 'UnknownError', value: { code: 42, detail: 'oops' } },
+    });
+  });
+
+  it('emits JSON envelope for a thrown null in JSON mode', () => {
+    renderCliError(null, { json: true });
+
+    expect(consola.error).not.toHaveBeenCalled();
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+    const parsed = JSON.parse(String(stdoutSpy.mock.calls[0]![0]));
+    expect(parsed).toEqual({
+      error: { name: 'UnknownError', value: null },
+    });
+  });
+
+  it('handles non-serializable values (circular reference) gracefully', () => {
+    const circular: Record<string, unknown> = { a: 1 };
+    circular.self = circular;
+
+    expect(() => renderCliError(circular, { json: true })).not.toThrow();
+
+    expect(consola.error).not.toHaveBeenCalled();
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+    const written = String(stdoutSpy.mock.calls[0]![0]);
+    const parsed = JSON.parse(written);
+    expect(parsed.error.name).toBe('UnknownError');
+    expect(typeof parsed.error.value).toBe('string');
+    expect(parsed.error.value).toBe(String(circular));
   });
 });
