@@ -465,11 +465,11 @@ Pair with a retry-with-smaller-batch strategy rather than a tight loop — the t
 
 **File:** `src/errors/ksef-unauthorized-error.ts`
 
-Thrown when KSeF returns HTTP 401 with an RFC 7807 Problem Details body. Extends `KSeFError` directly (not `KSeFApiError`) because the body structure is different.
+Thrown when KSeF returns HTTP 401 with an RFC 7807 Problem Details body. Extends `KSeFApiError` so a single `instanceof KSeFApiError` catch still matches.
 
 ```typescript
-class KSeFUnauthorizedError extends KSeFError {
-  readonly statusCode = 401;
+class KSeFUnauthorizedError extends KSeFApiError {
+  override readonly statusCode: 401 = 401;
   readonly detail: string;
   readonly traceId?: string;
   readonly instance?: string;
@@ -497,11 +497,11 @@ By the time you catch this error, the library has already attempted an automatic
 
 **File:** `src/errors/ksef-forbidden-error.ts`
 
-Thrown when KSeF returns HTTP 403 with an RFC 7807 Problem Details body that includes a `reasonCode`. Extends `KSeFError` directly.
+Thrown when KSeF returns HTTP 403 with an RFC 7807 Problem Details body that includes a `reasonCode`. Extends `KSeFApiError`.
 
 ```typescript
-class KSeFForbiddenError extends KSeFError {
-  readonly statusCode = 403;
+class KSeFForbiddenError extends KSeFApiError {
+  override readonly statusCode: 403 = 403;
   readonly detail: string;
   readonly reasonCode: ForbiddenReasonCode;
   readonly instance?: string;
@@ -529,11 +529,11 @@ class KSeFForbiddenError extends KSeFError {
 
 **File:** `src/errors/ksef-gone-error.ts`
 
-Thrown when KSeF returns HTTP 410 (Gone) — the server-side record for an async operation status has aged out of the retention window. Extends `KSeFError` directly (not `KSeFApiError`) so the retention case is easy to single out.
+Thrown when KSeF returns HTTP 410 (Gone) — the server-side record for an async operation status has aged out of the retention window. Extends `KSeFApiError` (single out via `instanceof KSeFGoneError` rather than the base-class split).
 
 ```typescript
-class KSeFGoneError extends KSeFError {
-  readonly statusCode = 410;
+class KSeFGoneError extends KSeFApiError {
+  override readonly statusCode: 410 = 410;
   readonly detail: string;
   readonly instance?: string;
   readonly traceId?: string;
