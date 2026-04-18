@@ -695,6 +695,23 @@ describe('RestClient', () => {
       expect(headers['X-Error-Format']).toBe('custom');
     });
 
+    it('respects lowercase custom x-error-format override', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, {}));
+
+      const client = new RestClient(
+        { ...defaultOptions, customHeaders: { 'x-error-format': 'legacy' } },
+        {
+          transport,
+          retryPolicy: { maxRetries: 0, baseDelayMs: 1, maxDelayMs: 10, retryableStatusCodes: [], retryNetworkErrors: false },
+        },
+      );
+      await client.execute(RestRequest.get('/test'));
+
+      const headers = transport.mock.calls[0]![1].headers as Record<string, string>;
+      expect(headers['x-error-format']).toBe('legacy');
+      expect(headers['X-Error-Format']).toBeUndefined();
+    });
+
     it('surfaces typed security info on 403 Problem Details', async () => {
       const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(403, {
         title: 'Forbidden',
