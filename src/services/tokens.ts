@@ -12,6 +12,18 @@ import type {
 import { decodeJwtPayload, parseKSeFTokenContext } from '../utils/jwt.js';
 import { KSeFApiError } from '../errors/ksef-api-error.js';
 
+const TOKEN_AUTHOR_IDENTIFIER_TYPES: ReadonlySet<TokenAuthorIdentifierType> = new Set([
+  'Nip',
+  'Pesel',
+  'Fingerprint',
+]);
+
+function toTokenAuthorIdentifierType(value: string): TokenAuthorIdentifierType | undefined {
+  return TOKEN_AUTHOR_IDENTIFIER_TYPES.has(value as TokenAuthorIdentifierType)
+    ? (value as TokenAuthorIdentifierType)
+    : undefined;
+}
+
 export interface RevokeSelfOptions {
   /** Known reference number — skips discovery. */
   referenceNumber?: string;
@@ -87,19 +99,33 @@ export class TokenService {
     if (!author?.type || !author.value) return undefined;
     if (!ctx?.contextIdentifierType || !ctx?.contextIdentifierValue) return undefined;
 
-    const list = await this.queryTokens({
-      status: ['Active'],
-      authorIdentifier: author.value,
-      authorIdentifierType: author.type as TokenAuthorIdentifierType,
-      pageSize: 50,
-    });
-    const matches = list.tokens.filter(
-      (t) =>
-        t.status === 'Active' &&
-        t.contextIdentifier?.value === ctx.contextIdentifierValue &&
-        t.contextIdentifier?.type === ctx.contextIdentifierType,
-    );
-    return matches.length === 1 ? matches[0]!.referenceNumber : undefined;
+    const authorType = toTokenAuthorIdentifierType(author.type);
+    if (!authorType) return undefined;
+
+    let continuationToken: string | undefined;
+    let match: string | undefined;
+    do {
+      const list = await this.queryTokens({
+        status: ['Active'],
+        authorIdentifier: author.value,
+        authorIdentifierType: authorType,
+        pageSize: 50,
+        continuationToken,
+      });
+      for (const t of list.tokens) {
+        if (
+          t.status === 'Active' &&
+          t.contextIdentifier?.value === ctx.contextIdentifierValue &&
+          t.contextIdentifier?.type === ctx.contextIdentifierType
+        ) {
+          if (match) return undefined;
+          match = t.referenceNumber;
+        }
+      }
+      continuationToken = list.continuationToken ?? undefined;
+    } while (continuationToken);
+
+    return match;
   }
 
   /**

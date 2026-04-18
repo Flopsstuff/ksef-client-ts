@@ -221,6 +221,59 @@ describe('TokenService', () => {
       expect(await service.findSelfReferenceNumber('')).toBeUndefined();
       expect(client.execute).not.toHaveBeenCalled();
     });
+
+    it('returns undefined for unrecognized author identifier types', async () => {
+      const client = createMockRestClient();
+      const service = new TokenService(client);
+      const jwt = buildTestJwt({
+        ...CTX_TOKEN_PAYLOAD,
+        asi: JSON.stringify({ type: 'NotARealType', value: '8952265388' }),
+      });
+
+      expect(await service.findSelfReferenceNumber(jwt)).toBeUndefined();
+      expect(client.execute).not.toHaveBeenCalled();
+    });
+
+    it('walks continuation pages and returns the single matching token', async () => {
+      const client = createMockRestClient();
+      const service = new TokenService(client);
+      const jwt = buildTestJwt(CTX_TOKEN_PAYLOAD);
+      vi.mocked(client.execute)
+        .mockResolvedValueOnce(
+          mockResponse({
+            tokens: [
+              makeListItem({ referenceNumber: 'other-ctx', contextIdentifier: { type: 'Nip', value: '9999999999' } }),
+            ],
+            continuationToken: 'next-page',
+          }),
+        )
+        .mockResolvedValueOnce(
+          mockResponse({ tokens: [makeListItem({ referenceNumber: 'on-page-2' })] }),
+        );
+
+      const ref = await service.findSelfReferenceNumber(jwt);
+
+      expect(ref).toBe('on-page-2');
+      expect(client.execute).toHaveBeenCalledTimes(2);
+    });
+
+    it('returns undefined (ambiguous) when a second match appears on a later page', async () => {
+      const client = createMockRestClient();
+      const service = new TokenService(client);
+      const jwt = buildTestJwt(CTX_TOKEN_PAYLOAD);
+      vi.mocked(client.execute)
+        .mockResolvedValueOnce(
+          mockResponse({
+            tokens: [makeListItem({ referenceNumber: 'first' })],
+            continuationToken: 'next-page',
+          }),
+        )
+        .mockResolvedValueOnce(
+          mockResponse({ tokens: [makeListItem({ referenceNumber: 'second' })] }),
+        );
+
+      expect(await service.findSelfReferenceNumber(jwt)).toBeUndefined();
+    });
   });
 
   describe('revokeSelf', () => {
