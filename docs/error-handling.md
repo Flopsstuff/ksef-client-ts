@@ -237,7 +237,7 @@ catch (err) {
 The union type `KSeFApiProblem` lets you switch over every Problem Details error with compile-time safety:
 
 ```typescript
-import { KSeFApiProblem, assertNever, KSeFApiError } from 'ksef-client-ts';
+import { type KSeFApiProblem, assertNever, KSeFApiError } from 'ksef-client-ts';
 
 function describe(err: KSeFApiProblem): string {
   switch (err.statusCode) {
