@@ -12,7 +12,7 @@ The layer has six components:
 
 | Component | File | Role |
 |-----------|------|------|
-| **Invoice XML validator** | `src/validation/invoice-validator.ts` | Three-level invoice validation (well-formedness, schema, business rules) |
+| **Invoice XML validator** | `src/validation/invoice-validator.ts` | Four-level invoice validation (character validity, well-formedness, schema, business rules) |
 | **Schema registry** | `src/validation/schema-registry.ts` | Lazy-loading registry with namespace-based auto-detection |
 | **Generated Zod schemas** | `src/validation/schemas/*.ts` | Build-time XSD-to-Zod schemas for all 6 invoice types |
 | Regex patterns | `src/validation/patterns.ts` | Format validation for 17 identifier/data types |
@@ -171,7 +171,7 @@ import {
   SchemaRegistry,
 } from 'ksef-client-ts';
 
-// Full validation (all three levels)
+// Full validation (all four levels)
 const result = await validate(invoiceXml);
 if (!result.valid) {
   for (const error of result.errors) {
@@ -252,6 +252,8 @@ const type = SchemaRegistry.detect(
 
 | Code | Level | Meaning |
 |------|-------|---------|
+| `XML_PROCESSING_INSTRUCTION` | 1a | Processing instruction outside the allowed XML declaration/prolog position |
+| `XML_DISCOURAGED_UNICODE` | 1a | XML contains a W3C-discouraged Unicode code point |
 | `MALFORMED_XML` | 1 | XML cannot be parsed (unclosed tags, encoding errors, empty input) |
 | `MISSING_REQUIRED_ELEMENT` | 2 | A required element is absent |
 | `INVALID_ENUM_VALUE` | 2 | Value not in the allowed enumeration |
