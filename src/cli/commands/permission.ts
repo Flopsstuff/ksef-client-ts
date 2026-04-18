@@ -2,6 +2,7 @@ import { defineCommand } from 'citty';
 import { requireSession } from '../client-factory.js';
 import { outputResult, outputKeyValue, outputTable, outputSuccess, outputWarning } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
+import { KSeFValidationError } from '../../errors/ksef-validation-error.js';
 import type { GlobalOptions } from '../types.js';
 import type { PermissionSubjectIdentifierType } from '../../models/common.js';
 import type {
@@ -286,11 +287,33 @@ const search = defineCommand({
       const page = args.page ? parseInt(args.page, 10) : undefined;
       const pageSize = args.pageSize ? parseInt(args.pageSize, 10) : undefined;
 
+      const resolveContextBody = (): { contextIdentifier?: { type: 'Nip' | 'InternalId'; value: string } } => {
+        const hasType = Boolean(args.contextType);
+        const hasValue = Boolean(args.contextValue);
+        if (hasType !== hasValue) {
+          throw KSeFValidationError.fromField(
+            hasType ? '--context-value' : '--context-type',
+            '--context-type and --context-value must be provided together.',
+          );
+        }
+        if (!hasType) return {};
+        if (args.contextType !== 'Nip' && args.contextType !== 'InternalId') {
+          throw KSeFValidationError.fromField(
+            '--context-type',
+            `--context-type must be "Nip" or "InternalId", got "${args.contextType}".`,
+          );
+        }
+        return {
+          contextIdentifier: {
+            type: args.contextType,
+            value: args.contextValue!,
+          },
+        };
+      };
+
       switch (args.type) {
         case 'personal': {
-          const body = args.contextType && args.contextValue
-            ? { contextIdentifier: { type: args.contextType as 'Nip' | 'InternalId', value: args.contextValue } }
-            : {};
+          const body = resolveContextBody();
           const response = await client.permissions.queryPersonalGrants(body, page, pageSize);
 
           if (args.json) {
@@ -415,9 +438,7 @@ const search = defineCommand({
         }
 
         case 'entities-grants': {
-          const body = args.contextType && args.contextValue
-            ? { contextIdentifier: { type: args.contextType as 'Nip' | 'InternalId', value: args.contextValue } }
-            : {};
+          const body = resolveContextBody();
           const response = await client.permissions.queryEntitiesGrants(body, page, pageSize);
 
           if (args.json) {

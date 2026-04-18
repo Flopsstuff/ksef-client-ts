@@ -51,11 +51,11 @@ function classifyUnknownObject(input: Record<string, unknown>): KSeFValidationEr
  *   - pre-parsed `XmlDocument` array — rebuilt via the engine
  *   - `FakturaInput`     — FA2/FA3 builder (default schema: FA3)
  *   - `PefUblDocumentInput` — PEF / PEF_KOR builder
- *   - other plain object — serialized via `buildXmlFromObject` as a best-effort
- *     fallback without ordering or namespace injection
  *
  * Structured inputs that match none of the known shapes throw
- * `KSeFValidationError` naming the first missing top-level key.
+ * `KSeFValidationError` naming the first missing top-level key. Callers
+ * with an already-shaped `XmlObject` that deliberately sidesteps schema
+ * dispatch can use `buildRawXmlObject` directly.
  */
 export function serializeInvoiceXml(
   input: InvoiceSerializerInput,

@@ -34,21 +34,30 @@ function inferSchema(input: PefUblDocumentInput): PefSchema {
   return 'Invoice' in input ? 'PEF' : 'PEF_KOR';
 }
 
+function isNonArrayObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 function assertPefShape(input: unknown): asserts input is PefUblDocumentInput {
-  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+  if (!isNonArrayObject(input)) {
     throw new KSeFValidationError('PEF input must be a non-array object.');
   }
-  const obj = input as Record<string, unknown>;
-  const hasInvoice = obj.Invoice !== undefined;
-  const hasCreditNote = obj.CreditNote !== undefined;
-  if (hasInvoice && hasCreditNote) {
+  const hasInvoiceKey = 'Invoice' in input;
+  const hasCreditNoteKey = 'CreditNote' in input;
+  if (hasInvoiceKey && hasCreditNoteKey) {
     throw new KSeFValidationError(
       'PEF input must contain exactly one of `Invoice` or `CreditNote`, not both.',
     );
   }
-  if (!hasInvoice && !hasCreditNote) {
+  if (!hasInvoiceKey && !hasCreditNoteKey) {
     throw new KSeFValidationError(
       'PEF input must contain either an `Invoice` or a `CreditNote` root element.',
+    );
+  }
+  const rootKey = hasInvoiceKey ? 'Invoice' : 'CreditNote';
+  if (!isNonArrayObject(input[rootKey])) {
+    throw new KSeFValidationError(
+      `PEF \`${rootKey}\` value must be a non-array object.`,
     );
   }
 }

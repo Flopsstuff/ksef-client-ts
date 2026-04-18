@@ -466,10 +466,39 @@ describe('permission', () => {
       );
     });
 
-    it('personal — ignores contextType without contextValue', async () => {
-      mockClient.permissions.queryPersonalGrants.mockResolvedValue({ permissions: [] });
-      await runSearch({ type: 'personal', contextType: 'InternalId' });
-      expect(mockClient.permissions.queryPersonalGrants).toHaveBeenCalledWith({}, undefined, undefined);
+    it('personal — throws when contextType provided without contextValue', async () => {
+      await expect(
+        runSearch({ type: 'personal', contextType: 'InternalId' }),
+      ).rejects.toThrow(/context-type and --context-value must be provided together/);
+      expect(mockClient.permissions.queryPersonalGrants).not.toHaveBeenCalled();
+    });
+
+    it('personal — throws when contextValue provided without contextType', async () => {
+      await expect(
+        runSearch({ type: 'personal', contextValue: '1234567890' }),
+      ).rejects.toThrow(/context-type and --context-value must be provided together/);
+      expect(mockClient.permissions.queryPersonalGrants).not.toHaveBeenCalled();
+    });
+
+    it('personal — throws on invalid contextType value (e.g. typo)', async () => {
+      await expect(
+        runSearch({ type: 'personal', contextType: 'internalId', contextValue: 'x' }),
+      ).rejects.toThrow(/must be "Nip" or "InternalId"/);
+      expect(mockClient.permissions.queryPersonalGrants).not.toHaveBeenCalled();
+    });
+
+    it('entities-grants — throws on invalid contextType value', async () => {
+      await expect(
+        runSearch({ type: 'entities-grants', contextType: 'Pesel', contextValue: 'x' }),
+      ).rejects.toThrow(/must be "Nip" or "InternalId"/);
+      expect(mockClient.permissions.queryEntitiesGrants).not.toHaveBeenCalled();
+    });
+
+    it('entities-grants — throws when only contextValue is provided', async () => {
+      await expect(
+        runSearch({ type: 'entities-grants', contextValue: '1234567890' }),
+      ).rejects.toThrow(/context-type and --context-value must be provided together/);
+      expect(mockClient.permissions.queryEntitiesGrants).not.toHaveBeenCalled();
     });
   });
 

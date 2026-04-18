@@ -43,6 +43,5 @@ export type InvoiceSerializerInput =
   | string
   | Buffer
   | XmlDocument
-  | XmlObject
   | FakturaInput
   | PefUblDocumentInput;

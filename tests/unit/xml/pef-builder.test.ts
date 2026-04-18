@@ -78,6 +78,38 @@ describe('buildPefXml — XOR validation of Invoice / CreditNote', () => {
     expect(() => buildPefXml(null as unknown as PefUblDocumentInput)).toThrow(KSeFValidationError);
     expect(() => buildPefXml([] as unknown as PefUblDocumentInput)).toThrow(KSeFValidationError);
   });
+
+  it('throws KSeFValidationError when Invoice value is not a plain object', () => {
+    for (const bad of [
+      { Invoice: 1 },
+      { Invoice: 'x' },
+      { Invoice: null },
+      { Invoice: [] },
+    ]) {
+      expect(() => buildPefXml(bad as unknown as PefUblDocumentInput)).toThrow(
+        KSeFValidationError,
+      );
+      expect(() => buildPefXml(bad as unknown as PefUblDocumentInput)).toThrow(
+        /Invoice.*non-array object/,
+      );
+    }
+  });
+
+  it('throws KSeFValidationError when CreditNote value is not a plain object', () => {
+    for (const bad of [
+      { CreditNote: 1 },
+      { CreditNote: 'x' },
+      { CreditNote: null },
+      { CreditNote: [] },
+    ]) {
+      expect(() => buildPefXml(bad as unknown as PefUblDocumentInput)).toThrow(
+        KSeFValidationError,
+      );
+      expect(() => buildPefXml(bad as unknown as PefUblDocumentInput)).toThrow(
+        /CreditNote.*non-array object/,
+      );
+    }
+  });
 });
 
 // ── Schema / root mismatch ──────────────────────────────────────────────
