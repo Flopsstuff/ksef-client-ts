@@ -1,5 +1,6 @@
 import { PermissionsService } from '../../../src/services/permissions.js';
 import { Routes } from '../../../src/http/routes.js';
+import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
 import { createMockRestClient, getRequest, mockResponse } from './_helpers.js';
 
 describe('PermissionsService', () => {
@@ -274,18 +275,21 @@ describe('PermissionsService', () => {
 
     it('queryPersonalGrants throws KSeFValidationError when InternalId is shorter than 10 chars', async () => {
       const options = { contextIdentifier: { type: 'InternalId' as const, value: '123456789' } };
+      await expect(service.queryPersonalGrants(options)).rejects.toThrow(KSeFValidationError);
       await expect(service.queryPersonalGrants(options)).rejects.toThrow(/InternalId must be 10-16 characters/);
       expect(client.execute).not.toHaveBeenCalled();
     });
 
     it('queryPersonalGrants throws KSeFValidationError when InternalId is longer than 16 chars', async () => {
       const options = { contextIdentifier: { type: 'InternalId' as const, value: '12345678901234567' } };
+      await expect(service.queryPersonalGrants(options)).rejects.toThrow(KSeFValidationError);
       await expect(service.queryPersonalGrants(options)).rejects.toThrow(/InternalId must be 10-16 characters/);
       expect(client.execute).not.toHaveBeenCalled();
     });
 
     it('queryEntitiesGrants throws KSeFValidationError when InternalId is out of range', async () => {
       const options = { contextIdentifier: { type: 'InternalId' as const, value: 'short' } };
+      await expect(service.queryEntitiesGrants(options)).rejects.toThrow(KSeFValidationError);
       await expect(service.queryEntitiesGrants(options)).rejects.toThrow(/InternalId must be 10-16 characters/);
       expect(client.execute).not.toHaveBeenCalled();
     });
