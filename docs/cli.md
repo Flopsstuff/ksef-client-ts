@@ -453,7 +453,7 @@ The CLI provides contextual hints after common errors:
 
 Every server-returned failure is rendered with its full RFC 7807 Problem Details context so you can act on issues without re-running in verbose mode:
 
-```
+```text
 ✖ KSeF API error (HTTP 400): Invalid query payload
   └ Detail: Invalid query payload
   └ Errors:
