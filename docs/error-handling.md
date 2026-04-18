@@ -37,7 +37,7 @@ Error (built-in)
         └── KSeFValidationError          src/errors/ksef-validation-error.ts  (client-side validation)
 ```
 
-All server-returned HTTP errors extend `KSeFApiError`, so a single `instanceof KSeFApiError` catch handles every response-side failure. The `KSeFApiProblem` union type (see [Exhaustive dispatch](#exhaustive-dispatch-with-kseffapiproblem)) narrows through the five RFC 7807 subclasses for exhaustive `switch` / `assertNever` patterns.
+All server-returned HTTP errors extend `KSeFApiError`, so a single `instanceof KSeFApiError` catch handles every response-side failure. The `KSeFApiProblem` union type (see [Exhaustive dispatch](#exhaustive-dispatch-with-ksefapiproblem)) narrows through the five RFC 7807 subclasses for exhaustive `switch` / `assertNever` patterns.
 
 **All exports:** `src/errors/index.ts` re-exports every error class, type, and interface. Import from the package root:
 
