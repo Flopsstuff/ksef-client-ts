@@ -9,6 +9,11 @@ import type { XmlObject, XmlValue } from './types.js';
  * than listing every P_13_* before every P_14_*. smekcio TS 0.5.0 (commit
  * d1ec8fe, 2026-04-14) corrected this bug; the dedicated regression test lives
  * in tests/unit/xml/faktura-builder.test.ts ("multi-rate interleave").
+ *
+ * `Fa` is intentionally a union of FA2 and FA3 child keys (e.g. P_14_NW and
+ * P_13_6_N are FA3-only). Ordering is permissive by design: keys absent from
+ * the input are silently skipped, and shape enforcement is the job of
+ * `isFakturaInput` + XSD validation in the test harness, not this table.
  */
 export const ORDER_MAP: Record<string, string[]> = {
   Faktura: ['Naglowek', 'Podmiot1', 'Podmiot2', 'Podmiot3', 'Fa', 'Stopka'],
