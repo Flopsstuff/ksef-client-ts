@@ -103,13 +103,29 @@ export function validateAgainstXsd(xml: string, xsdPath: string): ValidateAgains
   // directory when resolving subsequent relative `<xsd:include>` / `<xsd:import>`
   // references. The path.sep keeps this correct on Windows too.
   const baseUrl = pathToFileURL(xsdDir + path.sep).href;
-  const schemaDoc = libxmljs.parseXml(rewrittenXsd, { baseUrl });
 
-  const xmlDoc = libxmljs.parseXml(xml);
+  // libxmljs2 throws synchronously on malformed XML / XSD (e.g., a truncated
+  // fast-check counterexample or a rewritten schema path that fails to load).
+  // Convert those into structured validation results so property-test callers
+  // still see a failing assertion with diagnostic context instead of a bare
+  // exception surfacing from deep inside the helper.
+  let schemaDoc;
+  try {
+    schemaDoc = libxmljs.parseXml(rewrittenXsd, { baseUrl });
+  } catch (err) {
+    return { valid: false, errors: [`XSD parse failed: ${(err as Error).message}`] };
+  }
+  let xmlDoc;
+  try {
+    xmlDoc = libxmljs.parseXml(xml);
+  } catch (err) {
+    return { valid: false, errors: [`XML parse failed: ${(err as Error).message}`] };
+  }
+
   const valid = xmlDoc.validate(schemaDoc);
   const errors = valid
     ? []
-    : xmlDoc.validationErrors.map((err) => err.message.trim());
+    : xmlDoc.validationErrors.map((err: Error) => err.message.trim());
 
   return { valid, errors };
 }
