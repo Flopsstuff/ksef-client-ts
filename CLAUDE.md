@@ -31,7 +31,7 @@ Tests live in `tests/**/*.test.ts` (vitest, globals enabled). Unit tests in `tes
 
 ### Layered design
 
-```
+```text
 KSeFClient (src/client.ts)
   ├── 13 API services + crypto + qr + offline (16 properties total)
   ├── each service wraps RestClient for its API domain
