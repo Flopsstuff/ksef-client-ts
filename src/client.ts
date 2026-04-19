@@ -2,6 +2,7 @@ import { type KSeFClientOptions, type ResolvedOptions, resolveOptions } from './
 import { RestClient, type RestClientConfig } from './http/rest-client.js';
 import { defaultRetryPolicy, type RetryPolicy } from './http/retry-policy.js';
 import { RateLimitPolicy } from './http/rate-limit-policy.js';
+import { CircuitBreakerPolicy } from './http/circuit-breaker-policy.js';
 import { defaultPresignedUrlPolicy, type PresignedUrlPolicy } from './http/presigned-url-policy.js';
 import { DefaultAuthManager, type AuthManager } from './http/auth-manager.js';
 import { AuthService } from './services/auth.js';
@@ -185,6 +186,13 @@ function buildRestClientConfig(options: KSeFClientOptions | undefined, authManag
       globalRps: options.rateLimit.globalRps ?? 10,
       endpointLimits: options.rateLimit.endpointLimits,
     });
+  }
+
+  // Circuit breaker policy: null keeps off (same as omit), partial config enables with defaults
+  if (options?.circuitBreaker === null) {
+    config.circuitBreakerPolicy = null;
+  } else if (options?.circuitBreaker) {
+    config.circuitBreakerPolicy = new CircuitBreakerPolicy(options.circuitBreaker);
   }
 
   // Presigned URL policy: merge additional hosts with defaults

@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Opt-in HTTP circuit breaker** — pauses outgoing requests for a cooldown window after consecutive upstream failures, preventing retry storms during KSeF outages and resuming automatically once the service recovers.
+
 ### Fixed
 
 ## [0.7.0] - 2026-04-19

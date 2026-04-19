@@ -22,6 +22,7 @@ export { KSeFAuthStatusError } from './ksef-auth-status-error.js';
 export { KSeFSessionExpiredError } from './ksef-session-expired-error.js';
 export { KSeFValidationError } from './ksef-validation-error.js';
 export { KSeFBatchTimeoutError } from './ksef-batch-timeout-error.js';
+export { KSeFCircuitOpenError } from './ksef-circuit-open-error.js';
 export { KSeFErrorCode } from './error-codes.js';
 export { assertNever } from './assert-never.js';
 

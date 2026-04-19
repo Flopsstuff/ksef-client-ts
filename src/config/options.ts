@@ -2,6 +2,7 @@ import { Environment, type EnvironmentConfig, type EnvironmentName } from './env
 import type { TransportFn } from '../http/transport.js';
 import type { RetryPolicy } from '../http/retry-policy.js';
 import type { RateLimitConfig } from '../http/rate-limit-policy.js';
+import type { CircuitBreakerConfig } from '../http/circuit-breaker-policy.js';
 import type { AuthManager } from '../http/auth-manager.js';
 
 export interface KSeFClientOptions {
@@ -26,6 +27,13 @@ export interface KSeFClientOptions {
   transport?: TransportFn;
   retry?: Partial<RetryPolicy>;
   rateLimit?: Partial<RateLimitConfig> | null;
+  /**
+   * HTTP circuit breaker. Opt-in: `undefined` or omitted keeps the feature off.
+   * Pass a partial config to enable with defaults merged in. Opens after
+   * consecutive network/5xx failures and fails fast during the cooldown window,
+   * then probes a single request to recover. 429/401 never trip the breaker.
+   */
+  circuitBreaker?: Partial<CircuitBreakerConfig> | null;
   presignedUrlHosts?: string[];
   authManager?: AuthManager;
   /**

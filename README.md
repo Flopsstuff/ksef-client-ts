@@ -13,6 +13,7 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 - **Built-in cryptography** — AES-256-CBC, RSA-OAEP, ECDH, XAdES-B signatures, self-signed certs (Node crypto)
 - **External signing** — HSM, EPUAP, and smart card authentication via callback-based signing
 - **Automatic token management** — AuthManager: token injection, 401 refresh with dedup
+- **Opt-in circuit breaker** — pauses outgoing requests for a short cooldown window after consecutive upstream failures
 - **Streaming batch uploads** — constant-memory batch upload via Web Streams API with ZIP bomb protection
 - **Incremental export** — HWM-based paginated export with file-based state persistence
 - **Multiple document structures** — FA, PEF, PEF_KOR, FA_RR with typed FormCode constants and UPO parsing

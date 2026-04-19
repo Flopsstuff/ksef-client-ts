@@ -31,6 +31,7 @@ import {
   sleep,
 } from './retry-policy.js';
 import { type RateLimitPolicy } from './rate-limit-policy.js';
+import { type CircuitBreakerPolicy } from './circuit-breaker-policy.js';
 import { type AuthManager } from './auth-manager.js';
 import { type PresignedUrlPolicy, validatePresignedUrl } from './presigned-url-policy.js';
 
@@ -38,6 +39,7 @@ export interface RestClientConfig {
   transport?: TransportFn;
   retryPolicy?: RetryPolicy;
   rateLimitPolicy?: RateLimitPolicy | null;
+  circuitBreakerPolicy?: CircuitBreakerPolicy | null;
   authManager?: AuthManager;
   presignedUrlPolicy?: PresignedUrlPolicy;
 }
@@ -48,6 +50,7 @@ export class RestClient {
   private readonly transport: TransportFn;
   private readonly retryPolicy: RetryPolicy;
   private readonly rateLimitPolicy: RateLimitPolicy | null;
+  private readonly circuitBreakerPolicy: CircuitBreakerPolicy | null;
   private readonly authManager?: AuthManager;
   private readonly presignedUrlPolicy?: PresignedUrlPolicy;
 
@@ -57,6 +60,7 @@ export class RestClient {
     this.transport = config?.transport ?? defaultTransport;
     this.retryPolicy = config?.retryPolicy ?? defaultRetryPolicy();
     this.rateLimitPolicy = config?.rateLimitPolicy ?? null;
+    this.circuitBreakerPolicy = config?.circuitBreakerPolicy ?? null;
     this.authManager = config?.authManager;
     this.presignedUrlPolicy = config?.presignedUrlPolicy;
   }
@@ -93,6 +97,11 @@ export class RestClient {
       await this.rateLimitPolicy.acquire(request.path);
     }
 
+    // 2.5. Circuit breaker — fail fast if open (throws KSeFCircuitOpenError)
+    if (this.circuitBreakerPolicy) {
+      this.circuitBreakerPolicy.ensureClosed(request.path);
+    }
+
     // 3. Retry loop
     let lastError: unknown;
     for (let attempt = 0; attempt <= this.retryPolicy.maxRetries; attempt++) {
@@ -107,6 +116,8 @@ export class RestClient {
             return this.doRequest(request, url, newToken);
           }
         }
+
+        this.recordCircuitOutcome(request.path, response.status);
 
         // Retryable status check
         if (isRetryableStatus(response.status, this.retryPolicy) && attempt < this.retryPolicy.maxRetries) {
@@ -128,6 +139,10 @@ export class RestClient {
       } catch (error) {
         lastError = error;
 
+        if (isRetryableError(error, this.retryPolicy)) {
+          this.circuitBreakerPolicy?.recordFailure(request.path);
+        }
+
         if (isRetryableError(error, this.retryPolicy) && attempt < this.retryPolicy.maxRetries) {
           const delayMs = calculateBackoff(attempt, this.retryPolicy);
           consola.debug(`Network error, attempt ${attempt + 1}/${this.retryPolicy.maxRetries}, waiting ${Math.round(delayMs)}ms`);
@@ -140,6 +155,17 @@ export class RestClient {
     }
 
     throw lastError;
+  }
+
+  private recordCircuitOutcome(path: string, status: number): void {
+    if (!this.circuitBreakerPolicy) return;
+    // 429 and 401 have their own flows (Retry-After / auth-refresh) — neither indicates outage.
+    if (status === 429 || status === 401) return;
+    if (status >= 500) {
+      this.circuitBreakerPolicy.recordFailure(path);
+    } else {
+      this.circuitBreakerPolicy.recordSuccess(path);
+    }
   }
 
   private async doRequest(request: RestRequest, url: string, overrideToken?: string): Promise<Response> {
