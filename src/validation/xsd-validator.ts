@@ -77,7 +77,21 @@ export function isMissingLibxmljsError(err: unknown): boolean {
   return err instanceof Error && err.message.startsWith(MISSING_LIBXMLJS_MESSAGE_PREFIX);
 }
 
+// Only FA XSDs reference the external crd.gov.pl schemaLocation that needs
+// rewriting to a local file://-URL. PEF XSDs have no such import, so this
+// regex legitimately produces no replacement on a PEF path — callers must
+// not treat a zero-replacement PEF rewrite as drift.
+const EXTERNAL_STRUKTURY_DANYCH_URL =
+  /schemaLocation="http:\/\/crd\.gov\.pl\/xml\/schematy\/dziedzinowe\/mf\/2022\/01\/05\/eD\/DefinicjeTypy\/StrukturyDanych_v10-0E\.xsd"/g;
+
 function rewriteSchemaLocations(xsdContent: string): string {
+  // No upstream URL present → nothing to rewrite (PEF XSDs reach this path
+  // unchanged). Returning early makes the drift-guard below unambiguous.
+  if (!EXTERNAL_STRUKTURY_DANYCH_URL.test(xsdContent)) {
+    return xsdContent;
+  }
+  EXTERNAL_STRUKTURY_DANYCH_URL.lastIndex = 0;
+
   const bazoweStrukturyPath = path.join(
     locatePackageRoot(),
     'docs',
@@ -87,17 +101,29 @@ function rewriteSchemaLocations(xsdContent: string): string {
     'StrukturyDanych_v10-0E.xsd',
   );
   const bazoweStrukturyUrl = pathToFileURL(bazoweStrukturyPath).href;
-  return xsdContent.replace(
-    /schemaLocation="http:\/\/crd\.gov\.pl\/xml\/schematy\/dziedzinowe\/mf\/2022\/01\/05\/eD\/DefinicjeTypy\/StrukturyDanych_v10-0E\.xsd"/g,
+  const rewritten = xsdContent.replace(
+    EXTERNAL_STRUKTURY_DANYCH_URL,
     `schemaLocation="${bazoweStrukturyUrl}"`,
   );
+  EXTERNAL_STRUKTURY_DANYCH_URL.lastIndex = 0;
+
+  // Drift-guard: the URL was present but `.replace()` produced no change.
+  // Should be unreachable unless the regex and the URL diverge — fail loud
+  // rather than pass through an unresolved `<xsd:import>` to libxmljs.
+  if (rewritten === xsdContent) {
+    throw new Error(
+      'FA XSD schemaLocation rewrite produced no replacement despite URL being present; ' +
+        'regex likely out of sync with docs/schemas/FA/. Re-check after `yarn sync-schemas`.',
+    );
+  }
+  return rewritten;
 }
 
 export function validateAgainstXsd(xml: string, xsdPath: string): ValidateAgainstXsdResult {
   if (!libxmljs) {
     throw new Error(
       `${MISSING_LIBXMLJS_MESSAGE_PREFIX}; cannot run XSD validation. ` +
-        'Install it as an optional peer dependency: `npm i -O libxmljs2`.',
+        'Install it as an optional peer dependency (e.g. `yarn add -O libxmljs2` or `npm i -O libxmljs2`).',
     );
   }
 
