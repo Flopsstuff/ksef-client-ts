@@ -34,6 +34,7 @@ export class VerificationLinkService {
     certSerial: string,
     invoiceHashBase64: string,
     privateKeyPem: string,
+    privateKeyPassword?: string,
   ): string {
     const hashBase64Url = this.base64ToBase64Url(invoiceHashBase64);
 
@@ -42,7 +43,9 @@ export class VerificationLinkService {
     // Path to sign = full URL without https:// prefix
     const dataToSign = pathWithoutSignature.replace(/^https?:\/\//, '');
 
-    const key = crypto.createPrivateKey(privateKeyPem);
+    const key = privateKeyPassword
+      ? crypto.createPrivateKey({ key: privateKeyPem, format: 'pem', passphrase: privateKeyPassword })
+      : crypto.createPrivateKey(privateKeyPem);
     let signature: Buffer;
 
     if (key.asymmetricKeyType === 'rsa') {

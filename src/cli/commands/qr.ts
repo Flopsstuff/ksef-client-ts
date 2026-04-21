@@ -82,6 +82,7 @@ const certificate = defineCommand({
     'cert-serial': { type: 'string', description: 'Certificate serial number', required: true },
     hash: { type: 'string', description: 'Certificate hash (base64)', required: true },
     key: { type: 'string', description: 'Path to PEM private key file', required: true },
+    'key-password': { type: 'string', description: 'Password for encrypted PEM private key' },
     format: { type: 'string', description: 'Output format: png or svg (default: png)' },
     size: { type: 'string', description: 'QR code size in pixels (default: 300)' },
     label: { type: 'string', description: 'Label text (SVG only)' },
@@ -100,6 +101,7 @@ const certificate = defineCommand({
       const format = args.format ?? 'png';
 
       const privateKeyPem = fs.readFileSync(args.key, 'utf-8');
+      const keyPassword = args['key-password'] as string | undefined;
 
       const url = client.qr.buildCertificateVerificationUrl(
         args['context-type'],
@@ -108,6 +110,7 @@ const certificate = defineCommand({
         args['cert-serial'],
         args.hash,
         privateKeyPem,
+        keyPassword,
       );
 
       if (args.json) {

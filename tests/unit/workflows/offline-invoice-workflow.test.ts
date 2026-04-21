@@ -72,6 +72,7 @@ describe('OfflineInvoiceWorkflow', () => {
       expect(qrService.buildCertificateVerificationUrl).toHaveBeenCalledWith(
         'Nip', '1234567890', '1234567890', '01AA',
         expect.any(String), 'PEM',
+        undefined,
       );
     });
 
