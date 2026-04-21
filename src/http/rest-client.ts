@@ -103,13 +103,15 @@ export class RestClient {
 
     // 3. Rate limit acquire (once before retry loop). If acquire throws
     //    (e.g. a custom policy enforcing a max queue depth), release any
-    //    claimed half-open probe slot — we never reached the transport, so
-    //    the breaker has no outage signal to record.
+    //    claimed half-open probe slot without observing upstream — we must
+    //    NOT call recordSuccess here, which would fully close the breaker
+    //    based on a probe that never ran. releaseProbe keeps the breaker
+    //    OPEN and restarts the cooldown so the next probe waits properly.
     if (this.rateLimitPolicy) {
       try {
         await this.rateLimitPolicy.acquire(request.path);
       } catch (error) {
-        if (ownsProbeSlot) this.circuitBreakerPolicy?.recordSuccess(request.path);
+        if (ownsProbeSlot) this.circuitBreakerPolicy?.releaseProbe(request.path);
         throw error;
       }
     }

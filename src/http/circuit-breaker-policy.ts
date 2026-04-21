@@ -79,6 +79,23 @@ export class CircuitBreakerPolicy {
     this.states.delete(key);
   }
 
+  // Release a claimed probe slot WITHOUT observing an outcome. Use this when
+  // the probe attempt was aborted before reaching upstream (e.g. rate-limit
+  // acquire rejected, client cancellation). We have no new information about
+  // upstream health, so the breaker must stay OPEN — but we do restart the
+  // cooldown clock so the next probe attempt waits a fresh `openMs`,
+  // preventing a tight loop of aborted probes from spamming the limiter.
+  releaseProbe(endpoint: string): void {
+    const key = this.keyFor(endpoint);
+    const state = this.states.get(key);
+    if (!state || !state.probeInFlight) return;
+    state.probeInFlight = false;
+    if (state.openedAt !== null) {
+      state.openedAt = performance.now();
+    }
+    consola.debug(`Circuit breaker: probe aborted (not observed) for '${key}', cooldown restarted`);
+  }
+
   recordFailure(endpoint: string): void {
     const key = this.keyFor(endpoint);
     const now = performance.now();
