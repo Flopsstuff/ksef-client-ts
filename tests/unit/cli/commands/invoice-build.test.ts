@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { invoiceCommand } from '../../../../src/cli/commands/invoice.js';
+import { outputResult } from '../../../../src/cli/output.js';
 import { libxmljsAvailable } from '../../../../src/validation/xsd-validator.js';
 import { KSeFValidationError } from '../../../../src/errors/ksef-validation-error.js';
 import { KSeFXsdValidationError } from '../../../../src/errors/ksef-xsd-validation-error.js';
@@ -121,9 +122,15 @@ describe('invoice build — end-to-end via stdin', () => {
     stdoutChunks = [];
 
     await runWithStdin(templateJson, { 'dry-run': true, json: true });
-    const parsed = JSON.parse(capturedStdout() || '{}');
-    // With json=true, outputResult is mocked (does not write); just check the call below.
-    // Verify the command did not write any XML (no <?xml) to stdout.
+    // outputResult is mocked — assert the summary contract against its calls
+    // rather than parsing stdout (which the mock never writes to).
+    expect(outputResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        schema: 'FA3',
+        sections: expect.arrayContaining(['Naglowek']),
+      }),
+      { json: true },
+    );
     expect(capturedStdout()).not.toContain('<?xml');
   });
 
