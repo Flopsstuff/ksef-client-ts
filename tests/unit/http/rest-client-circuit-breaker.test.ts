@@ -139,6 +139,168 @@ describe('RestClient + CircuitBreakerPolicy', () => {
     expect(transport).toHaveBeenCalledTimes(3);
   });
 
+  // ---- Probe + internal retries: half-open must not deadlock on its own slot
+
+  it('half-open probe that retries through 5xx and recovers closes the circuit', async () => {
+    // Prime the breaker with maxRetries=0 so each failing execute burns
+    // exactly one transport call and one breaker-failure slot. Then switch to
+    // a client with maxRetries=2 (sharing the same policy) for the probe:
+    // the probe retries 503 → 503 → 200 internally and must recover.
+    const circuitBreakerPolicy = new CircuitBreakerPolicy({ failureThreshold: 2, openMs: 30 });
+
+    const primeTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(500));
+    const primeClient = createClient(primeTransport, { circuitBreakerPolicy });
+
+    await expect(primeClient.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+    await expect(primeClient.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+    // Breaker is now OPEN — immediate follow-up short-circuits.
+    await expect(primeClient.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFCircuitOpenError);
+
+    await sleep(50);
+    const recoveryTransport = vi.fn<TransportFn>()
+      .mockResolvedValueOnce(mockResponse(503))
+      .mockResolvedValueOnce(mockResponse(503))
+      .mockResolvedValueOnce(mockResponse(200, { ok: true }));
+    const recoveryClient = new RestClient(defaultOptions, {
+      transport: recoveryTransport,
+      retryPolicy: {
+        maxRetries: 2,
+        baseDelayMs: 1,
+        maxDelayMs: 5,
+        retryableStatusCodes: [429, 500, 502, 503, 504],
+        retryNetworkErrors: true,
+      },
+      circuitBreakerPolicy,
+    });
+
+    // Without the fix: the second loop iteration's ensureClosed() throws
+    // because probeInFlight=true, aborting after 1 transport call.
+    const res = await recoveryClient.execute<{ ok: boolean }>(RestRequest.get('/t'));
+    expect(res.body).toEqual({ ok: true });
+    expect(recoveryTransport).toHaveBeenCalledTimes(3);
+  });
+
+  it('half-open probe that exhausts retries re-opens with fresh cooldown instead of deadlocking', async () => {
+    const circuitBreakerPolicy = new CircuitBreakerPolicy({ failureThreshold: 2, openMs: 50 });
+
+    const primeTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(500));
+    const primeClient = createClient(primeTransport, { circuitBreakerPolicy });
+    await expect(primeClient.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+    await expect(primeClient.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+
+    await sleep(80);
+
+    // Probe + retries all return 503 — probe exhausts its budget.
+    const probeTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(503));
+    const probeClient = new RestClient(defaultOptions, {
+      transport: probeTransport,
+      retryPolicy: {
+        maxRetries: 2,
+        baseDelayMs: 1,
+        maxDelayMs: 5,
+        retryableStatusCodes: [429, 500, 502, 503, 504],
+        retryNetworkErrors: true,
+      },
+      circuitBreakerPolicy,
+    });
+    await expect(probeClient.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+    expect(probeTransport).toHaveBeenCalledTimes(3); // probe + 2 retries
+
+    // Follow-up MUST see a fresh cooldown (retryAfterMs > 0), NOT
+    // retryAfterMs=0 (which would mean probeInFlight got stuck).
+    const followUpTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, { ok: true }));
+    const followUpClient = createClient(followUpTransport, { circuitBreakerPolicy });
+    try {
+      await followUpClient.execute(RestRequest.get('/t'));
+      throw new Error('should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(KSeFCircuitOpenError);
+      expect((err as KSeFCircuitOpenError).retryAfterMs).toBeGreaterThan(0);
+    }
+    expect(followUpTransport).toHaveBeenCalledTimes(0);
+
+    // Fresh cooldown elapses → probe succeeds → circuit closes.
+    await sleep(70);
+    const res = await followUpClient.execute<{ ok: boolean }>(RestRequest.get('/t'));
+    expect(res.body).toEqual({ ok: true });
+  });
+
+  it('half-open probe with retryable network errors does not deadlock', async () => {
+    const netErr = Object.assign(new Error('conn reset'), { code: 'ECONNRESET' });
+    const circuitBreakerPolicy = new CircuitBreakerPolicy({ failureThreshold: 2, openMs: 50 });
+
+    const primeTransport = vi.fn<TransportFn>().mockRejectedValue(netErr);
+    const primeClient = createClient(primeTransport, { circuitBreakerPolicy });
+    await expect(primeClient.execute(RestRequest.get('/n'))).rejects.toThrow();
+    await expect(primeClient.execute(RestRequest.get('/n'))).rejects.toThrow();
+
+    await sleep(80);
+
+    const probeTransport = vi.fn<TransportFn>().mockRejectedValue(netErr);
+    const probeClient = new RestClient(defaultOptions, {
+      transport: probeTransport,
+      retryPolicy: {
+        maxRetries: 2,
+        baseDelayMs: 1,
+        maxDelayMs: 5,
+        retryableStatusCodes: [429, 500, 502, 503, 504],
+        retryNetworkErrors: true,
+      },
+      circuitBreakerPolicy,
+    });
+    // Without the fix, the second loop iteration's ensureClosed() throws
+    // before the retry can run.
+    await expect(probeClient.execute(RestRequest.get('/n'))).rejects.toThrow();
+    expect(probeTransport).toHaveBeenCalledTimes(3);
+
+    // Breaker re-opened with non-zero cooldown.
+    const followUpTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, { ok: true }));
+    const followUpClient = createClient(followUpTransport, { circuitBreakerPolicy });
+    try {
+      await followUpClient.execute(RestRequest.get('/n'));
+      throw new Error('should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(KSeFCircuitOpenError);
+      expect((err as KSeFCircuitOpenError).retryAfterMs).toBeGreaterThan(0);
+    }
+
+    await sleep(70);
+    const res = await followUpClient.execute<{ ok: boolean }>(RestRequest.get('/n'));
+    expect(res.body).toEqual({ ok: true });
+  });
+
+  it('half-open probe that throws a non-retryable error still releases the probe slot', async () => {
+    // A plain Error with neither name='AbortError' nor a retryable errno is
+    // NOT retryable per isRetryableError. On the probe, this terminates
+    // immediately; the claimed probe slot MUST be released via recordFailure
+    // so probeInFlight does not stay true forever.
+    const circuitBreakerPolicy = new CircuitBreakerPolicy({ failureThreshold: 2, openMs: 50 });
+    const netErr = Object.assign(new Error('conn reset'), { code: 'ECONNRESET' });
+
+    const primeTransport = vi.fn<TransportFn>().mockRejectedValue(netErr);
+    const primeClient = createClient(primeTransport, { circuitBreakerPolicy });
+    await expect(primeClient.execute(RestRequest.get('/x'))).rejects.toThrow();
+    await expect(primeClient.execute(RestRequest.get('/x'))).rejects.toThrow();
+
+    await sleep(80);
+
+    const probeTransport = vi.fn<TransportFn>().mockRejectedValue(new Error('unexpected failure'));
+    const probeClient = createClient(probeTransport, { circuitBreakerPolicy });
+    await expect(probeClient.execute(RestRequest.get('/x'))).rejects.toThrow('unexpected failure');
+
+    // Immediate follow-up must see a fresh cooldown, NOT retryAfterMs=0.
+    const followUpTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, { ok: true }));
+    const followUpClient = createClient(followUpTransport, { circuitBreakerPolicy });
+    try {
+      await followUpClient.execute(RestRequest.get('/x'));
+      throw new Error('should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(KSeFCircuitOpenError);
+      expect((err as KSeFCircuitOpenError).retryAfterMs).toBeGreaterThan(0);
+    }
+    expect(followUpTransport).toHaveBeenCalledTimes(0);
+  });
+
   it('network errors count as failures', async () => {
     const netErr = Object.assign(new Error('conn reset'), { code: 'ECONNRESET' });
     const transport = vi.fn<TransportFn>().mockRejectedValue(netErr);

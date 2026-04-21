@@ -107,10 +107,15 @@ export class RestClient {
     //   path. Retry-and-recover does not score multiple failures against the
     //   breaker, and the documented "5xx after retries exhausted" contract
     //   becomes literal instead of aspirational.
+    // - If this request claimed the half-open probe slot, we track ownership
+    //   locally so subsequent `ensureClosed` calls in the same retry loop do
+    //   not deadlock on our own in-flight probe.
     let lastError: unknown;
+    let ownsProbeSlot = false;
     for (let attempt = 0; attempt <= this.retryPolicy.maxRetries; attempt++) {
       if (this.circuitBreakerPolicy) {
-        this.circuitBreakerPolicy.ensureClosed(request.path);
+        const claimed = this.circuitBreakerPolicy.ensureClosed(request.path, ownsProbeSlot);
+        if (claimed) ownsProbeSlot = true;
       }
 
       try {
@@ -157,11 +162,14 @@ export class RestClient {
           continue;
         }
 
-        // Terminal network error — only count against the breaker if it was a
-        // retryable failure mode (the kind the breaker is designed to protect
-        // against). Non-retryable throws (ex. AbortError on deliberate cancel)
-        // are neither success nor outage signal.
-        if (isRetryableError(error, this.retryPolicy)) {
+        // Terminal network error — count against the breaker when the failure
+        // mode is the kind it protects against. A non-retryable throw (ex.
+        // AbortError on deliberate cancel) is normally not an outage signal,
+        // but if this request had claimed the half-open probe slot we MUST
+        // release it — otherwise `probeInFlight` stays true forever and the
+        // breaker deadlocks. `recordFailure` on an owned probe re-opens with
+        // a fresh cooldown (see CircuitBreakerPolicy.recordFailure).
+        if (isRetryableError(error, this.retryPolicy) || ownsProbeSlot) {
           this.circuitBreakerPolicy?.recordFailure(request.path);
         }
 

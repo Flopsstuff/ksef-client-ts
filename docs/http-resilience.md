@@ -641,7 +641,7 @@ Endpoint paths are defined as constants in `src/http/routes.ts` and referenced b
 
 ## How Policies Compose
 
-The four policies are independent and pluggable. Each can be configured, replaced, or disabled:
+The five policies are independent and pluggable. Each can be configured, replaced, or disabled:
 
 | Policy | Disable | Replace |
 |--------|---------|---------|
@@ -663,8 +663,9 @@ The composition happens in `RestClient`'s constructor (`src/http/rest-client.ts`
 5. Presigned URL validation: SKIP (not marked as presigned)
 6. Rate limit acquire: wait for global bucket token (10 RPS)
 7. Retry loop, attempt 0:
-   a. doRequest(): inject auth header, POST, 30s timeout
-   b. Response: 200 → return
+   a. Circuit breaker: ensureClosed('online/Invoice/Export') → CLOSED → continue
+   b. doRequest(): inject auth header, POST, 30s timeout
+   c. Response: 200 → recordCircuitOutcome(200) → success recorded
 8. ensureSuccess(): status OK → skip
 9. Parse JSON → return RestResponse<T>
 ```
@@ -678,13 +679,15 @@ The composition happens in `RestClient`'s constructor (`src/http/rest-client.ts`
 4. Presigned URL validation: check HTTPS, host, redirect params, private IP → PASS
 5. Rate limit acquire: wait for global bucket token
 6. Retry loop, attempt 0:
-   a. doRequest(): GET presigned URL with auth header
-   b. Response: 429, Retry-After: 5
-   c. parseRetryAfter('5') → 5000ms
-   d. sleep(5000ms)
-   e. Re-acquire rate limit token (429 path)
+   a. Circuit breaker: ensureClosed(request.path) → CLOSED → continue
+   b. doRequest(): GET presigned URL with auth header
+   c. Response: 429, Retry-After: 5 → NOT counted against the breaker
+   d. parseRetryAfter('5') → 5000ms
+   e. sleep(5000ms)
+   f. Re-acquire rate limit token (429 path)
 7. Retry loop, attempt 1:
-   a. doRequest(): same request
-   b. Response: 200 → return
+   a. Circuit breaker: ensureClosed(request.path) → still CLOSED → continue
+   b. doRequest(): same request
+   c. Response: 200 → recordCircuitOutcome(200) → success recorded
 8. Read ArrayBuffer → return RestResponse<ArrayBuffer>
 ```

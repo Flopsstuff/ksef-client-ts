@@ -38,14 +38,21 @@ export class CircuitBreakerPolicy {
     this.scope = config.scope ?? 'global';
   }
 
-  ensureClosed(endpoint: string): void {
+  // Returns true iff this call just claimed the single probe slot for the
+  // caller. The caller MUST pass `alreadyOwnsProbe=true` on subsequent
+  // re-checks for the same logical request (e.g. a retry loop) so the probe
+  // owner cannot deadlock itself on its own in-flight slot.
+  ensureClosed(endpoint: string, alreadyOwnsProbe = false): boolean {
     const key = this.keyFor(endpoint);
     const state = this.states.get(key);
-    if (!state || state.openedAt === null) return;
+    if (!state || state.openedAt === null) return false;
 
     const now = performance.now();
     const elapsed = now - state.openedAt;
     if (elapsed >= this.openMs) {
+      // Probe owner re-entering (e.g. after retryable failure + continue) —
+      // pass through without touching state; the original claim is still live.
+      if (alreadyOwnsProbe) return false;
       // Half-open: allow exactly one probe through. Further callers see an open
       // circuit (retryAfterMs=0) until the in-flight probe resolves — prevents
       // a burst from flooding a fragile upstream the moment the cooldown ends.
@@ -54,7 +61,7 @@ export class CircuitBreakerPolicy {
       }
       state.probeInFlight = true;
       consola.debug(`Circuit breaker: probe after cooldown for '${key}'`);
-      return;
+      return true;
     }
 
     const retryAfterMs = Math.max(0, this.openMs - elapsed);

@@ -111,6 +111,28 @@ describe('CircuitBreakerPolicy', () => {
       expect(() => p.ensureClosed('/a')).not.toThrow();
     });
 
+    it('probe owner re-entering with alreadyOwnsProbe=true does NOT throw on its own slot', async () => {
+      const p = new CircuitBreakerPolicy({ failureThreshold: 2, openMs: 30 });
+      p.recordFailure('/a');
+      p.recordFailure('/a');
+      await sleep(50);
+      // First claim returns true — this caller now owns the probe.
+      expect(p.ensureClosed('/a')).toBe(true);
+      // Same caller re-entering (e.g. internal retry of the probe request):
+      // pass through without exception, without re-claiming.
+      expect(p.ensureClosed('/a', true)).toBe(false);
+      expect(p.ensureClosed('/a', true)).toBe(false);
+      // Concurrent, non-owning caller still sees OPEN.
+      expect(() => p.ensureClosed('/a')).toThrow(KSeFCircuitOpenError);
+    });
+
+    it('ensureClosed returns false in CLOSED state (nothing claimed)', () => {
+      const p = new CircuitBreakerPolicy({ failureThreshold: 3, openMs: 1000 });
+      expect(p.ensureClosed('/a')).toBe(false);
+      p.recordFailure('/a');
+      expect(p.ensureClosed('/a')).toBe(false);
+    });
+
     it('sliding reset: a failure older than openMs is dropped, counter restarts at 1', async () => {
       const p = new CircuitBreakerPolicy({ failureThreshold: 3, openMs: 30 });
       p.recordFailure('/a');
