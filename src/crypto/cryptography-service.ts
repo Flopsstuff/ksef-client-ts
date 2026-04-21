@@ -81,7 +81,7 @@ export class CryptographyService {
     const certPem = this.fetcher.getSymmetricKeyEncryptionPem();
     const encryptedKey = crypto.publicEncrypt(
       {
-        key: certPem,
+        key: this.extractSpkiPem(certPem),
         oaepHash: 'sha256',
         padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
       },
@@ -235,12 +235,23 @@ export class CryptographyService {
   // Private helpers
   // ---------------------------------------------------------------------------
 
+  /**
+   * Extract a public-key SPKI PEM (`-----BEGIN PUBLIC KEY-----`) from a full
+   * CERTIFICATE PEM. Node's `publicEncrypt` accepts either form, but Deno's
+   * Node compatibility layer only accepts SPKI PEM, so we normalize upfront
+   * to keep the library portable across runtimes.
+   */
+  private extractSpkiPem(certPem: string): string {
+    const publicKey = new crypto.X509Certificate(certPem).publicKey;
+    return publicKey.export({ type: 'spki', format: 'pem' }) as string;
+  }
+
   /** RSA-OAEP SHA-256 encryption. */
   private encryptRsaOaep(certPem: string, plaintext: Buffer): Uint8Array {
     return new Uint8Array(
       crypto.publicEncrypt(
         {
-          key: certPem,
+          key: this.extractSpkiPem(certPem),
           oaepHash: 'sha256',
           padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
         },

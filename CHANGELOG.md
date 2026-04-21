@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 - **ECDSA signing digest matches key curve** — XAdES signatures produced with an ECDSA key on curve P-384 or P-521 now use the matching SHA-384 / SHA-512 digest, so signatures verify against strict XAdES validators.
 - **Encrypted private keys for QR verification** — signing a KOD II certificate verification URL now accepts password-protected PEM private keys, matching behavior already available for XAdES signing.
+- **Deno and edge-runtime compatibility** — token authentication and session encryption now work on runtimes whose Node compatibility layer only accepts public-key PEMs (notably Supabase Edge Functions on Deno).
 
 ## [0.7.0] - 2026-04-19
 

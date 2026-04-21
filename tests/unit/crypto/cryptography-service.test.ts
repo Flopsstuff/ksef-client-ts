@@ -534,4 +534,114 @@ describe('CryptographyService', () => {
       expect(() => service.parsePrivateKey('not-a-pem')).toThrow();
     });
   });
+
+  // -------------------------------------------------------------------
+  // SPKI public-key extraction (Deno compatibility safety net)
+  // -------------------------------------------------------------------
+  describe('SPKI public-key extraction (Deno compat)', () => {
+    function extractSpkiPem(certPem: string): string {
+      return new crypto.X509Certificate(certPem).publicKey.export({
+        type: 'spki',
+        format: 'pem',
+      }) as string;
+    }
+
+    it('wrapped symmetric key decrypts when re-encrypted via an SPKI PEM derived from the same cert', () => {
+      const data = service.getEncryptionData();
+      const spkiPem = extractSpkiPem(rsaCertPem);
+
+      const reEncrypted = crypto.publicEncrypt(
+        {
+          key: spkiPem,
+          oaepHash: 'sha256',
+          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        },
+        Buffer.from(data.cipherKey),
+      );
+
+      const decrypted = crypto.privateDecrypt(
+        {
+          key: rsaKeyPem,
+          oaepHash: 'sha256',
+          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        },
+        reEncrypted,
+      );
+
+      expect(Buffer.from(decrypted).equals(Buffer.from(data.cipherKey))).toBe(true);
+    });
+
+    it('encryptKsefToken RSA path round-trips for multiple random tokens', () => {
+      const timestamp = '2025-06-01T12:00:00.000Z';
+      const expectedMs = new Date(timestamp).getTime();
+
+      for (let i = 0; i < 3; i++) {
+        const token = crypto.randomBytes(32).toString('hex');
+        const ciphertext = service.encryptKsefToken(token, timestamp);
+        const decrypted = crypto.privateDecrypt(
+          {
+            key: rsaKeyPem,
+            oaepHash: 'sha256',
+            padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+          },
+          Buffer.from(ciphertext),
+        );
+        expect(decrypted.toString('utf-8')).toBe(`${token}|${expectedMs}`);
+      }
+    });
+
+    it('SPKI PEM exported from cert is well-formed and parseable', () => {
+      const spkiPem = extractSpkiPem(rsaCertPem);
+
+      expect(spkiPem).toMatch(/^-----BEGIN PUBLIC KEY-----/);
+      expect(spkiPem.trimEnd()).toMatch(/-----END PUBLIC KEY-----$/);
+
+      const key = crypto.createPublicKey(spkiPem);
+      expect(key.asymmetricKeyType).toBe('rsa');
+      expect(key.asymmetricKeyDetails?.modulusLength).toBe(2048);
+    });
+
+    it('publicEncrypt produces decryption-equivalent output for cert PEM and SPKI PEM', () => {
+      const plaintext = Buffer.from('hello|1776755224708', 'utf-8');
+      const spkiPem = extractSpkiPem(rsaCertPem);
+
+      const ciphertextFromCert = crypto.publicEncrypt(
+        {
+          key: rsaCertPem,
+          oaepHash: 'sha256',
+          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        },
+        plaintext,
+      );
+
+      const ciphertextFromSpki = crypto.publicEncrypt(
+        {
+          key: spkiPem,
+          oaepHash: 'sha256',
+          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        },
+        plaintext,
+      );
+
+      const decOpts = {
+        key: rsaKeyPem,
+        oaepHash: 'sha256',
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+      };
+
+      const decryptedFromCert = crypto.privateDecrypt(decOpts, ciphertextFromCert);
+      const decryptedFromSpki = crypto.privateDecrypt(decOpts, ciphertextFromSpki);
+
+      expect(decryptedFromCert.equals(plaintext)).toBe(true);
+      expect(decryptedFromSpki.equals(plaintext)).toBe(true);
+    });
+
+    it('encryptedSymmetricKey length is stable at 256 bytes across 5 runs', () => {
+      for (let i = 0; i < 5; i++) {
+        const data = service.getEncryptionData();
+        const decoded = Buffer.from(data.encryptionInfo.encryptedSymmetricKey, 'base64');
+        expect(decoded.length).toBe(256);
+      }
+    });
+  });
 });
