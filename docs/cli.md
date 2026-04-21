@@ -197,7 +197,7 @@ ksef invoice build --template PEF_KOR > credit-skeleton.json
 | `2` | Input parse error (malformed JSON or YAML) |
 | `3` | Structural (shape) validation error |
 | `4` | XSD validation error (only with `--validate-xsd`, including missing `libxmljs2`) |
-| `5` | IO error (file not found, permission denied, is-a-directory) |
+| `5` | IO error (filesystem / fd-limit failures: `ENOENT`, `EACCES`, `EPERM`, `EISDIR`, `ENOTDIR`, `ENOSPC`, `EROFS`, `EMFILE`, `ENFILE`, `EIO`, `EDQUOT`, `EBADF`, `EEXIST`, `ENAMETOOLONG`, `ELOOP`, `ETXTBSY`) |
 
 ### Download and Query
 

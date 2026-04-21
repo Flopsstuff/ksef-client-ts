@@ -210,11 +210,24 @@ describe('invoice-build helpers', () => {
       expect(mapBuildExitCode(err)).toBe(4);
     });
 
-    it('returns 5 for ENOENT / EACCES / EPERM / EISDIR', () => {
-      expect(mapBuildExitCode({ code: 'ENOENT' })).toBe(5);
-      expect(mapBuildExitCode({ code: 'EACCES' })).toBe(5);
-      expect(mapBuildExitCode({ code: 'EPERM' })).toBe(5);
-      expect(mapBuildExitCode({ code: 'EISDIR' })).toBe(5);
+    it('returns 5 for common filesystem / IO errno codes', () => {
+      for (const code of [
+        'ENOENT', 'EACCES', 'EPERM', 'EISDIR',
+        'ENOTDIR', 'ENOSPC', 'EROFS', 'EMFILE',
+        'ENFILE', 'EIO', 'EDQUOT', 'EBADF',
+        'EEXIST', 'ENAMETOOLONG', 'ELOOP', 'ETXTBSY',
+      ]) {
+        expect(mapBuildExitCode({ code })).toBe(5);
+      }
+    });
+
+    it('does NOT map unrelated errno codes to exit 5', () => {
+      // Network / protocol errnos are not IO-path issues — they fall through
+      // to the generic (undefined) bucket, not exit 5.
+      expect(mapBuildExitCode({ code: 'ECONNRESET' })).toBeUndefined();
+      expect(mapBuildExitCode({ code: 'ECONNREFUSED' })).toBeUndefined();
+      expect(mapBuildExitCode({ code: 'ETIMEDOUT' })).toBeUndefined();
+      expect(mapBuildExitCode({ code: 'NOT_AN_ERRNO' })).toBeUndefined();
     });
 
     it('returns undefined for unknown errors (fallback path)', () => {

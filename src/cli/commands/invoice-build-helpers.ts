@@ -141,14 +141,34 @@ export function mapBuildExitCode(error: unknown): number | undefined {
   if (error instanceof KSeFValidationError) return 3;
   if (typeof error === 'object' && error !== null && 'code' in error) {
     const code = (error as { code: unknown }).code;
-    if (
-      code === 'ENOENT' ||
-      code === 'EACCES' ||
-      code === 'EPERM' ||
-      code === 'EISDIR'
-    ) {
+    if (typeof code === 'string' && IO_ERRNO_CODES.has(code)) {
       return 5;
     }
   }
   return undefined;
 }
+
+// Filesystem / IO errno codes that should surface as the documented
+// "IO error" exit (5). Covers file-access (ENOENT/EACCES/EPERM), path-shape
+// (EISDIR/ENOTDIR/ENAMETOOLONG/ELOOP), filesystem-state (ENOSPC/EROFS/EDQUOT/
+// EEXIST), and fd/handle-limit (EMFILE/ENFILE/EBADF/EIO/ETXTBSY) failures —
+// so shell automation can branch on exit 5 for any IO issue from read/write
+// paths, not just the four originally hardcoded ones.
+const IO_ERRNO_CODES = new Set<string>([
+  'ENOENT',
+  'EACCES',
+  'EPERM',
+  'EISDIR',
+  'ENOTDIR',
+  'ENOSPC',
+  'EROFS',
+  'EMFILE',
+  'ENFILE',
+  'EIO',
+  'EDQUOT',
+  'EBADF',
+  'EEXIST',
+  'ENAMETOOLONG',
+  'ELOOP',
+  'ETXTBSY',
+]);
