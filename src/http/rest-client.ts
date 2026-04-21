@@ -158,7 +158,7 @@ export class RestClient {
         }
 
         // Terminal response — record outcome once, then return.
-        this.recordCircuitOutcome(request.path, response.status);
+        this.recordCircuitOutcome(request.path, response.status, ownsProbeSlot);
         return response;
       } catch (error) {
         lastError = error;
@@ -188,10 +188,18 @@ export class RestClient {
     throw lastError;
   }
 
-  private recordCircuitOutcome(path: string, status: number): void {
+  private recordCircuitOutcome(path: string, status: number, ownsProbeSlot: boolean): void {
     if (!this.circuitBreakerPolicy) return;
-    // 429 and 401 have their own flows (Retry-After / auth-refresh) — neither indicates outage.
-    if (status === 429 || status === 401) return;
+    // 429 and 401 have their own flows (Retry-After / auth-refresh) — neither
+    // indicates outage, so normally we don't touch breaker state. But if this
+    // request owned the half-open probe slot, it MUST be released here:
+    // a 401/429 means the server responded (no outage), so we close the
+    // breaker via recordSuccess. Otherwise probeInFlight stays true forever
+    // and the breaker deadlocks for all subsequent callers.
+    if (status === 429 || status === 401) {
+      if (ownsProbeSlot) this.circuitBreakerPolicy.recordSuccess(path);
+      return;
+    }
     if (status >= 500) {
       this.circuitBreakerPolicy.recordFailure(path);
     } else {

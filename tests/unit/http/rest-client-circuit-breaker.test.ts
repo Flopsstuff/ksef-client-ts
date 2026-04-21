@@ -420,6 +420,61 @@ describe('RestClient + CircuitBreakerPolicy', () => {
     expect(transport).toHaveBeenCalledTimes(0);
   });
 
+  it('half-open probe that terminates in 429 releases the probe slot', async () => {
+    // 429/401 are not outage signals, so recordCircuitOutcome normally skips
+    // them. But when the request owns the probe slot, skipping leaves
+    // probeInFlight=true forever → subsequent calls deadlock with
+    // retryAfterMs=0. The fix releases the slot via recordSuccess since the
+    // server demonstrably responded.
+    const circuitBreakerPolicy = new CircuitBreakerPolicy({ failureThreshold: 2, openMs: 50 });
+
+    const primeTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(500));
+    const primeClient = createClient(primeTransport, { circuitBreakerPolicy });
+    await expect(primeClient.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+    await expect(primeClient.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+
+    await sleep(80);
+
+    // Probe returns 429 terminally (maxRetries=0 so no retry masks the bug).
+    const probeTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(429, {}, { 'Retry-After': '0' }));
+    const probeClient = createClient(probeTransport, { circuitBreakerPolicy });
+    await expect(probeClient.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFRateLimitError);
+    expect(probeTransport).toHaveBeenCalledTimes(1);
+
+    // Follow-up must NOT be short-circuited — breaker should be fully closed.
+    // Without the fix: probeInFlight stays true, this would throw
+    // KSeFCircuitOpenError{retryAfterMs:0}.
+    const followUpTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, { ok: true }));
+    const followUpClient = createClient(followUpTransport, { circuitBreakerPolicy });
+    const res = await followUpClient.execute<{ ok: boolean }>(RestRequest.get('/t'));
+    expect(res.body).toEqual({ ok: true });
+    expect(followUpTransport).toHaveBeenCalledTimes(1);
+  });
+
+  it('half-open probe that terminates in 401 without successful refresh releases the probe slot', async () => {
+    // Probe returns 401 and there is no authManager to refresh, so the 401
+    // flows terminal. Without the fix: probeInFlight leaks → deadlock.
+    const circuitBreakerPolicy = new CircuitBreakerPolicy({ failureThreshold: 2, openMs: 50 });
+
+    const primeTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(500));
+    const primeClient = createClient(primeTransport, { circuitBreakerPolicy });
+    await expect(primeClient.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+    await expect(primeClient.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+
+    await sleep(80);
+
+    const probeTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(401, { detail: 'expired' }));
+    const probeClient = createClient(probeTransport, { circuitBreakerPolicy }); // no authManager → no refresh
+    await expect(probeClient.execute(RestRequest.get('/t'))).rejects.toThrow();
+    expect(probeTransport).toHaveBeenCalledTimes(1);
+
+    // Breaker must be released, not deadlocked.
+    const followUpTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, { ok: true }));
+    const followUpClient = createClient(followUpTransport, { circuitBreakerPolicy });
+    const res = await followUpClient.execute<{ ok: boolean }>(RestRequest.get('/t'));
+    expect(res.body).toEqual({ ok: true });
+  });
+
   it('401 auth-refresh response still records its circuit outcome', async () => {
     // First call: 401. Refresh returns a new token. Second call (with new
     // token) returns 503 — this should count as a circuit failure.
