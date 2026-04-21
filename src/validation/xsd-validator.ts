@@ -63,10 +63,21 @@ type LibxmljsModule = {
 };
 
 let libxmljs: LibxmljsModule | null = null;
+// Non-MODULE_NOT_FOUND failures (e.g. ERR_DLOPEN_FAILED from a native
+// binding ABI mismatch after a Node upgrade) are retained so we can
+// surface them at call time instead of masking them as "not installed"
+// and sending users to reinstall a module that is already on disk.
+let libxmljsLoadError: Error | null = null;
 try {
   libxmljs = requireModule('libxmljs2') as LibxmljsModule;
-} catch {
-  libxmljs = null;
+} catch (err) {
+  const code = (err as NodeJS.ErrnoException | undefined)?.code;
+  if (code === 'MODULE_NOT_FOUND' || code === 'ERR_MODULE_NOT_FOUND') {
+    libxmljs = null;
+  } else {
+    libxmljs = null;
+    libxmljsLoadError = err instanceof Error ? err : new Error(String(err));
+  }
 }
 
 export const libxmljsAvailable: boolean = libxmljs !== null;
@@ -121,8 +132,11 @@ function rewriteSchemaLocations(xsdContent: string): string {
 
 export function validateAgainstXsd(xml: string, xsdPath: string): ValidateAgainstXsdResult {
   if (!libxmljs) {
+    const loadSuffix = libxmljsLoadError
+      ? ` (load failed: ${libxmljsLoadError.message})`
+      : '';
     throw new Error(
-      `${MISSING_LIBXMLJS_MESSAGE_PREFIX}; cannot run XSD validation. ` +
+      `${MISSING_LIBXMLJS_MESSAGE_PREFIX}${loadSuffix}; cannot run XSD validation. ` +
         'Install it as an optional peer dependency (e.g. `yarn add -O libxmljs2` or `npm i -O libxmljs2`).',
     );
   }
