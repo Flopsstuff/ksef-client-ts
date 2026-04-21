@@ -79,8 +79,9 @@ export function emitTemplate(schema: string): void {
   const id = schema.toUpperCase() as TemplateId;
   const template = TEMPLATES[id];
   if (!template) {
-    throw new Error(
-      `Unknown template schema: ${schema}. Valid choices: FA2, FA3, PEF, PEF_KOR.`,
+    throw KSeFValidationError.fromField(
+      'template',
+      `Template must be one of: ${VALID_SCHEMAS.join(', ')}.`,
     );
   }
   process.stdout.write(JSON.stringify(template, null, 2) + '\n');

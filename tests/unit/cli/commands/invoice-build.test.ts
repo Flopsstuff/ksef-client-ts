@@ -74,7 +74,7 @@ describe('invoice build — templates', () => {
   });
 
   it('throws for unknown template schema', async () => {
-    await expect(runBuild({ template: 'UNKNOWN' })).rejects.toThrow(/Unknown template schema/);
+    await expect(runBuild({ template: 'UNKNOWN' })).rejects.toThrow(/Template must be one of/);
   });
 });
 
