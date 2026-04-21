@@ -109,6 +109,14 @@ describe('invoice-build helpers', () => {
       expect(mapBuildExitCode(new KSeFXsdValidationError('/tmp/x.xsd', ['err']))).toBe(4);
     });
 
+    it('returns 4 when validateAgainstXsd throws for missing libxmljs2', () => {
+      const err = new Error(
+        'libxmljs2 is not installed; cannot run XSD validation. ' +
+          'Install it as an optional peer dependency: `npm i -O libxmljs2`.',
+      );
+      expect(mapBuildExitCode(err)).toBe(4);
+    });
+
     it('returns 5 for ENOENT / EACCES / EPERM / EISDIR', () => {
       expect(mapBuildExitCode({ code: 'ENOENT' })).toBe(5);
       expect(mapBuildExitCode({ code: 'EACCES' })).toBe(5);
