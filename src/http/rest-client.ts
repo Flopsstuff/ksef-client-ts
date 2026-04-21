@@ -160,9 +160,23 @@ export class RestClient {
           consola.debug(`Retryable ${response.status}, attempt ${attempt + 1}/${this.retryPolicy.maxRetries}, waiting ${Math.round(delayMs)}ms`);
           await sleep(delayMs);
 
-          // Re-acquire rate limit token on 429
+          // Re-acquire rate limit token on 429. If this local step fails
+          // (custom policy rejection, max queue depth, etc.), the upstream
+          // response we already observed was a 429 — NOT an outage signal.
+          // Record the observed outcome (releases any probe slot via
+          // recordSuccess) and propagate the limiter error instead of letting
+          // the generic catch below misclassify it as upstream failure.
           if (is429 && this.rateLimitPolicy) {
-            await this.rateLimitPolicy.acquire(request.path);
+            try {
+              await this.rateLimitPolicy.acquire(request.path);
+            } catch (error) {
+              this.recordCircuitOutcome(request.path, 429);
+              // Outcome already recorded — prevent the outer catch from also
+              // re-recording this as an upstream failure via the probe-owner
+              // fallback path.
+              ownsProbeSlot = false;
+              throw error;
+            }
           }
           continue;
         }

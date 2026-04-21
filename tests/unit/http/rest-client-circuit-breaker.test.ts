@@ -129,6 +129,50 @@ describe('RestClient + CircuitBreakerPolicy', () => {
     expect(res.body).toEqual({ ok: true });
   });
 
+  it('429 retry with reacquire failure is NOT mis-classified as upstream failure', async () => {
+    // A client-local limiter failure during the 429 retry reacquire must not
+    // re-open the breaker: upstream responded with 429 (not an outage).
+    // Without the fix, the generic catch would hit the probe-owner fallback
+    // and call recordFailure → breaker re-opened for ~30s based on no
+    // actual upstream issue.
+    const circuitBreakerPolicy = new CircuitBreakerPolicy({ failureThreshold: 2, openMs: 50 });
+
+    const primeTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(500));
+    const primeClient = createClient(primeTransport, { circuitBreakerPolicy });
+    await expect(primeClient.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+    await expect(primeClient.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+
+    await sleep(80); // cooldown elapsed — next request is the probe
+
+    const probeTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(429, {}, { 'Retry-After': '0' }));
+    const acquire = vi.fn<(endpoint: string) => Promise<void>>()
+      .mockResolvedValueOnce(undefined)                        // pre-loop acquire OK
+      .mockRejectedValueOnce(new Error('limiter saturated'));  // 429 reacquire fails
+    const limiter = { acquire } as unknown as RateLimitPolicy;
+    const probeClient = new RestClient(defaultOptions, {
+      transport: probeTransport,
+      retryPolicy: {
+        maxRetries: 1,
+        baseDelayMs: 1,
+        maxDelayMs: 5,
+        retryableStatusCodes: [429, 500, 502, 503, 504],
+        retryNetworkErrors: true,
+      },
+      circuitBreakerPolicy,
+      rateLimitPolicy: limiter,
+    });
+
+    await expect(probeClient.execute(RestRequest.get('/t'))).rejects.toThrow('limiter saturated');
+
+    // Breaker must NOT be re-opened. A follow-up request with a healthy
+    // client must go through the transport — no KSeFCircuitOpenError.
+    const followUpTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, { ok: true }));
+    const followUpClient = createClient(followUpTransport, { circuitBreakerPolicy });
+    const res = await followUpClient.execute<{ ok: boolean }>(RestRequest.get('/t'));
+    expect(res.body).toEqual({ ok: true });
+    expect(followUpTransport).toHaveBeenCalledTimes(1);
+  });
+
   it('probe aborted by rate-limit acquire keeps the breaker OPEN with a fresh cooldown', async () => {
     // After the breaker pre-check claims the probe slot, a rate-limit policy
     // that rejects the acquire exits sendRequest before the retry loop. The
