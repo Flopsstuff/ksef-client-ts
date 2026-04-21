@@ -31,16 +31,20 @@ function loadTemplate(): FakturaInput {
 
 function patchForSession(template: FakturaInput, sellerNip: string, invoiceNumber: string): FakturaInput {
   const today = new Date().toISOString().slice(0, 10);
-  const podmiot1 = { ...(template.Podmiot1 ?? {}) } as XmlObject;
-  const daneId = { ...((podmiot1.DaneIdentyfikacyjne as XmlObject | undefined) ?? {}) } as XmlObject;
-  daneId.NIP = sellerNip;
+  const clone = structuredClone(template) as FakturaInput;
+
+  const podmiot1 = (clone.Podmiot1 ?? {}) as XmlObject;
+  clone.Podmiot1 = podmiot1;
+  const daneId = (podmiot1.DaneIdentyfikacyjne as XmlObject | undefined) ?? {};
+  (daneId as XmlObject).NIP = sellerNip;
   podmiot1.DaneIdentyfikacyjne = daneId;
 
-  const fa = { ...(template.Fa ?? {}) } as XmlObject;
+  const fa = (clone.Fa ?? {}) as XmlObject;
+  clone.Fa = fa;
   fa.P_1 = today;
   fa.P_2 = invoiceNumber;
 
-  return { ...template, Podmiot1: podmiot1, Fa: fa };
+  return clone;
 }
 
 describe('32 - `ksef invoice build` sends to KSeF TEST', { timeout: 180_000 }, () => {
