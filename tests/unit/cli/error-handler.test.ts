@@ -148,4 +148,13 @@ describe('withErrorHandler', () => {
     });
     expect(mockExit).toHaveBeenCalledWith(1);
   });
+
+  it('falls back to exit(1) when mapper itself throws', async () => {
+    await withErrorHandler(throwingFn(new Error('boom')), {
+      exitCode: () => {
+        throw new Error('mapper went sideways');
+      },
+    });
+    expect(mockExit).toHaveBeenCalledWith(1);
+  });
 });

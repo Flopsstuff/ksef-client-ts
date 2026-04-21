@@ -10,6 +10,12 @@ export async function withErrorHandler(
     await fn();
   } catch (error) {
     renderCliError(error, opts);
-    process.exit(opts?.exitCode?.(error) ?? 1);
+    let code = 1;
+    try {
+      code = opts?.exitCode?.(error) ?? 1;
+    } catch {
+      code = 1;
+    }
+    process.exit(code);
   }
 }
