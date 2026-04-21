@@ -26,8 +26,8 @@ export class CircuitBreakerPolicy {
     const failureThreshold = config.failureThreshold ?? 5;
     const openMs = config.openMs ?? 30_000;
 
-    if (!Number.isFinite(failureThreshold) || failureThreshold <= 0) {
-      throw new RangeError('CircuitBreakerPolicy: failureThreshold must be > 0');
+    if (!Number.isInteger(failureThreshold) || failureThreshold <= 0) {
+      throw new RangeError('CircuitBreakerPolicy: failureThreshold must be a positive integer');
     }
     if (!Number.isFinite(openMs) || openMs <= 0) {
       throw new RangeError('CircuitBreakerPolicy: openMs must be > 0');

@@ -19,6 +19,11 @@ describe('CircuitBreakerPolicy', () => {
       expect(() => new CircuitBreakerPolicy({ failureThreshold: NaN })).toThrow(RangeError);
     });
 
+    it('rejects non-integer failureThreshold', () => {
+      expect(() => new CircuitBreakerPolicy({ failureThreshold: 1.5 })).toThrow(RangeError);
+      expect(() => new CircuitBreakerPolicy({ failureThreshold: 2.9 })).toThrow(RangeError);
+    });
+
     it('throws on non-positive openMs', () => {
       expect(() => new CircuitBreakerPolicy({ openMs: 0 })).toThrow(RangeError);
       expect(() => new CircuitBreakerPolicy({ openMs: -100 })).toThrow(RangeError);
