@@ -41,23 +41,25 @@
         }
       }
     },
-    "cac:TaxTotal": {
-      "cbc:TaxAmount": { "@_currencyID": "PLN", "#text": "23.00" }
-    },
+    "cac:TaxTotal": [
+      { "cbc:TaxAmount": { "@_currencyID": "PLN", "#text": "23.00" } }
+    ],
     "cac:LegalMonetaryTotal": {
       "cbc:LineExtensionAmount": { "@_currencyID": "PLN", "#text": "100.00" },
       "cbc:TaxExclusiveAmount": { "@_currencyID": "PLN", "#text": "100.00" },
       "cbc:TaxInclusiveAmount": { "@_currencyID": "PLN", "#text": "123.00" },
       "cbc:PayableAmount": { "@_currencyID": "PLN", "#text": "123.00" }
     },
-    "cac:InvoiceLine": {
-      "cbc:ID": "1",
-      "cbc:InvoicedQuantity": { "@_unitCode": "C62", "#text": "1" },
-      "cbc:LineExtensionAmount": { "@_currencyID": "PLN", "#text": "100.00" },
-      "cac:Item": { "cbc:Name": "Sample product" },
-      "cac:Price": {
-        "cbc:PriceAmount": { "@_currencyID": "PLN", "#text": "100.00" }
+    "cac:InvoiceLine": [
+      {
+        "cbc:ID": "1",
+        "cbc:InvoicedQuantity": { "@_unitCode": "C62", "#text": "1" },
+        "cbc:LineExtensionAmount": { "@_currencyID": "PLN", "#text": "100.00" },
+        "cac:Item": { "cbc:Name": "Sample product" },
+        "cac:Price": {
+          "cbc:PriceAmount": { "@_currencyID": "PLN", "#text": "100.00" }
+        }
       }
-    }
+    ]
   }
 }
