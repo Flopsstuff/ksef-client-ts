@@ -106,7 +106,11 @@ export function buildDrySummary(parsed: unknown, schema: TemplateId): DrySummary
     const fa = obj.Fa;
     if (typeof fa === 'object' && fa !== null) {
       const p2 = (fa as Record<string, unknown>).P_2;
-      if (typeof p2 === 'string') summary.invoiceNumber = p2;
+      // Accept numeric invoice numbers too (e.g. `P_2: 2026001` from YAML/JSON).
+      // The serializer stringifies them; the dry-run summary should match.
+      if (typeof p2 === 'string' || typeof p2 === 'number') {
+        summary.invoiceNumber = String(p2);
+      }
       const wiersz = (fa as Record<string, unknown>).FaWiersz;
       if (Array.isArray(wiersz)) summary.lineCount = wiersz.length;
       else if (typeof wiersz === 'object' && wiersz !== null) summary.lineCount = 1;
@@ -115,7 +119,9 @@ export function buildDrySummary(parsed: unknown, schema: TemplateId): DrySummary
     const root = (schema === 'PEF' ? obj.Invoice : obj.CreditNote) as Record<string, unknown> | undefined;
     if (root) {
       const id = root['cbc:ID'];
-      if (typeof id === 'string') summary.invoiceNumber = id;
+      if (typeof id === 'string' || typeof id === 'number') {
+        summary.invoiceNumber = String(id);
+      }
       const lines = schema === 'PEF' ? root['cac:InvoiceLine'] : root['cac:CreditNoteLine'];
       if (Array.isArray(lines)) summary.lineCount = lines.length;
       else if (typeof lines === 'object' && lines !== null) summary.lineCount = 1;

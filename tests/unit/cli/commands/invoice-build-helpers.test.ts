@@ -95,6 +95,22 @@ describe('invoice-build helpers', () => {
       expect(buildDrySummary('str', 'FA3')).toEqual({ schema: 'FA3', sections: [] });
     });
 
+    it('coerces a numeric P_2 to string for FA3', () => {
+      const summary = buildDrySummary(
+        { Naglowek: {}, Fa: { P_2: 2026001 } },
+        'FA3',
+      );
+      expect(summary.invoiceNumber).toBe('2026001');
+    });
+
+    it('coerces a numeric cbc:ID to string for PEF', () => {
+      const summary = buildDrySummary(
+        { Invoice: { 'cbc:ID': 42 } },
+        'PEF',
+      );
+      expect(summary.invoiceNumber).toBe('42');
+    });
+
     it('FA3 with a single FaWiersz object (not array) reports lineCount=1', () => {
       const summary = buildDrySummary(
         { Naglowek: {}, Fa: { P_2: 'FA/1', FaWiersz: { NrWierszaFa: 1 } } },
