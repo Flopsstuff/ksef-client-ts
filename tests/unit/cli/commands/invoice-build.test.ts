@@ -134,6 +134,40 @@ describe('invoice build — end-to-end via stdin', () => {
     expect(capturedStdout()).not.toContain('<?xml');
   });
 
+  it('dry-run (no --json) prints the consola summary block', async () => {
+    const consolaModule = await import('consola');
+    const infoSpy = vi.mocked(consolaModule.consola.info);
+    infoSpy.mockClear();
+
+    await runBuild({ template: 'FA3' });
+    const templateJson = capturedStdout();
+    stdoutChunks = [];
+
+    await runWithStdin(templateJson, { 'dry-run': true });
+    // Four consola.info lines are emitted for FA3 skeleton (has lineCount).
+    const schemaLine = infoSpy.mock.calls.find((args) =>
+      typeof args[0] === 'string' && args[0].startsWith('Schema:'),
+    );
+    expect(schemaLine).toBeDefined();
+    expect(schemaLine![0]).toContain('FA3');
+    expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('Invoice #:'));
+    expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('Sections:'));
+    expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('Line count:'));
+    expect(capturedStdout()).not.toContain('<?xml');
+  });
+
+  it('--validate on a valid shipped template succeeds', async () => {
+    // Covers the `args.validate` branch in invoice-build.ts when validation
+    // passes (the existing rejection test covers the failure case).
+    await runBuild({ template: 'FA3' });
+    const templateJson = capturedStdout();
+    stdoutChunks = [];
+
+    await runWithStdin(templateJson, { validate: true });
+    const xml = capturedStdout();
+    expect(xml).toContain('<Faktura');
+  });
+
   it('accepts YAML input', async () => {
     const yaml = [
       'Naglowek:',

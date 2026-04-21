@@ -1,10 +1,15 @@
 import { describe, it, expect } from 'vitest';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
 import { YAMLParseError } from 'yaml';
 import {
   inferSchema,
   parseInput,
   buildDrySummary,
   mapBuildExitCode,
+  readInput,
+  writeOutput,
 } from '../../../../src/cli/commands/invoice-build-helpers.js';
 import { KSeFValidationError } from '../../../../src/errors/ksef-validation-error.js';
 import { KSeFXsdValidationError } from '../../../../src/errors/ksef-xsd-validation-error.js';
@@ -88,6 +93,78 @@ describe('invoice-build helpers', () => {
 
     it('returns schema + empty sections for non-object input', () => {
       expect(buildDrySummary('str', 'FA3')).toEqual({ schema: 'FA3', sections: [] });
+    });
+
+    it('FA3 with a single FaWiersz object (not array) reports lineCount=1', () => {
+      const summary = buildDrySummary(
+        { Naglowek: {}, Fa: { P_2: 'FA/1', FaWiersz: { NrWierszaFa: 1 } } },
+        'FA3',
+      );
+      expect(summary.lineCount).toBe(1);
+    });
+
+    it('PEF_KOR with single CreditNoteLine array reports lineCount', () => {
+      const summary = buildDrySummary(
+        {
+          CreditNote: {
+            'cbc:ID': 'COR/1',
+            'cac:CreditNoteLine': [{ 'cbc:ID': '1' }, { 'cbc:ID': '2' }],
+          },
+        },
+        'PEF_KOR',
+      );
+      expect(summary.invoiceNumber).toBe('COR/1');
+      expect(summary.lineCount).toBe(2);
+    });
+  });
+
+  describe('readInput', () => {
+    it('infers yaml format from .yml extension', async () => {
+      const tmp = path.join(os.tmpdir(), `ksef-read-${Date.now()}.yml`);
+      fs.writeFileSync(tmp, 'a: 1\n');
+      try {
+        const { raw, format } = await readInput(tmp, 'auto');
+        expect(format).toBe('yaml');
+        expect(raw).toBe('a: 1\n');
+      } finally {
+        fs.unlinkSync(tmp);
+      }
+    });
+
+    it('infers yaml format from .yaml extension', async () => {
+      const tmp = path.join(os.tmpdir(), `ksef-read-${Date.now()}.yaml`);
+      fs.writeFileSync(tmp, 'x: y\n');
+      try {
+        const { format } = await readInput(tmp, 'auto');
+        expect(format).toBe('yaml');
+      } finally {
+        fs.unlinkSync(tmp);
+      }
+    });
+
+    it('defaults stdin-auto to json', async () => {
+      // "-" with auto: path extension logic returns 'json' (no extension).
+      // We don't want to actually read stdin, so supply a real file path with no extension instead.
+      const tmp = path.join(os.tmpdir(), `ksef-read-${Date.now()}-noext`);
+      fs.writeFileSync(tmp, '{"a":1}');
+      try {
+        const { format } = await readInput(tmp, 'auto');
+        expect(format).toBe('json');
+      } finally {
+        fs.unlinkSync(tmp);
+      }
+    });
+  });
+
+  describe('writeOutput', () => {
+    it('writes buffer to a file when a path is provided', () => {
+      const tmp = path.join(os.tmpdir(), `ksef-write-${Date.now()}.xml`);
+      try {
+        writeOutput(Buffer.from('<X/>', 'utf8'), tmp);
+        expect(fs.readFileSync(tmp, 'utf8')).toBe('<X/>');
+      } finally {
+        if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+      }
     });
   });
 

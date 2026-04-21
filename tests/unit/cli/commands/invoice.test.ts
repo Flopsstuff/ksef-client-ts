@@ -189,6 +189,22 @@ describe('invoice', () => {
         expect.objectContaining({ invoiceHash: 'mock-hash' }),
       );
     });
+
+    it('throws a clear error when loadEncryptionData() returns null', async () => {
+      // Covers the "open a session first" guard — the stored session has a
+      // reference but no cached encryption keys (e.g. session file was
+      // hand-edited or created by a pre-v0.6.1 client).
+      const sessionStore = await import('../../../../src/cli/session-store.js');
+      vi.mocked(sessionStore.loadEncryptionData).mockReturnValueOnce(null as never);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as any);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('<xml/>'));
+
+      await expect(runSend({ path: '/test.xml' })).rejects.toThrow(
+        /No encryption keys found/,
+      );
+      expect(mockClient.onlineSession.sendInvoice).not.toHaveBeenCalled();
+    });
   });
 
   describe('get', () => {
@@ -689,6 +705,32 @@ describe('invoice', () => {
       await runValidate({ files: '/test.xml', schema: 'FA2' });
 
       expect(mockValidateInvoice).toHaveBeenCalledWith('<Faktura/>', { schema: 'FA2' });
+    });
+
+    it('warns that PEF validation covers wrapper only when schemaType is PEF3', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as any);
+      vi.mocked(fs.readFileSync).mockReturnValue('<Invoice/>');
+      mockValidateInvoice.mockResolvedValue({ valid: true, schemaType: 'PEF3', errors: [] });
+
+      await runValidate({ files: '/pef.xml' });
+
+      expect(consola.warn).toHaveBeenCalledWith(
+        expect.stringContaining('PEF validation covers wrapper structure only'),
+      );
+    });
+
+    it('warns for PEF_KOR3 schemaType as well', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as any);
+      vi.mocked(fs.readFileSync).mockReturnValue('<CreditNote/>');
+      mockValidateInvoice.mockResolvedValue({ valid: true, schemaType: 'PEF_KOR3', errors: [] });
+
+      await runValidate({ files: '/cor.xml' });
+
+      expect(consola.warn).toHaveBeenCalledWith(
+        expect.stringContaining('UBL content is not validated'),
+      );
     });
 
     it('outputs JSON when --json is set', async () => {

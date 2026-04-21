@@ -388,6 +388,23 @@ describe('RestClient', () => {
       expect((err as KSeFBatchTimeoutError).message).toBe('Batch finish timed out');
     });
 
+    it('throws KSeFBatchTimeoutError when status is 400 and body carries exceptionCode 21208', async () => {
+      // Covers the BatchTimeout branch inside the `response.status === 400`
+      // block (separate dispatch path from the generic legacy fall-through).
+      const body = {
+        exception: {
+          exceptionDetailList: [
+            { exceptionCode: 21208, exceptionDescription: 'Batch finish timed out' },
+          ],
+        },
+      };
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, body));
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(KSeFBatchTimeoutError);
+      expect((err as KSeFBatchTimeoutError).statusCode).toBe(400);
+    });
+
     it('throws generic KSeFApiError when status is 408 but exceptionCode is unrelated', async () => {
       const body = {
         exception: {
@@ -767,6 +784,39 @@ describe('RestClient', () => {
       // Auth header injected
       const firstInit = transport.mock.calls[0]![1];
       expect((firstInit.headers as Record<string, string>)['Authorization']).toBe('Bearer token');
+    });
+  });
+
+  describe('executeVoid', () => {
+    it('completes without consuming a response body', async () => {
+      // 204 forbids bodies in the Response constructor — use a 200 with a
+      // body the caller is expected to ignore, which matches executeVoid's
+      // actual contract (caller doesn't care about the payload).
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, { ignore: true }));
+      const client = createClient(transport);
+      await expect(client.executeVoid(RestRequest.delete('/resource'))).resolves.toBeUndefined();
+      expect(transport).toHaveBeenCalledTimes(1);
+    });
+
+    it('still propagates server errors', async () => {
+      const transport = vi.fn<TransportFn>()
+        .mockResolvedValue(mockResponse(403, { reasonCode: 'missing-permissions', detail: 'nope' }));
+      const client = createClient(transport);
+      await expect(client.executeVoid(RestRequest.delete('/forbidden'))).rejects.toThrow(KSeFForbiddenError);
+    });
+  });
+
+  describe('executeRaw', () => {
+    it('returns an ArrayBuffer body for binary downloads', async () => {
+      const bytes = new Uint8Array([1, 2, 3, 4, 5]);
+      const transport = vi.fn<TransportFn>().mockResolvedValue(
+        new Response(bytes, { status: 200, headers: new Headers({ 'content-type': 'application/octet-stream' }) }),
+      );
+      const client = createClient(transport);
+      const res = await client.executeRaw(RestRequest.get('/bin'));
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toBeInstanceOf(ArrayBuffer);
+      expect(new Uint8Array(res.body)).toEqual(bytes);
     });
   });
 });

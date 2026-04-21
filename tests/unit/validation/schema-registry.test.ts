@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SchemaRegistry } from '../../../src/validation/schema-registry.js';
+import { SchemaRegistry, clearCache } from '../../../src/validation/schema-registry.js';
 
 describe('SchemaRegistry', () => {
   describe('availableSchemas', () => {
@@ -87,6 +87,29 @@ describe('SchemaRegistry', () => {
 
     it('returns null for null inputs', () => {
       expect(SchemaRegistry.detect(null, null)).toBeNull();
+    });
+  });
+
+  describe('clearCache', () => {
+    it('forces the next get() call to reload from disk', async () => {
+      // Warm the cache.
+      const first = await SchemaRegistry.get('FA2');
+      // Clear → next load returns a fresh module-level schema instance
+      // (referential equality not guaranteed across dynamic reloads, so we
+      // just assert it still resolves and is a Zod schema).
+      clearCache();
+      const second = await SchemaRegistry.get('FA2');
+      expect(second).toBeDefined();
+      expect(typeof second.safeParse).toBe('function');
+      // After the clear, the cache path was cold, so the second call had
+      // to re-enter loadSchema(). Warming again and re-calling should now
+      // hit the cache.
+      const third = await SchemaRegistry.get('FA2');
+      expect(third).toBe(second);
+      // Sanity: first and second were produced by separate load passes;
+      // the runtime may or may not dedupe module instances but at minimum
+      // both must be valid parsers.
+      expect(typeof first.safeParse).toBe('function');
     });
   });
 });

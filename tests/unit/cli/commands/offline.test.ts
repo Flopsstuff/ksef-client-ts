@@ -7,7 +7,17 @@ import { QrCodeService } from '../../../../src/qr/qrcode-service.js';
 import { createMockClient } from './_helpers.js';
 import type { OfflineInvoiceMetadata } from '../../../../src/offline/types.js';
 
-vi.mock('consola', () => ({ consola: { level: 0 } }));
+vi.mock('consola', () => ({
+  consola: {
+    level: 0,
+    prompt: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    success: vi.fn(),
+    start: vi.fn(),
+  },
+}));
 vi.mock('../../../../src/cli/error-handler.js', () => ({
   withErrorHandler: vi.fn((fn) => fn()),
 }));
@@ -354,6 +364,59 @@ describe('offline', () => {
       mockStorageMethods.list.mockResolvedValue(expired);
       await expect(run('delete', { expired: true }))
         .rejects.toThrow('Use --force to confirm in non-interactive mode');
+    });
+
+    it('does nothing when --expired prompt is cancelled in interactive mode', async () => {
+      const expired = [
+        { ...mockStorageInvoice, id: 'exp-1', status: 'EXPIRED' as const },
+      ];
+      mockStorageMethods.list.mockResolvedValue(expired);
+
+      // Mark stdin as TTY so the prompt branch fires.
+      const originalIsTTY = process.stdin.isTTY;
+      Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+
+      const { consola } = await import('consola');
+      vi.mocked(consola.prompt).mockResolvedValueOnce(false as never);
+      vi.mocked(consola.info).mockClear();
+      vi.mocked(output.outputSuccess).mockClear();
+
+      try {
+        await run('delete', { expired: true });
+        expect(consola.prompt).toHaveBeenCalledWith(
+          expect.stringContaining('Delete 1'),
+          expect.objectContaining({ type: 'confirm' }),
+        );
+        expect(consola.info).toHaveBeenCalledWith('Cancelled.');
+        expect(mockStorageMethods.delete).not.toHaveBeenCalled();
+        expect(vi.mocked(output.outputSuccess)).not.toHaveBeenCalled();
+      } finally {
+        Object.defineProperty(process.stdin, 'isTTY', { value: originalIsTTY, configurable: true });
+      }
+    });
+
+    it('proceeds with delete when --expired prompt is confirmed', async () => {
+      const expired = [
+        { ...mockStorageInvoice, id: 'exp-1', status: 'EXPIRED' as const },
+        { ...mockStorageInvoice, id: 'exp-2', status: 'EXPIRED' as const },
+      ];
+      mockStorageMethods.list.mockResolvedValue(expired);
+
+      const originalIsTTY = process.stdin.isTTY;
+      Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
+
+      const { consola } = await import('consola');
+      vi.mocked(consola.prompt).mockResolvedValueOnce(true as never);
+
+      try {
+        await run('delete', { expired: true });
+        expect(mockStorageMethods.delete).toHaveBeenCalledTimes(2);
+        expect(vi.mocked(output.outputSuccess)).toHaveBeenCalledWith(
+          expect.stringContaining('Deleted 2'),
+        );
+      } finally {
+        Object.defineProperty(process.stdin, 'isTTY', { value: originalIsTTY, configurable: true });
+      }
     });
 
     it('shows message when no expired invoices', async () => {
