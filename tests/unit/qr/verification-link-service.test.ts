@@ -142,7 +142,7 @@ describe('VerificationLinkService', () => {
         service.buildCertificateVerificationUrl(
           'Nip', '1234567890', '1234567890', 'SERIAL', hash, encryptedPem,
         ),
-      ).toThrow();
+      ).toThrow(/passphrase|bad decrypt|encrypted/i);
     });
   });
 });
