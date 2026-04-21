@@ -151,4 +151,122 @@ describe('RestClient + CircuitBreakerPolicy', () => {
     await expect(client.execute(RestRequest.get('/n'))).rejects.toThrow(KSeFCircuitOpenError);
     expect(transport).toHaveBeenCalledTimes(2);
   });
+
+  // ---- Outcome-per-logical-request contract (Codex review) --------------
+
+  it('a single request that retries 5xx and finally succeeds counts as ONE success', async () => {
+    const transport = vi.fn<TransportFn>()
+      .mockResolvedValueOnce(mockResponse(503))
+      .mockResolvedValueOnce(mockResponse(503))
+      .mockResolvedValueOnce(mockResponse(200, { ok: true }));
+
+    const circuitBreakerPolicy = new CircuitBreakerPolicy({ failureThreshold: 2, openMs: 1000 });
+    const client = new RestClient(defaultOptions, {
+      transport,
+      retryPolicy: {
+        maxRetries: 3,
+        baseDelayMs: 1,
+        maxDelayMs: 5,
+        retryableStatusCodes: [429, 500, 502, 503, 504],
+        retryNetworkErrors: true,
+      },
+      circuitBreakerPolicy,
+    });
+
+    const res = await client.execute<{ ok: boolean }>(RestRequest.get('/r'));
+    expect(res.body).toEqual({ ok: true });
+    expect(transport).toHaveBeenCalledTimes(3);
+
+    // The two retried 503s MUST NOT consume failure slots — the request
+    // recovered on the third attempt, so only a success should be recorded.
+    // A follow-up 503 should therefore not immediately open the circuit
+    // (threshold is 2; one fresh failure is still below threshold).
+    transport.mockReset();
+    transport.mockResolvedValue(mockResponse(503));
+    await expect(client.execute(RestRequest.get('/r'))).rejects.toThrow(KSeFApiError);
+    expect(transport).toHaveBeenCalledTimes(4); // 4 = 1 new 503 + 3 retry attempts
+  });
+
+  it('open circuit short-circuits remaining retries of an in-flight request', async () => {
+    // Scope is global so a pile-up of failures on /hot can open the breaker
+    // and cause a concurrent /cold request's remaining retries to abort.
+    const netErr = Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' });
+    const transport = vi.fn<TransportFn>().mockImplementation((url: string) => {
+      if (url.endsWith('/hot')) return Promise.reject(netErr);
+      // /cold returns retryable 503 every time — the retry loop would normally
+      // exhaust all attempts. With the breaker open, later attempts abort.
+      return Promise.resolve(mockResponse(503));
+    });
+
+    const circuitBreakerPolicy = new CircuitBreakerPolicy({
+      failureThreshold: 2,
+      openMs: 10_000,
+      scope: 'global',
+    });
+    const client = new RestClient(defaultOptions, {
+      transport,
+      retryPolicy: {
+        maxRetries: 5,
+        baseDelayMs: 1,
+        maxDelayMs: 5,
+        retryableStatusCodes: [429, 500, 502, 503, 504],
+        retryNetworkErrors: true,
+      },
+      circuitBreakerPolicy,
+    });
+
+    // Prime the breaker — /hot always errors, each request retries 5 times but
+    // records exactly one failure at the end.
+    await expect(client.execute(RestRequest.get('/hot'))).rejects.toThrow();
+    await expect(client.execute(RestRequest.get('/hot'))).rejects.toThrow();
+
+    // Breaker should now be open. A call to /cold must be short-circuited
+    // with ZERO transport invocations — not six retries.
+    transport.mockClear();
+    await expect(client.execute(RestRequest.get('/cold'))).rejects.toThrow(KSeFCircuitOpenError);
+    expect(transport).toHaveBeenCalledTimes(0);
+  });
+
+  it('401 auth-refresh response still records its circuit outcome', async () => {
+    // First call: 401. Refresh returns a new token. Second call (with new
+    // token) returns 503 — this should count as a circuit failure.
+    const transport = vi.fn<TransportFn>()
+      .mockResolvedValueOnce(mockResponse(401, { detail: 'expired' }))
+      .mockResolvedValueOnce(mockResponse(503))
+      // Follow-up request to verify breaker state.
+      .mockResolvedValue(mockResponse(503));
+
+    const authManager = {
+      getAccessToken: () => 'stale',
+      setAccessToken: vi.fn(),
+      getRefreshToken: () => 'rt',
+      setRefreshToken: vi.fn(),
+      onUnauthorized: vi.fn().mockResolvedValue('fresh'),
+    };
+
+    const circuitBreakerPolicy = new CircuitBreakerPolicy({ failureThreshold: 2, openMs: 10_000 });
+    const client = new RestClient(defaultOptions, {
+      transport,
+      authManager,
+      retryPolicy: {
+        maxRetries: 0,
+        baseDelayMs: 1,
+        maxDelayMs: 5,
+        retryableStatusCodes: [429, 500, 502, 503, 504],
+        retryNetworkErrors: true,
+      },
+      circuitBreakerPolicy,
+    });
+
+    await expect(client.execute(RestRequest.get('/a'))).rejects.toThrow(KSeFApiError);
+    expect(authManager.onUnauthorized).toHaveBeenCalledTimes(1);
+
+    // One more 503 should now trip the breaker — proving the refreshed 503
+    // was recorded as a failure instead of being silently skipped by the old
+    // early-return path.
+    await expect(client.execute(RestRequest.get('/a'))).rejects.toThrow(KSeFApiError);
+
+    // Third call — should be short-circuited.
+    await expect(client.execute(RestRequest.get('/a'))).rejects.toThrow(KSeFCircuitOpenError);
+  });
 });

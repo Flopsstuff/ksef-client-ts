@@ -97,29 +97,38 @@ export class RestClient {
       await this.rateLimitPolicy.acquire(request.path);
     }
 
-    // 2.5. Circuit breaker — fail fast if open (throws KSeFCircuitOpenError)
-    if (this.circuitBreakerPolicy) {
-      this.circuitBreakerPolicy.ensureClosed(request.path);
-    }
-
-    // 3. Retry loop
+    // 3. Retry loop.
+    //
+    // Circuit-breaker rules:
+    // - `ensureClosed` runs at the **start of every iteration** so an open
+    //   breaker (possibly opened by another concurrent request mid-loop)
+    //   short-circuits remaining attempts instead of letting them proceed.
+    // - Outcome is recorded **once per logical request**, on the terminal
+    //   path. Retry-and-recover does not score multiple failures against the
+    //   breaker, and the documented "5xx after retries exhausted" contract
+    //   becomes literal instead of aspirational.
     let lastError: unknown;
     for (let attempt = 0; attempt <= this.retryPolicy.maxRetries; attempt++) {
-      try {
-        const response = await this.doRequest(request, url);
+      if (this.circuitBreakerPolicy) {
+        this.circuitBreakerPolicy.ensureClosed(request.path);
+      }
 
-        // Auth refresh on 401
+      try {
+        let response = await this.doRequest(request, url);
+
+        // Auth refresh on 401 — one-shot, first attempt only. The refreshed
+        // response then falls through into the normal outcome-recording flow
+        // so the breaker sees a single, consistent outcome regardless of
+        // whether a token refresh happened.
         if (response.status === 401 && this.authManager && attempt === 0 && !request.isSkipAuthRetry()) {
           const newToken = await this.authManager.onUnauthorized();
           if (newToken) {
             consola.debug('Auth token refreshed, retrying request');
-            return this.doRequest(request, url, newToken);
+            response = await this.doRequest(request, url, newToken);
           }
         }
 
-        this.recordCircuitOutcome(request.path, response.status);
-
-        // Retryable status check
+        // Retryable status + budget left → defer outcome to a later iteration.
         if (isRetryableStatus(response.status, this.retryPolicy) && attempt < this.retryPolicy.maxRetries) {
           const is429 = response.status === 429;
           const retryAfterMs = is429 ? parseRetryAfter(response.headers.get('Retry-After')) : null;
@@ -135,19 +144,25 @@ export class RestClient {
           continue;
         }
 
+        // Terminal response — record outcome once, then return.
+        this.recordCircuitOutcome(request.path, response.status);
         return response;
       } catch (error) {
         lastError = error;
-
-        if (isRetryableError(error, this.retryPolicy)) {
-          this.circuitBreakerPolicy?.recordFailure(request.path);
-        }
 
         if (isRetryableError(error, this.retryPolicy) && attempt < this.retryPolicy.maxRetries) {
           const delayMs = calculateBackoff(attempt, this.retryPolicy);
           consola.debug(`Network error, attempt ${attempt + 1}/${this.retryPolicy.maxRetries}, waiting ${Math.round(delayMs)}ms`);
           await sleep(delayMs);
           continue;
+        }
+
+        // Terminal network error — only count against the breaker if it was a
+        // retryable failure mode (the kind the breaker is designed to protect
+        // against). Non-retryable throws (ex. AbortError on deliberate cancel)
+        // are neither success nor outage signal.
+        if (isRetryableError(error, this.retryPolicy)) {
+          this.circuitBreakerPolicy?.recordFailure(request.path);
         }
 
         throw error;
