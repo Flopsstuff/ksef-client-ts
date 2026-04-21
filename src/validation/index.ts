@@ -21,3 +21,7 @@ export {
   type InvoiceValidationErrorCode, type ValidateOptions, type BatchValidationResult,
 } from './invoice-validator.js';
 export { validateCharValidity, DISCOURAGED_UNICODE_RANGES } from './char-validity.js';
+export {
+  FA_XSD_PATHS, PEF_XSD_PATHS, libxmljsAvailable, resolveXsdFor, validateAgainstXsd,
+  type InvoiceSchemaId, type ValidateAgainstXsdResult,
+} from './xsd-validator.js';

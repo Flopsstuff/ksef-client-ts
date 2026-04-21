@@ -1,0 +1,63 @@
+{
+  "Invoice": {
+    "cbc:CustomizationID": "urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0",
+    "cbc:ProfileID": "urn:fdc:peppol.eu:2017:poacc:billing:01:1.0",
+    "cbc:ID": "INV/2026/0001",
+    "cbc:IssueDate": "2026-04-18",
+    "cbc:DueDate": "2026-05-18",
+    "cbc:InvoiceTypeCode": "380",
+    "cbc:DocumentCurrencyCode": "PLN",
+    "cac:AccountingSupplierParty": {
+      "cac:Party": {
+        "cac:PartyName": { "cbc:Name": "Sample Seller" },
+        "cac:PostalAddress": {
+          "cbc:StreetName": "ul. Przykladowa 1",
+          "cbc:CityName": "Warszawa",
+          "cbc:PostalZone": "00-001",
+          "cac:Country": { "cbc:IdentificationCode": "PL" }
+        },
+        "cac:PartyTaxScheme": {
+          "cbc:CompanyID": "PL1111111111",
+          "cac:TaxScheme": { "cbc:ID": "VAT" }
+        },
+        "cac:PartyLegalEntity": {
+          "cbc:RegistrationName": "Sample Seller",
+          "cbc:CompanyID": "1111111111"
+        }
+      }
+    },
+    "cac:AccountingCustomerParty": {
+      "cac:Party": {
+        "cac:PartyName": { "cbc:Name": "Sample Buyer" },
+        "cac:PostalAddress": {
+          "cbc:StreetName": "ul. Klientowska 2",
+          "cbc:CityName": "Warszawa",
+          "cbc:PostalZone": "00-002",
+          "cac:Country": { "cbc:IdentificationCode": "PL" }
+        },
+        "cac:PartyLegalEntity": {
+          "cbc:RegistrationName": "Sample Buyer",
+          "cbc:CompanyID": "2222222222"
+        }
+      }
+    },
+    "cac:TaxTotal": {
+      "cbc:TaxAmount": { "@_currencyID": "PLN", "#text": "23.00" }
+    },
+    "cac:LegalMonetaryTotal": {
+      "cbc:LineExtensionAmount": { "@_currencyID": "PLN", "#text": "100.00" },
+      "cbc:TaxExclusiveAmount": { "@_currencyID": "PLN", "#text": "100.00" },
+      "cbc:TaxInclusiveAmount": { "@_currencyID": "PLN", "#text": "123.00" },
+      "cbc:PayableAmount": { "@_currencyID": "PLN", "#text": "123.00" }
+    },
+    "cac:InvoiceLine": {
+      "cbc:ID": "1",
+      "cbc:InvoicedQuantity": { "@_unitCode": "C62", "#text": "1" },
+      "cbc:LineExtensionAmount": { "@_currencyID": "PLN", "#text": "100.00" },
+      "cac:Item": { "cbc:Name": "Sample product" },
+      "cac:Price": {
+        "cbc:PriceAmount": { "@_currencyID": "PLN", "#text": "100.00" }
+      }
+    }
+  }
+}

@@ -41,7 +41,7 @@ features:
   - title: Multiple Document Structures
     details: Support for all KSeF document types — FA (2)/(3), PEF (3), PEF_KOR (3), FA_RR (1). Typed FormCode constants, session-type validation, and structured UPO parsing with discriminated unions.
   - title: Invoice XML Serialization
-    details: Build XSD-compliant FA2, FA3, PEF, and PEF_KOR XML from typed TypeScript objects. Correct element ordering (including the FA3 per-VAT-rate P_13/P_14/P_14W interleave), natural P_* sort, automatic namespace injection, and pass-through for pre-built XML strings and buffers.
+    details: Build XSD-compliant FA2, FA3, PEF, and PEF_KOR XML from typed TypeScript objects. Correct element ordering (including the FA3 per-VAT-rate P_13/P_14/P_14W interleave), natural P_* sort, automatic namespace injection, and pass-through for pre-built XML strings and buffers. The `ksef invoice build` CLI wraps the same pipeline for JSON or YAML input with optional Zod and XSD validation.
   - title: Invoice XML Validation
     details: Three-level client-side validation against official KSeF XSD schemas — well-formedness, schema structure (via generated Zod validators), and business rules (NIP/PESEL checksums, future date rejection). Supports all 6 invoice types with auto-detection. CLI batch validation, programmatic API, and opt-in pre-send validation in workflows.
   - title: Typed Errors with RFC 7807 Problem Details

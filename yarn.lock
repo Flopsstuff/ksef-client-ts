@@ -4628,9 +4628,15 @@ __metadata:
     vitepress: "npm:^1.6.4"
     vitest: "npm:^3.0.8"
     xml-crypto: "npm:^6.0.0"
+    yaml: "npm:^2.5.0"
     yauzl: "npm:^3.2.1"
     yazl: "npm:^3.3.1"
     zod: "npm:^4.3.6"
+  peerDependencies:
+    libxmljs2: ^0.37.0
+  peerDependenciesMeta:
+    libxmljs2:
+      optional: true
   bin:
     ksef: ./dist/cli.js
   languageName: unknown
@@ -7825,7 +7831,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yaml@npm:^2.0.0, yaml@npm:^2.8.0":
+"yaml@npm:^2.0.0, yaml@npm:^2.5.0, yaml@npm:^2.8.0":
   version: 2.8.3
   resolution: "yaml@npm:2.8.3"
   bin:

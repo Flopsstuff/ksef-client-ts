@@ -13,6 +13,7 @@ import type { FormCode } from '../../models/common.js';
 import type { InvoiceQueryFilters, InvoiceSubjectType, InvoiceQueryDateType, AmountType } from '../../models/invoices/types.js';
 import { DEFAULT_FORM_CODE, FORM_CODE_KEYS, validateFormCodeForSession } from '../../models/document-structures/index.js';
 import { exportIncremental } from './export-incremental.js';
+import { invoiceBuild } from './invoice-build.js';
 import { normalizeCliDate } from '../date-utils.js';
 import { validate as validateInvoice } from '../../validation/invoice-validator.js';
 import { KSeFValidationError } from '../../errors/ksef-validation-error.js';
@@ -564,5 +565,5 @@ const validateCmd = defineCommand({
 
 export const invoiceCommand = defineCommand({
   meta: { name: 'invoice', description: 'Invoice commands' },
-  subCommands: { send, get, query, validate: validateCmd, export: exportCmd, 'export-status': exportStatus, 'export-incremental': exportIncremental },
+  subCommands: { build: invoiceBuild, send, get, query, validate: validateCmd, export: exportCmd, 'export-status': exportStatus, 'export-incremental': exportIncremental },
 });
