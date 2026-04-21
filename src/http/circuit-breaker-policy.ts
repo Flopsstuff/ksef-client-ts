@@ -11,6 +11,7 @@ interface CircuitState {
   failures: number;
   openedAt: number | null;
   lastFailureAt: number | null;
+  probeInFlight: boolean;
 }
 
 const GLOBAL_KEY = '__global__';
@@ -45,6 +46,13 @@ export class CircuitBreakerPolicy {
     const now = performance.now();
     const elapsed = now - state.openedAt;
     if (elapsed >= this.openMs) {
+      // Half-open: allow exactly one probe through. Further callers see an open
+      // circuit (retryAfterMs=0) until the in-flight probe resolves — prevents
+      // a burst from flooding a fragile upstream the moment the cooldown ends.
+      if (state.probeInFlight) {
+        throw new KSeFCircuitOpenError(endpoint, state.openedAt, 0);
+      }
+      state.probeInFlight = true;
       consola.debug(`Circuit breaker: probe after cooldown for '${key}'`);
       return;
     }
@@ -70,15 +78,18 @@ export class CircuitBreakerPolicy {
     let state = this.states.get(key);
 
     if (!state) {
-      state = { failures: 0, openedAt: null, lastFailureAt: null };
+      state = { failures: 0, openedAt: null, lastFailureAt: null, probeInFlight: false };
       this.states.set(key, state);
     }
 
-    // Probe failure: circuit was open, cooldown elapsed, and this failure came after the probe pass.
-    if (state.openedAt !== null && now - state.openedAt >= this.openMs) {
+    // Probe failure: the breaker was open, ensureClosed() claimed the probe slot,
+    // and that single in-flight probe has now failed. Re-open and clear the flag
+    // so the next cooldown cycle can issue a fresh probe.
+    if (state.openedAt !== null && state.probeInFlight) {
       state.openedAt = now;
       state.failures = this.failureThreshold;
       state.lastFailureAt = now;
+      state.probeInFlight = false;
       consola.debug(`Circuit breaker: probe failed, re-opened for '${key}'`);
       return;
     }

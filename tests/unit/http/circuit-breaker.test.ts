@@ -91,6 +91,21 @@ describe('CircuitBreakerPolicy', () => {
       expect(() => p.ensureClosed('/a')).toThrow(KSeFCircuitOpenError);
     });
 
+    it('after cooldown, only one probe is allowed through — concurrent callers still see OPEN', async () => {
+      const p = new CircuitBreakerPolicy({ failureThreshold: 2, openMs: 30 });
+      p.recordFailure('/a');
+      p.recordFailure('/a');
+      await sleep(50);
+      // First caller claims the single probe slot.
+      expect(() => p.ensureClosed('/a')).not.toThrow();
+      // Second caller arrives before the probe resolves — still OPEN.
+      expect(() => p.ensureClosed('/a')).toThrow(KSeFCircuitOpenError);
+      // Probe resolves with success — circuit closes; both callers now fine.
+      p.recordSuccess('/a');
+      expect(() => p.ensureClosed('/a')).not.toThrow();
+      expect(() => p.ensureClosed('/a')).not.toThrow();
+    });
+
     it('sliding reset: a failure older than openMs is dropped, counter restarts at 1', async () => {
       const p = new CircuitBreakerPolicy({ failureThreshold: 3, openMs: 30 });
       p.recordFailure('/a');
