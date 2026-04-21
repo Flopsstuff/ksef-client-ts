@@ -23,6 +23,7 @@ import {
   buildDrySummary,
   mapBuildExitCode,
   VALID_SCHEMAS,
+  VALID_FORMATS,
   type FormatOption,
 } from './invoice-build-helpers.js';
 
@@ -88,7 +89,14 @@ export const invoiceBuild = defineCommand({
           );
         }
 
-        const formatOption = (args.format as FormatOption | undefined) ?? 'auto';
+        const formatRaw = args.format as string | undefined;
+        if (formatRaw && !VALID_FORMATS.includes(formatRaw as FormatOption)) {
+          throw KSeFValidationError.fromField(
+            'format',
+            `Format must be one of: ${VALID_FORMATS.join(', ')}.`,
+          );
+        }
+        const formatOption = (formatRaw as FormatOption | undefined) ?? 'auto';
         const { raw, format } = await readInput(args.input as string, formatOption);
         const parsed = parseInput(raw, format);
 

@@ -195,6 +195,15 @@ describe('invoice build — error surfaces', () => {
       message: expect.stringContaining('Schema must be one of'),
     });
   });
+
+  it('rejects an unknown --format value before parsing', async () => {
+    await expect(
+      runWithStdin('{"Naglowek":{},"Fa":{}}', { format: 'yml' }),
+    ).rejects.toMatchObject({
+      name: 'KSeFValidationError',
+      message: expect.stringContaining('Format must be one of'),
+    });
+  });
 });
 
 describe.skipIf(!libxmljsAvailable)('invoice build — --validate-xsd', () => {

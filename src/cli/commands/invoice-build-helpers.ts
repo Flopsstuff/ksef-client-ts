@@ -13,6 +13,7 @@ export type FormatOption = InputFormat | 'auto';
 export type TemplateId = 'FA2' | 'FA3' | 'PEF' | 'PEF_KOR';
 
 export const VALID_SCHEMAS: readonly TemplateId[] = ['FA2', 'FA3', 'PEF', 'PEF_KOR'];
+export const VALID_FORMATS: readonly FormatOption[] = ['auto', 'json', 'yaml'];
 
 const TEMPLATES: Record<TemplateId, unknown> = {
   FA2: fa2Template,
