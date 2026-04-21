@@ -177,4 +177,63 @@ describe('CircuitBreakerPolicy', () => {
       expect(() => p.ensureClosed('/c')).toThrow(KSeFCircuitOpenError);
     });
   });
+
+  describe('endpoint-scope memory bound', () => {
+    // Parameterized routes (e.g. `auth/sessions/${ref}`) combined with
+    // scope='endpoint' could leak states indefinitely: every unique id
+    // creates an entry that only recordSuccess() would delete. These tests
+    // verify that stale closed entries are swept to keep the map bounded.
+
+    const internalSize = (p: CircuitBreakerPolicy): number =>
+      (p as unknown as { states: Map<string, unknown> }).states.size;
+
+    it('sweeps stale closed entries from many distinct endpoints', async () => {
+      const p = new CircuitBreakerPolicy({ failureThreshold: 100, openMs: 10, scope: 'endpoint' });
+      // Record one failure for 200 distinct endpoints — all remain CLOSED
+      // (1 failure << threshold 100). After priming, internal map has 200+.
+      for (let i = 0; i < 200; i++) {
+        p.recordFailure(`/endpoint-${i}`);
+      }
+      expect(internalSize(p)).toBeGreaterThanOrEqual(200);
+
+      // Wait past 2 × openMs so the entries qualify as stale closed.
+      await sleep(30);
+
+      // One more failure on a fresh endpoint triggers the sweep path.
+      p.recordFailure('/trigger');
+
+      // Map should have shrunk dramatically — ideally just the trigger key,
+      // but allow a small margin for any timing-sensitive stragglers.
+      expect(internalSize(p)).toBeLessThan(10);
+    });
+
+    it('does NOT evict open entries during sweep', async () => {
+      // Mix stale CLOSED entries (should be swept) with entries that the
+      // breaker tripped open (must be kept). Uses threshold=1 so every
+      // failure opens its own endpoint — convenient for staging OPEN state.
+      const p = new CircuitBreakerPolicy({ failureThreshold: 1, openMs: 10, scope: 'endpoint' });
+      for (let i = 0; i < 80; i++) {
+        p.recordFailure(`/open-${i}`);
+      }
+      // All 80 entries are OPEN (openedAt !== null).
+
+      await sleep(30);
+      p.recordFailure('/trigger'); // fires the sweep
+
+      // Sweep skips openedAt !== null, so all 80 remain + '/trigger' = 81.
+      expect(internalSize(p)).toBeGreaterThanOrEqual(80);
+      // Spot-check: a previously opened endpoint still short-circuits.
+      // (Its cooldown is 10ms and we've slept 30ms, so it will transition
+      // into probe state — but either way the entry is retained.)
+      expect((p as unknown as { states: Map<string, unknown> }).states.has('/open-0')).toBe(true);
+    });
+
+    it('scope=global never grows past one entry regardless of endpoint count', () => {
+      const p = new CircuitBreakerPolicy({ failureThreshold: 10_000, openMs: 1000, scope: 'global' });
+      for (let i = 0; i < 500; i++) {
+        p.recordFailure(`/endpoint-${i}`);
+      }
+      expect(internalSize(p)).toBe(1);
+    });
+  });
 });

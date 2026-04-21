@@ -92,12 +92,21 @@ export class RestClient {
       validatePresignedUrl(url, this.presignedUrlPolicy);
     }
 
-    // 2. Rate limit acquire (once before retry loop)
+    // 2. Circuit-breaker pre-check — fail fast BEFORE paying the rate-limit
+    //    cost so an open breaker does not stall on the global token queue or
+    //    consume a token that a healthy caller could have used.
+    let ownsProbeSlot = false;
+    if (this.circuitBreakerPolicy) {
+      const claimed = this.circuitBreakerPolicy.ensureClosed(request.path);
+      if (claimed) ownsProbeSlot = true;
+    }
+
+    // 3. Rate limit acquire (once before retry loop)
     if (this.rateLimitPolicy) {
       await this.rateLimitPolicy.acquire(request.path);
     }
 
-    // 3. Retry loop.
+    // 4. Retry loop.
     //
     // Circuit-breaker rules:
     // - `ensureClosed` runs at the **start of every iteration** so an open
@@ -111,7 +120,6 @@ export class RestClient {
     //   locally so subsequent `ensureClosed` calls in the same retry loop do
     //   not deadlock on our own in-flight probe.
     let lastError: unknown;
-    let ownsProbeSlot = false;
     for (let attempt = 0; attempt <= this.retryPolicy.maxRetries; attempt++) {
       if (this.circuitBreakerPolicy) {
         const claimed = this.circuitBreakerPolicy.ensureClosed(request.path, ownsProbeSlot);

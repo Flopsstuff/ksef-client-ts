@@ -98,6 +98,7 @@ export class CircuitBreakerPolicy {
       state.lastFailureAt = now;
       state.probeInFlight = false;
       consola.debug(`Circuit breaker: probe failed, re-opened for '${key}'`);
+      this.maybeSweepStaleClosed(now, key);
       return;
     }
 
@@ -113,11 +114,37 @@ export class CircuitBreakerPolicy {
         `Circuit breaker: opened for '${key}' after ${state.failures} failures (cooldown ${this.openMs}ms)`,
       );
     }
+
+    this.maybeSweepStaleClosed(now, key);
   }
 
   private keyFor(endpoint: string): string {
     return this.scope === 'global' ? GLOBAL_KEY : endpoint;
   }
+
+  // Prevent unbounded map growth under `scope: 'endpoint'` when callers hit
+  // many distinct parameterized paths (e.g. `auth/sessions/{ref}`) that each
+  // fail once and are never revisited. Global scope is always a single entry.
+  //
+  // Runs amortized O(n) — gated on a size threshold so small workloads pay
+  // nothing. Only evicts states that are genuinely settled: closed, no probe
+  // in flight, and with the last failure older than two cooldowns.
+  private maybeSweepStaleClosed(now: number, keepKey: string): void {
+    if (this.scope !== 'endpoint') return;
+    if (this.states.size <= CircuitBreakerPolicy.sweepThreshold) return;
+
+    const staleBefore = now - 2 * this.openMs;
+    for (const [key, state] of this.states) {
+      if (key === keepKey) continue;
+      if (state.openedAt !== null) continue;
+      if (state.probeInFlight) continue;
+      if (state.lastFailureAt !== null && state.lastFailureAt < staleBefore) {
+        this.states.delete(key);
+      }
+    }
+  }
+
+  private static readonly sweepThreshold = 64;
 }
 
 export function defaultCircuitBreakerPolicy(): CircuitBreakerPolicy {

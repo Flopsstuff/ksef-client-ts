@@ -5,6 +5,7 @@ import type { TransportFn } from '../../../src/http/transport.js';
 import type { ResolvedOptions } from '../../../src/config/options.js';
 import type { AuthManager } from '../../../src/http/auth-manager.js';
 import { CircuitBreakerPolicy } from '../../../src/http/circuit-breaker-policy.js';
+import type { RateLimitPolicy } from '../../../src/http/rate-limit-policy.js';
 import { KSeFCircuitOpenError } from '../../../src/errors/ksef-circuit-open-error.js';
 import { KSeFApiError } from '../../../src/errors/ksef-api-error.js';
 import { KSeFRateLimitError } from '../../../src/errors/ksef-rate-limit-error.js';
@@ -387,6 +388,35 @@ describe('RestClient + CircuitBreakerPolicy', () => {
     // with ZERO transport invocations — not six retries.
     transport.mockClear();
     await expect(client.execute(RestRequest.get('/cold'))).rejects.toThrow(KSeFCircuitOpenError);
+    expect(transport).toHaveBeenCalledTimes(0);
+  });
+
+  it('open breaker fails fast WITHOUT consuming a rate-limit token', async () => {
+    // The breaker pre-check runs before the rate-limit acquire, so an open
+    // circuit must not enqueue on the limiter chain nor burn a token. A token
+    // wasted here would block a healthy concurrent caller for no reason.
+    const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(500));
+    const circuitBreakerPolicy = new CircuitBreakerPolicy({ failureThreshold: 2, openMs: 10_000 });
+
+    const acquire = vi.fn<(endpoint: string) => Promise<void>>().mockResolvedValue(undefined);
+    const rateLimitPolicy = { acquire } as unknown as RateLimitPolicy;
+
+    const client = createClient(transport, { circuitBreakerPolicy, rateLimitPolicy });
+
+    // Prime the breaker. Each of these must hit the limiter exactly once.
+    await expect(client.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+    await expect(client.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+    expect(acquire).toHaveBeenCalledTimes(2);
+
+    acquire.mockClear();
+    transport.mockClear();
+
+    // Breaker is now OPEN. Follow-up requests must short-circuit with zero
+    // limiter acquires and zero transport calls.
+    for (let i = 0; i < 5; i++) {
+      await expect(client.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFCircuitOpenError);
+    }
+    expect(acquire).toHaveBeenCalledTimes(0);
     expect(transport).toHaveBeenCalledTimes(0);
   });
 
