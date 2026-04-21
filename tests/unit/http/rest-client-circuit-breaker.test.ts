@@ -85,6 +85,87 @@ describe('RestClient + CircuitBreakerPolicy', () => {
     expect(transport).toHaveBeenCalledTimes(6);
   });
 
+  it('429 between 5xx resets the failure counter (consecutive-failures semantics)', async () => {
+    // The breaker is documented as opening after `failureThreshold`
+    // CONSECUTIVE upstream failures. A 429 in between two 5xx should break
+    // the streak — without the fix, `500 → 429 → 500` with threshold=2 would
+    // have incorrectly opened the breaker.
+    const transport = vi.fn<TransportFn>()
+      .mockResolvedValueOnce(mockResponse(500))
+      .mockResolvedValueOnce(mockResponse(429, {}, { 'Retry-After': '0' }))
+      .mockResolvedValueOnce(mockResponse(500));
+
+    const circuitBreakerPolicy = new CircuitBreakerPolicy({ failureThreshold: 2, openMs: 1000 });
+    const client = createClient(transport, { circuitBreakerPolicy });
+
+    await expect(client.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+    await expect(client.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFRateLimitError);
+    await expect(client.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+
+    // Must still be CLOSED — the 429 reset the streak after the first 500,
+    // so only one fresh 5xx counts (below threshold 2).
+    const probe = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, { ok: true }));
+    const probeClient = createClient(probe, { circuitBreakerPolicy });
+    const res = await probeClient.execute<{ ok: boolean }>(RestRequest.get('/t'));
+    expect(res.body).toEqual({ ok: true });
+  });
+
+  it('401 between 5xx resets the failure counter (consecutive-failures semantics)', async () => {
+    const transport = vi.fn<TransportFn>()
+      .mockResolvedValueOnce(mockResponse(500))
+      .mockResolvedValueOnce(mockResponse(401, { detail: 'expired' }))
+      .mockResolvedValueOnce(mockResponse(500));
+
+    const circuitBreakerPolicy = new CircuitBreakerPolicy({ failureThreshold: 2, openMs: 1000 });
+    const client = createClient(transport, { circuitBreakerPolicy }); // no authManager
+
+    await expect(client.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+    await expect(client.execute(RestRequest.get('/t'))).rejects.toThrow();
+    await expect(client.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+
+    const probe = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, { ok: true }));
+    const probeClient = createClient(probe, { circuitBreakerPolicy });
+    const res = await probeClient.execute<{ ok: boolean }>(RestRequest.get('/t'));
+    expect(res.body).toEqual({ ok: true });
+  });
+
+  it('probe slot is released when rate-limit acquire throws before transport runs', async () => {
+    // After the breaker pre-check claims the probe slot, a rate-limit policy
+    // that rejects the acquire (e.g. max queue depth exceeded, custom policy)
+    // exits sendRequest before the retry loop. Without releasing the slot
+    // here, probeInFlight stays true and every subsequent request fast-fails
+    // with retryAfterMs=0.
+    const circuitBreakerPolicy = new CircuitBreakerPolicy({ failureThreshold: 2, openMs: 50 });
+
+    const primeTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(500));
+    const primeClient = createClient(primeTransport, { circuitBreakerPolicy });
+    await expect(primeClient.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+    await expect(primeClient.execute(RestRequest.get('/t'))).rejects.toThrow(KSeFApiError);
+
+    await sleep(80); // cooldown elapsed
+
+    const failingAcquire = vi.fn<(endpoint: string) => Promise<void>>()
+      .mockRejectedValue(new Error('limiter queue saturated'));
+    const failingLimiter = { acquire: failingAcquire } as unknown as RateLimitPolicy;
+    const probeTransport = vi.fn<TransportFn>();
+    const probeClient = createClient(probeTransport, {
+      circuitBreakerPolicy,
+      rateLimitPolicy: failingLimiter,
+    });
+
+    // Probe attempt: pre-check claims the slot, then rate-limit acquire
+    // throws. sendRequest must release the probe before propagating.
+    await expect(probeClient.execute(RestRequest.get('/t'))).rejects.toThrow('limiter queue saturated');
+    expect(probeTransport).not.toHaveBeenCalled();
+
+    // A subsequent request with a working limiter + healthy transport must
+    // not be stuck in retryAfterMs=0 deadlock.
+    const okTransport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, { ok: true }));
+    const okClient = createClient(okTransport, { circuitBreakerPolicy });
+    const res = await okClient.execute<{ ok: boolean }>(RestRequest.get('/t'));
+    expect(res.body).toEqual({ ok: true });
+  });
+
   it('4xx (non-401) resets the failure counter', async () => {
     const transport = vi.fn<TransportFn>()
       .mockResolvedValueOnce(mockResponse(500))

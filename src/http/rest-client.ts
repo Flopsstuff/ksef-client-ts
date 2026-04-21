@@ -101,9 +101,17 @@ export class RestClient {
       if (claimed) ownsProbeSlot = true;
     }
 
-    // 3. Rate limit acquire (once before retry loop)
+    // 3. Rate limit acquire (once before retry loop). If acquire throws
+    //    (e.g. a custom policy enforcing a max queue depth), release any
+    //    claimed half-open probe slot — we never reached the transport, so
+    //    the breaker has no outage signal to record.
     if (this.rateLimitPolicy) {
-      await this.rateLimitPolicy.acquire(request.path);
+      try {
+        await this.rateLimitPolicy.acquire(request.path);
+      } catch (error) {
+        if (ownsProbeSlot) this.circuitBreakerPolicy?.recordSuccess(request.path);
+        throw error;
+      }
     }
 
     // 4. Retry loop.
@@ -158,7 +166,7 @@ export class RestClient {
         }
 
         // Terminal response — record outcome once, then return.
-        this.recordCircuitOutcome(request.path, response.status, ownsProbeSlot);
+        this.recordCircuitOutcome(request.path, response.status);
         return response;
       } catch (error) {
         lastError = error;
@@ -188,23 +196,18 @@ export class RestClient {
     throw lastError;
   }
 
-  private recordCircuitOutcome(path: string, status: number, ownsProbeSlot: boolean): void {
+  private recordCircuitOutcome(path: string, status: number): void {
     if (!this.circuitBreakerPolicy) return;
-    // 429 and 401 have their own flows (Retry-After / auth-refresh) — neither
-    // indicates outage, so normally we don't touch breaker state. But if this
-    // request owned the half-open probe slot, it MUST be released here:
-    // a 401/429 means the server responded (no outage), so we close the
-    // breaker via recordSuccess. Otherwise probeInFlight stays true forever
-    // and the breaker deadlocks for all subsequent callers.
-    if (status === 429 || status === 401) {
-      if (ownsProbeSlot) this.circuitBreakerPolicy.recordSuccess(path);
-      return;
-    }
     if (status >= 500) {
       this.circuitBreakerPolicy.recordFailure(path);
-    } else {
-      this.circuitBreakerPolicy.recordSuccess(path);
+      return;
     }
+    // Any non-5xx response — including 401/429 — is not an outage signal.
+    // Recording success (a) resets an in-progress failure streak to keep
+    // the documented "consecutive failures" semantics and prevent false
+    // positives from 500 → 429 → 500 patterns, and (b) releases the
+    // half-open probe slot if this request owned it.
+    this.circuitBreakerPolicy.recordSuccess(path);
   }
 
   private async doRequest(request: RestRequest, url: string, overrideToken?: string): Promise<Response> {

@@ -328,13 +328,13 @@ The breaker stays open only for `openMs`. After the cooldown, the next request i
 
 | Outcome | Counted? |
 |---------|----------|
-| Network error (`ECONNRESET`, `ETIMEDOUT`, `ECONNREFUSED`, etc.) | **Yes** |
-| 5xx response after retries exhausted | **Yes** |
-| 429 Too Many Requests | **No** (rate limiting is not an outage) |
-| 401 Unauthorized | **No** (auth problem, not availability) |
-| 2xx / 4xx (other than 401/429) | **No** (records success) |
+| Network error (`ECONNRESET`, `ETIMEDOUT`, `ECONNREFUSED`, etc.) | **Yes** (failure) |
+| 5xx response after retries exhausted | **Yes** (failure) |
+| 429 Too Many Requests | **No** — recorded as success (rate limiting is not an outage; resets the streak) |
+| 401 Unauthorized | **No** — recorded as success (auth problem, not availability; resets the streak) |
+| 2xx / 3xx / other 4xx | **No** — recorded as success |
 
-This matches the intent: a breaker protects against upstream *unavailability*, not against client mistakes or throttling.
+This matches the intent: a breaker protects against upstream *unavailability*, not against client mistakes or throttling. Any non-5xx response resets an in-progress failure streak, so the `failureThreshold` is **consecutive** outages — a `500 → 429 → 500` pattern does NOT trip a threshold-of-two breaker.
 
 ### Interaction with retry policy
 
