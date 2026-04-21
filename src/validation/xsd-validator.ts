@@ -92,8 +92,12 @@ export function isMissingLibxmljsError(err: unknown): boolean {
 // rewriting to a local file://-URL. PEF XSDs have no such import, so this
 // regex legitimately produces no replacement on a PEF path — callers must
 // not treat a zero-replacement PEF rewrite as drift.
+//
+// Kept non-global: FA XSDs carry the import exactly once, and a non-global
+// regex avoids the stateful `lastIndex` footgun that `.test()` would
+// otherwise leave behind on repeat calls.
 const EXTERNAL_STRUKTURY_DANYCH_URL =
-  /schemaLocation="http:\/\/crd\.gov\.pl\/xml\/schematy\/dziedzinowe\/mf\/2022\/01\/05\/eD\/DefinicjeTypy\/StrukturyDanych_v10-0E\.xsd"/g;
+  /schemaLocation="http:\/\/crd\.gov\.pl\/xml\/schematy\/dziedzinowe\/mf\/2022\/01\/05\/eD\/DefinicjeTypy\/StrukturyDanych_v10-0E\.xsd"/;
 
 function rewriteSchemaLocations(xsdContent: string): string {
   // No upstream URL present → nothing to rewrite (PEF XSDs reach this path
@@ -101,7 +105,6 @@ function rewriteSchemaLocations(xsdContent: string): string {
   if (!EXTERNAL_STRUKTURY_DANYCH_URL.test(xsdContent)) {
     return xsdContent;
   }
-  EXTERNAL_STRUKTURY_DANYCH_URL.lastIndex = 0;
 
   const bazoweStrukturyPath = path.join(
     locatePackageRoot(),
@@ -116,7 +119,6 @@ function rewriteSchemaLocations(xsdContent: string): string {
     EXTERNAL_STRUKTURY_DANYCH_URL,
     `schemaLocation="${bazoweStrukturyUrl}"`,
   );
-  EXTERNAL_STRUKTURY_DANYCH_URL.lastIndex = 0;
 
   // Drift-guard: the URL was present but `.replace()` produced no change.
   // Should be unreachable unless the regex and the URL diverge — fail loud
