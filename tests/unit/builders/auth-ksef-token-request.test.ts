@@ -49,10 +49,10 @@ describe('AuthKsefTokenRequestBuilder', () => {
   // convenience method so the builder's discoverable surface stays
   // coverage-covered as a regression signal.
   it.each([
-    ['Nip' as const, '1234567890', 'withContextNip'],
-    ['InternalId' as const, '1234567890-12345', 'withContextInternalId'],
-    ['NipVatUe' as const, 'PL1234567890', 'withContextNipVatUe'],
-    ['PeppolId' as const, '0088:1234567890', 'withContextPeppolId'],
+    ['Nip' as const, '1234567890'],
+    ['InternalId' as const, '1234567890-12345'],
+    ['NipVatUe' as const, 'PL1234567890'],
+    ['PeppolId' as const, '0088:1234567890'],
   ])('withContext%s sets contextIdentifier with the matching type', (type, value) => {
     const method = `withContext${type}` as const;
     const builder = new AuthKsefTokenRequestBuilder()
