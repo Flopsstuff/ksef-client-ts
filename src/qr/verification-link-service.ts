@@ -43,9 +43,10 @@ export class VerificationLinkService {
     // Path to sign = full URL without https:// prefix
     const dataToSign = pathWithoutSignature.replace(/^https?:\/\//, '');
 
-    const key = privateKeyPassword
-      ? crypto.createPrivateKey({ key: privateKeyPem, format: 'pem', passphrase: privateKeyPassword })
-      : crypto.createPrivateKey(privateKeyPem);
+    const key =
+      privateKeyPassword !== undefined
+        ? crypto.createPrivateKey({ key: privateKeyPem, format: 'pem', passphrase: privateKeyPassword })
+        : crypto.createPrivateKey(privateKeyPem);
     let signature: Buffer;
 
     if (key.asymmetricKeyType === 'rsa') {
