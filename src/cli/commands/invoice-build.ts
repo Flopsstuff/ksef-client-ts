@@ -130,8 +130,11 @@ export const invoiceBuild = defineCommand({
           pretty: Boolean(args.pretty),
         });
 
+        const xmlStr =
+          args.validate || args['validate-xsd'] ? xml.toString('utf-8') : '';
+
         if (args.validate) {
-          const result = await validateInvoice(xml.toString('utf-8'));
+          const result = await validateInvoice(xmlStr);
           if (!result.valid) {
             throw KSeFValidationError.fromMessages(result.errors.map((e) => e.message));
           }
@@ -139,7 +142,7 @@ export const invoiceBuild = defineCommand({
 
         if (args['validate-xsd']) {
           const xsdPath = resolveXsdFor(schema);
-          const xsdResult = validateAgainstXsd(xml.toString('utf-8'), xsdPath);
+          const xsdResult = validateAgainstXsd(xmlStr, xsdPath);
           if (!xsdResult.valid) {
             throw new KSeFXsdValidationError(xsdPath, xsdResult.errors);
           }
