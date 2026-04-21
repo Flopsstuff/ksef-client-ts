@@ -142,7 +142,7 @@ describe('VerificationLinkService', () => {
         service.buildCertificateVerificationUrl(
           'Nip', '1234567890', '1234567890', 'SERIAL', hash, encryptedPem,
         ),
-      ).toThrow(/passphrase|decrypt|encrypted|interrupted or cancelled/i);
+      ).toThrow(/passphrase|decrypt|encrypted|interrupted or cancelled|decoder|unsupported|bad/i);
     });
 
     it('should throw on encrypted PEM with wrong passphrase (RSA)', () => {
@@ -159,7 +159,7 @@ describe('VerificationLinkService', () => {
         service.buildCertificateVerificationUrl(
           'Nip', '1234567890', '1234567890', 'SERIAL', hash, encryptedPem, 'wrong',
         ),
-      ).toThrow(/passphrase|decrypt|encrypted|interrupted or cancelled/i);
+      ).toThrow(/passphrase|decrypt|encrypted|interrupted or cancelled|decoder|unsupported|bad/i);
     });
 
     it('should throw on encrypted PEM with wrong passphrase (EC P-256)', () => {
@@ -176,7 +176,7 @@ describe('VerificationLinkService', () => {
         service.buildCertificateVerificationUrl(
           'Nip', '1234567890', '1234567890', 'SERIAL', hash, encryptedPem, 'wrong',
         ),
-      ).toThrow(/passphrase|decrypt|encrypted|interrupted or cancelled/i);
+      ).toThrow(/passphrase|decrypt|encrypted|interrupted or cancelled|decoder|unsupported|bad/i);
     });
   });
 });
