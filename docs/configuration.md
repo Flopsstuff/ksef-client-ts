@@ -16,6 +16,7 @@ const client = new KSeFClient({
   transport: customFetchFn,    // Replace native fetch
   retry: { maxRetries: 5 },    // Partial retry policy overrides
   rateLimit: { globalRps: 20 },// Partial rate limit config (or null to disable)
+  circuitBreaker: { failureThreshold: 5 }, // Opt-in circuit breaker (undefined/null disables)
   presignedUrlHosts: ['*.my-storage.com'], // Additional allowed hosts
   authManager: customAuthMgr,  // Custom AuthManager implementation
   errorFormat: 'problem-details', // 'problem-details' (default) | 'legacy'
@@ -36,6 +37,7 @@ const client = new KSeFClient({
 | `transport` | `TransportFn` | Native `fetch` | Custom HTTP transport function |
 | `retry` | `Partial<RetryPolicy>` | See below | Retry policy overrides |
 | `rateLimit` | `Partial<RateLimitConfig> \| null` | `{ globalRps: 10 }` | Rate limit config, or `null` to disable |
+| `circuitBreaker` | `Partial<CircuitBreakerConfig> \| null` | — | Opt-in HTTP circuit breaker. `undefined` / omitted / `null` disables the policy entirely; pass a partial config (even `{}`) to enable with defaults merged in |
 | `presignedUrlHosts` | `string[]` | — | Additional allowed hosts for presigned URLs |
 | `authManager` | `AuthManager` | `DefaultAuthManager` | Custom auth/token manager |
 | `errorFormat` | `'problem-details' \| 'legacy'` | `'problem-details'` | Request format for server error bodies. `'legacy'` suppresses the `X-Error-Format` header for older servers/proxies (KSeF API v2.4.0+) |
@@ -152,6 +154,72 @@ The KSeF API enforces its own per-endpoint caps. If you opt into client-side bac
 | `POST /invoices/query/metadata` | 8 | 16 |
 
 Prior to KSeF API v2.4.0, `POST /invoices/exports` was capped at 4 req/s and 8 req/min; v2.4.0 aligned it with `query/metadata`. The client-side token bucket only supports a per-second window — minute-level ceilings are enforced server-side only, so keep `globalRps` at or below the per-second cap to stay within the minute budget under sustained load.
+
+---
+
+## Circuit Breaker
+
+Opt-in HTTP circuit breaker that fails fast when the upstream is known to be unavailable. Sits above the retry loop: once open, every matching request raises `KSeFCircuitOpenError` without hitting the network, so a batch of requests during an outage consumes **one** retry budget instead of one-per-request. When the cooldown elapses, the breaker lets a single probe through; on success it clears, on failure it re-opens. See [HTTP Resilience — Circuit Breaker](./http-resilience.md#circuit-breaker) for the state machine and retry-loop interaction.
+
+The feature is **off by default.** Pass a (possibly empty) partial config to enable it; `null` and `undefined` both disable.
+
+### What counts as a failure
+
+| Outcome | Counted? |
+| --- | --- |
+| Network error (`ECONNRESET`, `ETIMEDOUT`, etc.) | Yes |
+| 5xx response after retries exhausted | Yes |
+| 429 Too Many Requests | No (throttling, not an outage) |
+| 401 Unauthorized | No (auth problem, not availability) |
+| 2xx / 4xx (other than 401/429) | No (records success) |
+
+### Configuration
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `failureThreshold` | `number` | `5` | Consecutive failures within `openMs` before opening. Must be > 0. |
+| `openMs` | `number` | `30000` | Cooldown window in ms. Requests fail fast while open; one probe is allowed after it elapses. Must be > 0. |
+| `scope` | `'global' \| 'endpoint'` | `'global'` | `'global'` uses one breaker for the whole client. `'endpoint'` keeps per-endpoint state so an outage on one route leaves the others alone. |
+
+### Examples
+
+```ts
+// Enable with defaults (threshold 5, cooldown 30s, global scope)
+const client = new KSeFClient({
+  circuitBreaker: {},
+});
+
+// Aggressive: open sooner, stay open longer, per-endpoint scope
+const client = new KSeFClient({
+  circuitBreaker: {
+    failureThreshold: 3,
+    openMs: 60_000,
+    scope: 'endpoint',
+  },
+});
+
+// Explicitly disable (same as omitting the option)
+const client = new KSeFClient({
+  circuitBreaker: null,
+});
+```
+
+Handle the new error class where it makes sense:
+
+```ts
+import { KSeFCircuitOpenError } from 'ksef-client-ts';
+
+try {
+  await client.invoices.sendInvoice(xml);
+} catch (err) {
+  if (err instanceof KSeFCircuitOpenError) {
+    // Park the work for later; don't retry-storm a known-down upstream
+    await parkForLater(xml, err.retryAfterMs);
+    return;
+  }
+  throw err;
+}
+```
 
 ---
 

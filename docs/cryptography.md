@@ -365,8 +365,12 @@ Like token encryption, the signing algorithm is auto-detected from the private k
 |----------|-------------------|-------------|
 | RSA | RSASSA-PKCS1-v1_5 + SHA-256 | `rsa-sha256` |
 | EC (P-256) | ECDSA + SHA-256 (IEEE P1363) | `ecdsa-sha256` |
+| EC (P-384) | ECDSA + SHA-384 (IEEE P1363) | `ecdsa-sha384` |
+| EC (P-521) | ECDSA + SHA-512 (IEEE P1363) | `ecdsa-sha512` |
 
 ECDSA signatures use IEEE P1363 encoding (fixed-length `r || s`) instead of DER encoding. This is required by XMLDSig and XAdES specifications.
+
+**Digest algorithm matches the curve.** Every ECDSA signing path (the `SignatureMethod` URI, both `DigestMethod` elements on the XAdES `Reference` objects, the `xades:CertDigest` used for the signing certificate, and the Node `crypto.sign()` call) uses the digest size paired with the key curve — SHA-256 for P-256, SHA-384 for P-384, and SHA-512 for P-521. RSA signing remains fixed on SHA-256.
 
 ### Signature structure
 
@@ -377,17 +381,17 @@ The complete `ds:Signature` element has four parts:
 
   ┌─ ds:SignedInfo ─────────────────────────────────────────────────┐
   │  CanonicalizationMethod: Exclusive XML C14N                     │
-  │  SignatureMethod: rsa-sha256 or ecdsa-sha256                    │
+  │  SignatureMethod: rsa-sha256 or ecdsa-shaNNN (matches EC curve) │
   │                                                                 │
   │  Reference #1 (URI="") — the root document                     │
   │    Transforms: enveloped-signature → exc-c14n                   │
-  │    DigestMethod: SHA-256                                        │
-  │    DigestValue: base64(SHA-256(canonicalized root))             │
+  │    DigestMethod: shaNNN (matches signing algorithm)             │
+  │    DigestValue: base64(shaNNN(canonicalized root))              │
   │                                                                 │
   │  Reference #2 (URI="#SignedProperties")                         │
   │    Transforms: exc-c14n                                         │
-  │    DigestMethod: SHA-256                                        │
-  │    DigestValue: base64(SHA-256(canonicalized SignedProperties))  │
+  │    DigestMethod: shaNNN (matches signing algorithm)             │
+  │    DigestValue: base64(shaNNN(canonicalized SignedProperties))   │
   └─────────────────────────────────────────────────────────────────┘
 
   ds:SignatureValue — base64(sign(canonicalize(SignedInfo)))
@@ -411,14 +415,14 @@ The complete `ds:Signature` element has four parts:
 
 ### Processing steps
 
-1. **Parse certificate metadata**: extract DER, compute SHA-256 digest, read issuer DN and serial number
-2. **Determine algorithm**: inspect private key type (RSA or EC)
+1. **Parse certificate metadata**: extract DER, compute the digest (SHA-256/384/512 matching the signing key), read issuer DN and serial number
+2. **Determine algorithm**: inspect the private key — RSA → SHA-256; EC → SHA-256 / SHA-384 / SHA-512 selected from the curve (P-256 / P-384 / P-521)
 3. **Set signing time**: `new Date(Date.now() - 60000)` (1-minute clock skew buffer to avoid rejection by KSeF)
 4. **Build QualifyingProperties**: XAdES signed properties with cert digest, issuer, serial, and signing time
-5. **Compute Reference 1 digest**: canonicalize the root document element with exc-c14n, SHA-256 hash
-6. **Compute Reference 2 digest**: canonicalize the SignedProperties element, SHA-256 hash
+5. **Compute Reference 1 digest**: canonicalize the root document element with exc-c14n, hash with the curve-matched digest
+6. **Compute Reference 2 digest**: canonicalize the SignedProperties element, hash with the curve-matched digest
 7. **Build SignedInfo**: XML fragment containing both references
-8. **Sign**: canonicalize SignedInfo, then `crypto.sign('sha256', canonicalSignedInfo, privateKey)` with appropriate encoding
+8. **Sign**: canonicalize SignedInfo, then `crypto.sign(digestName, canonicalSignedInfo, privateKey)` (`digestName` = `'sha256'` / `'sha384'` / `'sha512'`) with appropriate encoding
 9. **Assemble**: build the complete `ds:Signature` element and append it to the document root
 
 ### Key implementation details

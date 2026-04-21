@@ -6,7 +6,7 @@ Deep dive into the HTTP transport layer that handles retries, rate limiting, aut
 
 ## Overview
 
-Every request from a KSeF service passes through `RestClient` (`src/http/rest-client.ts`), which orchestrates four pluggable policies in a fixed order:
+Every request from a KSeF service passes through `RestClient` (`src/http/rest-client.ts`), which orchestrates five pluggable policies in a fixed order:
 
 ```
 Service call
@@ -20,7 +20,11 @@ RestClient.sendRequest()
   ├── 2. Rate Limit Acquire          (src/http/rate-limit-policy.ts)
   │      Wait for a token from the global + endpoint buckets
   │
-  ├── 3. Retry Loop                  (src/http/retry-policy.ts)
+  ├── 3. Circuit Breaker Check       (src/http/circuit-breaker-policy.ts; opt-in)
+  │      If open and within cooldown → throw KSeFCircuitOpenError
+  │      Otherwise pass through; record success/failure after the request
+  │
+  ├── 4. Retry Loop                  (src/http/retry-policy.ts)
   │   │
   │   ├── doRequest() ──► transport(url, init) ──► network
   │   │
@@ -51,8 +55,9 @@ The order matters:
 
 1. **Presigned URL validation** runs first because there is no point acquiring a rate limit token or retrying a request to a malicious URL.
 2. **Rate limit acquire** runs once, before the retry loop, so retries don't consume additional rate limit tokens (except on 429, where a re-acquire is needed because the server rejected the request).
-3. **Auth refresh** runs inside the retry loop but only on the first attempt and only for 401 responses. If refresh succeeds, the request is retried once with the new token. If it fails, the 401 propagates.
-4. **Error dispatch** happens after the retry loop is exhausted. The body is read once and parsed per status code in a fixed priority: 429 > 401 > 403 > generic.
+3. **Circuit breaker check** runs after rate-limit acquire and before the retry loop. An open circuit short-circuits with `KSeFCircuitOpenError` — the retry loop never starts, so a single outage consumes one retry budget instead of one-per-request. After the retry loop finishes, the breaker records a success or failure based on the final outcome. 429 and 401 responses never count as failures.
+4. **Auth refresh** runs inside the retry loop but only on the first attempt and only for 401 responses. If refresh succeeds, the request is retried once with the new token. If it fails, the 401 propagates.
+5. **Error dispatch** happens after the retry loop is exhausted. The body is read once and parsed per status code in a fixed priority: 429 > 401 > 403 > generic.
 
 ---
 
@@ -65,6 +70,7 @@ All source files are in `src/http/`:
 | `rest-client.ts` | Central orchestrator. Wires all policies together in `sendRequest()`. |
 | `retry-policy.ts` | Retry policy interface, exponential backoff with jitter, `Retry-After` parsing. |
 | `rate-limit-policy.ts` | Token bucket rate limiter with global + per-endpoint buckets. |
+| `circuit-breaker-policy.ts` | Opt-in circuit breaker: opens after N consecutive network/5xx failures, probes after cooldown. |
 | `auth-manager.ts` | `AuthManager` interface + `DefaultAuthManager` with dedup refresh. |
 | `presigned-url-policy.ts` | Presigned URL security validation (SSRF, private IP, redirect params). |
 | `rest-request.ts` | Fluent request builder (`GET`/`POST`/`PUT`/`DELETE`, headers, query, body). |
@@ -270,6 +276,103 @@ This ensures that even when 50 concurrent requests call `acquire()` at once, the
 ```
 acquire() → attempt 0 → 429 → sleep(Retry-After) → re-acquire() → attempt 1 → 200 OK
 acquire() → attempt 0 → 502 → sleep(backoff)                    → attempt 1 → 200 OK
+```
+
+---
+
+## Circuit Breaker
+
+**File:** `src/http/circuit-breaker-policy.ts`
+
+The circuit breaker is **opt-in** — omitting the `circuitBreaker` client option keeps the feature off and preserves the four-policy pipeline. When enabled, it sits above the retry loop and short-circuits with `KSeFCircuitOpenError` while an upstream is known to be unavailable, so a burst of requests during an outage consumes one retry budget instead of `retries × requests`.
+
+### Configuration
+
+```typescript
+interface CircuitBreakerConfig {
+  failureThreshold: number;        // default: 5
+  openMs: number;                  // default: 30000 (cooldown in ms)
+  scope?: 'global' | 'endpoint';   // default: 'global'
+}
+```
+
+| Field | Purpose |
+|-------|---------|
+| `failureThreshold` | Number of consecutive failures within a sliding window (of `openMs`) before the breaker opens. |
+| `openMs` | Cooldown window after opening. During this time, all matching requests fail fast. After it elapses, one probe request is allowed through. |
+| `scope` | `'global'` counts failures across every endpoint (one breaker for the whole client). `'endpoint'` keeps per-endpoint state, so an outage on one route doesn't trip the others. |
+
+### State machine
+
+```
+           ┌───────────┐   failureThreshold consecutive failures
+           │  CLOSED   │──────────────────────────────────────────┐
+           │ (normal)  │                                          │
+           └───────────┘                                          ▼
+                 ▲                                         ┌───────────┐
+                 │                                         │   OPEN    │
+                 │ success (any response, including 4xx/429)│ (fail fast)│
+                 │                                         └───────────┘
+                 │                                                │
+                 │             openMs elapses                     │
+                 │             ┌──────────────────────────────────┘
+                 │             ▼
+                 │       ┌──────────┐   failure → reset timer, stay OPEN
+                 └───────│  PROBE   │
+                   ok    └──────────┘
+```
+
+The breaker stays open only for `openMs`. After the cooldown, the next request is a **probe** — the breaker lets it through but does not yet reset. If it succeeds, state is cleared and subsequent traffic flows normally. If the probe fails, the breaker re-opens for another `openMs`.
+
+### What counts as a failure
+
+| Outcome | Counted? |
+|---------|----------|
+| Network error (`ECONNRESET`, `ETIMEDOUT`, `ECONNREFUSED`, etc.) | **Yes** |
+| 5xx response after retries exhausted | **Yes** |
+| 429 Too Many Requests | **No** (rate limiting is not an outage) |
+| 401 Unauthorized | **No** (auth problem, not availability) |
+| 2xx / 4xx (other than 401/429) | **No** (records success) |
+
+This matches the intent: a breaker protects against upstream *unavailability*, not against client mistakes or throttling.
+
+### Interaction with retry policy
+
+- Breaker is checked **before** the retry loop. An open breaker raises `KSeFCircuitOpenError` immediately — no attempts, no backoff.
+- While the breaker is closed (or during a probe), the retry loop runs normally. Success or final failure is recorded after the loop finishes, so transient failures that recover via retry do not count against the breaker.
+- Rate-limit (429) responses never open or extend the breaker.
+
+### Usage
+
+```typescript
+// Enable with defaults (failureThreshold: 5, openMs: 30s, scope: 'global')
+const client = new KSeFClient({
+  environment: 'PROD',
+  circuitBreaker: {},
+});
+
+// Tuned for a latency-sensitive workflow
+const client = new KSeFClient({
+  environment: 'PROD',
+  circuitBreaker: { failureThreshold: 3, openMs: 60_000, scope: 'endpoint' },
+});
+```
+
+Handle `KSeFCircuitOpenError` where appropriate:
+
+```typescript
+import { KSeFCircuitOpenError } from 'ksef-client-ts';
+
+try {
+  await client.invoices.sendInvoice(xml);
+} catch (err) {
+  if (err instanceof KSeFCircuitOpenError) {
+    // Upstream recently failed multiple times — skip, drop to a local queue, or notify oncall
+    await parkForLater(xml, err.retryAfterMs);
+    return;
+  }
+  throw err;
+}
 ```
 
 ---
@@ -544,6 +647,7 @@ The four policies are independent and pluggable. Each can be configured, replace
 |--------|---------|---------|
 | Retry | `retry: { maxRetries: 0 }` | Provide a full `RetryPolicy` object |
 | Rate Limit | `rateLimit: null` | Provide a custom `RateLimitPolicy` instance |
+| Circuit Breaker | Omit `circuitBreaker` (off by default) or `circuitBreaker: null` | Provide a `Partial<CircuitBreakerConfig>` |
 | Auth Manager | Don't call `loginWith*()` | Provide a custom `AuthManager` implementation |
 | Presigned URL | Remove `presignedUrlHosts` (default still active) | Provide a custom `PresignedUrlPolicy` |
 

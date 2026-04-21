@@ -153,6 +153,52 @@ Automatically creates a temporary batch session, sends all `*.xml` files, and cl
 ksef invoice send ./invoices/
 ```
 
+### Build XML from JSON or YAML
+
+Wraps the programmatic `serializeInvoiceXml` pipeline for shell-driven workflows. Reads structured input, produces XML on stdout (or a file), and can optionally validate the output.
+
+```bash
+# JSON file → XML on stdout
+ksef invoice build invoice.json -o faktura.xml
+
+# Pipe from a transformer and on to send
+jq -f transform.jq erp.json | ksef invoice build - --schema FA3 | ksef invoice send -
+
+# YAML input with both validators
+ksef invoice build invoice.yaml --validate --validate-xsd -o out.xml
+
+# Dry-run: parse + summarise, no XML emitted
+ksef invoice build invoice.json --dry-run --json
+
+# Starter skeletons (fillable, pass --validate and --validate-xsd as-is)
+ksef invoice build --template FA3 > skeleton.json
+ksef invoice build --template PEF_KOR > credit-skeleton.json
+```
+
+| Flag | Description |
+|------|-------------|
+| `<input>` | Positional. Input file path or `-` for stdin. Required unless `--template` is passed. |
+| `--schema <FA2\|FA3\|PEF\|PEF_KOR>` | Explicit target schema. When omitted, inferred from input (`Invoice` → PEF, `CreditNote` → PEF_KOR, `Naglowek.KodFormularza.systemCode` → FA2/FA3, default FA3). |
+| `-o, --output <file>` | Write XML to a file. Omit or pass `-` for stdout. |
+| `--pretty` | Pretty-print XML with 2-space indentation. |
+| `--format <json\|yaml>` | Override input format. Default: infer from file extension (`.yml` / `.yaml` → YAML, else JSON). |
+| `--validate` | Run the Zod invoice validator against the serialized XML; fail on structural errors. |
+| `--validate-xsd` | Run XSD validation against the official KSeF schemas. Requires the optional `libxmljs2` peer dependency. |
+| `--dry-run` | Parse input, infer schema, print a summary (schema + invoice number + sections + line count). Does not emit XML. |
+| `--template <FA2\|FA3\|PEF\|PEF_KOR>` | Print a minimal fillable JSON skeleton and exit. |
+| `--json` | Machine-readable output for `--dry-run` and for errors. |
+
+**Exit codes** — unlike other CLI commands, `invoice build` uses a granular matrix for shell scripting:
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | Unknown / fallback error |
+| `2` | Input parse error (malformed JSON or YAML) |
+| `3` | Structural (shape) validation error |
+| `4` | XSD validation error (only with `--validate-xsd`, including missing `libxmljs2`) |
+| `5` | IO error (file not found, permission denied, is-a-directory) |
+
 ### Download and Query
 
 ```bash
