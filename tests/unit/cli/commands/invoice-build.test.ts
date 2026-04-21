@@ -179,6 +179,15 @@ describe('invoice build — error surfaces', () => {
   it('requires input when neither --template nor positional is provided', async () => {
     await expect(runBuild({})).rejects.toThrow(/Input file required/);
   });
+
+  it('rejects an unknown --schema value before serialization', async () => {
+    await expect(
+      runWithStdin('{"Naglowek":{},"Fa":{}}', { schema: 'BAD' }),
+    ).rejects.toMatchObject({
+      name: 'KSeFValidationError',
+      message: expect.stringContaining('Schema must be one of'),
+    });
+  });
 });
 
 describe.skipIf(!libxmljsAvailable)('invoice build — --validate-xsd', () => {

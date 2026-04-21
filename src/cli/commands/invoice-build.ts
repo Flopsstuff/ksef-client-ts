@@ -22,6 +22,7 @@ import {
   emitTemplate,
   buildDrySummary,
   mapBuildExitCode,
+  VALID_SCHEMAS,
   type FormatOption,
 } from './invoice-build-helpers.js';
 
@@ -91,7 +92,14 @@ export const invoiceBuild = defineCommand({
         const { raw, format } = await readInput(args.input as string, formatOption);
         const parsed = parseInput(raw, format);
 
-        const explicitSchema = args.schema as InvoiceSchema | undefined;
+        const explicitSchemaRaw = args.schema as string | undefined;
+        if (explicitSchemaRaw && !VALID_SCHEMAS.includes(explicitSchemaRaw as InvoiceSchema)) {
+          throw KSeFValidationError.fromField(
+            'schema',
+            `Schema must be one of: ${VALID_SCHEMAS.join(', ')}.`,
+          );
+        }
+        const explicitSchema = explicitSchemaRaw as InvoiceSchema | undefined;
         const schema = explicitSchema ?? inferSchema(parsed);
 
         if (args['dry-run']) {
