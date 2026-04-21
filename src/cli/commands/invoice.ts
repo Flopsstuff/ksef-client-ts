@@ -565,5 +565,5 @@ const validateCmd = defineCommand({
 
 export const invoiceCommand = defineCommand({
   meta: { name: 'invoice', description: 'Invoice commands' },
-  subCommands: { build: invoiceBuild, send, get, query, validate: validateCmd, export: exportCmd, 'export-status': exportStatus, 'export-incremental': exportIncremental },
+  subCommands: { send, build: invoiceBuild, get, query, validate: validateCmd, export: exportCmd, 'export-status': exportStatus, 'export-incremental': exportIncremental },
 });
