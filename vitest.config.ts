@@ -9,7 +9,15 @@ export default defineConfig({
       include: ["src/**/*.ts"],
       exclude: [
         "src/**/*.d.ts",
-        "src/models/**",
+        // Model layer: only type-only files are excluded. Runtime helpers
+        // (e.g. `src/models/document-structures/helpers.ts`) stay in the
+        // coverage denominator so the gate catches drift there too.
+        "src/models/common.ts",
+        "src/models/**/types.ts",
+        "src/models/sessions/batch-types.ts",
+        "src/models/sessions/online-types.ts",
+        "src/models/sessions/session-state.ts",
+        "src/models/sessions/status-types.ts",
         "src/**/index.ts",
         "src/http/rest-response.ts",
         "src/errors/types.ts",
