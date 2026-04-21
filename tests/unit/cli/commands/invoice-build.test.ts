@@ -74,7 +74,13 @@ describe('invoice build — templates', () => {
   });
 
   it('throws for unknown template schema', async () => {
-    await expect(runBuild({ template: 'UNKNOWN' })).rejects.toThrow(/Template must be one of/);
+    // Assert the error class too, not just the message — the exit-code
+    // mapper classifies shape errors by `KSeFValidationError` instance,
+    // so a generic `Error` slipping through would regress exit 3.
+    await expect(runBuild({ template: 'UNKNOWN' })).rejects.toMatchObject({
+      name: 'KSeFValidationError',
+      message: expect.stringContaining('Template must be one of'),
+    });
   });
 });
 
