@@ -400,4 +400,34 @@ describe('validateBatch + batchValidationDetails', () => {
     expect(details.length).toBeGreaterThan(0);
     expect(details.some(d => d.field === 'broken.xml')).toBe(true);
   });
+
+  it('formats path-bearing errors as "fileName:path"', () => {
+    // Feed a hand-crafted BatchValidationResult so we exercise the non-empty
+    // `e.path` branch of the ternary directly (real validate() outputs that
+    // include a `path` also exist, but testing through the full pipeline
+    // adds avoidable coupling).
+    const pathDetails = batchValidationDetails({
+      valid: false,
+      results: [
+        {
+          fileName: 'pathful.xml',
+          result: {
+            valid: false,
+            schemaType: 'FA3',
+            errors: [
+              {
+                code: 'INVALID_NIP_CHECKSUM',
+                message: 'Bad NIP',
+                path: '/Faktura/Podmiot1/NIP',
+              },
+            ],
+          },
+        },
+      ],
+    } as Parameters<typeof batchValidationDetails>[0]);
+    expect(pathDetails).toContainEqual({
+      field: 'pathful.xml:/Faktura/Podmiot1/NIP',
+      message: 'Bad NIP',
+    });
+  });
 });
