@@ -83,7 +83,13 @@ export class SignatureService {
     const privateKey = crypto.createPrivateKey(
       passphrase ? { key: privateKeyPem, format: 'pem', passphrase } : privateKeyPem,
     );
-    const isEc = privateKey.asymmetricKeyType === 'ec';
+    const keyType = privateKey.asymmetricKeyType;
+    if (keyType !== 'ec' && keyType !== 'rsa') {
+      throw new KSeFError(
+        `Unsupported private key type: ${keyType ?? 'unknown'}. Supported: RSA and ECDSA.`,
+      );
+    }
+    const isEc = keyType === 'ec';
     const algo = isEc ? pickEcdsaAlgo(privateKey) : pickRsaAlgo();
 
     // Certificate digest for xades:SigningCertificate/CertDigest uses the same hash as the signature.
