@@ -14,15 +14,26 @@ interface CertKeyPair {
   certDerBase64: string;
 }
 
-let rsaPair: CertKeyPair | undefined;
-let ecPair: CertKeyPair | undefined;
+type EcCurveName = 'P-256' | 'P-384' | 'P-521';
 
-async function generatePair(method: 'RSA' | 'ECDSA'): Promise<CertKeyPair> {
+let rsaPair: CertKeyPair | undefined;
+const ecPairs = new Map<EcCurveName, CertKeyPair>();
+
+const CURVE_TO_HASH: Record<EcCurveName, 'SHA-256' | 'SHA-384' | 'SHA-512'> = {
+  'P-256': 'SHA-256',
+  'P-384': 'SHA-384',
+  'P-521': 'SHA-512',
+};
+
+async function generatePair(
+  method: 'RSA' | 'ECDSA',
+  curve: EcCurveName = 'P-256',
+): Promise<CertKeyPair> {
   x509.cryptoProvider.set(crypto.webcrypto as unknown as Crypto);
 
   const algorithm =
     method === 'ECDSA'
-      ? ({ name: 'ECDSA', namedCurve: 'P-256' } as EcKeyGenParams)
+      ? ({ name: 'ECDSA', namedCurve: curve } as EcKeyGenParams)
       : ({
           name: 'RSASSA-PKCS1-v1_5',
           hash: 'SHA-256',
@@ -32,7 +43,7 @@ async function generatePair(method: 'RSA' | 'ECDSA'): Promise<CertKeyPair> {
 
   const signingAlgorithm =
     method === 'ECDSA'
-      ? ({ name: 'ECDSA', hash: 'SHA-256' } as EcdsaParams)
+      ? ({ name: 'ECDSA', hash: CURVE_TO_HASH[curve] } as EcdsaParams)
       : algorithm;
 
   const keys = (await crypto.webcrypto.subtle.generateKey(
@@ -70,9 +81,13 @@ export async function getRsaPair(): Promise<CertKeyPair> {
   return rsaPair;
 }
 
-export async function getEcPair(): Promise<CertKeyPair> {
-  if (!ecPair) ecPair = await generatePair('ECDSA');
-  return ecPair;
+export async function getEcPair(curve: EcCurveName = 'P-256'): Promise<CertKeyPair> {
+  let pair = ecPairs.get(curve);
+  if (!pair) {
+    pair = await generatePair('ECDSA', curve);
+    ecPairs.set(curve, pair);
+  }
+  return pair;
 }
 
 // ---------------------------------------------------------------------------

@@ -38,3 +38,11 @@ export interface X500NameFields {
 }
 
 export type CryptoEncryptionMethod = 'RSA' | 'ECDSA';
+
+/**
+ * NIST elliptic curves for which KSeF XAdES signing is supported.
+ *
+ * The signing digest is paired with the curve per NIST SP 800-57:
+ * P-256 → SHA-256, P-384 → SHA-384, P-521 → SHA-512.
+ */
+export type ECDigestCurve = 'P-256' | 'P-384' | 'P-521';

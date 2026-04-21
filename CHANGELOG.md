@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **ECDSA signing digest matches key curve** — XAdES signatures produced with an ECDSA key on curve P-384 or P-521 now emit the matching SHA-384 / SHA-512 algorithms everywhere in the signature; previously the digest was forced to SHA-256 regardless of key strength, which KSeF rejected for higher-strength curves.
+
 ## [0.7.0] - 2026-04-19
 
 ### Added
