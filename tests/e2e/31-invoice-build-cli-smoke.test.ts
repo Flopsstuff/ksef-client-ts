@@ -4,6 +4,7 @@ import { existsSync, readFileSync, writeFileSync, mkdtempSync, rmSync } from 'no
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { libxmljsAvailable } from '../../src/validation/xsd-validator.js';
 
 // Spawn-based smoke test for `ksef invoice build` — exercises the built CLI
 // artifact (dist/cli.js) without network or authentication. Catches bundling,
@@ -77,7 +78,7 @@ describe('31 - `ksef invoice build` CLI smoke', () => {
   });
 
   describe('validation flags', () => {
-    it('FA3 template passes --validate-xsd end-to-end', () => {
+    it.skipIf(!libxmljsAvailable)('FA3 template passes --validate-xsd end-to-end', () => {
       const skel = run(['invoice', 'build', '--template', 'FA3']);
       const outPath = join(tmpDir, 'fa3.xml');
       const built = run([
