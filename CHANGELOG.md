@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- **ECDSA signing digest matches key curve** — XAdES signatures produced with an ECDSA key on curve P-384 or P-521 now emit the matching SHA-384 / SHA-512 algorithms everywhere in the signature
+- **ECDSA signing digest matches key curve** — XAdES signatures produced with an ECDSA key on curve P-384 or P-521 now use the matching SHA-384 / SHA-512 digest, so signatures verify against strict XAdES validators.
 - **Encrypted private keys for QR verification** — signing a KOD II certificate verification URL now accepts password-protected PEM private keys, matching behavior already available for XAdES signing.
 
 ## [0.7.0] - 2026-04-19
