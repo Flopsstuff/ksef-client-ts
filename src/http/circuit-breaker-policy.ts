@@ -32,10 +32,16 @@ export class CircuitBreakerPolicy {
     if (!Number.isFinite(openMs) || openMs <= 0) {
       throw new RangeError('CircuitBreakerPolicy: openMs must be > 0');
     }
+    const scope = config.scope ?? 'global';
+    if (scope !== 'global' && scope !== 'endpoint') {
+      throw new RangeError(
+        "CircuitBreakerPolicy: scope must be 'global' or 'endpoint'",
+      );
+    }
 
     this.failureThreshold = failureThreshold;
     this.openMs = openMs;
-    this.scope = config.scope ?? 'global';
+    this.scope = scope;
   }
 
   // Returns true iff this call just claimed the single probe slot for the

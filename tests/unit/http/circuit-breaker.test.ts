@@ -30,6 +30,20 @@ describe('CircuitBreakerPolicy', () => {
       expect(() => new CircuitBreakerPolicy({ openMs: Infinity })).toThrow(RangeError);
     });
 
+    it('rejects invalid scope string', () => {
+      // Casts sidestep TS to simulate JS callers that bypass the compile-time check.
+      expect(
+        () => new CircuitBreakerPolicy({ scope: 'globlal' as unknown as 'global' }),
+      ).toThrow(RangeError);
+      expect(
+        () => new CircuitBreakerPolicy({ scope: '' as unknown as 'global' }),
+      ).toThrow(RangeError);
+      // Allowed values and the default both stay valid.
+      expect(() => new CircuitBreakerPolicy({ scope: 'global' })).not.toThrow();
+      expect(() => new CircuitBreakerPolicy({ scope: 'endpoint' })).not.toThrow();
+      expect(() => new CircuitBreakerPolicy({})).not.toThrow();
+    });
+
     it('defaults ensureClosed does not throw when nothing recorded', () => {
       const p = defaultCircuitBreakerPolicy();
       expect(() => p.ensureClosed('/a')).not.toThrow();
