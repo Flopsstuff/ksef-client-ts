@@ -188,7 +188,8 @@ function buildRestClientConfig(options: KSeFClientOptions | undefined, authManag
     });
   }
 
-  // Circuit breaker policy: null keeps off (same as omit), partial config enables with defaults
+  // Circuit breaker policy: null explicitly disables (same end result as omitting,
+  // since RestClient defaults circuitBreakerPolicy to null); partial config enables with defaults.
   if (options?.circuitBreaker === null) {
     config.circuitBreakerPolicy = null;
   } else if (options?.circuitBreaker) {
