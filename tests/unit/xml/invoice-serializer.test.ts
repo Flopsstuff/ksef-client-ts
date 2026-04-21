@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { serializeInvoiceXml } from '../../../src/xml/invoice-serializer.js';
+import { serializeInvoiceXml, buildRawXmlString } from '../../../src/xml/invoice-serializer.js';
 import { parseXml } from '../../../src/xml/xml-engine.js';
 import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
 import type { FakturaInput } from '../../../src/xml/types.js';
@@ -145,6 +145,23 @@ describe('serializeInvoiceXml — unknown-shape validation', () => {
     expect(() => serializeInvoiceXml({ Unknown: 'x' })).toThrow(KSeFValidationError);
   });
 
+  // Primitives (number, boolean, null, undefined) do not match the Buffer /
+  // string / array / non-null-object branches, so they fall through to the
+  // generic "unsupported input type" error.
+  it.each([
+    ['null', null],
+    ['undefined', undefined],
+    ['number', 42],
+    ['boolean', true],
+  ] as const)(
+    'throws KSeFValidationError for primitive input (%s)',
+    (_label, value) => {
+      expect(() => serializeInvoiceXml(value as never)).toThrow(
+        /Unsupported invoice input type/,
+      );
+    },
+  );
+
   // Tight-type regression pin. Before this contract, inputs like
   // `{ Naglowek: 'x', Fa: 1 }` slipped past presence-only `isFakturaInput`
   // and serialized into malformed XML that only failed at XSD time.
@@ -258,5 +275,26 @@ describe('serializeInvoiceXml — determinism', () => {
     };
     const b = serializeInvoiceXml(reshuffled, { schema: 'FA3' });
     expect(a.equals(b)).toBe(true);
+  });
+});
+
+// ── buildRawXmlString escape hatch ─────────────────────────────────────
+
+describe('buildRawXmlString', () => {
+  it('returns a string (not a Buffer) for a plain XmlObject', () => {
+    const out = buildRawXmlString({ Root: { Child: 'x' } });
+    expect(typeof out).toBe('string');
+    expect(out).toContain('<Root>');
+    expect(out).toContain('<Child>x</Child>');
+  });
+
+  it('threads the pretty option through to the underlying builder', () => {
+    // Both outputs are valid XML; the specific whitespace layout is an
+    // engine detail, so we only assert the option is accepted and still
+    // produces a non-empty well-formed string.
+    const pretty = buildRawXmlString({ Root: { A: '1', B: '2' } }, { pretty: true });
+    expect(pretty).toContain('<Root>');
+    expect(pretty).toContain('<A>1</A>');
+    expect(pretty).toContain('<B>2</B>');
   });
 });

@@ -31,6 +31,7 @@ import {
   sleep,
 } from './retry-policy.js';
 import { type RateLimitPolicy } from './rate-limit-policy.js';
+import { type CircuitBreakerPolicy } from './circuit-breaker-policy.js';
 import { type AuthManager } from './auth-manager.js';
 import { type PresignedUrlPolicy, validatePresignedUrl } from './presigned-url-policy.js';
 
@@ -38,6 +39,7 @@ export interface RestClientConfig {
   transport?: TransportFn;
   retryPolicy?: RetryPolicy;
   rateLimitPolicy?: RateLimitPolicy | null;
+  circuitBreakerPolicy?: CircuitBreakerPolicy | null;
   authManager?: AuthManager;
   presignedUrlPolicy?: PresignedUrlPolicy;
 }
@@ -48,6 +50,7 @@ export class RestClient {
   private readonly transport: TransportFn;
   private readonly retryPolicy: RetryPolicy;
   private readonly rateLimitPolicy: RateLimitPolicy | null;
+  private readonly circuitBreakerPolicy: CircuitBreakerPolicy | null;
   private readonly authManager?: AuthManager;
   private readonly presignedUrlPolicy?: PresignedUrlPolicy;
 
@@ -57,6 +60,7 @@ export class RestClient {
     this.transport = config?.transport ?? defaultTransport;
     this.retryPolicy = config?.retryPolicy ?? defaultRetryPolicy();
     this.rateLimitPolicy = config?.rateLimitPolicy ?? null;
+    this.circuitBreakerPolicy = config?.circuitBreakerPolicy ?? null;
     this.authManager = config?.authManager;
     this.presignedUrlPolicy = config?.presignedUrlPolicy;
   }
@@ -88,27 +92,66 @@ export class RestClient {
       validatePresignedUrl(url, this.presignedUrlPolicy);
     }
 
-    // 2. Rate limit acquire (once before retry loop)
-    if (this.rateLimitPolicy) {
-      await this.rateLimitPolicy.acquire(request.path);
+    // 2. Circuit-breaker pre-check — fail fast BEFORE paying the rate-limit
+    //    cost so an open breaker does not stall on the global token queue or
+    //    consume a token that a healthy caller could have used.
+    let ownsProbeSlot = false;
+    if (this.circuitBreakerPolicy) {
+      const claimed = this.circuitBreakerPolicy.ensureClosed(request.path);
+      if (claimed) ownsProbeSlot = true;
     }
 
-    // 3. Retry loop
+    // 3. Rate limit acquire (once before retry loop). If acquire throws
+    //    (e.g. a custom policy enforcing a max queue depth), release any
+    //    claimed half-open probe slot without observing upstream — we must
+    //    NOT call recordSuccess here, which would fully close the breaker
+    //    based on a probe that never ran. releaseProbe keeps the breaker
+    //    OPEN and restarts the cooldown so the next probe waits properly.
+    if (this.rateLimitPolicy) {
+      try {
+        await this.rateLimitPolicy.acquire(request.path);
+      } catch (error) {
+        if (ownsProbeSlot) this.circuitBreakerPolicy?.releaseProbe(request.path);
+        throw error;
+      }
+    }
+
+    // 4. Retry loop.
+    //
+    // Circuit-breaker rules:
+    // - `ensureClosed` runs at the **start of every iteration** so an open
+    //   breaker (possibly opened by another concurrent request mid-loop)
+    //   short-circuits remaining attempts instead of letting them proceed.
+    // - Outcome is recorded **once per logical request**, on the terminal
+    //   path. Retry-and-recover does not score multiple failures against the
+    //   breaker, and the documented "5xx after retries exhausted" contract
+    //   becomes literal instead of aspirational.
+    // - If this request claimed the half-open probe slot, we track ownership
+    //   locally so subsequent `ensureClosed` calls in the same retry loop do
+    //   not deadlock on our own in-flight probe.
     let lastError: unknown;
     for (let attempt = 0; attempt <= this.retryPolicy.maxRetries; attempt++) {
-      try {
-        const response = await this.doRequest(request, url);
+      if (this.circuitBreakerPolicy) {
+        const claimed = this.circuitBreakerPolicy.ensureClosed(request.path, ownsProbeSlot);
+        if (claimed) ownsProbeSlot = true;
+      }
 
-        // Auth refresh on 401
+      try {
+        let response = await this.doRequest(request, url);
+
+        // Auth refresh on 401 — one-shot, first attempt only. The refreshed
+        // response then falls through into the normal outcome-recording flow
+        // so the breaker sees a single, consistent outcome regardless of
+        // whether a token refresh happened.
         if (response.status === 401 && this.authManager && attempt === 0 && !request.isSkipAuthRetry()) {
           const newToken = await this.authManager.onUnauthorized();
           if (newToken) {
             consola.debug('Auth token refreshed, retrying request');
-            return this.doRequest(request, url, newToken);
+            response = await this.doRequest(request, url, newToken);
           }
         }
 
-        // Retryable status check
+        // Retryable status + budget left → defer outcome to a later iteration.
         if (isRetryableStatus(response.status, this.retryPolicy) && attempt < this.retryPolicy.maxRetries) {
           const is429 = response.status === 429;
           const retryAfterMs = is429 ? parseRetryAfter(response.headers.get('Retry-After')) : null;
@@ -117,13 +160,29 @@ export class RestClient {
           consola.debug(`Retryable ${response.status}, attempt ${attempt + 1}/${this.retryPolicy.maxRetries}, waiting ${Math.round(delayMs)}ms`);
           await sleep(delayMs);
 
-          // Re-acquire rate limit token on 429
+          // Re-acquire rate limit token on 429. If this local step fails
+          // (custom policy rejection, max queue depth, etc.), the upstream
+          // response we already observed was a 429 — NOT an outage signal.
+          // Record the observed outcome (releases any probe slot via
+          // recordSuccess) and propagate the limiter error instead of letting
+          // the generic catch below misclassify it as upstream failure.
           if (is429 && this.rateLimitPolicy) {
-            await this.rateLimitPolicy.acquire(request.path);
+            try {
+              await this.rateLimitPolicy.acquire(request.path);
+            } catch (error) {
+              this.recordCircuitOutcome(request.path, 429);
+              // Outcome already recorded — prevent the outer catch from also
+              // re-recording this as an upstream failure via the probe-owner
+              // fallback path.
+              ownsProbeSlot = false;
+              throw error;
+            }
           }
           continue;
         }
 
+        // Terminal response — record outcome once, then return.
+        this.recordCircuitOutcome(request.path, response.status);
         return response;
       } catch (error) {
         lastError = error;
@@ -135,11 +194,36 @@ export class RestClient {
           continue;
         }
 
+        // Terminal network error — count against the breaker when the failure
+        // mode is the kind it protects against. A non-retryable throw (ex.
+        // AbortError on deliberate cancel) is normally not an outage signal,
+        // but if this request had claimed the half-open probe slot we MUST
+        // release it — otherwise `probeInFlight` stays true forever and the
+        // breaker deadlocks. `recordFailure` on an owned probe re-opens with
+        // a fresh cooldown (see CircuitBreakerPolicy.recordFailure).
+        if (isRetryableError(error, this.retryPolicy) || ownsProbeSlot) {
+          this.circuitBreakerPolicy?.recordFailure(request.path);
+        }
+
         throw error;
       }
     }
 
     throw lastError;
+  }
+
+  private recordCircuitOutcome(path: string, status: number): void {
+    if (!this.circuitBreakerPolicy) return;
+    if (status >= 500) {
+      this.circuitBreakerPolicy.recordFailure(path);
+      return;
+    }
+    // Any non-5xx response — including 401/429 — is not an outage signal.
+    // Recording success (a) resets an in-progress failure streak to keep
+    // the documented "consecutive failures" semantics and prevent false
+    // positives from 500 → 429 → 500 patterns, and (b) releases the
+    // half-open probe slot if this request owned it.
+    this.circuitBreakerPolicy.recordSuccess(path);
   }
 
   private async doRequest(request: RestRequest, url: string, overrideToken?: string): Promise<Response> {

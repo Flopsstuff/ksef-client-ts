@@ -1,5 +1,6 @@
 import forge from 'node-forge';
 import crypto from 'node:crypto';
+import { vi } from 'vitest';
 import { Pkcs12Loader } from '../../../src/crypto/pkcs12-loader.js';
 
 function createRsaP12(password: string): Buffer {
@@ -81,6 +82,97 @@ describe('Pkcs12Loader', () => {
 
     it('throws on wrong password', () => {
       expect(() => Pkcs12Loader.load(cachedP12, 'wrong-password')).toThrow();
+    });
+
+    // Defensive error branches: forge's `getBags()` returns bag objects that
+    // always carry `.cert`/`.key` populated in practice, but the loader still
+    // guards against malformed p12s. These tests spy on `pkcs12FromAsn1` to
+    // inject the pathological shapes.
+
+    it('throws "certificate bag is empty" when the cert bag has no cert field', () => {
+      const fakeParsed = {
+        getBags: (opts: { bagType: string }) => {
+          if (opts.bagType === forge.pki.oids.certBag) {
+            return { [forge.pki.oids.certBag]: [{ cert: undefined }] };
+          }
+          if (opts.bagType === forge.pki.oids.pkcs8ShroudedKeyBag) {
+            return { [forge.pki.oids.pkcs8ShroudedKeyBag]: [{ key: {} }] };
+          }
+          return {};
+        },
+      };
+      const spy = vi
+        .spyOn(forge.pkcs12, 'pkcs12FromAsn1')
+        .mockReturnValue(fakeParsed as never);
+      try {
+        expect(() => Pkcs12Loader.load(cachedP12, cachedPassword)).toThrow(
+          /certificate bag is empty/,
+        );
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('throws "key bag is empty" when the key bag has no key field', () => {
+      const fakeParsed = {
+        getBags: (opts: { bagType: string }) => {
+          if (opts.bagType === forge.pki.oids.certBag) {
+            return { [forge.pki.oids.certBag]: [{ cert: { validity: {} } }] };
+          }
+          if (opts.bagType === forge.pki.oids.pkcs8ShroudedKeyBag) {
+            return { [forge.pki.oids.pkcs8ShroudedKeyBag]: [{ key: undefined }] };
+          }
+          return {};
+        },
+      };
+      const spy = vi
+        .spyOn(forge.pkcs12, 'pkcs12FromAsn1')
+        .mockReturnValue(fakeParsed as never);
+      const toPemSpy = vi
+        .spyOn(forge.pki, 'certificateToPem')
+        .mockReturnValue('-----BEGIN CERTIFICATE-----\nfake\n-----END CERTIFICATE-----\n');
+      try {
+        expect(() => Pkcs12Loader.load(cachedP12, cachedPassword)).toThrow(
+          /key bag is empty/,
+        );
+      } finally {
+        spy.mockRestore();
+        toPemSpy.mockRestore();
+      }
+    });
+
+    it('surfaces a clear EC-key hint when privateKeyToPem throws', () => {
+      const fakeParsed = {
+        getBags: (opts: { bagType: string }) => {
+          if (opts.bagType === forge.pki.oids.certBag) {
+            return { [forge.pki.oids.certBag]: [{ cert: { validity: {} } }] };
+          }
+          if (opts.bagType === forge.pki.oids.pkcs8ShroudedKeyBag) {
+            return { [forge.pki.oids.pkcs8ShroudedKeyBag]: [{ key: {} }] };
+          }
+          return {};
+        },
+      };
+      const parsedSpy = vi
+        .spyOn(forge.pkcs12, 'pkcs12FromAsn1')
+        .mockReturnValue(fakeParsed as never);
+      const certSpy = vi
+        .spyOn(forge.pki, 'certificateToPem')
+        .mockReturnValue('-----BEGIN CERTIFICATE-----\nfake\n-----END CERTIFICATE-----\n');
+      const keySpy = vi
+        .spyOn(forge.pki, 'privateKeyToPem')
+        .mockImplementation(() => {
+          throw new Error('unsupported asn.1 key');
+        });
+      try {
+        expect(() => Pkcs12Loader.load(cachedP12, cachedPassword)).toThrow(
+          /Failed to export private key.*EC keys.*--cert and --key/s,
+        );
+      } finally {
+        parsedSpy.mockRestore();
+        certSpy.mockRestore();
+        keySpy.mockRestore();
+      }
     });
   });
 });

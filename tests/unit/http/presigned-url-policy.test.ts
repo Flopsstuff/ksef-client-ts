@@ -199,6 +199,36 @@ describe('presigned-url-policy', () => {
       ).toThrow(KSeFValidationError);
     });
 
+    // Link-local fe80::/10 covers fe80..febf. The implementation checks each
+    // nibble-prefix (fe8/fe9/fea/feb) — pin all four here so a future
+    // refactor can't drop one silently.
+    it.each([
+      ['fe80::1', 'fe80'],
+      ['fe90::1', 'fe90'],
+      ['fea0::1', 'fea'],
+      ['feb1::1', 'feb'],
+    ] as const)('throws for IPv6 link-local %s', (addr, _tag) => {
+      expect(() =>
+        validatePresignedUrl(
+          `https://[${addr}]/file`,
+          policy({ allowedHosts: [`[${addr}]`] }),
+        ),
+      ).toThrow(KSeFValidationError);
+    });
+
+    // Unique-local fc00::/7 uses the fc or fd first byte.
+    it.each([
+      ['fc00::1', 'fc'],
+      ['fd12::1', 'fd'],
+    ] as const)('throws for IPv6 unique-local %s', (addr) => {
+      expect(() =>
+        validatePresignedUrl(
+          `https://[${addr}]/file`,
+          policy({ allowedHosts: [`[${addr}]`] }),
+        ),
+      ).toThrow(KSeFValidationError);
+    });
+
     it('passes for public IP address', () => {
       expect(() =>
         validatePresignedUrl(

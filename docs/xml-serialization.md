@@ -265,9 +265,37 @@ const buffer2: Buffer = serializeInvoiceXml(asString);
 
 ---
 
+## Building XML from the CLI
+
+`ksef invoice build` wraps the serializer for shell-driven workflows. It reads JSON or YAML, infers or accepts an explicit schema, and writes XML to stdout or a file.
+
+```bash
+# Basic: JSON input → XML on stdout
+ksef invoice build invoice.json -o out.xml
+
+# Pipe chain: transform then send
+jq -f transform.jq erp.json | ksef invoice build - --schema FA3 | ksef invoice send -
+
+# Both validations: Zod schema + XSD
+ksef invoice build invoice.yaml --validate --validate-xsd -o out.xml
+
+# Dry-run: summarise input without emitting XML
+ksef invoice build invoice.json --dry-run --json
+
+# Starter skeletons (fillable, pass both validations as-is)
+ksef invoice build --template FA3 > skeleton.json
+ksef invoice build --template PEF_KOR > credit-skeleton.json
+```
+
+Exit codes: `0` success, `2` malformed input (JSON/YAML parse), `3` structural validation error, `4` XSD validation error, `5` IO error. XSD validation requires the optional `libxmljs2` peer dependency.
+
+Schema inference mirrors the serializer: `Invoice` key → PEF, `CreditNote` → PEF_KOR, `Naglowek.KodFormularza.systemCode` → FA2 or FA3, default FA3. Pass `--schema` to override.
+
+---
+
 ## Limitations
 
-- **No runtime XSD validation.** XSD validation happens in the dev-only test harness, not at runtime. `libxmljs2` is ~2 MB, native, and flaky across Node versions; bundling it would bloat the package for every consumer. Use the [XML validator](./validation.md) (Zod-based, generated from the same XSDs) for client-side safety.
+- **Runtime XSD validation is opt-in and requires an optional peer dependency.** The CLI's `--validate-xsd` flag and the `validateAgainstXsd` helper both depend on `libxmljs2`, which the package declares as an optional peer dependency rather than bundling: it is ~2 MB, native, and historically flaky across Node versions. Install it with `npm install --save-optional libxmljs2` when you want XSD-level validation; otherwise the Zod-based [XML validator](./validation.md) (generated from the same XSDs) is always available.
 - **No FA_RR structural builder.** The FA_RR v1-1E schema shipped in December 2025. No reference implementation has a structural builder for it yet. FA_RR XML is supported via the pass-through path — build the XML yourself (or with another tool) and pipe it through `serializeInvoiceXml` to get a `Buffer`.
 - **No round-trip parsing.** The serializer is one-way: typed object → XML. Parsing XML back into a `FakturaInput` is out of scope.
 - **No fluent builder DSL.** Plain typed objects only. A fluent wrapper can be layered on top later without breaking the object-based API; demand has not materialised yet.

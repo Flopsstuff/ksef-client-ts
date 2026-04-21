@@ -1,6 +1,7 @@
 import * as crypto from 'node:crypto';
 import { ExclusiveCanonicalization } from 'xml-crypto';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
+import { KSeFError } from '../errors/ksef-error.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -9,12 +10,32 @@ import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 const XADES_NS = 'http://uri.etsi.org/01903/v1.3.2#';
 const DS_NS = 'http://www.w3.org/2000/09/xmldsig#';
 const SIGNED_PROPERTIES_TYPE = 'http://uri.etsi.org/01903#SignedProperties';
-const SHA256_DIGEST_METHOD = 'http://www.w3.org/2001/04/xmlenc#sha256';
 const EXC_C14N_ALGORITHM = 'http://www.w3.org/2001/10/xml-exc-c14n#';
 const ENVELOPED_SIGNATURE_TRANSFORM = 'http://www.w3.org/2000/09/xmldsig#enveloped-signature';
 
-const RSA_SHA256_SIGNATURE = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256';
-const ECDSA_SHA256_SIGNATURE = 'http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256';
+// URIs authorised by KSeF XAdES spec (ref/ksef-docs/auth/podpis-xades.md §§ SignatureMethod, DigestMethod).
+// Note the asymmetric hosts: sha256/sha512 digests are under xmlenc, sha384 digest is under xmldsig-more.
+type NodeHashName = 'sha256' | 'sha384' | 'sha512';
+
+interface SigningAlgo {
+  nodeHashName: NodeHashName;
+  signatureUri: string;
+  digestUri: string;
+}
+
+const DIGEST_URI: Record<NodeHashName, string> = {
+  sha256: 'http://www.w3.org/2001/04/xmlenc#sha256',
+  sha384: 'http://www.w3.org/2001/04/xmldsig-more#sha384',
+  sha512: 'http://www.w3.org/2001/04/xmlenc#sha512',
+};
+
+const ECDSA_SIGNATURE_URI: Record<NodeHashName, string> = {
+  sha256: 'http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256',
+  sha384: 'http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha384',
+  sha512: 'http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512',
+};
+
+const RSA_SHA256_SIGNATURE_URI = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256';
 
 /** Clock-skew buffer applied to the signing time (−1 minute). */
 const CLOCK_SKEW_BUFFER_MS = -60_000;
@@ -53,7 +74,6 @@ export class SignatureService {
     // -- Parse certificate metadata ------------------------------------------
     const certDer = extractDerFromPem(certPem);
     const certBase64 = certDer.toString('base64');
-    const certDigest = crypto.createHash('sha256').update(certDer).digest('base64');
 
     const x509 = new crypto.X509Certificate(certPem);
     const issuerName = normalizeIssuerDn(x509.issuer);
@@ -63,8 +83,17 @@ export class SignatureService {
     const privateKey = crypto.createPrivateKey(
       passphrase ? { key: privateKeyPem, format: 'pem', passphrase } : privateKeyPem,
     );
-    const isEc = privateKey.asymmetricKeyType === 'ec';
-    const signatureAlgorithm = isEc ? ECDSA_SHA256_SIGNATURE : RSA_SHA256_SIGNATURE;
+    const keyType = privateKey.asymmetricKeyType;
+    if (keyType !== 'ec' && keyType !== 'rsa') {
+      throw new KSeFError(
+        `Unsupported private key type: ${keyType ?? 'unknown'}. Supported: RSA and ECDSA.`,
+      );
+    }
+    const isEc = keyType === 'ec';
+    const algo = isEc ? pickEcdsaAlgo(privateKey) : pickRsaAlgo();
+
+    // Certificate digest for xades:SigningCertificate/CertDigest uses the same hash as the signature.
+    const certDigest = crypto.createHash(algo.nodeHashName).update(certDer).digest('base64');
 
     // -- Signing time with clock-skew buffer ---------------------------------
     const signingTime = new Date(Date.now() + CLOCK_SKEW_BUFFER_MS).toISOString();
@@ -85,19 +114,24 @@ export class SignatureService {
       issuerName,
       serialNumber,
       signingTime,
+      algo.digestUri,
     );
 
     // -- Compute reference digests -------------------------------------------
 
     // Reference 1: root document with enveloped-signature + exc-c14n transforms
-    const rootDigest = computeRootDigest(doc);
+    const rootDigest = computeRootDigest(doc, algo.nodeHashName);
 
     // Reference 2: SignedProperties with exc-c14n transform
-    const signedPropertiesDigest = computeSignedPropertiesDigest(qualifyingPropertiesXml);
+    const signedPropertiesDigest = computeSignedPropertiesDigest(
+      qualifyingPropertiesXml,
+      algo.nodeHashName,
+    );
 
     // -- Build SignedInfo XML -------------------------------------------------
     const signedInfoXml = buildSignedInfo(
-      signatureAlgorithm,
+      algo.signatureUri,
+      algo.digestUri,
       rootDigest,
       signedPropertiesDigest,
     );
@@ -109,6 +143,7 @@ export class SignatureService {
       canonicalSignedInfo,
       privateKey,
       isEc,
+      algo.nodeHashName,
     );
 
     // -- Build the complete ds:Signature element -----------------------------
@@ -131,6 +166,57 @@ export class SignatureService {
 // =============================================================================
 // Internal helpers
 // =============================================================================
+
+/**
+ * RSA signing always uses SHA-256 — KSeF does not benefit from larger hashes
+ * on RSA-2048, which is the minimum and de-facto standard across all
+ * reference implementations.
+ */
+function pickRsaAlgo(): SigningAlgo {
+  return {
+    nodeHashName: 'sha256',
+    signatureUri: RSA_SHA256_SIGNATURE_URI,
+    digestUri: DIGEST_URI.sha256,
+  };
+}
+
+/**
+ * Map an ECDSA private key's named curve to the matching hash algorithm
+ * per NIST SP 800-57 pairing (and the Java reference implementation).
+ *
+ *   - prime256v1 (P-256) → SHA-256
+ *   - secp384r1  (P-384) → SHA-384
+ *   - secp521r1  (P-521) → SHA-512
+ *
+ * Any other curve throws {@link KSeFError}.
+ */
+function pickEcdsaAlgo(privateKey: crypto.KeyObject): SigningAlgo {
+  const curve = privateKey.asymmetricKeyDetails?.namedCurve;
+  switch (curve) {
+    case 'prime256v1':
+      return {
+        nodeHashName: 'sha256',
+        signatureUri: ECDSA_SIGNATURE_URI.sha256,
+        digestUri: DIGEST_URI.sha256,
+      };
+    case 'secp384r1':
+      return {
+        nodeHashName: 'sha384',
+        signatureUri: ECDSA_SIGNATURE_URI.sha384,
+        digestUri: DIGEST_URI.sha384,
+      };
+    case 'secp521r1':
+      return {
+        nodeHashName: 'sha512',
+        signatureUri: ECDSA_SIGNATURE_URI.sha512,
+        digestUri: DIGEST_URI.sha512,
+      };
+    default:
+      throw new KSeFError(
+        `Unsupported ECDSA curve: ${curve ?? 'unknown'}. Supported: P-256 (prime256v1), P-384 (secp384r1), P-521 (secp521r1).`,
+      );
+  }
+}
 
 /**
  * Strip PEM headers/footers and decode the base64 body to a DER Buffer.
@@ -175,24 +261,27 @@ function canonicalize(elem: Element): string {
 }
 
 /**
- * Compute SHA-256 digest (base64) of the root document content
+ * Compute the reference digest (base64) of the root document content
  * after applying the enveloped-signature transform and exclusive C14N.
  *
  * The enveloped-signature transform removes any existing `ds:Signature`
  * element from the document before canonicalization. Since we haven't
  * inserted the signature yet, this is effectively just exc-c14n of the root.
  */
-function computeRootDigest(doc: Document): string {
+function computeRootDigest(doc: Document, hashName: NodeHashName): string {
   const root = doc.documentElement!;
   const canonical = canonicalize(root);
-  return crypto.createHash('sha256').update(canonical, 'utf-8').digest('base64');
+  return crypto.createHash(hashName).update(canonical, 'utf-8').digest('base64');
 }
 
 /**
- * Compute SHA-256 digest (base64) of the SignedProperties element
+ * Compute the reference digest (base64) of the SignedProperties element
  * after exclusive canonicalization.
  */
-function computeSignedPropertiesDigest(qualifyingPropertiesXml: string): string {
+function computeSignedPropertiesDigest(
+  qualifyingPropertiesXml: string,
+  hashName: NodeHashName,
+): string {
   const parser = new DOMParser();
   const qpDoc = parser.parseFromString(qualifyingPropertiesXml, 'text/xml');
 
@@ -203,7 +292,7 @@ function computeSignedPropertiesDigest(qualifyingPropertiesXml: string): string 
   }
 
   const canonical = canonicalize(signedProps);
-  return crypto.createHash('sha256').update(canonical, 'utf-8').digest('base64');
+  return crypto.createHash(hashName).update(canonical, 'utf-8').digest('base64');
 }
 
 /**
@@ -211,6 +300,7 @@ function computeSignedPropertiesDigest(qualifyingPropertiesXml: string): string 
  */
 function buildSignedInfo(
   signatureAlgorithm: string,
+  digestAlgorithm: string,
   rootDigest: string,
   signedPropertiesDigest: string,
 ): string {
@@ -225,7 +315,7 @@ function buildSignedInfo(
     `<ds:Transform Algorithm="${ENVELOPED_SIGNATURE_TRANSFORM}"/>`,
     `<ds:Transform Algorithm="${EXC_C14N_ALGORITHM}"/>`,
     `</ds:Transforms>`,
-    `<ds:DigestMethod Algorithm="${SHA256_DIGEST_METHOD}"/>`,
+    `<ds:DigestMethod Algorithm="${digestAlgorithm}"/>`,
     `<ds:DigestValue>${rootDigest}</ds:DigestValue>`,
     `</ds:Reference>`,
 
@@ -234,7 +324,7 @@ function buildSignedInfo(
     `<ds:Transforms>`,
     `<ds:Transform Algorithm="${EXC_C14N_ALGORITHM}"/>`,
     `</ds:Transforms>`,
-    `<ds:DigestMethod Algorithm="${SHA256_DIGEST_METHOD}"/>`,
+    `<ds:DigestMethod Algorithm="${digestAlgorithm}"/>`,
     `<ds:DigestValue>${signedPropertiesDigest}</ds:DigestValue>`,
     `</ds:Reference>`,
 
@@ -245,24 +335,26 @@ function buildSignedInfo(
 /**
  * Cryptographically sign the canonicalized SignedInfo.
  *
- * - RSA: `RSASSA-PKCS1-v1_5` with SHA-256
- * - ECDSA: SHA-256 with IEEE P1363 encoding (required by XMLDSig/XAdES)
+ * - RSA: `RSASSA-PKCS1-v1_5` with SHA-256.
+ * - ECDSA: hash matches the key's curve (SHA-256/384/512), with IEEE P1363
+ *   `R || S` encoding as required by XMLDSig/XAdES.
  */
 function computeSignatureValue(
   canonicalSignedInfo: string,
   privateKey: crypto.KeyObject,
   isEc: boolean,
+  hashName: NodeHashName,
 ): string {
   const data = Buffer.from(canonicalSignedInfo, 'utf-8');
 
   let signature: Buffer;
   if (isEc) {
-    signature = crypto.sign('sha256', data, {
+    signature = crypto.sign(hashName, data, {
       key: privateKey,
       dsaEncoding: 'ieee-p1363',
     });
   } else {
-    signature = crypto.sign('sha256', data, privateKey);
+    signature = crypto.sign(hashName, data, privateKey);
   }
 
   return signature.toString('base64');
@@ -314,6 +406,7 @@ function buildQualifyingProperties(
   issuerName: string,
   serialNumber: string,
   signingTime: string,
+  digestAlgorithm: string,
 ): string {
   return [
     `<xades:QualifyingProperties`,
@@ -326,7 +419,7 @@ function buildQualifyingProperties(
     `<xades:SigningCertificate>`,
     `<xades:Cert>`,
     `<xades:CertDigest>`,
-    `<DigestMethod Algorithm="${SHA256_DIGEST_METHOD}"/>`,
+    `<DigestMethod Algorithm="${digestAlgorithm}"/>`,
     `<DigestValue>${certDigest}</DigestValue>`,
     `</xades:CertDigest>`,
     `<xades:IssuerSerial>`,

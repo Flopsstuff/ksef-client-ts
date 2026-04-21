@@ -670,9 +670,9 @@ buildInvoiceVerificationUrl(nip: string, issueDate: Date | string, invoiceHashBa
 Build an invoice verification URL (Code I). Format: `{baseQrUrl}/invoice/{NIP}/{DD-MM-YYYY}/{hash_base64url}`.
 
 ```ts
-buildCertificateVerificationUrl(contextType: string, contextId: string, sellerNip: string, certSerial: string, invoiceHashBase64: string, privateKeyPem: string): string
+buildCertificateVerificationUrl(contextType: string, contextId: string, sellerNip: string, certSerial: string, invoiceHashBase64: string, privateKeyPem: string, privateKeyPassword?: string): string
 ```
-Build a certificate verification URL (Code II) with a cryptographic signature. Uses RSA-PSS (SHA-256, salt=32) for RSA keys or ECDSA (SHA-256, IEEE P1363) for EC keys.
+Build a certificate verification URL (Code II) with a cryptographic signature. Uses RSA-PSS (SHA-256, salt=32) for RSA keys or ECDSA (SHA-256, IEEE P1363) for EC keys. Pass `privateKeyPassword` to decrypt a password-protected PEM.
 
 ---
 

@@ -6,9 +6,9 @@ Deep dive into the HTTP transport layer that handles retries, rate limiting, aut
 
 ## Overview
 
-Every request from a KSeF service passes through `RestClient` (`src/http/rest-client.ts`), which orchestrates four pluggable policies in a fixed order:
+Every request from a KSeF service passes through `RestClient` (`src/http/rest-client.ts`), which orchestrates five pluggable policies in a fixed order:
 
-```
+```text
 Service call
   │
   ▼
@@ -17,10 +17,14 @@ RestClient.sendRequest()
   ├── 1. Presigned URL Validation   (src/http/presigned-url-policy.ts)
   │      Reject unsafe URLs before any network I/O
   │
-  ├── 2. Rate Limit Acquire          (src/http/rate-limit-policy.ts)
+  ├── 2. Circuit Breaker Check       (src/http/circuit-breaker-policy.ts; opt-in)
+  │      If open and within cooldown → throw KSeFCircuitOpenError
+  │      Otherwise pass through; record success/failure after the request
+  │
+  ├── 3. Rate Limit Acquire          (src/http/rate-limit-policy.ts)
   │      Wait for a token from the global + endpoint buckets
   │
-  ├── 3. Retry Loop                  (src/http/retry-policy.ts)
+  ├── 4. Retry Loop                  (src/http/retry-policy.ts)
   │   │
   │   ├── doRequest() ──► transport(url, init) ──► network
   │   │
@@ -50,9 +54,10 @@ RestClient.ensureSuccess()
 The order matters:
 
 1. **Presigned URL validation** runs first because there is no point acquiring a rate limit token or retrying a request to a malicious URL.
-2. **Rate limit acquire** runs once, before the retry loop, so retries don't consume additional rate limit tokens (except on 429, where a re-acquire is needed because the server rejected the request).
-3. **Auth refresh** runs inside the retry loop but only on the first attempt and only for 401 responses. If refresh succeeds, the request is retried once with the new token. If it fails, the 401 propagates.
-4. **Error dispatch** happens after the retry loop is exhausted. The body is read once and parsed per status code in a fixed priority: 429 > 401 > 403 > generic.
+2. **Circuit breaker check** runs before rate-limit acquire and before the retry loop, so an open circuit fails fast with `KSeFCircuitOpenError` without stalling on the global token queue or consuming a token a healthy caller could have used. The retry loop re-checks the breaker at the start of each attempt so a mid-loop open (from another concurrent request) short-circuits remaining attempts. After the loop finishes, the breaker records a success or failure based on the final outcome. 429 and 401 responses never count as failures.
+3. **Rate limit acquire** runs once, after the breaker check and before the retry loop, so retries don't consume additional rate limit tokens (except on 429, where a re-acquire is needed because the server rejected the request).
+4. **Auth refresh** runs inside the retry loop but only on the first attempt and only for 401 responses. If refresh succeeds, the request is retried once with the new token. If it fails, the 401 propagates.
+5. **Error dispatch** happens after the retry loop is exhausted. The body is read once and parsed per status code in a fixed priority: 429 > 401 > 403 > generic.
 
 ---
 
@@ -65,6 +70,7 @@ All source files are in `src/http/`:
 | `rest-client.ts` | Central orchestrator. Wires all policies together in `sendRequest()`. |
 | `retry-policy.ts` | Retry policy interface, exponential backoff with jitter, `Retry-After` parsing. |
 | `rate-limit-policy.ts` | Token bucket rate limiter with global + per-endpoint buckets. |
+| `circuit-breaker-policy.ts` | Opt-in circuit breaker: opens after N consecutive network/5xx failures, probes after cooldown. |
 | `auth-manager.ts` | `AuthManager` interface + `DefaultAuthManager` with dedup refresh. |
 | `presigned-url-policy.ts` | Presigned URL security validation (SSRF, private IP, redirect params). |
 | `rest-request.ts` | Fluent request builder (`GET`/`POST`/`PUT`/`DELETE`, headers, query, body). |
@@ -94,16 +100,18 @@ All three call `sendRequest()` internally, which runs the full policy pipeline.
 ### Request lifecycle in sendRequest()
 
 ```typescript
-// src/http/rest-client.ts, lines 71-131
+// src/http/rest-client.ts, lines 87-199
 private async sendRequest(request: RestRequest): Promise<Response> {
   // 1. Presigned URL validation (synchronous, throws on failure)
-  // 2. Rate limit acquire (async, waits for token)
-  // 3. Retry loop: for attempt = 0..maxRetries
-  //    a. doRequest() — build headers, inject auth, call transport
-  //    b. On 401 + first attempt: try auth refresh, retry once
-  //    c. On retryable status: sleep(backoff), re-acquire on 429, continue
-  //    d. On network error: sleep(backoff), continue
-  // 4. Return response or throw last error
+  // 2. Circuit-breaker pre-check (opt-in) — fail fast before paying rate-limit cost
+  // 3. Rate limit acquire (async, waits for token); releases claimed probe slot on throw
+  // 4. Retry loop: for attempt = 0..maxRetries
+  //    a. Circuit-breaker re-check at start of each attempt
+  //    b. doRequest() — build headers, inject auth, call transport
+  //    c. On 401 + first attempt: try auth refresh, retry once
+  //    d. On retryable status: sleep(backoff), re-acquire on 429, continue
+  //    e. On network error: sleep(backoff), continue
+  // 5. Record terminal outcome against the breaker, return response or throw
 }
 ```
 
@@ -145,7 +153,7 @@ interface RetryPolicy {
 
 ### Backoff formula
 
-```
+```text
 delay = min(baseDelayMs * 2^attempt + random(0, baseDelayMs), maxDelayMs)
 ```
 
@@ -199,7 +207,7 @@ KSeF API operations are idempotent by design. Submitting the same invoice return
 
 The rate limiter uses a token bucket algorithm. Each bucket starts full and refills continuously at a fixed rate:
 
-```
+```text
               ┌─────────────────────┐
               │   Token Bucket      │
               │                     │
@@ -267,9 +275,106 @@ This ensures that even when 50 concurrent requests call `acquire()` at once, the
 - On 429 (server rejected despite client-side limiting), the rate limit is **re-acquired** before retrying. This adds an extra delay, naturally backing off.
 - On non-429 retries (500, 502, etc.), no re-acquire happens because the server didn't reject for rate reasons.
 
-```
+```text
 acquire() → attempt 0 → 429 → sleep(Retry-After) → re-acquire() → attempt 1 → 200 OK
 acquire() → attempt 0 → 502 → sleep(backoff)                    → attempt 1 → 200 OK
+```
+
+---
+
+## Circuit Breaker
+
+**File:** `src/http/circuit-breaker-policy.ts`
+
+The circuit breaker is **opt-in** — omitting the `circuitBreaker` client option keeps the feature off and preserves the four-policy pipeline. When enabled, it sits above the retry loop and short-circuits with `KSeFCircuitOpenError` while an upstream is known to be unavailable, so a burst of requests during an outage consumes one retry budget instead of `retries × requests`.
+
+### Configuration
+
+```typescript
+interface CircuitBreakerConfig {
+  failureThreshold: number;        // default: 5
+  openMs: number;                  // default: 30000 (cooldown in ms)
+  scope?: 'global' | 'endpoint';   // default: 'global'
+}
+```
+
+| Field | Purpose |
+|-------|---------|
+| `failureThreshold` | Number of consecutive failures within a sliding window (of `openMs`) before the breaker opens. |
+| `openMs` | Cooldown window after opening. During this time, all matching requests fail fast. After it elapses, one probe request is allowed through. |
+| `scope` | `'global'` counts failures across every endpoint (one breaker for the whole client). `'endpoint'` keeps per-endpoint state, so an outage on one route doesn't trip the others. |
+
+### State machine
+
+```text
+           ┌───────────┐   failureThreshold consecutive failures
+           │  CLOSED   │──────────────────────────────────────────┐
+           │ (normal)  │                                          │
+           └───────────┘                                          ▼
+                 ▲                                         ┌───────────┐
+                 │                                         │   OPEN    │
+                 │ success (any response, including 4xx/429)│ (fail fast)│
+                 │                                         └───────────┘
+                 │                                                │
+                 │             openMs elapses                     │
+                 │             ┌──────────────────────────────────┘
+                 │             ▼
+                 │       ┌──────────┐   failure → reset timer, stay OPEN
+                 └───────│  PROBE   │
+                   ok    └──────────┘
+```
+
+The breaker stays open only for `openMs`. After the cooldown, the next request is a **probe** — the breaker lets it through but does not yet reset. If it succeeds, state is cleared and subsequent traffic flows normally. If the probe fails, the breaker re-opens for another `openMs`.
+
+### What counts as a failure
+
+| Outcome | Counted? |
+|---------|----------|
+| Network error (`ECONNRESET`, `ETIMEDOUT`, `ECONNREFUSED`, etc.) | **Yes** (failure) |
+| 5xx response after retries exhausted | **Yes** (failure) |
+| 429 Too Many Requests | **No** — recorded as success (rate limiting is not an outage; resets the streak) |
+| 401 Unauthorized | **No** — recorded as success (auth problem, not availability; resets the streak) |
+| 2xx / 3xx / other 4xx | **No** — recorded as success |
+
+This matches the intent: a breaker protects against upstream *unavailability*, not against client mistakes or throttling. Any non-5xx response resets an in-progress failure streak, so the `failureThreshold` is **consecutive** outages — a `500 → 429 → 500` pattern does NOT trip a threshold-of-two breaker.
+
+### Interaction with retry policy
+
+- Breaker is checked **before** the retry loop. An open breaker raises `KSeFCircuitOpenError` immediately — no attempts, no backoff.
+- While the breaker is closed (or during a probe), the retry loop runs normally. Success or final failure is recorded after the loop finishes, so transient failures that recover via retry do not count against the breaker.
+- Rate-limit (429) responses never open or extend the breaker.
+
+### Usage
+
+```typescript
+// Enable with defaults (failureThreshold: 5, openMs: 30s, scope: 'global')
+const client = new KSeFClient({
+  environment: 'PROD',
+  circuitBreaker: {},
+});
+
+// Tuned for a latency-sensitive workflow
+const client = new KSeFClient({
+  environment: 'PROD',
+  circuitBreaker: { failureThreshold: 3, openMs: 60_000, scope: 'endpoint' },
+});
+```
+
+Handle `KSeFCircuitOpenError` where appropriate:
+
+```typescript
+import { KSeFCircuitOpenError } from 'ksef-client-ts';
+
+try {
+  await client.invoices.sendInvoice(xml);
+} catch (err) {
+  if (err instanceof KSeFCircuitOpenError) {
+    // Upstream recently failed multiple times — skip, drop to a local queue, or notify oncall
+    await parkForLater(xml, err.retryAfterMs);
+    return;
+  }
+  throw err;
+}
 ```
 
 ---
@@ -446,7 +551,7 @@ Regular API requests to the KSeF base URL are not validated against the presigne
 
 After the retry loop is exhausted and a non-2xx response remains, `ensureSuccess()` reads the body text **once** and attempts to parse it as JSON per status code:
 
-```
+```text
 Response not OK?
   │
   ├── 429 → parse as TooManyRequestsResponse → throw KSeFRateLimitError
@@ -538,12 +643,13 @@ Endpoint paths are defined as constants in `src/http/routes.ts` and referenced b
 
 ## How Policies Compose
 
-The four policies are independent and pluggable. Each can be configured, replaced, or disabled:
+The five policies are independent and pluggable. Each can be configured, replaced, or disabled:
 
 | Policy | Disable | Replace |
 |--------|---------|---------|
 | Retry | `retry: { maxRetries: 0 }` | Provide a full `RetryPolicy` object |
 | Rate Limit | `rateLimit: null` | Provide a custom `RateLimitPolicy` instance |
+| Circuit Breaker | Omit `circuitBreaker` (off by default) or `circuitBreaker: null` | Provide a `Partial<CircuitBreakerConfig>` |
 | Auth Manager | Don't call `loginWith*()` | Provide a custom `AuthManager` implementation |
 | Presigned URL | Remove `presignedUrlHosts` (default still active) | Provide a custom `PresignedUrlPolicy` |
 
@@ -551,36 +657,41 @@ The composition happens in `RestClient`'s constructor (`src/http/rest-client.ts`
 
 ### Example: request flow with all policies active
 
-```
+```text
 1. Service: client.invoices.exportInvoices(request)
 2. Service builds: RestRequest.post('online/Invoice/Export').body(request)
 3. RestClient.execute() → sendRequest()
 4. buildUrl(): 'https://api-test.ksef.mf.gov.pl/v2/online/Invoice/Export'
 5. Presigned URL validation: SKIP (not marked as presigned)
-6. Rate limit acquire: wait for global bucket token (10 RPS)
-7. Retry loop, attempt 0:
-   a. doRequest(): inject auth header, POST, 30s timeout
-   b. Response: 200 → return
-8. ensureSuccess(): status OK → skip
-9. Parse JSON → return RestResponse<T>
+6. Circuit breaker pre-check: ensureClosed('online/Invoice/Export') → CLOSED → continue
+7. Rate limit acquire: wait for global bucket token (10 RPS)
+8. Retry loop, attempt 0:
+   a. Circuit breaker re-check: still CLOSED → continue
+   b. doRequest(): inject auth header, POST, 30s timeout
+   c. Response: 200 → recordCircuitOutcome(200) → success recorded
+9. ensureSuccess(): status OK → skip
+10. Parse JSON → return RestResponse<T>
 ```
 
 ### Example: presigned download with 429 retry
 
-```
+```text
 1. Service: download from presigned URL
 2. Service builds: RestRequest.get(presignedUrl).presigned()
 3. RestClient.executeRaw() → sendRequest()
 4. Presigned URL validation: check HTTPS, host, redirect params, private IP → PASS
-5. Rate limit acquire: wait for global bucket token
-6. Retry loop, attempt 0:
-   a. doRequest(): GET presigned URL with auth header
-   b. Response: 429, Retry-After: 5
-   c. parseRetryAfter('5') → 5000ms
-   d. sleep(5000ms)
-   e. Re-acquire rate limit token (429 path)
-7. Retry loop, attempt 1:
-   a. doRequest(): same request
-   b. Response: 200 → return
-8. Read ArrayBuffer → return RestResponse<ArrayBuffer>
+5. Circuit breaker pre-check: ensureClosed(request.path) → CLOSED → continue
+6. Rate limit acquire: wait for global bucket token
+7. Retry loop, attempt 0:
+   a. Circuit breaker re-check: still CLOSED → continue
+   b. doRequest(): GET presigned URL with auth header
+   c. Response: 429, Retry-After: 5 → NOT counted against the breaker
+   d. parseRetryAfter('5') → 5000ms
+   e. sleep(5000ms)
+   f. Re-acquire rate limit token (429 path)
+8. Retry loop, attempt 1:
+   a. Circuit breaker re-check: still CLOSED → continue
+   b. doRequest(): same request
+   c. Response: 200 → recordCircuitOutcome(200) → success recorded
+9. Read ArrayBuffer → return RestResponse<ArrayBuffer>
 ```

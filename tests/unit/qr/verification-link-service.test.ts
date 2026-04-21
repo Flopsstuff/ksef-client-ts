@@ -93,5 +93,90 @@ describe('VerificationLinkService', () => {
         ),
       ).toThrow('Unsupported key type');
     });
+
+    it('should accept encrypted RSA PEM with correct passphrase', () => {
+      const { privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+      const encryptedPem = privateKey.export({
+        type: 'pkcs8',
+        format: 'pem',
+        cipher: 'aes-256-cbc',
+        passphrase: 's3cret',
+      }) as string;
+      const hash = Buffer.from('test-hash').toString('base64');
+
+      const url = service.buildCertificateVerificationUrl(
+        'Nip', '1234567890', '1234567890', 'SERIAL', hash, encryptedPem, 's3cret',
+      );
+      expect(url).toMatch(/\/certificate\/Nip\/1234567890\/1234567890\/SERIAL\//);
+      expect(url.split('/').pop()).toMatch(/^[A-Za-z0-9_-]+$/);
+    });
+
+    it('should accept encrypted EC P-256 PEM with correct passphrase', () => {
+      const { privateKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+      const encryptedPem = privateKey.export({
+        type: 'pkcs8',
+        format: 'pem',
+        cipher: 'aes-256-cbc',
+        passphrase: 's3cret',
+      }) as string;
+      const hash = Buffer.from('test-hash').toString('base64');
+
+      const url = service.buildCertificateVerificationUrl(
+        'Nip', '1234567890', '1234567890', 'SERIAL', hash, encryptedPem, 's3cret',
+      );
+      expect(url).toMatch(/\/certificate\//);
+      expect(url.split('/').pop()).toMatch(/^[A-Za-z0-9_-]+$/);
+    });
+
+    it('should throw on encrypted PEM without passphrase', () => {
+      const { privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+      const encryptedPem = privateKey.export({
+        type: 'pkcs8',
+        format: 'pem',
+        cipher: 'aes-256-cbc',
+        passphrase: 's3cret',
+      }) as string;
+      const hash = Buffer.from('test-hash').toString('base64');
+
+      expect(() =>
+        service.buildCertificateVerificationUrl(
+          'Nip', '1234567890', '1234567890', 'SERIAL', hash, encryptedPem,
+        ),
+      ).toThrow(/passphrase|decrypt|encrypted|interrupted or cancelled|decoder|unsupported|bad/i);
+    });
+
+    it('should throw on encrypted PEM with wrong passphrase (RSA)', () => {
+      const { privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+      const encryptedPem = privateKey.export({
+        type: 'pkcs8',
+        format: 'pem',
+        cipher: 'aes-256-cbc',
+        passphrase: 's3cret',
+      }) as string;
+      const hash = Buffer.from('test-hash').toString('base64');
+
+      expect(() =>
+        service.buildCertificateVerificationUrl(
+          'Nip', '1234567890', '1234567890', 'SERIAL', hash, encryptedPem, 'wrong',
+        ),
+      ).toThrow(/passphrase|decrypt|encrypted|interrupted or cancelled|decoder|unsupported|bad/i);
+    });
+
+    it('should throw on encrypted PEM with wrong passphrase (EC P-256)', () => {
+      const { privateKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+      const encryptedPem = privateKey.export({
+        type: 'pkcs8',
+        format: 'pem',
+        cipher: 'aes-256-cbc',
+        passphrase: 's3cret',
+      }) as string;
+      const hash = Buffer.from('test-hash').toString('base64');
+
+      expect(() =>
+        service.buildCertificateVerificationUrl(
+          'Nip', '1234567890', '1234567890', 'SERIAL', hash, encryptedPem, 'wrong',
+        ),
+      ).toThrow(/passphrase|decrypt|encrypted|interrupted or cancelled|decoder|unsupported|bad/i);
+    });
   });
 });

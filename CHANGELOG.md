@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.1] - Unreleased
+
+### Added
+
+- **Opt-in HTTP circuit breaker** — pauses outgoing requests for a cooldown window after consecutive upstream failures, preventing retry storms during KSeF outages and resuming automatically once the service recovers.
+- **CLI invoice builder** — generate valid KSeF invoice XML from JSON or YAML input, with optional schema and XSD validation and starter templates for FA2, FA3, PEF and PEF_KOR.
+
+### Fixed
+
+- **ECDSA signing digest matches key curve** — XAdES signatures produced with an ECDSA key on curve P-384 or P-521 now use the matching SHA-384 / SHA-512 digest, so signatures verify against strict XAdES validators.
+- **Encrypted private keys for QR verification** — signing a KOD II certificate verification URL now accepts password-protected PEM private keys, matching behavior already available for XAdES signing.
+
 ## [0.7.0] - 2026-04-19
 
 ### Added

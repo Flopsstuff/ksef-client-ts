@@ -72,6 +72,19 @@ describe('OfflineInvoiceWorkflow', () => {
       expect(qrService.buildCertificateVerificationUrl).toHaveBeenCalledWith(
         'Nip', '1234567890', '1234567890', '01AA',
         expect.any(String), 'PEM',
+        undefined,
+      );
+    });
+
+    it('forwards OfflineCertificate.password to KOD II signer', async () => {
+      const result = await workflow.generate(makeInput(), {
+        certificate: { privateKeyPem: 'PEM', certificateSerial: '01AA', password: 'pw' },
+      });
+      expect(result.kod2Url).toContain('certificate');
+      expect(qrService.buildCertificateVerificationUrl).toHaveBeenCalledWith(
+        'Nip', '1234567890', '1234567890', '01AA',
+        expect.any(String), 'PEM',
+        'pw',
       );
     });
 

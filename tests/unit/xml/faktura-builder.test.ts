@@ -316,3 +316,56 @@ describe('buildFakturaXml — null vs undefined rendering', () => {
     expect(xml).not.toContain('<P_15></P_15>');
   });
 });
+
+// ── normalizeTopLevelChild / normalizeNaglowek edges ───────────────────
+//
+// Pin the two recursion branches that fire when Faktura top-level children
+// (or Naglowek sub-children) arrive as arrays rather than single objects,
+// and the Naglowek object-but-not-FormCode path.
+
+describe('buildFakturaXml — top-level and Naglowek array normalization', () => {
+  it('normalizes a top-level child provided as an array of objects', () => {
+    const input = minimalFa3({
+      // Podmiot3 is optional and can be a repeated group under a single parent —
+      // we send it as an array to exercise the array-map branch.
+      Podmiot3: [
+        { DaneIdentyfikacyjne: { NIP: '1111111111', Nazwa: 'Third Party A' } },
+        { DaneIdentyfikacyjne: { NIP: '2222222222', Nazwa: 'Third Party B' } },
+      ] as never,
+    });
+    const xml = buildFakturaXml(input, { schema: 'FA3' });
+    expect(xml).toContain('Third Party A');
+    expect(xml).toContain('Third Party B');
+  });
+
+  it('preserves a Naglowek sub-element provided as an object (not FormCode)', () => {
+    const input = minimalFa3({
+      Naglowek: {
+        KodFormularza: { systemCode: 'FA (3)', schemaVersion: '1-0E', value: 'FA' } as FormCode,
+        WariantFormularza: 3,
+        DataWytworzeniaFa: '2026-04-18T00:00:00Z',
+        // Arbitrary non-FormCode object inside Naglowek — exercises the
+        // `isObject && !isFormCodeShape` branch in normalizeNaglowek.
+        SystemInfo: { Name: 'test-runner', Version: '1.0' } as never,
+      },
+    });
+    const xml = buildFakturaXml(input, { schema: 'FA3' });
+    expect(xml).toContain('<SystemInfo>');
+    expect(xml).toContain('<Name>test-runner</Name>');
+  });
+
+  it('preserves a Naglowek sub-element provided as an array', () => {
+    const input = minimalFa3({
+      Naglowek: {
+        KodFormularza: { systemCode: 'FA (3)', schemaVersion: '1-0E', value: 'FA' } as FormCode,
+        WariantFormularza: 3,
+        DataWytworzeniaFa: '2026-04-18T00:00:00Z',
+        // Array of objects inside Naglowek — exercises array-map branch.
+        Extras: [{ K: 'a' }, { K: 'b' }] as never,
+      },
+    });
+    const xml = buildFakturaXml(input, { schema: 'FA3' });
+    expect(xml).toContain('<K>a</K>');
+    expect(xml).toContain('<K>b</K>');
+  });
+});

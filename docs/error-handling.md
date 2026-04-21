@@ -34,6 +34,7 @@ Error (built-in)
         │     └── KSeFBatchTimeoutError  src/errors/ksef-batch-timeout-error.ts (KSeF code 21208)
         ├── KSeFAuthStatusError          src/errors/ksef-auth-status-error.ts (auth ceremony failed)
         ├── KSeFSessionExpiredError      src/errors/ksef-session-expired-error.ts (stored session expired)
+        ├── KSeFCircuitOpenError         src/errors/ksef-circuit-open-error.ts (circuit breaker is open)
         └── KSeFValidationError          src/errors/ksef-validation-error.ts  (client-side validation)
 ```
 
@@ -54,6 +55,7 @@ import {
   KSeFSessionExpiredError,
   KSeFValidationError,
   KSeFBatchTimeoutError,
+  KSeFCircuitOpenError,
   KSeFErrorCode,
   type KSeFApiProblem,
   assertNever,
@@ -614,6 +616,36 @@ Recovery: re-authenticate and open a new session.
 
 ---
 
+### `KSeFCircuitOpenError`
+
+**File:** `src/errors/ksef-circuit-open-error.ts`
+
+Thrown by the opt-in circuit breaker when it is open and the cooldown has not yet elapsed. Extends `KSeFError` directly (not `KSeFApiError`) because no HTTP request was actually made — the breaker stopped it before the retry loop started.
+
+```typescript
+class KSeFCircuitOpenError extends KSeFError {
+  readonly endpoint: string;
+  readonly openedAt: number;      // performance.now() at open time
+  readonly retryAfterMs: number;  // remaining cooldown in ms
+
+  constructor(endpoint: string, openedAt: number, retryAfterMs: number);
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `endpoint` | `string` | The request path that was short-circuited (useful when `scope: 'endpoint'`) |
+| `openedAt` | `number` | `performance.now()` timestamp at the moment the breaker opened |
+| `retryAfterMs` | `number` | Remaining cooldown in milliseconds before the next probe is allowed |
+
+Configure the breaker via the `circuitBreaker` client option — see [Configuration — Circuit Breaker](./configuration.md#circuit-breaker) and [HTTP Resilience — Circuit Breaker](./http-resilience.md#circuit-breaker). 429 and 401 responses never open or extend the breaker, so rate limiting and auth problems are never confused with an upstream outage.
+
+::: tip
+Catching this error is the right place to park work for later (persist to a queue, notify oncall) rather than retry. By definition, the upstream has been failing repeatedly within the configured window.
+:::
+
+---
+
 ### `KSeFValidationError`
 
 **File:** `src/errors/ksef-validation-error.ts`
@@ -1025,6 +1057,7 @@ try {
 | `KSeFGoneError` | 410 | RFC 7807 `GoneProblemDetails` | `detail`, `traceId`, `instance`, `timestamp` | None (re-issue the underlying action) |
 | `KSeFAuthStatusError` | -- | -- | `referenceNumber`, `statusDescription` | None |
 | `KSeFSessionExpiredError` | -- | -- | `message` | None |
+| `KSeFCircuitOpenError` | -- | -- | `endpoint`, `openedAt`, `retryAfterMs` | None (wait out `retryAfterMs` before retrying) |
 | `KSeFValidationError` | -- | -- | `details[]` with `field` and `message` | None (client-side) |
 
 ---
@@ -1044,6 +1077,7 @@ try {
 | `src/errors/ksef-gone-error.ts` | `KSeFGoneError` (HTTP 410, retention expired) |
 | `src/errors/ksef-auth-status-error.ts` | `KSeFAuthStatusError` |
 | `src/errors/ksef-session-expired-error.ts` | `KSeFSessionExpiredError` |
+| `src/errors/ksef-circuit-open-error.ts` | `KSeFCircuitOpenError` (opt-in circuit breaker) |
 | `src/errors/ksef-validation-error.ts` | `KSeFValidationError`, `ValidationDetail` |
 | `src/errors/index.ts` | Barrel re-exports for all error types |
 | `src/http/rest-client.ts` | `ensureSuccess()` dispatch, `sendRequest()` retry + auth refresh |

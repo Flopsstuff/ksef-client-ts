@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { SchemaRegistry } from '../../../src/validation/schema-registry.js';
+import { describe, it, expect, vi } from 'vitest';
+import { SchemaRegistry, clearCache } from '../../../src/validation/schema-registry.js';
 
 describe('SchemaRegistry', () => {
   describe('availableSchemas', () => {
@@ -87,6 +87,44 @@ describe('SchemaRegistry', () => {
 
     it('returns null for null inputs', () => {
       expect(SchemaRegistry.detect(null, null)).toBeNull();
+    });
+  });
+
+  describe('clearCache', () => {
+    it('invalidates the cache so the next get() re-enters loadSchema', async () => {
+      // Replace the real fa2 module with a stubbed one whose getter counts
+      // every access. loadSchema() re-imports the module on every cache
+      // miss, so `schemaReads` should bump from 1 → 2 exactly when
+      // clearCache() takes effect. A no-op clearCache would leave it at 1.
+      vi.resetModules();
+      let schemaReads = 0;
+      vi.doMock('../../../src/validation/schemas/fa2.js', () => ({
+        get FA2Schema() {
+          schemaReads += 1;
+          return { safeParse: vi.fn() };
+        },
+      }));
+      try {
+        const mod = await import('../../../src/validation/schema-registry.js');
+        const registry = mod.SchemaRegistry;
+        const clear = mod.clearCache;
+
+        const first = await registry.get('FA2');
+        expect(schemaReads).toBe(1);
+        expect(await registry.get('FA2')).toBe(first);
+        expect(schemaReads).toBe(1); // cache hit on second call
+
+        clear();
+
+        const second = await registry.get('FA2');
+        expect(schemaReads).toBe(2); // proof the cache was cleared
+        expect(second).not.toBe(first); // fresh module-level object
+        expect(await registry.get('FA2')).toBe(second);
+        expect(schemaReads).toBe(2); // cached again after the reload
+      } finally {
+        vi.doUnmock('../../../src/validation/schemas/fa2.js');
+        vi.resetModules();
+      }
     });
   });
 });

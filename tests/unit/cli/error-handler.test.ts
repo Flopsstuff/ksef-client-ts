@@ -134,4 +134,27 @@ describe('withErrorHandler', () => {
     await withErrorHandler(async () => { /* no throw */ });
     expect(mockExit).not.toHaveBeenCalled();
   });
+
+  it('routes exit code through opts.exitCode mapper when provided', async () => {
+    await withErrorHandler(throwingFn(new Error('parse boom')), {
+      exitCode: (err) => (err instanceof Error && err.message.includes('parse') ? 42 : undefined),
+    });
+    expect(mockExit).toHaveBeenCalledWith(42);
+  });
+
+  it('falls back to exit(1) when mapper returns undefined', async () => {
+    await withErrorHandler(throwingFn(new Error('boom')), {
+      exitCode: () => undefined,
+    });
+    expect(mockExit).toHaveBeenCalledWith(1);
+  });
+
+  it('falls back to exit(1) when mapper itself throws', async () => {
+    await withErrorHandler(throwingFn(new Error('boom')), {
+      exitCode: () => {
+        throw new Error('mapper went sideways');
+      },
+    });
+    expect(mockExit).toHaveBeenCalledWith(1);
+  });
 });

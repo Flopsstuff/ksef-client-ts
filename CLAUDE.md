@@ -48,6 +48,7 @@ HTTP layer (src/http/)
   ├── Routes — all API endpoint paths as const object
   ├── RetryPolicy — exponential backoff with jitter, configurable retryable status codes
   ├── RateLimitPolicy — token bucket rate limiter (global + per-endpoint)
+  ├── CircuitBreakerPolicy — opt-in fail-fast above retry: opens after N consecutive network/5xx failures, probes after cooldown (429/401 never trip)
   ├── PresignedUrlPolicy — validates presigned download URLs (HTTPS, host allowlist)
   └── AuthManager — manages access/refresh tokens, auto-refresh on 401 with dedup
 
@@ -121,6 +122,7 @@ The web portal is used for token generation, permission management, and invoice 
 ```bash
 ksef auth login --token "$KSEF_TOKEN" --nip "$KSEF_NIP"
 ksef session open              # 1. Open online session (required before sending)
+ksef invoice build data.json   # (optional) Build XML from JSON/YAML; `--template FA3` prints a skeleton.
 ksef invoice send file.xml     # 2. Send invoice
 ksef session invoices          # 3. Verify invoice status (check for errors/duplicates)
 ksef invoice query --from 2026-01-01  # Query invoices by date range
@@ -139,7 +141,7 @@ Invoice number (`P_2` in XML) must be unique — resubmitting gives error 440 (D
 
 ### Error hierarchy
 
-`KSeFError` (base) → `KSeFApiError` (generic HTTP), `KSeFUnauthorizedError` (401), `KSeFForbiddenError` (403), `KSeFRateLimitError` (429), `KSeFAuthStatusError`, `KSeFSessionExpiredError`, `KSeFValidationError` (builder validation).
+`KSeFError` (base) → `KSeFApiError` (generic HTTP), `KSeFUnauthorizedError` (401), `KSeFForbiddenError` (403), `KSeFRateLimitError` (429), `KSeFAuthStatusError`, `KSeFSessionExpiredError`, `KSeFValidationError` (builder validation), `KSeFCircuitOpenError` (circuit breaker fail-fast).
 
 `RestClient.ensureSuccess` reads body text once, then parses per status code (429→401→403→generic).
 

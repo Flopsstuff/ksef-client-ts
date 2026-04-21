@@ -18,6 +18,11 @@ export {
   RateLimitPolicy,
   defaultRateLimitPolicy,
 } from './rate-limit-policy.js';
+export {
+  type CircuitBreakerConfig,
+  CircuitBreakerPolicy,
+  defaultCircuitBreakerPolicy,
+} from './circuit-breaker-policy.js';
 export { type AuthManager, DefaultAuthManager } from './auth-manager.js';
 export {
   type PresignedUrlPolicy,

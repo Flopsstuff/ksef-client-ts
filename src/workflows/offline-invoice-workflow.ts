@@ -71,6 +71,7 @@ export class OfflineInvoiceWorkflow {
         options.certificate.certificateSerial,
         invoiceHashBase64,
         options.certificate.privateKeyPem,
+        options.certificate.password,
       );
     }
 
@@ -316,6 +317,7 @@ export class OfflineInvoiceWorkflow {
           options.certificate.certificateSerial,
           correctedHashBase64,
           options.certificate.privateKeyPem,
+          options.certificate.password,
         );
       }
 
