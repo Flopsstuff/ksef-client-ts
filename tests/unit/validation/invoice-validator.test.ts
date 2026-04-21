@@ -350,8 +350,16 @@ describe('validateBusinessRules — nested array recursion', () => {
     expect(result.valid).toBe(false);
     const nipErrors = result.errors.filter(e => e.code === 'INVALID_NIP_CHECKSUM');
     expect(nipErrors.length).toBeGreaterThan(0);
-    // Some reported path references one of the Podmiot3 array entries.
-    expect(nipErrors.some(e => e.path?.includes('Podmiot3'))).toBe(true);
+    // Pin the exact path — the `/1` index is what proves the array
+    // recursion is threading the element index into the error path, not
+    // merely walking the object tree by key name.
+    expect(nipErrors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: '/Faktura/Podmiot3/1/DaneIdentyfikacyjne/NIP',
+        }),
+      ]),
+    );
   });
 });
 
