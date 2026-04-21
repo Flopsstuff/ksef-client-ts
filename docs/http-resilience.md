@@ -8,7 +8,7 @@ Deep dive into the HTTP transport layer that handles retries, rate limiting, aut
 
 Every request from a KSeF service passes through `RestClient` (`src/http/rest-client.ts`), which orchestrates five pluggable policies in a fixed order:
 
-```
+```text
 Service call
   │
   ▼
@@ -151,7 +151,7 @@ interface RetryPolicy {
 
 ### Backoff formula
 
-```
+```text
 delay = min(baseDelayMs * 2^attempt + random(0, baseDelayMs), maxDelayMs)
 ```
 
@@ -205,7 +205,7 @@ KSeF API operations are idempotent by design. Submitting the same invoice return
 
 The rate limiter uses a token bucket algorithm. Each bucket starts full and refills continuously at a fixed rate:
 
-```
+```text
               ┌─────────────────────┐
               │   Token Bucket      │
               │                     │
@@ -273,7 +273,7 @@ This ensures that even when 50 concurrent requests call `acquire()` at once, the
 - On 429 (server rejected despite client-side limiting), the rate limit is **re-acquired** before retrying. This adds an extra delay, naturally backing off.
 - On non-429 retries (500, 502, etc.), no re-acquire happens because the server didn't reject for rate reasons.
 
-```
+```text
 acquire() → attempt 0 → 429 → sleep(Retry-After) → re-acquire() → attempt 1 → 200 OK
 acquire() → attempt 0 → 502 → sleep(backoff)                    → attempt 1 → 200 OK
 ```
@@ -304,7 +304,7 @@ interface CircuitBreakerConfig {
 
 ### State machine
 
-```
+```text
            ┌───────────┐   failureThreshold consecutive failures
            │  CLOSED   │──────────────────────────────────────────┐
            │ (normal)  │                                          │
@@ -549,7 +549,7 @@ Regular API requests to the KSeF base URL are not validated against the presigne
 
 After the retry loop is exhausted and a non-2xx response remains, `ensureSuccess()` reads the body text **once** and attempts to parse it as JSON per status code:
 
-```
+```text
 Response not OK?
   │
   ├── 429 → parse as TooManyRequestsResponse → throw KSeFRateLimitError
@@ -655,7 +655,7 @@ The composition happens in `RestClient`'s constructor (`src/http/rest-client.ts`
 
 ### Example: request flow with all policies active
 
-```
+```text
 1. Service: client.invoices.exportInvoices(request)
 2. Service builds: RestRequest.post('online/Invoice/Export').body(request)
 3. RestClient.execute() → sendRequest()
@@ -671,7 +671,7 @@ The composition happens in `RestClient`'s constructor (`src/http/rest-client.ts`
 
 ### Example: presigned download with 429 retry
 
-```
+```text
 1. Service: download from presigned URL
 2. Service builds: RestRequest.get(presignedUrl).presigned()
 3. RestClient.executeRaw() → sendRequest()
