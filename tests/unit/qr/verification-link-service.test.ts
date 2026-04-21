@@ -144,5 +144,39 @@ describe('VerificationLinkService', () => {
         ),
       ).toThrow(/passphrase|bad decrypt|encrypted/i);
     });
+
+    it('should throw on encrypted PEM with wrong passphrase (RSA)', () => {
+      const { privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+      const encryptedPem = privateKey.export({
+        type: 'pkcs8',
+        format: 'pem',
+        cipher: 'aes-256-cbc',
+        passphrase: 's3cret',
+      }) as string;
+      const hash = Buffer.from('test-hash').toString('base64');
+
+      expect(() =>
+        service.buildCertificateVerificationUrl(
+          'Nip', '1234567890', '1234567890', 'SERIAL', hash, encryptedPem, 'wrong',
+        ),
+      ).toThrow(/passphrase|bad decrypt|encrypted/i);
+    });
+
+    it('should throw on encrypted PEM with wrong passphrase (EC P-256)', () => {
+      const { privateKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+      const encryptedPem = privateKey.export({
+        type: 'pkcs8',
+        format: 'pem',
+        cipher: 'aes-256-cbc',
+        passphrase: 's3cret',
+      }) as string;
+      const hash = Buffer.from('test-hash').toString('base64');
+
+      expect(() =>
+        service.buildCertificateVerificationUrl(
+          'Nip', '1234567890', '1234567890', 'SERIAL', hash, encryptedPem, 'wrong',
+        ),
+      ).toThrow(/passphrase|bad decrypt|encrypted/i);
+    });
   });
 });
