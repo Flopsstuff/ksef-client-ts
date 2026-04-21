@@ -17,12 +17,12 @@ RestClient.sendRequest()
   ├── 1. Presigned URL Validation   (src/http/presigned-url-policy.ts)
   │      Reject unsafe URLs before any network I/O
   │
-  ├── 2. Rate Limit Acquire          (src/http/rate-limit-policy.ts)
-  │      Wait for a token from the global + endpoint buckets
-  │
-  ├── 3. Circuit Breaker Check       (src/http/circuit-breaker-policy.ts; opt-in)
+  ├── 2. Circuit Breaker Check       (src/http/circuit-breaker-policy.ts; opt-in)
   │      If open and within cooldown → throw KSeFCircuitOpenError
   │      Otherwise pass through; record success/failure after the request
+  │
+  ├── 3. Rate Limit Acquire          (src/http/rate-limit-policy.ts)
+  │      Wait for a token from the global + endpoint buckets
   │
   ├── 4. Retry Loop                  (src/http/retry-policy.ts)
   │   │
@@ -54,8 +54,8 @@ RestClient.ensureSuccess()
 The order matters:
 
 1. **Presigned URL validation** runs first because there is no point acquiring a rate limit token or retrying a request to a malicious URL.
-2. **Rate limit acquire** runs once, before the retry loop, so retries don't consume additional rate limit tokens (except on 429, where a re-acquire is needed because the server rejected the request).
-3. **Circuit breaker check** runs after rate-limit acquire and before the retry loop. An open circuit short-circuits with `KSeFCircuitOpenError` — the retry loop never starts, so a single outage consumes one retry budget instead of one-per-request. After the retry loop finishes, the breaker records a success or failure based on the final outcome. 429 and 401 responses never count as failures.
+2. **Circuit breaker check** runs before rate-limit acquire and before the retry loop, so an open circuit fails fast with `KSeFCircuitOpenError` without stalling on the global token queue or consuming a token a healthy caller could have used. The retry loop re-checks the breaker at the start of each attempt so a mid-loop open (from another concurrent request) short-circuits remaining attempts. After the loop finishes, the breaker records a success or failure based on the final outcome. 429 and 401 responses never count as failures.
+3. **Rate limit acquire** runs once, after the breaker check and before the retry loop, so retries don't consume additional rate limit tokens (except on 429, where a re-acquire is needed because the server rejected the request).
 4. **Auth refresh** runs inside the retry loop but only on the first attempt and only for 401 responses. If refresh succeeds, the request is retried once with the new token. If it fails, the 401 propagates.
 5. **Error dispatch** happens after the retry loop is exhausted. The body is read once and parsed per status code in a fixed priority: 429 > 401 > 403 > generic.
 
@@ -100,16 +100,18 @@ All three call `sendRequest()` internally, which runs the full policy pipeline.
 ### Request lifecycle in sendRequest()
 
 ```typescript
-// src/http/rest-client.ts, lines 71-131
+// src/http/rest-client.ts, lines 87-199
 private async sendRequest(request: RestRequest): Promise<Response> {
   // 1. Presigned URL validation (synchronous, throws on failure)
-  // 2. Rate limit acquire (async, waits for token)
-  // 3. Retry loop: for attempt = 0..maxRetries
-  //    a. doRequest() — build headers, inject auth, call transport
-  //    b. On 401 + first attempt: try auth refresh, retry once
-  //    c. On retryable status: sleep(backoff), re-acquire on 429, continue
-  //    d. On network error: sleep(backoff), continue
-  // 4. Return response or throw last error
+  // 2. Circuit-breaker pre-check (opt-in) — fail fast before paying rate-limit cost
+  // 3. Rate limit acquire (async, waits for token); releases claimed probe slot on throw
+  // 4. Retry loop: for attempt = 0..maxRetries
+  //    a. Circuit-breaker re-check at start of each attempt
+  //    b. doRequest() — build headers, inject auth, call transport
+  //    c. On 401 + first attempt: try auth refresh, retry once
+  //    d. On retryable status: sleep(backoff), re-acquire on 429, continue
+  //    e. On network error: sleep(backoff), continue
+  // 5. Record terminal outcome against the breaker, return response or throw
 }
 ```
 
@@ -661,13 +663,14 @@ The composition happens in `RestClient`'s constructor (`src/http/rest-client.ts`
 3. RestClient.execute() → sendRequest()
 4. buildUrl(): 'https://api-test.ksef.mf.gov.pl/v2/online/Invoice/Export'
 5. Presigned URL validation: SKIP (not marked as presigned)
-6. Rate limit acquire: wait for global bucket token (10 RPS)
-7. Retry loop, attempt 0:
-   a. Circuit breaker: ensureClosed('online/Invoice/Export') → CLOSED → continue
+6. Circuit breaker pre-check: ensureClosed('online/Invoice/Export') → CLOSED → continue
+7. Rate limit acquire: wait for global bucket token (10 RPS)
+8. Retry loop, attempt 0:
+   a. Circuit breaker re-check: still CLOSED → continue
    b. doRequest(): inject auth header, POST, 30s timeout
    c. Response: 200 → recordCircuitOutcome(200) → success recorded
-8. ensureSuccess(): status OK → skip
-9. Parse JSON → return RestResponse<T>
+9. ensureSuccess(): status OK → skip
+10. Parse JSON → return RestResponse<T>
 ```
 
 ### Example: presigned download with 429 retry
@@ -677,17 +680,18 @@ The composition happens in `RestClient`'s constructor (`src/http/rest-client.ts`
 2. Service builds: RestRequest.get(presignedUrl).presigned()
 3. RestClient.executeRaw() → sendRequest()
 4. Presigned URL validation: check HTTPS, host, redirect params, private IP → PASS
-5. Rate limit acquire: wait for global bucket token
-6. Retry loop, attempt 0:
-   a. Circuit breaker: ensureClosed(request.path) → CLOSED → continue
+5. Circuit breaker pre-check: ensureClosed(request.path) → CLOSED → continue
+6. Rate limit acquire: wait for global bucket token
+7. Retry loop, attempt 0:
+   a. Circuit breaker re-check: still CLOSED → continue
    b. doRequest(): GET presigned URL with auth header
    c. Response: 429, Retry-After: 5 → NOT counted against the breaker
    d. parseRetryAfter('5') → 5000ms
    e. sleep(5000ms)
    f. Re-acquire rate limit token (429 path)
-7. Retry loop, attempt 1:
-   a. Circuit breaker: ensureClosed(request.path) → still CLOSED → continue
+8. Retry loop, attempt 1:
+   a. Circuit breaker re-check: still CLOSED → continue
    b. doRequest(): same request
    c. Response: 200 → recordCircuitOutcome(200) → success recorded
-8. Read ArrayBuffer → return RestResponse<ArrayBuffer>
+9. Read ArrayBuffer → return RestResponse<ArrayBuffer>
 ```
