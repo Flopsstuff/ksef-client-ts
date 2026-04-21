@@ -3,6 +3,7 @@ import { RestClient, type RestClientConfig } from '../../../src/http/rest-client
 import { RestRequest } from '../../../src/http/rest-request.js';
 import type { TransportFn } from '../../../src/http/transport.js';
 import type { ResolvedOptions } from '../../../src/config/options.js';
+import type { AuthManager } from '../../../src/http/auth-manager.js';
 import { CircuitBreakerPolicy } from '../../../src/http/circuit-breaker-policy.js';
 import { KSeFCircuitOpenError } from '../../../src/errors/ksef-circuit-open-error.js';
 import { KSeFApiError } from '../../../src/errors/ksef-api-error.js';
@@ -236,7 +237,7 @@ describe('RestClient + CircuitBreakerPolicy', () => {
       // Follow-up request to verify breaker state.
       .mockResolvedValue(mockResponse(503));
 
-    const authManager = {
+    const authManager: AuthManager = {
       getAccessToken: () => 'stale',
       setAccessToken: vi.fn(),
       getRefreshToken: () => 'rt',
