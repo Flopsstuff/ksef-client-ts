@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { parse as parseYaml, YAMLParseError } from 'yaml';
 import { KSeFValidationError } from '../../errors/ksef-validation-error.js';
 import { KSeFXsdValidationError } from '../../errors/ksef-xsd-validation-error.js';
+import { isMissingLibxmljsError } from '../../validation/xsd-validator.js';
 import fa2Template from './invoice-build-templates/fa2.json' with { type: 'json' };
 import fa3Template from './invoice-build-templates/fa3.json' with { type: 'json' };
 import pefTemplate from './invoice-build-templates/pef.json' with { type: 'json' };
@@ -129,9 +130,7 @@ export function mapBuildExitCode(error: unknown): number | undefined {
   if (error instanceof KSeFXsdValidationError) return 4;
   // Missing optional peer dep is classified as an XSD failure per docs/cli.md
   // so scripts scripting around --validate-xsd can branch on exit 4 uniformly.
-  if (error instanceof Error && error.message.startsWith('libxmljs2 is not installed')) {
-    return 4;
-  }
+  if (isMissingLibxmljsError(error)) return 4;
   if (error instanceof KSeFValidationError) return 3;
   if (typeof error === 'object' && error !== null && 'code' in error) {
     const code = (error as { code: unknown }).code;

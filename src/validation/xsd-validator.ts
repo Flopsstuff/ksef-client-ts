@@ -71,6 +71,12 @@ try {
 
 export const libxmljsAvailable: boolean = libxmljs !== null;
 
+const MISSING_LIBXMLJS_MESSAGE_PREFIX = 'libxmljs2 is not installed';
+
+export function isMissingLibxmljsError(err: unknown): boolean {
+  return err instanceof Error && err.message.startsWith(MISSING_LIBXMLJS_MESSAGE_PREFIX);
+}
+
 function rewriteSchemaLocations(xsdContent: string): string {
   const bazoweStrukturyPath = path.join(
     locatePackageRoot(),
@@ -90,7 +96,7 @@ function rewriteSchemaLocations(xsdContent: string): string {
 export function validateAgainstXsd(xml: string, xsdPath: string): ValidateAgainstXsdResult {
   if (!libxmljs) {
     throw new Error(
-      'libxmljs2 is not installed; cannot run XSD validation. ' +
+      `${MISSING_LIBXMLJS_MESSAGE_PREFIX}; cannot run XSD validation. ` +
         'Install it as an optional peer dependency: `npm i -O libxmljs2`.',
     );
   }
