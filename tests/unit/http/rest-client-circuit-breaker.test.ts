@@ -152,7 +152,7 @@ describe('RestClient + CircuitBreakerPolicy', () => {
     expect(transport).toHaveBeenCalledTimes(2);
   });
 
-  // ---- Outcome-per-logical-request contract (Codex review) --------------
+  // ---- Outcome-per-logical-request contract ----------------------------
 
   it('a single request that retries 5xx and finally succeeds counts as ONE success', async () => {
     const transport = vi.fn<TransportFn>()
