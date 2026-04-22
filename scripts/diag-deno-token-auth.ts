@@ -123,7 +123,7 @@ try {
   await clientB.crypto.init();
 
   console.log('  4c. encryptKsefToken');
-  const encrypted = clientB.crypto.encryptKsefToken(apiToken, challenge.timestamp);
+  const encrypted = await clientB.crypto.encryptKsefToken(apiToken, challenge.timestamp);
   console.log('     ciphertext bytes:', encrypted.length);
 
   console.log('  4d. submitKsefTokenAuthRequest');
