@@ -64,7 +64,7 @@ describe('06 - Invoice Query & Export', { timeout: 300_000 }, () => {
   });
 
   it('should complete async export flow', async () => {
-    const encData = client.crypto.getEncryptionData();
+    const encData = await client.crypto.getEncryptionData();
     const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
 
     // Start export

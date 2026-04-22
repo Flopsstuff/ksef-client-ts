@@ -406,7 +406,7 @@ const client = new KSeFClient({ environment: 'TEST' });
 
 const challenge = await client.auth.getChallenge();
 await client.crypto.init();
-const encryptedToken = client.crypto.encryptKsefToken('AAAA-BBBB-CCCC-DDDD', challenge.timestamp);
+const encryptedToken = await client.crypto.encryptKsefToken('AAAA-BBBB-CCCC-DDDD', challenge.timestamp);
 
 const result = await client.auth.submitKsefTokenAuthRequest({
   challenge: challenge.challenge,

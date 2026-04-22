@@ -35,7 +35,7 @@ ok(`auth.getChallenge — timestampMs=${challenge.timestampMs}`);
 await client.crypto.init();
 ok('crypto.init — KSeF public certificates fetched');
 
-const encryptedToken = client.crypto.encryptKsefToken('deno-smoke-token', challenge.timestamp);
+const encryptedToken = await client.crypto.encryptKsefToken('deno-smoke-token', challenge.timestamp);
 if (!(encryptedToken instanceof Uint8Array)) {
   fail(`crypto.encryptKsefToken did not return a Uint8Array (got ${typeof encryptedToken})`);
 }
@@ -44,7 +44,7 @@ if (encryptedToken.length === 0) {
 }
 ok(`crypto.encryptKsefToken — ${encryptedToken.length} bytes`);
 
-const encryptionData = client.crypto.getEncryptionData();
+const encryptionData = await client.crypto.getEncryptionData();
 const wrappedKeyLength = atob(encryptionData.encryptionInfo.encryptedSymmetricKey).length;
 if (wrappedKeyLength === 0) {
   fail('crypto.getEncryptionData produced an empty encryptedSymmetricKey');

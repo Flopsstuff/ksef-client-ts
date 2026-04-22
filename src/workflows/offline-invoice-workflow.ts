@@ -169,7 +169,7 @@ export class OfflineInvoiceWorkflow {
     // This is by API design: EncryptionInfo is sent at openSession(), sendInvoice()
     // does not accept per-invoice encryption. Consistent with all official reference
     // implementations (Java, C#, TypeScript).
-    const encData = client.crypto.getEncryptionData();
+    const encData = await client.crypto.getEncryptionData();
     const formCode = options.formCode ?? DEFAULT_FORM_CODE;
 
     const openResp = await client.onlineSession.openSession(
@@ -280,7 +280,7 @@ export class OfflineInvoiceWorkflow {
       .digest('base64');
 
     await client.crypto.init();
-    const encData = client.crypto.getEncryptionData();
+    const encData = await client.crypto.getEncryptionData();
     const formCode = options.formCode ?? DEFAULT_FORM_CODE;
 
     const openResp = await client.onlineSession.openSession(

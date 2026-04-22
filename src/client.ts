@@ -95,7 +95,7 @@ export class KSeFClient {
   async loginWithToken(token: string, nip: string): Promise<LoginResult> {
     const challenge = await this.auth.getChallenge();
     await this.crypto.init();
-    const encryptedToken = this.crypto.encryptKsefToken(token, challenge.timestamp);
+    const encryptedToken = await this.crypto.encryptKsefToken(token, challenge.timestamp);
 
     const submitResult = await this.auth.submitKsefTokenAuthRequest({
       challenge: challenge.challenge,

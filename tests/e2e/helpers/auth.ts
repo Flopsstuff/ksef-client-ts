@@ -41,7 +41,7 @@ export async function authenticateWithCertAndCrypto(nip?: string): Promise<{
 }> {
   const { client, nip: resolvedNip } = await authenticateWithCert(nip);
   await client.crypto.init();
-  const encryptionData = client.crypto.getEncryptionData();
+  const encryptionData = await client.crypto.getEncryptionData();
   return { client, nip: resolvedNip, encryptionData };
 }
 
@@ -86,6 +86,6 @@ export async function authenticateWithTokenAndCrypto(client?: KSeFClient): Promi
   encryptionData: EncryptionData;
 }> {
   client = await authenticateWithToken(client);
-  const encryptionData = client.crypto.getEncryptionData();
+  const encryptionData = await client.crypto.getEncryptionData();
   return { client, encryptionData };
 }

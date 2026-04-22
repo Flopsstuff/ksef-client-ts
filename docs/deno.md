@@ -197,11 +197,13 @@ If you're on a dev machine that runs both Node (with `libxmljs2` for XSD validat
 
 ### HTTP 450 on `loginWithToken` under Supabase Edge Functions
 
-This was the symptom that surfaced the SPKI fix in v0.7.2. If you still see it, double-check you're on v0.7.2 or later:
+If you see `status.details: ["Invalid token encryption."]` on auth status, you're on a pre-0.8.0 version. Earlier versions passed OAEP parameters through `node:crypto.publicEncrypt`, which Deno's Node-compat layer silently ignored — Deno emitted OAEP-SHA1 ciphertext that KSeF rejects, regardless of what the library requested. 0.8.0+ uses Web Crypto natively (`crypto.subtle.encrypt` with `{name: 'RSA-OAEP', hash: 'SHA-256'}`), which is runtime-portable by construction.
+
+Check the installed version:
 
 ```ts
 import pkg from 'npm:ksef-client-ts/package.json' with { type: 'json' };
-console.log(pkg.version);
+console.log(pkg.version);  // must be ≥ 0.8.0
 ```
 
-On older versions the fix is not present and no client-side workaround exists.
+On older versions, no client-side workaround exists — `publicEncrypt` on Deno cannot be forced to emit OAEP-SHA256.

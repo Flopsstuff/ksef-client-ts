@@ -53,7 +53,7 @@ export async function uploadBatch(
     }
   }
 
-  const encData = client.crypto.getEncryptionData();
+  const encData = await client.crypto.getEncryptionData();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
 
   // KSeF provides a single (key, IV) pair per session — all parts share it.
@@ -118,7 +118,7 @@ export async function uploadBatchStream(
     throw new Error('parallelism must be a positive integer');
   }
   await client.crypto.init();
-  const encData = client.crypto.getEncryptionData();
+  const encData = await client.crypto.getEncryptionData();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
 
   const encryptStreamFn = (stream: ReadableStream<Uint8Array>) =>

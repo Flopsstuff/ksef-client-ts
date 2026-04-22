@@ -44,7 +44,7 @@ export async function authenticateWithToken(
 ): Promise<AuthResult> {
   const challenge = await client.auth.getChallenge();
   await client.crypto.init();
-  const encryptedToken = client.crypto.encryptKsefToken(options.token, challenge.timestamp);
+  const encryptedToken = await client.crypto.encryptKsefToken(options.token, challenge.timestamp);
 
   const submitResult = await client.auth.submitKsefTokenAuthRequest({
     challenge: challenge.challenge,
