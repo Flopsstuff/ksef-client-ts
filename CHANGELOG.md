@@ -2,11 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.7.2-alpha.0] - Unreleased
+## [0.8.0-alpha.0] - Unreleased
+
+### Changed (breaking)
+
+- **Crypto primitives are now async** — `CryptographyService.encryptKsefToken` and `CryptographyService.getEncryptionData` return `Promise` so the library can use Web Crypto under the hood. This closes a Deno-runtime compatibility gap where Node-style `publicEncrypt` silently emitted OAEP-SHA1 instead of the requested OAEP-SHA256, which KSeF rejected as `"Invalid token encryption"`. Callers using the high-level API (`loginWithToken`, session workflows, CLI) are unaffected. Programmatic callers invoking these crypto methods directly must add `await`.
 
 ### Fixed
 
-- **Deno / edge-runtime compatibility** — the library now imports and runs cleanly on Deno-based runtimes (notably Supabase Edge Functions); token authentication and session encryption work without any runtime monkey-patching.
+- **Deno / edge-runtime compatibility** — the library now imports and runs cleanly on Deno-based runtimes (notably Supabase Edge Functions); token authentication and session encryption work.
 
 ## [0.7.1] - 2026-04-22
 
