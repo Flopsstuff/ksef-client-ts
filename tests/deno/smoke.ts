@@ -36,8 +36,11 @@ await client.crypto.init();
 ok('crypto.init — KSeF public certificates fetched');
 
 const encryptedToken = client.crypto.encryptKsefToken('deno-smoke-token', challenge.timestamp);
-if (!(encryptedToken instanceof Uint8Array) || encryptedToken.length === 0) {
-  fail(`crypto.encryptKsefToken returned unexpected shape (length=${encryptedToken.length})`);
+if (!(encryptedToken instanceof Uint8Array)) {
+  fail(`crypto.encryptKsefToken did not return a Uint8Array (got ${typeof encryptedToken})`);
+}
+if (encryptedToken.length === 0) {
+  fail('crypto.encryptKsefToken returned an empty Uint8Array');
 }
 ok(`crypto.encryptKsefToken — ${encryptedToken.length} bytes`);
 
