@@ -4,12 +4,14 @@
  * Same source runs on Node (`node scripts/crypto-compare.mjs`) and on Deno
  * (`deno run -A --no-config scripts/crypto-compare.mjs`). Each run:
  *
- *   1. Loads (or on first run, generates + saves) a fixed RSA-2048 self-signed
- *      cert + private key into `scripts/.crypto-fixtures/`. Both runtimes use
- *      the exact same key material so output comparisons are meaningful.
- *   2. Extracts the SPKI PEM from the cert via node:crypto APIs and hashes it
- *      — if the two runtimes produce different SPKIs, we have a bug before we
- *      even start encrypting.
+ *   1. Loads (or on first run, generates + saves) a fixed RSA-2048 public key
+ *      (SPKI PEM) plus matching PKCS#8 private key into
+ *      `scripts/.crypto-fixtures/`. Both runtimes use the exact same key
+ *      material so output comparisons are meaningful. (No X.509 certificate
+ *      wrapper — just the raw public key, which is all RSA-OAEP needs.)
+ *   2. Re-parses the public key via node:crypto APIs and hashes its SPKI
+ *      form — if the two runtimes produce different SPKIs, we have a bug
+ *      before we even start encrypting.
  *   3. RSA-OAEP-encrypts a fixed plaintext and writes the ciphertext to
  *      `ciphertext-<runtime>.bin`.
  *   4. Decrypts its own ciphertext locally (runtime self-consistency check).
@@ -71,9 +73,12 @@ if (existsSync(certPath) && existsSync(keyPath)) {
     modulusLength: 2048,
   });
   keyPem = privateKey.export({ type: 'pkcs8', format: 'pem' });
-  // Minimal self-signed cert using a handrolled DER builder via X509Certificate's public signing is not stable across runtimes;
-  // instead, just store the public key as PEM and skip the CERTIFICATE wrapper for this harness.
-  // (We only want to exercise RSA-OAEP from SPKI PEM, which is what our production code does after extractSpkiPem.)
+  // Store the public key as an SPKI PEM directly — we don't need an X.509
+  // certificate wrapper for this harness. `cert.pem` is a misnomer kept
+  // only for filename stability across historical runs; it's a PUBLIC KEY
+  // PEM, not a CERTIFICATE. This is exactly the SPKI form the production
+  // code extracts from the real MF CERTIFICATE via `spkiDerFromCert`,
+  // minus the certificate envelope.
   certPem = publicKey.export({ type: 'spki', format: 'pem' });
   writeFileSync(certPath, certPem);
   writeFileSync(keyPath, keyPem);
