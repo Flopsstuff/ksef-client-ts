@@ -623,6 +623,7 @@ Decrypt AES-256-CBC encrypted data.
 ```ts
 getEncryptionData(): Promise<EncryptionData>
 ```
+
 Generate a random AES-256 key + IV and wrap the key with the KSeF SymmetricKeyEncryption RSA public key (RSA-OAEP SHA-256). Uses Web Crypto under the hood for cross-runtime portability (Node, Deno, edge runtimes). **Async since 0.8.0.**
 
 ### Token Encryption
@@ -630,6 +631,7 @@ Generate a random AES-256 key + IV and wrap the key with the KSeF SymmetricKeyEn
 ```ts
 encryptKsefToken(token: string, challengeTimestamp: string): Promise<Uint8Array>
 ```
+
 Encrypt a KSeF token for session authorization. Auto-selects RSA-OAEP (via Web Crypto) or ECDH+AES-256-GCM based on the certificate key type. **Async since 0.8.0.**
 
 ### File Metadata
