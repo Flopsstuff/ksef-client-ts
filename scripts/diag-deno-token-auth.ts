@@ -23,25 +23,50 @@
  *
  * Env vars
  * --------
- *   KSEF_TEST_NIP        NIP to authenticate against (default: 5252287009).
+ *   KSEF_TEST_NIP        NIP to authenticate against (default: random
+ *                        checksum-valid Polish NIP, re-generated per run
+ *                        so the script leaves no artefacts on any real
+ *                        account).
  *   KSEF_CLIENT_VERSION  npm version of ksef-client-ts to pull (default:
- *                        0.7.2-alpha.0, the published alpha a Deno consumer
- *                        gets from `npm:ksef-client-ts`).
+ *                        0.8.0-alpha.0).
  *
  * Notes
  * -----
- * - Creates one visible token on the NIP's TEST account with description
+ * - Creates one transient token on the NIP's TEST account with description
  *   "diag-deno-<ts>"; revoked at the end if the flow reaches that point.
+ *   With the default random NIP the token lands on a fresh synthetic
+ *   entity that KSeF TEST creates on demand.
  * - TEST accepts self-signed certs with `verifyCertificateChain: false`
  *   (library default). No MF-issued "testowy certyfikat" needed.
  */
 
-const NIP = Deno.env.get('KSEF_TEST_NIP') ?? '5252287009';
-const VERSION = Deno.env.get('KSEF_CLIENT_VERSION') ?? '0.7.2-alpha.0';
+const VERSION = Deno.env.get('KSEF_CLIENT_VERSION') ?? '0.8.0-alpha.0';
 const RUN_ID = `diag-deno-${Date.now()}`;
 
-const { KSeFClient, CertificateService } = await import(`npm:ksef-client-ts@${VERSION}`);
+const { KSeFClient, CertificateService, isValidNip } = await import(`npm:ksef-client-ts@${VERSION}`);
 const { Buffer } = await import('node:buffer');
+
+// Generate a random checksum-valid Polish NIP so this script never
+// inadvertently operates on a real taxpayer's account.
+function randomNip(): string {
+  for (;;) {
+    const digits: number[] = [];
+    digits.push(1 + Math.floor(Math.random() * 9));          // 1-9 first
+    let d2 = Math.floor(Math.random() * 10);
+    let d3 = Math.floor(Math.random() * 10);
+    if (d2 === 0 && d3 === 0) d2 = 1 + Math.floor(Math.random() * 9); // not "00"
+    digits.push(d2, d3);
+    for (let i = 3; i < 9; i++) digits.push(Math.floor(Math.random() * 10));
+    const prefix = digits.join('');
+    for (let c = 0; c <= 9; c++) {
+      const candidate = prefix + c;
+      if (isValidNip(candidate)) return candidate;
+    }
+    // no valid checksum → retry
+  }
+}
+
+const NIP = Deno.env.get('KSEF_TEST_NIP') ?? randomNip();
 
 const log = (label: string, data?: unknown) => {
   console.log(`\n━━━ ${label} ━━━`);
