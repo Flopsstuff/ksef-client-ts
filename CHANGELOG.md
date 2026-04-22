@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.2-alpha.0] - Unreleased
+
+### Fixed
+
+- **Deno / edge-runtime compatibility** — the library now imports and runs cleanly on Deno-based runtimes (notably Supabase Edge Functions); token authentication and session encryption work without any runtime monkey-patching.
+
 ## [0.7.1] - 2026-04-22
 
 ### Added
