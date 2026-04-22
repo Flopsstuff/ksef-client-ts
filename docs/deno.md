@@ -1,6 +1,6 @@
 # Running on Deno and Edge Runtimes
 
-`ksef-client-ts` runs on Deno-based runtimes — including Supabase Edge Functions — from v0.7.2 onward. This page covers setup, what is and isn't available under Deno, and how to consume the library the same way a Node user would.
+`ksef-client-ts` runs on Deno-based runtimes — including Supabase Edge Functions — from v0.8.0 onward. This page covers setup, what is and isn't available under Deno, and how to consume the library the same way a Node user would.
 
 ---
 
@@ -8,7 +8,7 @@
 
 The library targets Node.js as its primary runtime, but its public surface (authentication, session encryption, invoice send/query, QR codes, offline mode, Zod-based validation) uses only APIs that exist in both Node and Deno's Node compatibility layer. A single native dependency — `libxmljs2`, used only for optional XSD validation — is the one feature that does not cross over.
 
-Two runtime-specific fixes (SPKI extraction before `publicEncrypt`, and preserving the `node:` prefix on built-in imports in the bundled output) landed in v0.7.2 to close gaps that previously prevented the library from loading under Deno.
+Three runtime-specific fixes landed across v0.7.2 and v0.8.0 to close the gaps that previously prevented the library from running on Deno: preserving the `node:` prefix on built-in imports in the bundled output, SPKI extraction before the RSA-OAEP call, and the RSA-OAEP call itself moving from `node:crypto.publicEncrypt` (whose hash option Deno silently ignores) to Web Crypto (`crypto.subtle.encrypt`).
 
 ---
 
@@ -17,7 +17,7 @@ Two runtime-specific fixes (SPKI extraction before `publicEncrypt`, and preservi
 Deno resolves npm packages natively via the `npm:` specifier — no lockfile, no `package.json`, no `npm install` required. Import the library directly:
 
 ```ts
-import { KSeFClient } from 'npm:ksef-client-ts@0.7.2';
+import { KSeFClient } from 'npm:ksef-client-ts@0.8.0-alpha.0';
 
 const client = new KSeFClient({ environment: 'TEST' });
 const challenge = await client.auth.getChallenge();
@@ -37,7 +37,7 @@ If you prefer pinning via a `deno.json`:
 ```json
 {
   "imports": {
-    "ksef-client-ts": "npm:ksef-client-ts@0.7.2"
+    "ksef-client-ts": "npm:ksef-client-ts@0.8.0-alpha.0"
   }
 }
 ```
@@ -140,7 +140,7 @@ Edge Functions use Deno 1.x with the Node compatibility layer enabled and resolv
 
 ```ts
 // supabase/functions/ksef-check/index.ts
-import { KSeFClient } from 'npm:ksef-client-ts@0.7.2';
+import { KSeFClient } from 'npm:ksef-client-ts@0.8.0-alpha.0';
 
 Deno.serve(async (_req) => {
   const nip = Deno.env.get('KSEF_NIP');
