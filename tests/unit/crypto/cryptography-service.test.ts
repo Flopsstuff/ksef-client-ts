@@ -644,4 +644,56 @@ describe('CryptographyService', () => {
       }
     });
   });
+
+  // -------------------------------------------------------------------
+  // Deno-strict regression guard:
+  // Node's `publicEncrypt` accepts both CERTIFICATE PEM and SPKI PEM, so
+  // all other unit tests in this file remain green even if the production
+  // path reverts to passing CERTIFICATE PEM. These tests assert that
+  // encryption call-sites actually route through `extractSpkiPem` — the
+  // observable behaviour Deno's Node-compat layer requires — so a regression
+  // fails here instead of only in the Deno smoke CI job.
+  //
+  // `extractSpkiPem` is a private method; we access it via bracket notation.
+  // Spying on the class instance works because class methods live on a
+  // mutable prototype (unlike ESM module namespaces, which are frozen).
+  // -------------------------------------------------------------------
+  describe('Deno-strict SPKI regression guard', () => {
+    type ServiceInternals = { extractSpkiPem(certPem: string): string };
+
+    it('extractSpkiPem returns PUBLIC KEY PEM, never CERTIFICATE PEM', () => {
+      const internals = service as unknown as ServiceInternals;
+      const spki = internals.extractSpkiPem(rsaCertPem);
+      expect(spki).toMatch(/^-----BEGIN PUBLIC KEY-----/);
+      expect(spki).not.toMatch(/BEGIN CERTIFICATE/);
+    });
+
+    it('encryptKsefToken routes through extractSpkiPem (not bypassed with raw cert)', () => {
+      const internals = service as unknown as ServiceInternals;
+      const spy = vi.spyOn(internals, 'extractSpkiPem');
+      try {
+        service.encryptKsefToken('token', '2025-01-15T10:30:00.000Z');
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy).toHaveBeenCalledWith(rsaCertPem);
+        const returned = spy.mock.results[0]?.value as string;
+        expect(returned).toMatch(/^-----BEGIN PUBLIC KEY-----/);
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('getEncryptionData routes through extractSpkiPem (not bypassed with raw cert)', () => {
+      const internals = service as unknown as ServiceInternals;
+      const spy = vi.spyOn(internals, 'extractSpkiPem');
+      try {
+        service.getEncryptionData();
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy).toHaveBeenCalledWith(rsaCertPem);
+        const returned = spy.mock.results[0]?.value as string;
+        expect(returned).toMatch(/^-----BEGIN PUBLIC KEY-----/);
+      } finally {
+        spy.mockRestore();
+      }
+    });
+  });
 });
