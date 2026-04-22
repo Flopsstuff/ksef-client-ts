@@ -23,5 +23,6 @@ export {
 export { validateCharValidity, DISCOURAGED_UNICODE_RANGES } from './char-validity.js';
 export {
   FA_XSD_PATHS, PEF_XSD_PATHS, libxmljsAvailable, resolveXsdFor, validateAgainstXsd,
+  isMissingLibxmljsError,
   type InvoiceSchemaId, type ValidateAgainstXsdResult,
 } from './xsd-validator.js';
