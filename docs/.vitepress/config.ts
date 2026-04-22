@@ -61,6 +61,7 @@ export default defineConfig({
           { text: 'CLI', link: '/cli' },
           { text: 'Setup Wizard', link: '/setup-wizard' },
           { text: 'Configuration', link: '/configuration' },
+          { text: 'Deno & Edge Runtimes', link: '/deno' },
           { text: 'Workflows', link: '/workflows' },
           { text: 'Batch Processing', link: '/batch-processing' },
           { text: 'HTTP Resilience', link: '/http-resilience' },
