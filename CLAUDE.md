@@ -105,10 +105,10 @@ CLI (src/cli/) — 15 command groups via citty
 | Env | API | Web Portal |
 |-----|-----|------------|
 | PROD | `https://api.ksef.mf.gov.pl` | `https://ap.ksef.mf.gov.pl/web/` |
-| TEST | `https://api-test.ksef.mf.gov.pl` | — |
-| DEMO | `https://api-demo.ksef.mf.gov.pl` | — |
+| TEST | `https://api-test.ksef.mf.gov.pl` | `https://ap-test.ksef.mf.gov.pl/web/` |
+| DEMO | `https://api-demo.ksef.mf.gov.pl` | `https://ap-demo.ksef.mf.gov.pl/web/` |
 
-The web portal is used for token generation, permission management, and invoice browsing via browser (requires qualified signature or trusted profile).
+The web portal is used for token generation, permission management, and invoice browsing via browser (requires qualified signature or trusted profile). Each environment is fully isolated — accounts, tokens, and certificates created in one env do not exist in others.
 
 ### Environment variables
 
