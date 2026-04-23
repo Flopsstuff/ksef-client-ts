@@ -44,7 +44,7 @@ const open = defineCommand({
       }
 
       await client.crypto.init();
-      const encryptionData = client.crypto.getEncryptionData();
+      const encryptionData = await client.crypto.getEncryptionData();
 
       const formCodeKey = args.formCode as string | undefined;
       let formCode: FormCode = DEFAULT_FORM_CODE;

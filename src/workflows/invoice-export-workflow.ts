@@ -29,7 +29,7 @@ export async function doExport(
   options?: ExportOptions,
 ): Promise<{ result: ExportResult; encData: EncryptionData; referenceNumber: string }> {
   await client.crypto.init();
-  const encData = client.crypto.getEncryptionData();
+  const encData = await client.crypto.getEncryptionData();
 
   const opResp = await client.invoices.exportInvoices({
     encryption: encData.encryptionInfo,

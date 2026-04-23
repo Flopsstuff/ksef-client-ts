@@ -132,7 +132,7 @@ export async function openOnlineSession(
   options?: OpenOnlineSessionOptions,
 ): Promise<OnlineSessionHandle> {
   await client.crypto.init();
-  const encData = client.crypto.getEncryptionData();
+  const encData = await client.crypto.getEncryptionData();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
 
   const openResp = await client.onlineSession.openSession(

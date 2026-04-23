@@ -74,22 +74,15 @@ export class CryptographyService {
    * Generate a random AES-256 key and IV, then wrap the key with the
    * SymmetricKeyEncryption certificate's RSA public key (RSA-OAEP SHA-256).
    */
-  getEncryptionData(): EncryptionData {
+  async getEncryptionData(): Promise<EncryptionData> {
     const key = crypto.randomBytes(32);
     const iv = crypto.randomBytes(16);
 
     const certPem = this.fetcher.getSymmetricKeyEncryptionPem();
-    const encryptedKey = crypto.publicEncrypt(
-      {
-        key: certPem,
-        oaepHash: 'sha256',
-        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-      },
-      key,
-    );
+    const encryptedKey = await this.rsaOaepEncrypt(certPem, new Uint8Array(key));
 
     const encryptionInfo: EncryptionInfo = {
-      encryptedSymmetricKey: encryptedKey.toString('base64'),
+      encryptedSymmetricKey: Buffer.from(encryptedKey).toString('base64'),
       initializationVector: iv.toString('base64'),
     };
 
@@ -117,7 +110,7 @@ export class CryptographyService {
    * The EC variant outputs bytes in the Java-compatible format:
    * `[ephemeralSPKI | nonce(12) | ciphertext+tag]`.
    */
-  encryptKsefToken(token: string, challengeTimestamp: string): Uint8Array {
+  async encryptKsefToken(token: string, challengeTimestamp: string): Promise<Uint8Array> {
     const timestampMs = new Date(challengeTimestamp).getTime();
     const plaintext = Buffer.from(`${token}|${timestampMs}`, 'utf-8');
 
@@ -126,7 +119,7 @@ export class CryptographyService {
     const publicKey = cert.publicKey;
 
     if (publicKey.asymmetricKeyType === 'rsa') {
-      return this.encryptRsaOaep(certPem, plaintext);
+      return this.rsaOaepEncrypt(certPem, plaintext);
     }
 
     if (publicKey.asymmetricKeyType === 'ec') {
@@ -235,18 +228,41 @@ export class CryptographyService {
   // Private helpers
   // ---------------------------------------------------------------------------
 
-  /** RSA-OAEP SHA-256 encryption. */
-  private encryptRsaOaep(certPem: string, plaintext: Buffer): Uint8Array {
-    return new Uint8Array(
-      crypto.publicEncrypt(
-        {
-          key: certPem,
-          oaepHash: 'sha256',
-          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-        },
-        plaintext,
-      ),
+  /**
+   * Extract the public-key SPKI DER bytes from a CERTIFICATE PEM. Web Crypto's
+   * `importKey('spki', ...)` consumes raw DER; we parse the cert via native
+   * `X509Certificate` (available on Node and Deno) and export the key directly.
+   */
+  private spkiDerFromCert(certPem: string): Uint8Array {
+    const publicKey = new crypto.X509Certificate(certPem).publicKey;
+    return new Uint8Array(publicKey.export({ type: 'spki', format: 'der' }));
+  }
+
+  /**
+   * RSA-OAEP SHA-256 encryption via Web Crypto.
+   *
+   * Uses `crypto.webcrypto.subtle` instead of `node:crypto.publicEncrypt`
+   * because Deno's Node-compat layer silently ignores the `oaepHash` option
+   * and defaults MGF1+OAEP to SHA-1, producing ciphertext KSeF rejects as
+   * "Invalid token encryption". Web Crypto requires the hash up-front in
+   * `importKey` as part of the key's algorithm identity, so there is no room
+   * for a runtime to swap it — output is identical OAEP-SHA256 on every
+   * Web Crypto implementation (Node 18+, Deno, Bun, browsers, edge runtimes).
+   */
+  private async rsaOaepEncrypt(certPem: string, plaintext: Uint8Array): Promise<Uint8Array> {
+    const key = await crypto.webcrypto.subtle.importKey(
+      'spki',
+      this.spkiDerFromCert(certPem),
+      { name: 'RSA-OAEP', hash: 'SHA-256' },
+      false,
+      ['encrypt'],
     );
+    const ciphertext = await crypto.webcrypto.subtle.encrypt(
+      { name: 'RSA-OAEP' },
+      key,
+      plaintext,
+    );
+    return new Uint8Array(ciphertext);
   }
 
   /**

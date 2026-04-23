@@ -1,0 +1,47 @@
+name: Deno Smoke Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deno-smoke-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deno-smoke:
+    name: Deno Runtime Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Build
+        run: yarn build
+
+      # libxmljs2 is an optional peer dep installed locally for our own XSD
+      # tests. Its native binding segfaults Deno; real consumers of the
+      # library on Deno won't install it, so drop it here to faithfully
+      # simulate that scenario.
+      - name: Remove libxmljs2 (Deno-incompatible native binding)
+        run: rm -rf node_modules/libxmljs2
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run Deno smoke test
+        run: deno task smoke

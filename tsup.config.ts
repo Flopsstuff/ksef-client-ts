@@ -10,6 +10,7 @@ export default defineConfig([
     splitting: false,
     shims: true,
     target: "node18",
+    removeNodeProtocol: false,
   },
   {
     entry: { cli: "src/cli/index.ts" },
@@ -20,5 +21,6 @@ export default defineConfig([
     splitting: false,
     target: "node18",
     banner: { js: "#!/usr/bin/env node" },
+    removeNodeProtocol: false,
   },
 ]);

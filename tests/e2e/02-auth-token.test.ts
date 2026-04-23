@@ -48,7 +48,7 @@ describe('02 - Token Authentication', { timeout: 60_000 }, () => {
     await client.crypto.init();
 
     // Step 3: Encrypt token
-    const encrypted = client.crypto.encryptKsefToken(generatedToken, challenge.timestamp);
+    const encrypted = await client.crypto.encryptKsefToken(generatedToken, challenge.timestamp);
     const encryptedBase64 = Buffer.from(encrypted).toString('base64');
     expect(encryptedBase64).toBeTruthy();
 

@@ -16,6 +16,9 @@ coverage/
 # Certificates, keys, signed XML
 .certs/
 
+# Generated test fixtures from scripts/crypto-compare.mjs
+scripts/.crypto-fixtures/
+
 # Claude local settings
 .claude/projects/
 .claude/settings.local.json

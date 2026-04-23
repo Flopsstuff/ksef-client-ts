@@ -202,7 +202,7 @@ const send = defineCommand({
 
         if (!args.json) consola.start(`Sending ${xmlFiles.length} invoices via batch session...`);
         await client.crypto.init();
-        const encryptionData = client.crypto.getEncryptionData();
+        const encryptionData = await client.crypto.getEncryptionData();
 
         const parts = fileBuffers.map(({ content }, i) => {
           const metadata = client.crypto.getFileMetadata(new Uint8Array(content));
@@ -406,7 +406,7 @@ const exportCmd = defineCommand({
 
       if (!args.json) consola.start('Starting invoice export...');
       await client.crypto.init();
-      const encryptionData = client.crypto.getEncryptionData();
+      const encryptionData = await client.crypto.getEncryptionData();
       const filters = buildQueryFilters(args);
 
       const result = await client.invoices.exportInvoices(

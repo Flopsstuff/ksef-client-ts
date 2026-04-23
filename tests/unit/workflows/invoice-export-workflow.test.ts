@@ -185,7 +185,7 @@ describe('exportAndDownload', () => {
       verifyHash: false,
     });
 
-    const encData = client.crypto.getEncryptionData();
+    const encData = await client.crypto.getEncryptionData();
     expect(client.crypto.decryptAES256).toHaveBeenCalledWith(
       expect.any(Uint8Array),
       encData.cipherKey,

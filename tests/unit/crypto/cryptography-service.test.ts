@@ -128,30 +128,30 @@ describe('CryptographyService', () => {
   // getEncryptionData()
   // -------------------------------------------------------------------
   describe('getEncryptionData()', () => {
-    it('returns cipherKey of 32 bytes', () => {
-      const data = service.getEncryptionData();
+    it('returns cipherKey of 32 bytes', async () => {
+      const data = await service.getEncryptionData();
       expect(data.cipherKey.length).toBe(32);
     });
 
-    it('returns cipherIv of 16 bytes', () => {
-      const data = service.getEncryptionData();
+    it('returns cipherIv of 16 bytes', async () => {
+      const data = await service.getEncryptionData();
       expect(data.cipherIv.length).toBe(16);
     });
 
-    it('encryptedSymmetricKey is valid base64 and 256 bytes decoded', () => {
-      const data = service.getEncryptionData();
+    it('encryptedSymmetricKey is valid base64 and 256 bytes decoded', async () => {
+      const data = await service.getEncryptionData();
       const decoded = Buffer.from(data.encryptionInfo.encryptedSymmetricKey, 'base64');
       expect(decoded.length).toBe(256); // RSA-2048 output
     });
 
-    it('initializationVector is valid base64 and 16 bytes decoded', () => {
-      const data = service.getEncryptionData();
+    it('initializationVector is valid base64 and 16 bytes decoded', async () => {
+      const data = await service.getEncryptionData();
       const decoded = Buffer.from(data.encryptionInfo.initializationVector, 'base64');
       expect(decoded.length).toBe(16);
     });
 
-    it('encrypted key can be decrypted with private key', () => {
-      const data = service.getEncryptionData();
+    it('encrypted key can be decrypted with private key', async () => {
+      const data = await service.getEncryptionData();
       const encryptedKey = Buffer.from(
         data.encryptionInfo.encryptedSymmetricKey,
         'base64',
@@ -176,14 +176,14 @@ describe('CryptographyService', () => {
     const timestamp = '2025-01-15T10:30:00.000Z';
     const expectedMs = new Date(timestamp).getTime();
 
-    it('encrypts token with RSA certificate', () => {
-      const result = service.encryptKsefToken(token, timestamp);
+    it('encrypts token with RSA certificate', async () => {
+      const result = await service.encryptKsefToken(token, timestamp);
       expect(result).toBeInstanceOf(Uint8Array);
       expect(result.length).toBeGreaterThan(0);
     });
 
-    it('RSA: decrypted plaintext is token|timestampMs', () => {
-      const result = service.encryptKsefToken(token, timestamp);
+    it('RSA: decrypted plaintext is token|timestampMs', async () => {
+      const result = await service.encryptKsefToken(token, timestamp);
       const decrypted = crypto.privateDecrypt(
         {
           key: rsaKeyPem,
@@ -195,27 +195,27 @@ describe('CryptographyService', () => {
       expect(decrypted.toString('utf-8')).toBe(`${token}|${expectedMs}`);
     });
 
-    it('encrypts token with EC certificate', () => {
+    it('encrypts token with EC certificate', async () => {
       const fetcher = createMockCertificateFetcher({
         symmetricKeyPem: rsaCertPem,
         ksefTokenPem: ecCertPem,
       });
       const svc = new CryptographyService(fetcher);
 
-      const result = svc.encryptKsefToken(token, timestamp);
+      const result = await svc.encryptKsefToken(token, timestamp);
       expect(result).toBeInstanceOf(Uint8Array);
       // EC SPKI (91) + nonce (12) + at least 1 byte ciphertext + tag (16)
       expect(result.length).toBeGreaterThan(91 + 12 + 16);
     });
 
-    it('EC: token can be decrypted via ECDH+AES-GCM', () => {
+    it('EC: token can be decrypted via ECDH+AES-GCM', async () => {
       const fetcher = createMockCertificateFetcher({
         symmetricKeyPem: rsaCertPem,
         ksefTokenPem: ecCertPem,
       });
       const svc = new CryptographyService(fetcher);
 
-      const result = svc.encryptKsefToken(token, timestamp);
+      const result = await svc.encryptKsefToken(token, timestamp);
       const buf = Buffer.from(result);
 
       // P-256 SPKI DER is 91 bytes
@@ -271,7 +271,7 @@ describe('CryptographyService', () => {
       });
       const svc = new CryptographyService(fetcher);
 
-      expect(() => svc.encryptKsefToken(token, timestamp)).toThrow(
+      await expect(svc.encryptKsefToken(token, timestamp)).rejects.toThrow(
         'Unsupported key algorithm: ed25519',
       );
     });
@@ -532,6 +532,212 @@ describe('CryptographyService', () => {
 
     it('throws on invalid PEM input', () => {
       expect(() => service.parsePrivateKey('not-a-pem')).toThrow();
+    });
+  });
+
+  // -------------------------------------------------------------------
+  // SPKI public-key extraction (Deno compatibility safety net)
+  // -------------------------------------------------------------------
+  describe('SPKI public-key extraction (Deno compat)', () => {
+    function extractSpkiPem(certPem: string): string {
+      return new crypto.X509Certificate(certPem).publicKey.export({
+        type: 'spki',
+        format: 'pem',
+      }) as string;
+    }
+
+    it('wrapped symmetric key decrypts when re-encrypted via an SPKI PEM derived from the same cert', async () => {
+      const data = await service.getEncryptionData();
+      const spkiPem = extractSpkiPem(rsaCertPem);
+
+      const reEncrypted = crypto.publicEncrypt(
+        {
+          key: spkiPem,
+          oaepHash: 'sha256',
+          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        },
+        Buffer.from(data.cipherKey),
+      );
+
+      const decrypted = crypto.privateDecrypt(
+        {
+          key: rsaKeyPem,
+          oaepHash: 'sha256',
+          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        },
+        reEncrypted,
+      );
+
+      expect(Buffer.from(decrypted).equals(Buffer.from(data.cipherKey))).toBe(true);
+    });
+
+    it('encryptKsefToken RSA path round-trips for multiple random tokens', async () => {
+      const timestamp = '2025-06-01T12:00:00.000Z';
+      const expectedMs = new Date(timestamp).getTime();
+
+      for (let i = 0; i < 3; i++) {
+        const token = crypto.randomBytes(32).toString('hex');
+        const ciphertext = await service.encryptKsefToken(token, timestamp);
+        const decrypted = crypto.privateDecrypt(
+          {
+            key: rsaKeyPem,
+            oaepHash: 'sha256',
+            padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+          },
+          Buffer.from(ciphertext),
+        );
+        expect(decrypted.toString('utf-8')).toBe(`${token}|${expectedMs}`);
+      }
+    });
+
+    it('SPKI PEM exported from cert is well-formed and parseable', () => {
+      const spkiPem = extractSpkiPem(rsaCertPem);
+
+      expect(spkiPem).toMatch(/^-----BEGIN PUBLIC KEY-----/);
+      expect(spkiPem.trimEnd()).toMatch(/-----END PUBLIC KEY-----$/);
+
+      const key = crypto.createPublicKey(spkiPem);
+      expect(key.asymmetricKeyType).toBe('rsa');
+      expect(key.asymmetricKeyDetails?.modulusLength).toBe(2048);
+    });
+
+    it('publicEncrypt produces decryption-equivalent output for cert PEM and SPKI PEM', () => {
+      const plaintext = Buffer.from('hello|1776755224708', 'utf-8');
+      const spkiPem = extractSpkiPem(rsaCertPem);
+
+      const ciphertextFromCert = crypto.publicEncrypt(
+        {
+          key: rsaCertPem,
+          oaepHash: 'sha256',
+          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        },
+        plaintext,
+      );
+
+      const ciphertextFromSpki = crypto.publicEncrypt(
+        {
+          key: spkiPem,
+          oaepHash: 'sha256',
+          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        },
+        plaintext,
+      );
+
+      const decOpts = {
+        key: rsaKeyPem,
+        oaepHash: 'sha256',
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+      };
+
+      const decryptedFromCert = crypto.privateDecrypt(decOpts, ciphertextFromCert);
+      const decryptedFromSpki = crypto.privateDecrypt(decOpts, ciphertextFromSpki);
+
+      expect(decryptedFromCert.equals(plaintext)).toBe(true);
+      expect(decryptedFromSpki.equals(plaintext)).toBe(true);
+    });
+
+    it('encryptedSymmetricKey length is stable at 256 bytes across 5 runs', async () => {
+      for (let i = 0; i < 5; i++) {
+        const data = await service.getEncryptionData();
+        const decoded = Buffer.from(data.encryptionInfo.encryptedSymmetricKey, 'base64');
+        expect(decoded.length).toBe(256);
+      }
+    });
+  });
+
+  // -------------------------------------------------------------------
+  // Deno-strict regression guards:
+  //
+  //  (a) Production paths must route through `spkiDerFromCert` so SPKI is
+  //      extracted from the certificate via native `X509Certificate` (works on
+  //      both Node and Deno).
+  //  (b) The resulting RSA-OAEP ciphertext must be decryptable with SHA-256.
+  //      This catches the issue #18 regression class where Deno's Node-compat
+  //      layer silently swapped the OAEP hash for SHA-1 — Node-encrypt-then-
+  //      Node-decrypt round-trips would still pass under the old `publicEncrypt`
+  //      path, hiding the bug. Asking for SHA-1 to FAIL nails the invariant.
+  //
+  // `spkiDerFromCert` is a private method; we access it via bracket notation.
+  // Spying on the class instance works because class methods live on a
+  // mutable prototype (unlike ESM module namespaces, which are frozen).
+  // -------------------------------------------------------------------
+  describe('Deno-strict regression guards', () => {
+    type ServiceInternals = { spkiDerFromCert(certPem: string): Uint8Array };
+
+    it('spkiDerFromCert returns SPKI DER bytes (not PEM, not certificate)', () => {
+      const internals = service as unknown as ServiceInternals;
+      const der = internals.spkiDerFromCert(rsaCertPem);
+      expect(der).toBeInstanceOf(Uint8Array);
+      // RSA-2048 SPKI DER is 294 bytes (2048-bit modulus + ASN.1 wrappers)
+      expect(der.length).toBeGreaterThan(280);
+      expect(der.length).toBeLessThan(320);
+      // Must NOT contain ASCII 'BEGIN' (which would mean it's PEM, not DER)
+      expect(Buffer.from(der).includes(Buffer.from('BEGIN'))).toBe(false);
+    });
+
+    it('encryptKsefToken routes through spkiDerFromCert (not bypassed)', async () => {
+      const internals = service as unknown as ServiceInternals;
+      const spy = vi.spyOn(internals, 'spkiDerFromCert');
+      try {
+        await service.encryptKsefToken('token', '2025-01-15T10:30:00.000Z');
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy).toHaveBeenCalledWith(rsaCertPem);
+        const returned = spy.mock.results[0]?.value as Uint8Array;
+        expect(returned).toBeInstanceOf(Uint8Array);
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('getEncryptionData routes through spkiDerFromCert (not bypassed)', async () => {
+      const internals = service as unknown as ServiceInternals;
+      const spy = vi.spyOn(internals, 'spkiDerFromCert');
+      try {
+        await service.getEncryptionData();
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy).toHaveBeenCalledWith(rsaCertPem);
+        const returned = spy.mock.results[0]?.value as Uint8Array;
+        expect(returned).toBeInstanceOf(Uint8Array);
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('encryptKsefToken output decrypts as OAEP-SHA256, not OAEP-SHA1', async () => {
+      const ct = await service.encryptKsefToken('token', '2025-01-15T10:30:00.000Z');
+
+      // SHA-256 decrypt MUST succeed — that's our OAEP hash invariant.
+      const decrypted = crypto.privateDecrypt(
+        { key: rsaKeyPem, oaepHash: 'sha256', padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
+        Buffer.from(ct),
+      );
+      expect(decrypted.toString('utf-8')).toMatch(/^token\|/);
+
+      // SHA-1 decrypt MUST fail — proves we don't regress to Deno-style SHA-1 output.
+      expect(() =>
+        crypto.privateDecrypt(
+          { key: rsaKeyPem, oaepHash: 'sha1', padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
+          Buffer.from(ct),
+        ),
+      ).toThrow();
+    });
+
+    it('getEncryptionData wrapped key decrypts as OAEP-SHA256, not OAEP-SHA1', async () => {
+      const data = await service.getEncryptionData();
+      const wrappedKey = Buffer.from(data.encryptionInfo.encryptedSymmetricKey, 'base64');
+
+      const decrypted = crypto.privateDecrypt(
+        { key: rsaKeyPem, oaepHash: 'sha256', padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
+        wrappedKey,
+      );
+      expect(Buffer.from(decrypted).equals(Buffer.from(data.cipherKey))).toBe(true);
+
+      expect(() =>
+        crypto.privateDecrypt(
+          { key: rsaKeyPem, oaepHash: 'sha1', padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
+          wrappedKey,
+        ),
+      ).toThrow();
     });
   });
 });

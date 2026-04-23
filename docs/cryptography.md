@@ -209,8 +209,10 @@ When opening a session or starting an export, the client generates a random AES 
 ### Signature
 
 ```typescript
-getEncryptionData(): EncryptionData
+getEncryptionData(): Promise<EncryptionData>
 ```
+
+**Async since 0.8.0** — uses Web Crypto (`crypto.webcrypto.subtle`) for the RSA-OAEP step. See [Why Web Crypto](#why-web-crypto-for-rsa-oaep) below.
 
 ### Return type
 
@@ -239,11 +241,14 @@ crypto.randomBytes(16) → IV (raw)
 fetcher.getSymmetricKeyEncryptionPem() → KSeF RSA public cert
                 │
                 ▼
-crypto.publicEncrypt({
-  key: certPem,
-  oaepHash: 'sha256',
-  padding: RSA_PKCS1_OAEP_PADDING
-}, aesKey)
+crypto.webcrypto.subtle.importKey('spki',
+  spkiDerFromCert(certPem),
+  { name: 'RSA-OAEP', hash: 'SHA-256' },
+  false, ['encrypt']
+)
+    │
+    ▼
+crypto.webcrypto.subtle.encrypt({ name: 'RSA-OAEP' }, key, aesKey)
                 │
                 ▼
 EncryptionData {
@@ -258,6 +263,12 @@ EncryptionData {
 
 The `encryptionInfo` is included in the session open request body. KSeF uses its private RSA key to unwrap the AES key, then decrypts the invoice data server-side.
 
+### Why Web Crypto for RSA-OAEP
+
+Up through 0.7.x the library used `node:crypto.publicEncrypt({oaepHash: 'sha256', ...})`. That path was runtime-dependent: Node correctly emitted OAEP-SHA256, but Deno's Node-compat layer silently ignored the `oaepHash` option and emitted OAEP-SHA1 instead. KSeF's server expects OAEP-SHA256 and rejected Deno-generated ciphertext as `Invalid token encryption` (issue [#18](https://github.com/Flopsstuff/ksef-client-ts/issues/18)).
+
+Web Crypto (`crypto.webcrypto.subtle`) makes the hash part of the key's algorithm identity at `importKey` time, so no runtime can swap it without failing outright. The API is standardized (W3C), native on Deno/Bun/browsers/edge runtimes, and available on Node via `crypto.webcrypto.subtle`. Streaming primitives (AES-CBC + SHA-256) continue to use `node:crypto` because Web Crypto is batch-only and streaming matters for invoice payloads.
+
 ---
 
 ## Token Encryption (Auto-Selection)
@@ -269,8 +280,10 @@ Token-based authentication (`loginWithToken`) requires encrypting the authorizat
 ### Signature
 
 ```typescript
-encryptKsefToken(token: string, challengeTimestamp: string): Uint8Array
+encryptKsefToken(token: string, challengeTimestamp: string): Promise<Uint8Array>
 ```
+
+**Async since 0.8.0** — the RSA branch uses Web Crypto; the EC branch remains sync internally but is wrapped in the async return type.
 
 ### Token payload format
 
@@ -291,9 +304,11 @@ encryptKsefToken(token, timestamp)
   │
   ├── Inspect cert.publicKey.asymmetricKeyType
   │     │
-  │     ├── "rsa" → RSA-OAEP path
-  │     │     └── crypto.publicEncrypt({ oaepHash: 'sha256', OAEP padding }, payload)
-  │     │         → returns encrypted bytes directly
+  │     ├── "rsa" → RSA-OAEP path (via Web Crypto — see "Why Web Crypto" above)
+  │     │     ├── Extract SPKI DER from cert via node:crypto X509Certificate
+  │     │     ├── crypto.webcrypto.subtle.importKey('spki', ..., { hash: 'SHA-256' })
+  │     │     └── crypto.webcrypto.subtle.encrypt({ name: 'RSA-OAEP' }, key, payload)
+  │     │         → returns encrypted bytes (async)
   │     │
   │     ├── "ec" → ECDH + AES-256-GCM path
   │     │     ├── Generate ephemeral EC key pair (P-256 / prime256v1)

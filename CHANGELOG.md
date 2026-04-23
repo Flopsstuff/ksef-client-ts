@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0] - 2026-04-23
+
+### Changed (breaking)
+
+- **Low-level crypto helpers are now asynchronous** — high-level authentication, session, and CLI flows are unaffected; programmatic callers of the low-level crypto helpers must now await them.
+
+### Fixed
+
+- **Deno / edge-runtime compatibility** — token authentication and session encryption now work on Deno-based runtimes (notably Supabase Edge Functions) without any runtime workarounds.
+
 ## [0.7.1] - 2026-04-22
 
 ### Added
