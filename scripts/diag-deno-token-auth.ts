@@ -77,6 +77,7 @@ const log = (label: string, data?: unknown) => {
 
 let createdTokenRef: string | null = null;
 let clientA: InstanceType<typeof KSeFClient> | null = null;
+let exitCode = 0;
 
 try {
   console.log(`Deno ${Deno.version.deno} · ksef-client-ts@${VERSION} · NIP ${NIP}`);
@@ -169,6 +170,7 @@ try {
     console.log(
       `\n  ⚠ Final code = ${fs?.status?.code} — auth failed at polling stage`,
     );
+    exitCode = 1;
   }
 } catch (err) {
   console.error('\n✗ EXCEPTION:', err instanceof Error ? err.message : err);
@@ -188,4 +190,8 @@ try {
       );
     }
   }
+}
+
+if (exitCode !== 0) {
+  Deno.exit(exitCode);
 }
