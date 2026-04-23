@@ -28,7 +28,7 @@
  *                        so the script leaves no artefacts on any real
  *                        account).
  *   KSEF_CLIENT_VERSION  npm version of ksef-client-ts to pull (default:
- *                        0.8.0-alpha.0).
+ *                        0.8.0, the latest stable with the Web Crypto fix).
  *
  * Notes
  * -----
@@ -40,7 +40,7 @@
  *   (library default). No MF-issued "testowy certyfikat" needed.
  */
 
-const VERSION = Deno.env.get('KSEF_CLIENT_VERSION') ?? '0.8.0-alpha.0';
+const VERSION = Deno.env.get('KSEF_CLIENT_VERSION') ?? '0.8.0';
 const RUN_ID = `diag-deno-${Date.now()}`;
 
 const { KSeFClient, CertificateService, isValidNip } = await import(`npm:ksef-client-ts@${VERSION}`);
