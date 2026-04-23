@@ -17,7 +17,7 @@ Three runtime-specific fixes landed across v0.7.2 and v0.8.0 to close the gaps t
 Deno resolves npm packages natively via the `npm:` specifier — no lockfile, no `package.json`, no `npm install` required. Import the library directly:
 
 ```ts
-import { KSeFClient } from 'npm:ksef-client-ts@0.8.0-alpha.0';
+import { KSeFClient } from 'npm:ksef-client-ts@0.8.0';
 
 const client = new KSeFClient({ environment: 'TEST' });
 const challenge = await client.auth.getChallenge();
@@ -37,7 +37,7 @@ If you prefer pinning via a `deno.json`:
 ```json
 {
   "imports": {
-    "ksef-client-ts": "npm:ksef-client-ts@0.8.0-alpha.0"
+    "ksef-client-ts": "npm:ksef-client-ts@0.8.0"
   }
 }
 ```
@@ -104,7 +104,7 @@ try {
 The library exports a helper to identify this specific failure so you can fall back gracefully:
 
 ```ts
-import { validateAgainstXsd, validate, isMissingLibxmljsError } from 'npm:ksef-client-ts';
+import { validateAgainstXsd, validate, isMissingLibxmljsError } from 'npm:ksef-client-ts@0.8.0';
 
 try {
   const result = validateAgainstXsd(xml, xsdPath);
@@ -140,7 +140,7 @@ Edge Functions use Deno 1.x with the Node compatibility layer enabled and resolv
 
 ```ts
 // supabase/functions/ksef-check/index.ts
-import { KSeFClient } from 'npm:ksef-client-ts@0.8.0-alpha.0';
+import { KSeFClient } from 'npm:ksef-client-ts@0.8.0';
 
 Deno.serve(async (_req) => {
   const nip = Deno.env.get('KSEF_NIP');
@@ -199,11 +199,14 @@ If you're on a dev machine that runs both Node (with `libxmljs2` for XSD validat
 
 If you see `status.details: ["Invalid token encryption."]` on auth status, you're on a pre-0.8.0 version. Earlier versions passed OAEP parameters through `node:crypto.publicEncrypt`, which Deno's Node-compat layer silently ignored — Deno emitted OAEP-SHA1 ciphertext that KSeF rejects, regardless of what the library requested. 0.8.0+ uses Web Crypto natively (`crypto.subtle.encrypt` with `{name: 'RSA-OAEP', hash: 'SHA-256'}`), which is runtime-portable by construction.
 
-Check the installed version:
+Check the installed version — the library's `package.json` isn't part of its `exports` map, so `import 'npm:ksef-client-ts/package.json'` won't resolve under Deno. Use Deno's tooling instead:
 
-```ts
-import pkg from 'npm:ksef-client-ts/package.json' with { type: 'json' };
-console.log(pkg.version);  // must be ≥ 0.8.0
+```bash
+# See what the npm: specifier resolves to right now
+deno info npm:ksef-client-ts
+
+# Or, if you're using a lockfile, grep for the pinned version
+grep -E '"npm:ksef-client-ts@[^"]+"' deno.lock
 ```
 
-On older versions, no client-side workaround exists — `publicEncrypt` on Deno cannot be forced to emit OAEP-SHA256.
+The [npm registry page](https://www.npmjs.com/package/ksef-client-ts?activeTab=versions) lists every published version. You need 0.8.0 or later for Deno support; on older versions, no client-side workaround exists — `publicEncrypt` on Deno cannot be forced to emit OAEP-SHA256.
