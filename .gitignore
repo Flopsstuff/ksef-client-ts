@@ -37,3 +37,6 @@ openspec/changes/archive/
 docs/.vitepress/cache
 docs/.vitepress/dist
 docs/public/open-api.json
+
+# markdown-vault MCP cache
+docs/.markdown_vault_mcp/
