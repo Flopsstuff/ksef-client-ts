@@ -28,6 +28,21 @@ function randomBytes(size: number): Uint8Array {
 }
 
 describe('BatchFileBuilder', () => {
+  describe('compressionType', () => {
+    it('omits compressionType by default (legacy Zip behavior)', () => {
+      const result = BatchFileBuilder.build(randomBytes(1000), identityEncrypt, { maxPartSize: 5000 });
+      expect(result.batchFile.compressionType).toBeUndefined();
+    });
+
+    it('sets compressionType on the batch file metadata when provided', () => {
+      const result = BatchFileBuilder.build(randomBytes(1000), identityEncrypt, {
+        maxPartSize: 5000,
+        compressionType: 'TarGz',
+      });
+      expect(result.batchFile.compressionType).toBe('TarGz');
+    });
+  });
+
   describe('splitting', () => {
     it('produces 1 part for data smaller than maxPartSize', () => {
       const data = randomBytes(1000);

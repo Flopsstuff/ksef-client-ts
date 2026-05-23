@@ -1,6 +1,6 @@
 import * as crypto from 'node:crypto';
 import type { BatchFileInfo, BatchPartStreamSendingInfo } from '../models/sessions/batch-types.js';
-import type { FileMetadata } from '../models/common.js';
+import type { CompressionType, FileMetadata } from '../models/common.js';
 import { KSeFValidationError } from '../errors/ksef-validation-error.js';
 
 /** Maximum size of a single unencrypted batch part (100 MB). */
@@ -15,6 +15,8 @@ export const BATCH_MAX_PARTS = 50;
 export interface BatchFileBuildOptions {
   /** Max unencrypted part size in bytes. Default: 100 MB. */
   maxPartSize?: number;
+  /** Compression type of the supplied archive bytes (KSeF API v2.6.0). Default: `Zip`. */
+  compressionType?: CompressionType;
 }
 
 export interface BatchFileBuildResult {
@@ -88,6 +90,7 @@ export class BatchFileBuilder {
       batchFile: {
         fileSize: zipBytes.length,
         fileHash: zipHash,
+        ...(options?.compressionType && { compressionType: options.compressionType }),
         fileParts,
       },
       encryptedParts,
@@ -219,6 +222,7 @@ export class BatchFileBuilder {
       batchFile: {
         fileSize: zipSize,
         fileHash: zipMeta.hashSHA,
+        ...(options?.compressionType && { compressionType: options.compressionType }),
         fileParts,
       },
       streamParts,

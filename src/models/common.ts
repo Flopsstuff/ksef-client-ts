@@ -38,6 +38,9 @@ export interface ContextIdentifier {
   value: string;
 }
 
+/** Archive compression for batch upload / invoice export packages (KSeF API v2.6.0). Defaults to `Zip`. */
+export type CompressionType = 'Zip' | 'TarGz';
+
 export type SessionType = 'Online' | 'Batch';
 export type SessionStatus = 'Succeeded' | 'InProgress' | 'Failed' | 'Cancelled';
 

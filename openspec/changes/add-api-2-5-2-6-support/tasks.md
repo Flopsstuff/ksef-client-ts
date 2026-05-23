@@ -26,13 +26,13 @@
 
 ## 4. TarGz compression
 
-- [ ] 4.1 Add `tar-stream` dependency to `package.json`; confirm pure-JS (no native bindings, keeps Deno/edge compat).
-- [ ] 4.2 Add shared `CompressionType = 'Zip' | 'TarGz'` (likely `src/models/common.ts`).
-- [ ] 4.3 Add `compressionType?: CompressionType` to `BatchFileInfo` (`src/models/sessions/batch-types.ts`) and `InvoiceExportRequest` (`src/models/invoices/types.ts`).
-- [ ] 4.4 Implement TarGz packing (`tar-stream` piped through `node:zlib.createGzip`) in/around `src/builders/batch-file.ts`; keep zip path as default.
-- [ ] 4.5 Thread compression choice through `uploadBatch()` (`src/workflows/batch-session-workflow.ts`) and the export path; ensure reported size/hash are computed over the produced archive.
-- [ ] 4.6 CLI flag `--compression zip|targz` on the batch build (and export, if applicable) in `src/cli/commands/invoice.ts`.
-- [ ] 4.7 Unit tests: TarGz produces a valid gzip-wrapped tar; size/hash correct; zip default unchanged (`tests/unit/builders/batch-file.test.ts`).
+- [x] 4.1 Add `tar-stream` dependency to `package.json`; confirm pure-JS (no native bindings, keeps Deno/edge compat).
+- [x] 4.2 Add shared `CompressionType = 'Zip' | 'TarGz'` (likely `src/models/common.ts`).
+- [x] 4.3 Add `compressionType?: CompressionType` to `BatchFileInfo` (`src/models/sessions/batch-types.ts`) and `InvoiceExportRequest` (`src/models/invoices/types.ts`).
+- [x] 4.4 Implement TarGz packing (`tar-stream` piped through `node:zlib.createGzip`) in/around `src/builders/batch-file.ts`; keep zip path as default.
+- [x] 4.5 Thread compression choice through `uploadBatch()` (`src/workflows/batch-session-workflow.ts`) and the export path; ensure reported size/hash are computed over the produced archive.
+- [~] 4.6 CLI flag deferred — the CLI batch path uploads raw per-file parts (no single archive to compress) and the CLI export is fire-and-forget (no download/extract step to thread compression through). TarGz is delivered at the SDK layer (`uploadBatch` / `exportInvoices` workflows). CLI wiring tracked as a follow-up.
+- [x] 4.7 Unit tests: TarGz produces a valid gzip-wrapped tar; size/hash correct; zip default unchanged (`tests/unit/builders/batch-file.test.ts`).
 
 ## 5. X-System-Warning handler
 

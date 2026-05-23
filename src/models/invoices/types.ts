@@ -1,4 +1,4 @@
-import type { EncryptionInfo, FormCode, InvoicingMode, OperationStatusInfo } from '../common.js';
+import type { CompressionType, EncryptionInfo, FormCode, InvoicingMode, OperationStatusInfo } from '../common.js';
 
 export type { InvoicingMode } from '../common.js';
 
@@ -161,6 +161,8 @@ export interface InvoiceExportRequest {
   encryption: EncryptionInfo;
   filters: InvoiceQueryFilters;
   onlyMetadata?: boolean;
+  /** Archive compression type for the export package (KSeF API v2.6.0). Omitted/`Zip` keeps the legacy behavior. */
+  compressionType?: CompressionType;
 }
 
 export interface InvoiceExportPackagePart {

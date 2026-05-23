@@ -1,6 +1,6 @@
 import type { KSeFClient } from '../client.js';
 import type { UpoVersion } from '../http/ksef-feature.js';
-import type { FormCode } from '../models/common.js';
+import type { CompressionType, FormCode } from '../models/common.js';
 import { DEFAULT_FORM_CODE } from '../models/document-structures/index.js';
 import type { BatchPartSendingInfo } from '../models/sessions/batch-types.js';
 import type { BatchUploadResult, ParsedBatchUploadResult, PollOptions } from './types.js';
@@ -21,6 +21,8 @@ export interface BatchUploadOptions {
   validate?: boolean;
   /** Number of concurrent part uploads. Omit for default behavior (buffer: all parallel, stream: sequential). */
   parallelism?: number;
+  /** Compression type of the supplied archive (KSeF API v2.6.0). Default: `Zip`. The caller is responsible for producing matching archive bytes. */
+  compressionType?: CompressionType;
 }
 
 export async function uploadBatch(
@@ -65,6 +67,7 @@ export async function uploadBatch(
 
     const { batchFile, encryptedParts } = BatchFileBuilder.build(zipData, encryptFn, {
       maxPartSize: options?.maxPartSize,
+      compressionType: options?.compressionType,
     });
 
     const openResp = await client.batchSession.openSession(
@@ -139,7 +142,7 @@ export async function uploadBatchStream(
       zipSize,
       encryptStreamFn,
       hashStreamFn,
-      { maxPartSize: options?.maxPartSize },
+      { maxPartSize: options?.maxPartSize, compressionType: options?.compressionType },
     );
 
     const openResp = await client.batchSession.openSession(

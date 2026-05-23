@@ -2,8 +2,10 @@ import type { KSeFClient } from '../client.js';
 import type { EncryptionData } from '../models/crypto/types.js';
 import type { InvoiceQueryFilters } from '../models/invoices/types.js';
 import type { ExportDownloadResult, ExportExtractedResult, ExportResult, PollOptions } from './types.js';
+import type { CompressionType } from '../models/common.js';
 import type { UnzipOptions } from '../utils/zip.js';
 import { unzip } from '../utils/zip.js';
+import { extractTarGz } from '../utils/targz.js';
 import { pollUntil } from './polling.js';
 import { withKeyRotationRetry } from '../crypto/with-key-rotation-retry.js';
 import { verifyHash } from '../utils/hash.js';
@@ -11,6 +13,8 @@ import { verifyHash } from '../utils/hash.js';
 export interface ExportOptions {
   onlyMetadata?: boolean;
   pollOptions?: PollOptions;
+  /** Compression type for the export package (KSeF API v2.6.0). Default: `Zip`. */
+  compressionType?: CompressionType;
 }
 
 export interface ExportAndDownloadOptions extends ExportOptions {
@@ -37,6 +41,7 @@ export async function doExport(
       encryption: encData.encryptionInfo,
       filters,
       onlyMetadata: options?.onlyMetadata,
+      ...(options?.compressionType && { compressionType: options.compressionType }),
     });
     return { encData, opResp };
   });
@@ -119,8 +124,10 @@ export async function exportAndDownload(
   }
 
   if (options?.extract) {
-    const zipBuffer = Buffer.concat(decryptedParts);
-    const files = await unzip(zipBuffer, options.unzipOptions);
+    const archiveBuffer = Buffer.concat(decryptedParts);
+    const files = options.compressionType === 'TarGz'
+      ? await extractTarGz(archiveBuffer, options.unzipOptions)
+      : await unzip(archiveBuffer, options.unzipOptions);
     return { ...exportResult, files };
   }
 
