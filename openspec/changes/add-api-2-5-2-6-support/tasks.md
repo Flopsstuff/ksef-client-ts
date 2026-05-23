@@ -48,7 +48,7 @@
 
 ## 7. Release wrap-up
 
-- [ ] 7.1 CHANGELOG entries under `[0.9.0]` per project rules (user-facing impact, no internal identifiers; tag API version e.g. "(KSeF API v2.5.0)"); mark the `RR` removal as breaking.
-- [ ] 7.2 `yarn lint` clean; `yarn test` full unit suite green (incl. new tests); `yarn check-api` holds.
+- [x] 7.1 CHANGELOG entries under `[0.9.0]` per project rules (user-facing impact, no internal identifiers; tag API version e.g. "(KSeF API v2.5.0)"); mark the `RR` removal as breaking.
+- [x] 7.2 `yarn lint` clean; `yarn test` full unit suite green (incl. new tests); `yarn check-api` holds.
 - [ ] 7.3 E2E against KSeF TEST: `tests/e2e/02-auth-token.test.ts` + a session-open run still pass; optionally a TarGz batch.
 - [ ] 7.4 Verify `openspec validate "add-api-2-5-2-6-support"` is clean, then archive the change.
