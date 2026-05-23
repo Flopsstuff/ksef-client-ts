@@ -186,7 +186,7 @@ describe('CertificateFetcher', () => {
 
     it('exposes the selected certs publicKeyId per usage', async () => {
       const restClient = createMockRestClient();
-      const certs = makeBothCerts();
+      const certs = makeBothCerts({ tokenDer: CERT_DER_BASE64_ALT });
       vi.mocked(restClient.execute).mockResolvedValue(mockResponse(certs));
       const fetcher = new CertificateFetcher(restClient);
 
@@ -194,6 +194,8 @@ describe('CertificateFetcher', () => {
 
       const symmetric = certs.find(c => c.usage.includes('SymmetricKeyEncryption'))!;
       const token = certs.find(c => c.usage.includes('KsefTokenEncryption'))!;
+      // Guard against a spurious pass if both certs shared the same id.
+      expect(symmetric.publicKeyId).not.toBe(token.publicKeyId);
       expect(fetcher.getSymmetricKeyPublicKeyId()).toBe(symmetric.publicKeyId);
       expect(fetcher.getKsefTokenPublicKeyId()).toBe(token.publicKeyId);
     });

@@ -128,10 +128,14 @@ export function makeCertFixture(
   validFrom = '2025-01-01T00:00:00Z',
   validTo = '2099-01-01T00:00:00Z',
 ): PublicKeyCertificate {
+  // Derive IDs from a hash of the full DER so fixtures that differ only in
+  // their trailing bytes (e.g. CERT_DER_BASE64 vs CERT_DER_BASE64_ALT) still
+  // get distinct certificateId/publicKeyId.
+  const fingerprint = crypto.createHash('sha256').update(certDerBase64).digest('hex').slice(0, 16);
   return {
     certificate: certDerBase64,
-    certificateId: `cert-${certDerBase64.slice(0, 12)}`,
-    publicKeyId: `pk-${certDerBase64.slice(0, 12)}`,
+    certificateId: `cert-${fingerprint}`,
+    publicKeyId: `pk-${fingerprint}`,
     validFrom,
     validTo,
     usage,
