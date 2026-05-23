@@ -21,7 +21,7 @@ hero:
 
 features:
   - title: Complete API Coverage
-    details: KSeF API v2.4.0 — auth, sessions, invoices, permissions, tokens, certificates, QR codes, and more. All types aligned with the official OpenAPI spec.
+    details: KSeF API v2.6.0 — auth, sessions, invoices, permissions, tokens, certificates, QR codes, and more. All types aligned with the official OpenAPI spec.
   - title: Offline Invoice Mode
     details: Full lifecycle for all 4 KSeF offline modes (offline24, offline, awaryjny, awaria_calkowita). Generate invoices locally with QR KOD I + KOD II signing, store in ~/.ksef/offline/, track deadlines with business day calculation, submit when available, and handle technical corrections.
   - title: Full-Featured CLI

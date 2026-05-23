@@ -101,7 +101,13 @@ export class RestClient {
     const warning = response.headers.get('x-system-warning');
     if (!warning) return;
     if (this.onSystemWarning) {
-      this.onSystemWarning(warning);
+      // X-System-Warning is advisory only and must never affect the result of an
+      // already-successful request, so a throwing callback is swallowed and logged.
+      try {
+        this.onSystemWarning(warning);
+      } catch (error) {
+        consola.warn('onSystemWarning callback threw an exception (ignored):', error);
+      }
     } else {
       consola.warn(`KSeF system warning: ${warning}`);
     }

@@ -40,4 +40,44 @@ describe('targz', () => {
     const archive = await createTarGz(entries);
     await expect(extractTarGz(archive, { maxFiles: 2 })).rejects.toThrow('too many files');
   });
+
+  it('enforces the max-file-uncompressed-size limit', async () => {
+    const archive = await createTarGz([{ fileName: 'big.xml', content: Buffer.from('0123456789') }]);
+    await expect(extractTarGz(archive, { maxFileUncompressedSize: 5 })).rejects.toThrow(
+      'tar.gz entry exceeds max_file_uncompressed_size',
+    );
+  });
+
+  it('enforces the max-total-uncompressed-size limit', async () => {
+    const entries = [
+      { fileName: 'a.xml', content: Buffer.from('aaaa') },
+      { fileName: 'b.xml', content: Buffer.from('bbbb') },
+    ];
+    const archive = await createTarGz(entries);
+    await expect(extractTarGz(archive, { maxTotalUncompressedSize: 6 })).rejects.toThrow(
+      'tar.gz exceeds max_total_uncompressed_size',
+    );
+  });
+
+  it('aborts streaming once the total uncompressed size is exceeded (no full inflation)', async () => {
+    // Many small, highly-compressible entries: gunzipped output far exceeds the
+    // tiny total limit, so the pipeline must abort mid-stream rather than wait
+    // for the whole archive to inflate into memory.
+    const entries = Array.from({ length: 50 }, (_, i) => ({
+      fileName: `f${i}.xml`,
+      content: Buffer.alloc(1000, 'a'),
+    }));
+    const archive = await createTarGz(entries);
+    await expect(extractTarGz(archive, { maxTotalUncompressedSize: 100 })).rejects.toThrow(
+      'tar.gz exceeds max_total_uncompressed_size',
+    );
+  });
+
+  it('aborts a single oversized entry incrementally', async () => {
+    const entries = [{ fileName: 'big.xml', content: Buffer.alloc(5000, 'b') }];
+    const archive = await createTarGz(entries);
+    await expect(
+      extractTarGz(archive, { maxFileUncompressedSize: 100, maxTotalUncompressedSize: 1_000_000 }),
+    ).rejects.toThrow('tar.gz entry exceeds max_file_uncompressed_size');
+  });
 });

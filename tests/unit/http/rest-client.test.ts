@@ -75,6 +75,21 @@ describe('RestClient', () => {
       const result = await client.execute<{ ok: boolean }>(RestRequest.get('/test'));
       expect(result.body).toEqual({ ok: true });
     });
+
+    it('does not fail a successful request when the callback throws', async () => {
+      const onSystemWarning = vi.fn(() => {
+        throw new Error('callback boom');
+      });
+      const transport = vi.fn<TransportFn>().mockResolvedValue(
+        mockResponse(200, { ok: true }, { 'X-System-Warning': 'heads up' }),
+      );
+      const client = createClient(transport, { onSystemWarning });
+
+      const result = await client.execute<{ ok: boolean }>(RestRequest.get('/test'));
+
+      expect(onSystemWarning).toHaveBeenCalledWith('heads up');
+      expect(result.body).toEqual({ ok: true });
+    });
   });
 
   describe('retry integration', () => {

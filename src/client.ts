@@ -209,5 +209,10 @@ function buildRestClientConfig(options: KSeFClientOptions | undefined, authManag
     } as PresignedUrlPolicy;
   }
 
+  // System warning callback: receives raw X-System-Warning header value (KSeF API v2.6.0)
+  if (options?.onSystemWarning) {
+    config.onSystemWarning = options.onSystemWarning;
+  }
+
   return config;
 }

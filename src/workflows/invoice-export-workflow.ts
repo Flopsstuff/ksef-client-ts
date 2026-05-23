@@ -125,6 +125,12 @@ export async function exportAndDownload(
 
   if (options?.extract) {
     const archiveBuffer = Buffer.concat(decryptedParts);
+    // The extractor is chosen by the caller-requested compression type, not by the
+    // actual format of the returned package: the KSeF export status response
+    // (InvoiceExportStatusResponse / InvoicePackage) carries no compression-type field,
+    // so the server does not report which format it actually produced. The caller MUST
+    // pass the same `compressionType` here that was used to request the export
+    // (defaults to Zip). If a mismatch occurs, extraction will fail.
     const files = options.compressionType === 'TarGz'
       ? await extractTarGz(archiveBuffer, options.unzipOptions)
       : await unzip(archiveBuffer, options.unzipOptions);
