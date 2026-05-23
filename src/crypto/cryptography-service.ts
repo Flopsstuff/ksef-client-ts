@@ -88,13 +88,16 @@ export class CryptographyService {
     const key = crypto.randomBytes(32);
     const iv = crypto.randomBytes(16);
 
-    const certPem = this.fetcher.getSymmetricKeyEncryptionPem();
-    const encryptedKey = await this.rsaOaepEncrypt(certPem, new Uint8Array(key));
+    // Snapshot pem + publicKeyId together BEFORE the await: a concurrent refresh()
+    // could otherwise swap the cached certificate between encrypting the key and
+    // reading its id, tagging the ciphertext with a key it wasn't encrypted under.
+    const cert = this.fetcher.getSymmetricKeyEncryption();
+    const encryptedKey = await this.rsaOaepEncrypt(cert.pem, new Uint8Array(key));
 
     const encryptionInfo: EncryptionInfo = {
       encryptedSymmetricKey: Buffer.from(encryptedKey).toString('base64'),
       initializationVector: iv.toString('base64'),
-      publicKeyId: this.fetcher.getSymmetricKeyPublicKeyId(),
+      publicKeyId: cert.publicKeyId,
     };
 
     return {
@@ -122,10 +125,39 @@ export class CryptographyService {
    * `[ephemeralSPKI | nonce(12) | ciphertext+tag]`.
    */
   async encryptKsefToken(token: string, challengeTimestamp: string): Promise<Uint8Array> {
+    return this.encryptKsefTokenWithCertPem(
+      this.fetcher.getKsefTokenEncryptionPem(),
+      token,
+      challengeTimestamp,
+    );
+  }
+
+  /**
+   * Encrypt a KSeF token and return it together with the public key id of the
+   * exact certificate used.
+   *
+   * Both values come from a single certificate snapshot taken before any
+   * `await`, so a concurrent {@link refresh} cannot tag the ciphertext with a
+   * different key than it was encrypted under (KSeF API v2.5.0). Prefer this over
+   * pairing {@link encryptKsefToken} with a separate {@link getKsefTokenPublicKeyId}.
+   */
+  async encryptKsefTokenWithKeyId(
+    token: string,
+    challengeTimestamp: string,
+  ): Promise<{ encryptedToken: Uint8Array; publicKeyId: string }> {
+    const cert = this.fetcher.getKsefTokenEncryption();
+    const encryptedToken = await this.encryptKsefTokenWithCertPem(cert.pem, token, challengeTimestamp);
+    return { encryptedToken, publicKeyId: cert.publicKeyId };
+  }
+
+  private async encryptKsefTokenWithCertPem(
+    certPem: string,
+    token: string,
+    challengeTimestamp: string,
+  ): Promise<Uint8Array> {
     const timestampMs = new Date(challengeTimestamp).getTime();
     const plaintext = Buffer.from(`${token}|${timestampMs}`, 'utf-8');
 
-    const certPem = this.fetcher.getKsefTokenEncryptionPem();
     const cert = new crypto.X509Certificate(certPem);
     const publicKey = cert.publicKey;
 

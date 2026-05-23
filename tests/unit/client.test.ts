@@ -154,10 +154,8 @@ describe('KSeFClient', () => {
         .mockResolvedValue(FIXTURES.tokensResponse);
       cryptoInitSpy = vi.spyOn(client.crypto, 'init')
         .mockResolvedValue(undefined);
-      encryptSpy = vi.spyOn(client.crypto, 'encryptKsefToken')
-        .mockReturnValue(new Uint8Array([1, 2, 3]));
-      vi.spyOn(client.crypto, 'getKsefTokenPublicKeyId')
-        .mockReturnValue('ksef-token-public-key-id');
+      encryptSpy = vi.spyOn(client.crypto, 'encryptKsefTokenWithKeyId')
+        .mockReturnValue({ encryptedToken: new Uint8Array([1, 2, 3]), publicKeyId: 'ksef-token-public-key-id' });
     });
 
     it('happy path — stores tokens after successful login', async () => {
@@ -180,7 +178,7 @@ describe('KSeFClient', () => {
     it('calls crypto.init before encryptKsefToken', async () => {
       const callOrder: string[] = [];
       cryptoInitSpy.mockImplementation(async () => { callOrder.push('init'); });
-      encryptSpy.mockImplementation(() => { callOrder.push('encrypt'); return new Uint8Array([1, 2, 3]); });
+      encryptSpy.mockImplementation(() => { callOrder.push('encrypt'); return { encryptedToken: new Uint8Array([1, 2, 3]), publicKeyId: 'ksef-token-public-key-id' }; });
 
       await client.loginWithToken(FIXTURES.token, FIXTURES.nip);
 
@@ -448,8 +446,7 @@ describe('KSeFClient', () => {
       });
       vi.spyOn(client.auth, 'getAccessToken').mockResolvedValue(FIXTURES.tokensResponse);
       vi.spyOn(client.crypto, 'init').mockResolvedValue(undefined);
-      vi.spyOn(client.crypto, 'encryptKsefToken').mockReturnValue(new Uint8Array([1, 2, 3]));
-      vi.spyOn(client.crypto, 'getKsefTokenPublicKeyId').mockReturnValue('ksef-token-public-key-id');
+      vi.spyOn(client.crypto, 'encryptKsefTokenWithKeyId').mockReturnValue({ encryptedToken: new Uint8Array([1, 2, 3]), publicKeyId: 'ksef-token-public-key-id' });
 
       await client.loginWithToken(FIXTURES.token, FIXTURES.nip);
       expect(authManager.setAccessToken).toHaveBeenCalledWith('access-token-final-abc');

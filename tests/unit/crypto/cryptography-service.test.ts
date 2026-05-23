@@ -174,6 +174,44 @@ describe('CryptographyService', () => {
   });
 
   // -------------------------------------------------------------------
+  // Certificate snapshot consistency under key rotation
+  // -------------------------------------------------------------------
+  describe('certificate snapshot consistency (key rotation)', () => {
+    it('getEncryptionData takes pem + publicKeyId from one snapshot, ignoring later id reads', async () => {
+      const fetcher = createMockCertificateFetcher({
+        symmetricKeyPem: rsaCertPem,
+        symmetricKeyPublicKeyId: 'snapshot-id',
+      });
+      // Mimic a refresh() landing mid-operation by diverging the standalone id getter:
+      // the result must still carry the snapshot's id, not the rotated one.
+      (fetcher.getSymmetricKeyPublicKeyId as ReturnType<typeof vi.fn>).mockReturnValue('rotated-id');
+      const svc = new CryptographyService(fetcher);
+
+      const data = await svc.getEncryptionData();
+
+      expect(data.encryptionInfo.publicKeyId).toBe('snapshot-id');
+      expect(fetcher.getSymmetricKeyEncryption).toHaveBeenCalledTimes(1);
+      expect(fetcher.getSymmetricKeyPublicKeyId).not.toHaveBeenCalled();
+    });
+
+    it('encryptKsefTokenWithKeyId returns the id of the certificate it encrypted with', async () => {
+      const fetcher = createMockCertificateFetcher({
+        ksefTokenPem: rsaCertPem,
+        ksefTokenPublicKeyId: 'snapshot-token-id',
+      });
+      (fetcher.getKsefTokenPublicKeyId as ReturnType<typeof vi.fn>).mockReturnValue('rotated-token-id');
+      const svc = new CryptographyService(fetcher);
+
+      const result = await svc.encryptKsefTokenWithKeyId('tok', '2025-01-15T10:30:00.000Z');
+
+      expect(result.publicKeyId).toBe('snapshot-token-id');
+      expect(result.encryptedToken.length).toBeGreaterThan(0);
+      expect(fetcher.getKsefTokenEncryption).toHaveBeenCalledTimes(1);
+      expect(fetcher.getKsefTokenPublicKeyId).not.toHaveBeenCalled();
+    });
+  });
+
+  // -------------------------------------------------------------------
   // encryptKsefToken()
   // -------------------------------------------------------------------
   describe('encryptKsefToken()', () => {

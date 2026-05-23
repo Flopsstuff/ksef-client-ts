@@ -100,21 +100,19 @@ export function createMockCertificateFetcher(overrides?: {
   symmetricKeyPublicKeyId?: string;
   ksefTokenPublicKeyId?: string;
 }): CertificateFetcher {
+  const symmetricKeyPem = overrides?.symmetricKeyPem ?? 'PLACEHOLDER';
+  const ksefTokenPem = overrides?.ksefTokenPem ?? 'PLACEHOLDER';
+  const symmetricKeyPublicKeyId = overrides?.symmetricKeyPublicKeyId ?? 'symmetric-public-key-id';
+  const ksefTokenPublicKeyId = overrides?.ksefTokenPublicKeyId ?? 'ksef-token-public-key-id';
   return {
     init: vi.fn().mockResolvedValue(undefined),
     refresh: vi.fn().mockResolvedValue(undefined),
-    getSymmetricKeyEncryptionPem: vi.fn().mockReturnValue(
-      overrides?.symmetricKeyPem ?? 'PLACEHOLDER',
-    ),
-    getKsefTokenEncryptionPem: vi.fn().mockReturnValue(
-      overrides?.ksefTokenPem ?? 'PLACEHOLDER',
-    ),
-    getSymmetricKeyPublicKeyId: vi.fn().mockReturnValue(
-      overrides?.symmetricKeyPublicKeyId ?? 'symmetric-public-key-id',
-    ),
-    getKsefTokenPublicKeyId: vi.fn().mockReturnValue(
-      overrides?.ksefTokenPublicKeyId ?? 'ksef-token-public-key-id',
-    ),
+    getSymmetricKeyEncryption: vi.fn().mockReturnValue({ pem: symmetricKeyPem, publicKeyId: symmetricKeyPublicKeyId }),
+    getKsefTokenEncryption: vi.fn().mockReturnValue({ pem: ksefTokenPem, publicKeyId: ksefTokenPublicKeyId }),
+    getSymmetricKeyEncryptionPem: vi.fn().mockReturnValue(symmetricKeyPem),
+    getKsefTokenEncryptionPem: vi.fn().mockReturnValue(ksefTokenPem),
+    getSymmetricKeyPublicKeyId: vi.fn().mockReturnValue(symmetricKeyPublicKeyId),
+    getKsefTokenPublicKeyId: vi.fn().mockReturnValue(ksefTokenPublicKeyId),
   } as unknown as CertificateFetcher;
 }
 

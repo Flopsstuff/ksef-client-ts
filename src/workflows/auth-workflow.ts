@@ -47,12 +47,12 @@ export async function authenticateWithToken(
   await client.crypto.init();
 
   const submitResult = await withKeyRotationRetry(client.crypto, async () => {
-    const encryptedToken = await client.crypto.encryptKsefToken(options.token, challenge.timestamp);
+    const { encryptedToken, publicKeyId } = await client.crypto.encryptKsefTokenWithKeyId(options.token, challenge.timestamp);
     return client.auth.submitKsefTokenAuthRequest({
       challenge: challenge.challenge,
       contextIdentifier: { type: 'Nip', value: options.nip },
       encryptedToken: Buffer.from(encryptedToken).toString('base64'),
-      publicKeyId: client.crypto.getKsefTokenPublicKeyId(),
+      publicKeyId,
       authorizationPolicy: options.authorizationPolicy,
     });
   });

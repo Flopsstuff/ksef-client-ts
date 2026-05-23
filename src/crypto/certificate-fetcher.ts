@@ -7,7 +7,7 @@ import type {
 } from '../models/crypto/types.js';
 
 /** A selected encryption certificate: its PEM plus the key-rotation selector. */
-interface SelectedCertificate {
+export interface SelectedCertificate {
   pem: string;
   publicKeyId: string;
 }
@@ -30,6 +30,21 @@ export class CertificateFetcher {
   async refresh(): Promise<void> {
     this.initialized = false;
     await this.fetchCertificates();
+  }
+
+  /**
+   * Immutable snapshot ({@link SelectedCertificate}) of the selected
+   * SymmetricKeyEncryption certificate. The stored object is replaced wholesale
+   * by {@link refresh}, never mutated, so holding the returned reference yields a
+   * consistent pem + publicKeyId pair even if a concurrent refresh swaps the cache.
+   */
+  getSymmetricKeyEncryption(): SelectedCertificate {
+    return this.requireSelected(this.symmetricKey);
+  }
+
+  /** Immutable snapshot of the selected KsefTokenEncryption certificate. See {@link getSymmetricKeyEncryption}. */
+  getKsefTokenEncryption(): SelectedCertificate {
+    return this.requireSelected(this.ksefToken);
   }
 
   getSymmetricKeyEncryptionPem(): string {
