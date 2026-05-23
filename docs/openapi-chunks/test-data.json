@@ -35,7 +35,15 @@
           }
         },
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -105,7 +113,15 @@
           }
         },
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -182,7 +198,15 @@
           }
         },
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -252,7 +276,15 @@
           }
         },
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -336,7 +368,15 @@
           }
         },
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -414,7 +454,15 @@
           }
         },
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -484,7 +532,15 @@
           }
         },
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -554,7 +610,15 @@
           }
         },
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -618,7 +682,15 @@
           }
         },
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -658,9 +730,9 @@
           }
         },
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         }
       }
     },
@@ -684,7 +756,15 @@
           }
         },
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -724,9 +804,9 @@
           }
         },
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         }
       }
     }
@@ -1070,6 +1150,9 @@
             "$ref": "#/components/schemas/Nip"
           }
         }
+      },
+      "SystemWarning": {
+        "type": "string"
       },
       "TestDataAuthenticationContextIdentifier": {
         "required": [

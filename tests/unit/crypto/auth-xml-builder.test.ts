@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildUnsignedAuthTokenRequestXml } from '../../../src/crypto/auth-xml-builder.js';
 
 describe('buildUnsignedAuthTokenRequestXml', () => {
-  const NS = 'http://ksef.mf.gov.pl/auth/token/2.0';
+  const NS = 'http://ksef.mf.gov.pl/auth/token/2.1';
 
   it('builds XML with Nip context identifier', () => {
     const xml = buildUnsignedAuthTokenRequestXml({

@@ -7,7 +7,7 @@ export interface AuthTokenRequestXmlOptions {
   subjectIdentifierType?: XadesSubjectIdentifierType;
 }
 
-const AUTH_TOKEN_REQUEST_NS = 'http://ksef.mf.gov.pl/auth/token/2.0';
+const AUTH_TOKEN_REQUEST_NS = 'http://ksef.mf.gov.pl/auth/token/2.1';
 
 /**
  * Build an unsigned KSeF auth token request XML document.

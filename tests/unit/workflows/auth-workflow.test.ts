@@ -5,7 +5,8 @@ function createMockClient() {
   return {
     crypto: {
       init: vi.fn(),
-      encryptKsefToken: vi.fn().mockReturnValue(new Uint8Array([1, 2, 3])),
+      refresh: vi.fn(),
+      encryptKsefTokenWithKeyId: vi.fn().mockReturnValue({ encryptedToken: new Uint8Array([1, 2, 3]), publicKeyId: 'ksef-token-public-key-id' }),
     },
     auth: {
       getChallenge: vi.fn().mockResolvedValue({
@@ -54,7 +55,7 @@ describe('authenticateWithToken', () => {
 
     expect(client.auth.getChallenge).toHaveBeenCalledOnce();
     expect(client.crypto.init).toHaveBeenCalledOnce();
-    expect(client.crypto.encryptKsefToken).toHaveBeenCalledWith('my-ksef-token', '2026-01-01T00:00:00.000Z');
+    expect(client.crypto.encryptKsefTokenWithKeyId).toHaveBeenCalledWith('my-ksef-token', '2026-01-01T00:00:00.000Z');
     expect(client.auth.submitKsefTokenAuthRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         challenge: 'ch-123',

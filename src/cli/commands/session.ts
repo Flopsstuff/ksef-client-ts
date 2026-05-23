@@ -10,6 +10,7 @@ import type { GlobalOptions } from '../types.js';
 import type { FormCode, SessionType } from '../../models/common.js';
 import { DEFAULT_FORM_CODE, FORM_CODE_KEYS } from '../../models/document-structures/index.js';
 import { parseUpoXml } from '../../xml/index.js';
+import { withKeyRotationRetry } from '../../crypto/with-key-rotation-retry.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -44,7 +45,6 @@ const open = defineCommand({
       }
 
       await client.crypto.init();
-      const encryptionData = await client.crypto.getEncryptionData();
 
       const formCodeKey = args.formCode as string | undefined;
       let formCode: FormCode = DEFAULT_FORM_CODE;
@@ -62,9 +62,14 @@ const open = defineCommand({
       }
 
       if (!args.json) consola.start('Opening online session...');
-      const result = await client.onlineSession.openSession(
-        { formCode, encryption: encryptionData.encryptionInfo },
-      );
+      // Fetch keys inside the retry so a key rotation (KSeF 21470) refreshes them before retrying.
+      const { encryptionData, result } = await withKeyRotationRetry(client.crypto, async () => {
+        const encryptionData = await client.crypto.getEncryptionData();
+        const result = await client.onlineSession.openSession(
+          { formCode, encryption: encryptionData.encryptionInfo },
+        );
+        return { encryptionData, result };
+      });
 
       saveOnlineSessionRef(result.referenceNumber, {
         cipherKey: Buffer.from(encryptionData.cipherKey).toString('base64'),

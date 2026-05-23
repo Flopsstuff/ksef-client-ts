@@ -22,6 +22,8 @@ export interface FormCode {
 export interface EncryptionInfo {
   encryptedSymmetricKey: string;
   initializationVector: string;
+  /** Identifier of the public key used to encrypt the symmetric key — key-rotation selector (KSeF API v2.5.0). */
+  publicKeyId?: string;
 }
 
 export interface FileMetadata {
@@ -35,6 +37,9 @@ export interface ContextIdentifier {
   type: ContextIdentifierType;
   value: string;
 }
+
+/** Archive compression for batch upload / invoice export packages (KSeF API v2.6.0). Defaults to `Zip`. */
+export type CompressionType = 'Zip' | 'TarGz';
 
 export type SessionType = 'Online' | 'Batch';
 export type SessionStatus = 'Succeeded' | 'InProgress' | 'Failed' | 'Cancelled';

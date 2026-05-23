@@ -24,6 +24,11 @@
         "responses": {
           "200": {
             "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              },
               "x-ms-meta-hash": {
                 "schema": {
                   "$ref": "#/components/schemas/Sha256HashBase64"
@@ -100,9 +105,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 80,
-          "perMinute": 160,
-          "perHour": 640
+          "perSecond": 8,
+          "perMinute": 16,
+          "perHour": 64
         },
         "x-required-permissions": [
           "InvoiceRead"
@@ -192,6 +197,13 @@
         },
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -346,9 +358,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 80,
-          "perMinute": 160,
-          "perHour": 200
+          "perSecond": 8,
+          "perMinute": 16,
+          "perHour": 20
         },
         "x-sort": [
           {
@@ -391,7 +403,8 @@
               "example": {
                 "encryption": {
                   "encryptedSymmetricKey": "bdUVjqLj+y2q6aBUuLxxXYAMqeDuIBRTyr+hB96DaWKaGzuVHw9p+Nk9vhzgF/Q5cavK2k6eCh6SdsrWI0s9mFFj4A4UJtsyD8Dn3esLfUZ5A1juuG3q3SBi/XOC/+9W+0T/KdwdE393mbiUNyx1K/0bw31vKJL0COeJIDP7usAMDl42/H1TNvkjk+8iZ80V0qW7D+RZdz+tdiY1xV0f2mfgwJ46V0CpZ+sB9UAssRj+eVffavJ0TOg2b5JaBxE8MCAvrF6rO5K4KBjUmoy7PP7g1qIbm8xI2GO0KnfPOO5OWj8rsotRwBgu7x19Ine3qYUvuvCZlXRGGZ5NHIzWPM4O74+gNalaMgFCsmv8mMhETSU4SfAGmJr9edxPjQSbgD5i2X4eDRDMwvyaAa7CP1b2oICju+0L7Fywd2ZtUcr6El++eTVoi8HYsTArntET++gULT7XXjmb8e3O0nxrYiYsE9GMJ7HBGv3NOoJ1NTm3a7U6+c0ZJiBVLvn6xXw10LQX243xH+ehsKo6djQJKYtqcNPaXtCwM1c9RrsOx/wRXyWCtTffqLiaR0LbYvfMJAcEWceG+RaeAx4p37OiQqdJypd6LAv9/0ECWK8Bip8yyoA+0EYiAJb9YuDz2YlQX9Mx9E9FzFIAsgEQ2w723HZYWgPywLb+dlsum4lTZKQ=",
-                  "initializationVector": "c29tZUluaXRWZWN0b3I="
+                  "initializationVector": "c29tZUluaXRWZWN0b3I=",
+                  "publicKeyId": "tmtCidSRzR4fvNpLU5hMOM6FzamxJf0BBR8IkXIAwsY="
                 },
                 "onlyMetadata": false,
                 "filters": {
@@ -409,6 +422,13 @@
         },
         "responses": {
           "201": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -482,9 +502,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 80,
-          "perMinute": 160,
-          "perHour": 200
+          "perSecond": 8,
+          "perMinute": 16,
+          "perHour": 20
         },
         "x-sort": [
           {
@@ -519,6 +539,13 @@
         ],
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -632,9 +659,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 600,
-          "perHour": 6000
+          "perSecond": 10,
+          "perMinute": 60,
+          "perHour": 600
         },
         "x-sort": [
           {
@@ -756,6 +783,13 @@
         ],
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -855,9 +889,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 50,
-          "perMinute": 100,
-          "perHour": 600
+          "perSecond": 5,
+          "perMinute": 10,
+          "perHour": 60
         },
         "x-sort": [
           {
@@ -890,6 +924,13 @@
         ],
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -979,9 +1020,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 1200,
-          "perHour": 12000
+          "perSecond": 10,
+          "perMinute": 120,
+          "perHour": 1200
         },
         "x-required-permissions": [
           "InvoiceWrite",
@@ -1027,6 +1068,13 @@
         ],
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1133,9 +1181,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 200,
-          "perHour": 2000
+          "perSecond": 10,
+          "perMinute": 20,
+          "perHour": 200
         },
         "x-required-permissions": [
           "InvoiceWrite",
@@ -1171,6 +1219,13 @@
         ],
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1256,9 +1311,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 300,
-          "perMinute": 1200,
-          "perHour": 12000
+          "perSecond": 30,
+          "perMinute": 120,
+          "perHour": 1200
         },
         "x-required-permissions": [
           "InvoiceWrite",
@@ -1304,6 +1359,13 @@
         ],
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1396,9 +1458,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 200,
-          "perHour": 2000
+          "perSecond": 10,
+          "perMinute": 20,
+          "perHour": 200
         },
         "x-required-permissions": [
           "InvoiceWrite",
@@ -1435,6 +1497,11 @@
         "responses": {
           "200": {
             "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              },
               "x-ms-meta-hash": {
                 "schema": {
                   "$ref": "#/components/schemas/Sha256HashBase64"
@@ -1511,9 +1578,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 1200,
-          "perHour": 12000
+          "perSecond": 10,
+          "perMinute": 120,
+          "perHour": 1200
         },
         "x-required-permissions": [
           "InvoiceWrite",
@@ -1550,6 +1617,11 @@
         "responses": {
           "200": {
             "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              },
               "x-ms-meta-hash": {
                 "schema": {
                   "$ref": "#/components/schemas/Sha256HashBase64"
@@ -1626,9 +1698,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 1200,
-          "perHour": 12000
+          "perSecond": 10,
+          "perMinute": 120,
+          "perHour": 1200
         },
         "x-required-permissions": [
           "InvoiceWrite",
@@ -1665,6 +1737,11 @@
         "responses": {
           "200": {
             "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              },
               "x-ms-meta-hash": {
                 "schema": {
                   "$ref": "#/components/schemas/Sha256HashBase64"
@@ -1741,9 +1818,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 1200,
-          "perHour": 12000
+          "perSecond": 10,
+          "perMinute": 120,
+          "perHour": 1200
         },
         "x-required-permissions": [
           "InvoiceWrite",
@@ -1781,7 +1858,8 @@
                 },
                 "encryption": {
                   "encryptedSymmetricKey": "bdUVjqLj+y2q6aBUuLxxXYAMqeDuIBRTyr+hB96DaWKaGzuVHw9p+Nk9vhzgF/Q5cavK2k6eCh6SdsrWI0s9mFFj4A4UJtsyD8Dn3esLfUZ5A1juuG3q3SBi/XOC/+9W+0T/KdwdE393mbiUNyx1K/0bw31vKJL0COeJIDP7usAMDl42/H1TNvkjk+8iZ80V0qW7D+RZdz+tdiY1xV0f2mfgwJ46V0CpZ+sB9UAssRj+eVffavJ0TOg2b5JaBxE8MCAvrF6rO5K4KBjUmoy7PP7g1qIbm8xI2GO0KnfPOO5OWj8rsotRwBgu7x19Ine3qYUvuvCZlXRGGZ5NHIzWPM4O74+gNalaMgFCsmv8mMhETSU4SfAGmJr9edxPjQSbgD5i2X4eDRDMwvyaAa7CP1b2oICju+0L7Fywd2ZtUcr6El++eTVoi8HYsTArntET++gULT7XXjmb8e3O0nxrYiYsE9GMJ7HBGv3NOoJ1NTm3a7U6+c0ZJiBVLvn6xXw10LQX243xH+ehsKo6djQJKYtqcNPaXtCwM1c9RrsOx/wRXyWCtTffqLiaR0LbYvfMJAcEWceG+RaeAx4p37OiQqdJypd6LAv9/0ECWK8Bip8yyoA+0EYiAJb9YuDz2YlQX9Mx9E9FzFIAsgEQ2w723HZYWgPywLb+dlsum4lTZKQ=",
-                  "initializationVector": "OmtDQdl6vkOI1GLKZSjgEg=="
+                  "initializationVector": "OmtDQdl6vkOI1GLKZSjgEg==",
+                  "publicKeyId": "tmtCidSRzR4fvNpLU5hMOM6FzamxJf0BBR8IkXIAwsY="
                 }
               }
             }
@@ -1789,6 +1867,13 @@
         },
         "responses": {
           "201": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1863,9 +1948,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-required-permissions": [
           "InvoiceWrite",
@@ -1920,6 +2005,13 @@
         },
         "responses": {
           "202": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1993,9 +2085,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1800
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 180
         },
         "x-required-permissions": [
           "InvoiceWrite",
@@ -2021,7 +2113,15 @@
           }
         ],
         "responses": {
-          "204": {},
+          "204": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -2084,9 +2184,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-required-permissions": [
           "InvoiceWrite",
@@ -2135,7 +2235,8 @@
                 },
                 "encryption": {
                   "encryptedSymmetricKey": "bYqmPAglF01AxZim4oNa+1NerhZYfFgLMnvksBprUur1aesQ0Y5jsmOIfCrozfMkF2tjdO+uOsBg4FPlDgjChwN2/tz2Hqwtxq3RkTr1SjY4x8jxJFpPedcS7EI+XO8C+i9mLj7TFx9p/bg07yM9vHtMAk5b88Ay9Qc3+T5Ch1DM2ClR3sVu2DqdlKzmbINY+rhfGtXn58Qo0XRyESGgc6M0iTZVBRPuPXLnD8a1KpOneCpNzLwxgT6Ei3ivLOpPWT53PxkRTaQ8puj6CIiCKo4FHQzHuI/NmrAhYU7TkNm2kymP/OxBgWdg3XB74tqNFfT8RZN1bZXuPhBidDOqa+xsqY3E871FSDmQwZf58HmoNl31XNvpnryiRGfnAISt+m+ELqgksAresVu6E9poUL1yiff+IOHSZABoYpNiqwnbT8qyW1uk8lKLyFVFu+kOsbzBk1OWWHqSkNFDaznDa2MKjHonOXI0uyKaKWvoBFC4dWN1PVumfpSSFAeYgNpAyVrZdcVOuiliEWepTDjGzJoOafTvwr5za2S6B5bPECDpX7JXazV7Olkq7ezG0w8y3olx+0C+NHoCk8B5/cm4gtVHTgKjiLSGpKJVOJABLXFkOyIOjbQsVe4ryX0Qy+SfL7JIQvTWvM5xkCoOMbzLdMo9tNo5qE34sguFI+lIevY=",
-                  "initializationVector": "jWpJLNBHJ5pQEGCBglmIAw=="
+                  "initializationVector": "jWpJLNBHJ5pQEGCBglmIAw==",
+                  "publicKeyId": "tmtCidSRzR4fvNpLU5hMOM6FzamxJf0BBR8IkXIAwsY="
                 },
                 "offlineMode": false
               }
@@ -2144,6 +2245,13 @@
         },
         "responses": {
           "201": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2227,9 +2335,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 200,
-          "perHour": 600
+          "perSecond": 10,
+          "perMinute": 20,
+          "perHour": 60
         },
         "x-required-permissions": [
           "InvoiceWrite",
@@ -2254,7 +2362,15 @@
           }
         ],
         "responses": {
-          "204": {},
+          "204": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -2317,9 +2433,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 200,
-          "perHour": 600
+          "perSecond": 10,
+          "perMinute": 20,
+          "perHour": 60
         },
         "x-required-permissions": [
           "InvoiceWrite",
@@ -2441,6 +2557,14 @@
               }
             ]
           },
+          "compressionType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompressionType"
+              }
+            ],
+            "nullable": true
+          },
           "fileParts": {
             "maxItems": 50,
             "minItems": 1,
@@ -2493,6 +2617,13 @@
           "Succeeded",
           "Failed",
           "Cancelled"
+        ],
+        "type": "string"
+      },
+      "CompressionType": {
+        "enum": [
+          "Zip",
+          "TarGz"
         ],
         "type": "string"
       },
@@ -2697,6 +2828,13 @@
           "initializationVector": {
             "type": "string",
             "format": "byte"
+          },
+          "publicKeyId": {
+            "maxLength": 44,
+            "minLength": 44,
+            "type": "string",
+            "format": "byte",
+            "nullable": true
           }
         }
       },
@@ -2949,6 +3087,14 @@
                 "$ref": "#/components/schemas/InvoiceQueryFilters"
               }
             ]
+          },
+          "compressionType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompressionType"
+              }
+            ],
+            "nullable": true
           }
         }
       },
@@ -3584,7 +3730,6 @@
         "enum": [
           "FA",
           "PEF",
-          "RR",
           "FA_RR"
         ],
         "type": "string"
@@ -4198,6 +4343,9 @@
             "nullable": true
           }
         }
+      },
+      "SystemWarning": {
+        "type": "string"
       },
       "ThirdSubjectIdentifierType": {
         "enum": [

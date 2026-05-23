@@ -108,7 +108,6 @@ One-shot command for CI jobs and disposable hosts: after `ksef auth login --toke
 - `--json` — emit a structured status payload. On revoke: `{ status: 'revoked' | 'already-revoked', referenceNumber, source, localCleared }`. On dry-run: `{ status: 'dry-run', referenceNumber, source, wouldClearLocal }`. The `source` field is `'discovery'` when resolved from the live session token, `'cache-fallback'` when discovery failed and the locally cached reference was used instead, or `'none'` when neither yielded a value.
 - An already-revoked token (server returns 404/409/410) produces a warning and still clears local state, so repeated calls are safe.
 
-
 ## Sessions
 
 ```bash
@@ -470,6 +469,7 @@ ksef doctor --env prod                           # Check specific environment
 ```
 
 Checks performed:
+
 1. **Config** — `~/.ksef/config.json` exists and is valid
 2. **Connectivity** — KSeF API reachable (lighthouse endpoint, 5s timeout)
 3. **Session** — stored session exists and is not expired

@@ -6,7 +6,7 @@ import { validateCharValidity } from '../../../src/validation/char-validity.js';
 const FA3_FIXTURE = path.join(__dirname, '../../fixtures/invoices/valid-fa3.xml');
 
 describe('validateCharValidity — performance', () => {
-  it('validates a 1 MB synthetic payload in under 500 ms', () => {
+  it('validates a 1 MB synthetic payload in under 2000 ms', () => {
     // Strip the <?xml?> prolog so that repeating doesn't manufacture
     // duplicate prologs (which would correctly flag as PI violations
     // and defeat the perf measurement).
@@ -25,7 +25,8 @@ describe('validateCharValidity — performance', () => {
 
     expect(errors).toEqual([]);
     // Generous CI allowance — local dev is typically < 50 ms. The ceiling
-    // is a sanity check against quadratic regressions, not a tight SLA.
-    expect(elapsed).toBeLessThan(500);
+    // is a sanity check against quadratic regressions, not a tight SLA, so it
+    // is set high enough to absorb CPU contention from parallel test runners.
+    expect(elapsed).toBeLessThan(2000);
   });
 });

@@ -97,16 +97,22 @@ export async function getEcPair(curve: EcCurveName = 'P-256'): Promise<CertKeyPa
 export function createMockCertificateFetcher(overrides?: {
   symmetricKeyPem?: string;
   ksefTokenPem?: string;
+  symmetricKeyPublicKeyId?: string;
+  ksefTokenPublicKeyId?: string;
 }): CertificateFetcher {
+  const symmetricKeyPem = overrides?.symmetricKeyPem ?? 'PLACEHOLDER';
+  const ksefTokenPem = overrides?.ksefTokenPem ?? 'PLACEHOLDER';
+  const symmetricKeyPublicKeyId = overrides?.symmetricKeyPublicKeyId ?? 'symmetric-public-key-id';
+  const ksefTokenPublicKeyId = overrides?.ksefTokenPublicKeyId ?? 'ksef-token-public-key-id';
   return {
     init: vi.fn().mockResolvedValue(undefined),
     refresh: vi.fn().mockResolvedValue(undefined),
-    getSymmetricKeyEncryptionPem: vi.fn().mockReturnValue(
-      overrides?.symmetricKeyPem ?? 'PLACEHOLDER',
-    ),
-    getKsefTokenEncryptionPem: vi.fn().mockReturnValue(
-      overrides?.ksefTokenPem ?? 'PLACEHOLDER',
-    ),
+    getSymmetricKeyEncryption: vi.fn().mockReturnValue({ pem: symmetricKeyPem, publicKeyId: symmetricKeyPublicKeyId }),
+    getKsefTokenEncryption: vi.fn().mockReturnValue({ pem: ksefTokenPem, publicKeyId: ksefTokenPublicKeyId }),
+    getSymmetricKeyEncryptionPem: vi.fn().mockReturnValue(symmetricKeyPem),
+    getKsefTokenEncryptionPem: vi.fn().mockReturnValue(ksefTokenPem),
+    getSymmetricKeyPublicKeyId: vi.fn().mockReturnValue(symmetricKeyPublicKeyId),
+    getKsefTokenPublicKeyId: vi.fn().mockReturnValue(ksefTokenPublicKeyId),
   } as unknown as CertificateFetcher;
 }
 
@@ -118,11 +124,18 @@ export function makeCertFixture(
   usage: ('SymmetricKeyEncryption' | 'KsefTokenEncryption')[],
   certDerBase64: string,
   validFrom = '2025-01-01T00:00:00Z',
+  validTo = '2099-01-01T00:00:00Z',
 ): PublicKeyCertificate {
+  // Derive IDs from a hash of the full DER so fixtures that differ only in
+  // their trailing bytes (e.g. CERT_DER_BASE64 vs CERT_DER_BASE64_ALT) still
+  // get distinct certificateId/publicKeyId.
+  const fingerprint = crypto.createHash('sha256').update(certDerBase64).digest('hex').slice(0, 16);
   return {
     certificate: certDerBase64,
+    certificateId: `cert-${fingerprint}`,
+    publicKeyId: `pk-${fingerprint}`,
     validFrom,
-    validTo: '2026-01-01T00:00:00Z',
+    validTo,
     usage,
   };
 }

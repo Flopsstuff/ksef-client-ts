@@ -3,9 +3,9 @@ import { SchemaRegistry, clearCache } from '../../../src/validation/schema-regis
 
 describe('SchemaRegistry', () => {
   describe('availableSchemas', () => {
-    it('returns all 6 schema types', () => {
+    it('returns all 5 schema types', () => {
       const schemas = SchemaRegistry.availableSchemas();
-      expect(schemas).toEqual(['FA3', 'FA2', 'RR1_V11E', 'RR1_V10E', 'PEF3', 'PEF_KOR3']);
+      expect(schemas).toEqual(['FA3', 'FA2', 'FA_RR1', 'PEF3', 'PEF_KOR3']);
     });
   });
 
@@ -21,13 +21,8 @@ describe('SchemaRegistry', () => {
       expect(schema).toBeDefined();
     });
 
-    it('loads RR1_V11E schema lazily', async () => {
-      const schema = await SchemaRegistry.get('RR1_V11E');
-      expect(schema).toBeDefined();
-    });
-
-    it('loads RR1_V10E schema lazily', async () => {
-      const schema = await SchemaRegistry.get('RR1_V10E');
+    it('loads FA_RR1 schema lazily', async () => {
+      const schema = await SchemaRegistry.get('FA_RR1');
       expect(schema).toBeDefined();
     });
 
@@ -57,12 +52,8 @@ describe('SchemaRegistry', () => {
       expect(SchemaRegistry.detect('http://crd.gov.pl/wzor/2023/06/29/12648/', 'Faktura')).toBe('FA2');
     });
 
-    it('detects RR1_V11E by namespace', () => {
-      expect(SchemaRegistry.detect('http://crd.gov.pl/wzor/2026/03/06/14189/', 'Faktura')).toBe('RR1_V11E');
-    });
-
-    it('detects RR1_V10E by namespace', () => {
-      expect(SchemaRegistry.detect('http://crd.gov.pl/wzor/2026/02/17/14164/', 'Faktura')).toBe('RR1_V10E');
+    it('detects FA_RR1 by namespace', () => {
+      expect(SchemaRegistry.detect('http://crd.gov.pl/wzor/2026/03/06/14189/', 'Faktura')).toBe('FA_RR1');
     });
 
     it('detects PEF3 by root element Invoice', () => {

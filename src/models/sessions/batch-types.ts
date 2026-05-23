@@ -1,4 +1,4 @@
-import type { EncryptionInfo, FileMetadata, FormCode } from '../common.js';
+import type { CompressionType, EncryptionInfo, FileMetadata, FormCode } from '../common.js';
 
 export interface BatchFilePartInfo {
   ordinalNumber: number;
@@ -9,6 +9,8 @@ export interface BatchFilePartInfo {
 export interface BatchFileInfo {
   fileSize: number;
   fileHash: string;
+  /** Archive compression type (KSeF API v2.6.0). Omitted/`Zip` keeps the legacy behavior. */
+  compressionType?: CompressionType;
   fileParts: BatchFilePartInfo[];
 }
 

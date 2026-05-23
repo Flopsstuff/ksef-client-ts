@@ -33,6 +33,13 @@
         ],
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -124,9 +131,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-sort": [
           {
@@ -143,7 +150,15 @@
         ],
         "summary": "Unieważnienie aktualnej sesji uwierzytelnienia",
         "responses": {
-          "204": {},
+          "204": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -206,9 +221,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         }
       }
     },
@@ -229,7 +244,15 @@
           }
         ],
         "responses": {
-          "204": {},
+          "204": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -292,9 +315,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         }
       }
     },
@@ -306,6 +329,13 @@
         "summary": "Inicjalizacja uwierzytelnienia",
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -391,6 +421,13 @@
         },
         "responses": {
           "202": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -476,13 +513,21 @@
                   "type": "Nip",
                   "value": "5265877635"
                 },
-                "encryptedToken": "..."
+                "encryptedToken": "...",
+                "publicKeyId": "QIoAK/Yc3s27Z4t3SZY4Mhp8JNLH7Vl4N3lNlJAEig8="
               }
             }
           }
         },
         "responses": {
           "202": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -559,6 +604,13 @@
         ],
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -747,6 +799,13 @@
         "summary": "Pobranie tokenów dostępowych",
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -839,6 +898,13 @@
         "summary": "Odświeżenie tokena dostępowego",
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -930,7 +996,7 @@
             "minimum": 0,
             "type": "array",
             "items": {
-              "pattern": "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$",
+              "pattern": "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$",
               "type": "string"
             },
             "nullable": true
@@ -940,7 +1006,7 @@
             "minimum": 0,
             "type": "array",
             "items": {
-              "pattern": "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}-((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$",
+              "pattern": "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])-((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$",
               "type": "string"
             },
             "nullable": true
@@ -950,7 +1016,7 @@
             "minimum": 0,
             "type": "array",
             "items": {
-              "pattern": "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}\\/(0|[1-9]|1[0-9]|2[0-9]|3[0-2])$",
+              "pattern": "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])/(0|[1-9]|[12][0-9]|3[0-2])$",
               "type": "string"
             },
             "nullable": true
@@ -1587,6 +1653,13 @@
             "type": "string",
             "format": "byte"
           },
+          "publicKeyId": {
+            "maxLength": 44,
+            "minLength": 44,
+            "type": "string",
+            "format": "byte",
+            "nullable": true
+          },
           "authorizationPolicy": {
             "allOf": [
               {
@@ -1626,6 +1699,9 @@
             "nullable": true
           }
         }
+      },
+      "SystemWarning": {
+        "type": "string"
       },
       "TokenInfo": {
         "required": [

@@ -339,6 +339,7 @@ This path is used when the KSeF environment provides an EC (elliptic curve) cert
 | Auth tag | 16 bytes | GCM authentication tag (appended by Node.js GCM cipher) |
 
 The receiver (KSeF server):
+
 1. Extracts the ephemeral public key from the SPKI prefix
 2. Performs ECDH with its own private key to derive the same shared secret
 3. Uses the shared secret as the AES-256-GCM key with the nonce to decrypt
@@ -701,7 +702,7 @@ interface AuthTokenRequestXmlOptions {
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
-<AuthTokenRequest xmlns="http://ksef.mf.gov.pl/auth/token/2.0">
+<AuthTokenRequest xmlns="http://ksef.mf.gov.pl/auth/token/2.1">
   <Challenge>...</Challenge>
   <ContextIdentifier>
     <Nip>1234567890</Nip>

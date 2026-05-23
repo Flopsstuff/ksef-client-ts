@@ -1,11 +1,12 @@
 import type { KSeFClient } from '../client.js';
 import type { UpoVersion } from '../http/ksef-feature.js';
-import type { FormCode } from '../models/common.js';
+import type { CompressionType, FormCode } from '../models/common.js';
 import { DEFAULT_FORM_CODE } from '../models/document-structures/index.js';
 import type { BatchPartSendingInfo } from '../models/sessions/batch-types.js';
 import type { BatchUploadResult, ParsedBatchUploadResult, PollOptions } from './types.js';
 import { BatchFileBuilder, type BatchStreamBuildResult } from '../builders/batch-file.js';
 import { pollUntil } from './polling.js';
+import { withKeyRotationRetry } from '../crypto/with-key-rotation-retry.js';
 import { parseUpoXml } from '../xml/index.js';
 
 export interface BatchUploadOptions {
@@ -20,6 +21,8 @@ export interface BatchUploadOptions {
   validate?: boolean;
   /** Number of concurrent part uploads. Omit for default behavior (buffer: all parallel, stream: sequential). */
   parallelism?: number;
+  /** Compression type of the supplied archive (KSeF API v2.6.0). Default: `Zip`. The caller is responsible for producing matching archive bytes. */
+  compressionType?: CompressionType;
 }
 
 export async function uploadBatch(
@@ -33,11 +36,14 @@ export async function uploadBatch(
   await client.crypto.init();
 
   if (options?.validate) {
-    const { unzip } = await import('../utils/zip.js');
     const { validateBatch, batchValidationDetails } = await import('../validation/invoice-validator.js');
     const { KSeFValidationError } = await import('../errors/ksef-validation-error.js');
     const zipBuf = Buffer.isBuffer(zipData) ? zipData : Buffer.from(zipData.buffer, zipData.byteOffset, zipData.byteLength);
-    const files = await unzip(zipBuf);
+    // The supplied archive must be extracted with the matching codec: TarGz
+    // archives are not valid ZIP streams, so honor compressionType here.
+    const files = options?.compressionType === 'TarGz'
+      ? await (await import('../utils/targz.js')).extractTarGz(zipBuf)
+      : await (await import('../utils/zip.js')).unzip(zipBuf);
     const invoices = [...files.entries()]
       .filter(([name]) => name.endsWith('.xml'))
       .map(([name, data]) => ({ fileName: name, xml: data.toString('utf-8') }));
@@ -53,26 +59,31 @@ export async function uploadBatch(
     }
   }
 
-  const encData = await client.crypto.getEncryptionData();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
 
-  // KSeF provides a single (key, IV) pair per session — all parts share it.
-  const encryptFn = (part: Uint8Array) =>
-    client.crypto.encryptAES256(part, encData.cipherKey, encData.cipherIv);
+  const { batchFile, encryptedParts, openResp } = await withKeyRotationRetry(client.crypto, async () => {
+    const encData = await client.crypto.getEncryptionData();
 
-  const { batchFile, encryptedParts } = BatchFileBuilder.build(zipData, encryptFn, {
-    maxPartSize: options?.maxPartSize,
+    // KSeF provides a single (key, IV) pair per session — all parts share it.
+    const encryptFn = (part: Uint8Array) =>
+      client.crypto.encryptAES256(part, encData.cipherKey, encData.cipherIv);
+
+    const { batchFile, encryptedParts } = BatchFileBuilder.build(zipData, encryptFn, {
+      maxPartSize: options?.maxPartSize,
+      compressionType: options?.compressionType,
+    });
+
+    const openResp = await client.batchSession.openSession(
+      {
+        formCode,
+        encryption: encData.encryptionInfo,
+        batchFile,
+        offlineMode: options?.offlineMode,
+      },
+      options?.upoVersion,
+    );
+    return { batchFile, encryptedParts, openResp };
   });
-
-  const openResp = await client.batchSession.openSession(
-    {
-      formCode,
-      encryption: encData.encryptionInfo,
-      batchFile,
-      offlineMode: options?.offlineMode,
-    },
-    options?.upoVersion,
-  );
 
   const sendingParts: BatchPartSendingInfo[] = encryptedParts.map((part, i) => ({
     data: part.buffer.slice(part.byteOffset, part.byteOffset + part.byteLength) as ArrayBuffer,
@@ -118,32 +129,36 @@ export async function uploadBatchStream(
     throw new Error('parallelism must be a positive integer');
   }
   await client.crypto.init();
-  const encData = await client.crypto.getEncryptionData();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
 
-  const encryptStreamFn = (stream: ReadableStream<Uint8Array>) =>
-    client.crypto.encryptAES256Stream(stream, encData.cipherKey, encData.cipherIv);
+  const { streamParts, openResp } = await withKeyRotationRetry(client.crypto, async () => {
+    const encData = await client.crypto.getEncryptionData();
 
-  const hashStreamFn = (stream: ReadableStream<Uint8Array>) =>
-    client.crypto.getFileMetadataFromStream(stream);
+    const encryptStreamFn = (stream: ReadableStream<Uint8Array>) =>
+      client.crypto.encryptAES256Stream(stream, encData.cipherKey, encData.cipherIv);
 
-  const { batchFile, streamParts } = await BatchFileBuilder.buildFromStream(
-    zipStreamFactory,
-    zipSize,
-    encryptStreamFn,
-    hashStreamFn,
-    { maxPartSize: options?.maxPartSize },
-  );
+    const hashStreamFn = (stream: ReadableStream<Uint8Array>) =>
+      client.crypto.getFileMetadataFromStream(stream);
 
-  const openResp = await client.batchSession.openSession(
-    {
-      formCode,
-      encryption: encData.encryptionInfo,
-      batchFile,
-      offlineMode: options?.offlineMode,
-    },
-    options?.upoVersion,
-  );
+    const { batchFile, streamParts } = await BatchFileBuilder.buildFromStream(
+      zipStreamFactory,
+      zipSize,
+      encryptStreamFn,
+      hashStreamFn,
+      { maxPartSize: options?.maxPartSize, compressionType: options?.compressionType },
+    );
+
+    const openResp = await client.batchSession.openSession(
+      {
+        formCode,
+        encryption: encData.encryptionInfo,
+        batchFile,
+        offlineMode: options?.offlineMode,
+      },
+      options?.upoVersion,
+    );
+    return { streamParts, openResp };
+  });
 
   await client.batchSession.sendPartsWithStream(openResp, streamParts, options?.parallelism);
 

@@ -11,6 +11,7 @@ import type {
   OfflineSubmissionResult,
 } from '../offline/types.js';
 import { calculateOfflineDeadline, getDefaultReason, isExpired } from '../offline/deadline.js';
+import { withKeyRotationRetry } from '../crypto/with-key-rotation-retry.js';
 import { DEFAULT_FORM_CODE } from '../models/document-structures/index.js';
 import type { FormCode } from '../models/common.js';
 
@@ -169,12 +170,15 @@ export class OfflineInvoiceWorkflow {
     // This is by API design: EncryptionInfo is sent at openSession(), sendInvoice()
     // does not accept per-invoice encryption. Consistent with all official reference
     // implementations (Java, C#, TypeScript).
-    const encData = await client.crypto.getEncryptionData();
     const formCode = options.formCode ?? DEFAULT_FORM_CODE;
 
-    const openResp = await client.onlineSession.openSession(
-      { formCode, encryption: encData.encryptionInfo },
-    );
+    const { encData, openResp } = await withKeyRotationRetry(client.crypto, async () => {
+      const encData = await client.crypto.getEncryptionData();
+      const openResp = await client.onlineSession.openSession(
+        { formCode, encryption: encData.encryptionInfo },
+      );
+      return { encData, openResp };
+    });
     const sessionRef = openResp.referenceNumber;
 
     try {
@@ -280,12 +284,15 @@ export class OfflineInvoiceWorkflow {
       .digest('base64');
 
     await client.crypto.init();
-    const encData = await client.crypto.getEncryptionData();
     const formCode = options.formCode ?? DEFAULT_FORM_CODE;
 
-    const openResp = await client.onlineSession.openSession(
-      { formCode, encryption: encData.encryptionInfo },
-    );
+    const { encData, openResp } = await withKeyRotationRetry(client.crypto, async () => {
+      const encData = await client.crypto.getEncryptionData();
+      const openResp = await client.onlineSession.openSession(
+        { formCode, encryption: encData.encryptionInfo },
+      );
+      return { encData, openResp };
+    });
     const sessionRef = openResp.referenceNumber;
 
     try {

@@ -1,10 +1,10 @@
 ### Requirement: Build unsigned auth token request XML
 
-The system SHALL provide a public `buildUnsignedAuthTokenRequestXml(options)` function that generates a valid KSeF auth token request XML document without a signature. The function SHALL accept an options object with `challenge` (string), `contextIdentifier` (ContextIdentifier with type and value), and optional `subjectIdentifierType` (defaults to `'certificateSubject'`). The XML SHALL conform to the `http://ksef.mf.gov.pl/auth/token/2.0` namespace schema.
+The system SHALL provide a public `buildUnsignedAuthTokenRequestXml(options)` function that generates a valid KSeF auth token request XML document without a signature. The function SHALL accept an options object with `challenge` (string), `contextIdentifier` (ContextIdentifier with type and value), and optional `subjectIdentifierType` (defaults to `'certificateSubject'`). The XML SHALL conform to the `http://ksef.mf.gov.pl/auth/token/2.1` namespace schema.
 
 #### Scenario: Build XML with Nip context identifier
 - **WHEN** `buildUnsignedAuthTokenRequestXml` is called with `challenge: "abc123"`, `contextIdentifier: { type: 'Nip', value: '1234567890' }`
-- **THEN** the returned XML SHALL contain `<Nip>1234567890</Nip>` inside `<ContextIdentifier>`, the challenge value in `<Challenge>`, `<SubjectIdentifierType>certificateSubject</SubjectIdentifierType>`, and the `http://ksef.mf.gov.pl/auth/token/2.0` namespace on the root element
+- **THEN** the returned XML SHALL contain `<Nip>1234567890</Nip>` inside `<ContextIdentifier>`, the challenge value in `<Challenge>`, `<SubjectIdentifierType>certificateSubject</SubjectIdentifierType>`, and the `http://ksef.mf.gov.pl/auth/token/2.1` namespace on the root element
 
 #### Scenario: Build XML with InternalId context identifier
 - **WHEN** `buildUnsignedAuthTokenRequestXml` is called with `contextIdentifier: { type: 'InternalId', value: 'INT-001' }`

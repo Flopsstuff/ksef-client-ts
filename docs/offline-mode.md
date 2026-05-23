@@ -119,6 +119,7 @@ https://qr-{env}.ksef.mf.gov.pl/certificate/{contextType}/{contextValue}/{seller
 Label: `CERTYFIKAT`.
 
 **Signing algorithms:**
+
 - RSA-PSS: SHA-256, MGF1-SHA256, salt 32 bytes, min 2048-bit key
 - ECDSA P-256: SHA-256, IEEE P1363 format (64 bytes)
 

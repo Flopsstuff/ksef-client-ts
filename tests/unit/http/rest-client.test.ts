@@ -11,6 +11,7 @@ import { KSeFForbiddenError } from '../../../src/errors/ksef-forbidden-error.js'
 import { KSeFGoneError } from '../../../src/errors/ksef-gone-error.js';
 import { KSeFBadRequestError } from '../../../src/errors/ksef-bad-request-error.js';
 import { KSeFBatchTimeoutError } from '../../../src/errors/ksef-batch-timeout-error.js';
+import { KSeFUnknownPublicKeyError } from '../../../src/errors/ksef-unknown-public-key-error.js';
 
 const defaultOptions: ResolvedOptions = {
   baseUrl: 'https://ksef-test.mf.gov.pl/api',
@@ -42,6 +43,55 @@ function createClient(transport: TransportFn, config?: Partial<RestClientConfig>
 }
 
 describe('RestClient', () => {
+  describe('X-System-Warning', () => {
+    it('invokes onSystemWarning with the raw header value when present', async () => {
+      const onSystemWarning = vi.fn();
+      const transport = vi.fn<TransportFn>().mockResolvedValue(
+        mockResponse(200, { ok: true }, { 'X-System-Warning': '[123]: deprecated field' }),
+      );
+      const client = createClient(transport, { onSystemWarning });
+
+      await client.execute(RestRequest.get('/test'));
+
+      expect(onSystemWarning).toHaveBeenCalledWith('[123]: deprecated field');
+    });
+
+    it('does not invoke the callback when the header is absent', async () => {
+      const onSystemWarning = vi.fn();
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, { ok: true }));
+      const client = createClient(transport, { onSystemWarning });
+
+      await client.execute(RestRequest.get('/test'));
+
+      expect(onSystemWarning).not.toHaveBeenCalled();
+    });
+
+    it('does not affect the operation result', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(
+        mockResponse(200, { ok: true }, { 'X-System-Warning': 'heads up' }),
+      );
+      const client = createClient(transport);
+
+      const result = await client.execute<{ ok: boolean }>(RestRequest.get('/test'));
+      expect(result.body).toEqual({ ok: true });
+    });
+
+    it('does not fail a successful request when the callback throws', async () => {
+      const onSystemWarning = vi.fn(() => {
+        throw new Error('callback boom');
+      });
+      const transport = vi.fn<TransportFn>().mockResolvedValue(
+        mockResponse(200, { ok: true }, { 'X-System-Warning': 'heads up' }),
+      );
+      const client = createClient(transport, { onSystemWarning });
+
+      const result = await client.execute<{ ok: boolean }>(RestRequest.get('/test'));
+
+      expect(onSystemWarning).toHaveBeenCalledWith('heads up');
+      expect(result.body).toEqual({ ok: true });
+    });
+  });
+
   describe('retry integration', () => {
     it('retries on 503 then succeeds', async () => {
       const transport = vi.fn<TransportFn>()
@@ -403,6 +453,39 @@ describe('RestClient', () => {
       const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
       expect(err).toBeInstanceOf(KSeFBatchTimeoutError);
       expect((err as KSeFBatchTimeoutError).statusCode).toBe(400);
+    });
+
+    it('throws KSeFUnknownPublicKeyError on 400 legacy body with exceptionCode 21470', async () => {
+      const body = {
+        exception: {
+          exceptionDetailList: [
+            { exceptionCode: 21470, exceptionDescription: 'Unknown public key id' },
+          ],
+        },
+      };
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, body));
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFUnknownPublicKeyError);
+      expect((err as KSeFUnknownPublicKeyError).errorCode).toBe(21470);
+      expect((err as KSeFUnknownPublicKeyError).statusCode).toBe(400);
+      expect((err as KSeFUnknownPublicKeyError).message).toBe('Unknown public key id');
+    });
+
+    it('throws KSeFUnknownPublicKeyError on 400 Problem Details with errors[].code 21470', async () => {
+      const body = {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: 21470, description: 'Public key revoked', details: [] }],
+      };
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, body));
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFUnknownPublicKeyError);
+      expect(err).not.toBeInstanceOf(KSeFBadRequestError);
+      expect((err as KSeFUnknownPublicKeyError).message).toBe('Public key revoked');
     });
 
     it('throws generic KSeFApiError when status is 408 but exceptionCode is unrelated', async () => {

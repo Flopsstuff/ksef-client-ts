@@ -73,6 +73,8 @@ export interface AuthKsefTokenRequest {
   challenge: string;
   contextIdentifier: ContextIdentifier;
   encryptedToken: string;
+  /** Identifier of the public key used to encrypt the token — key-rotation selector (KSeF API v2.5.0). */
+  publicKeyId?: string;
   authorizationPolicy?: AuthorizationPolicy;
 }
 

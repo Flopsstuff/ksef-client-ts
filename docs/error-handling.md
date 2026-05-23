@@ -903,6 +903,7 @@ Your code calls client.invoices.getInvoice()
 ```
 
 Guard conditions on auto-refresh:
+
 - Only on `attempt === 0` (first attempt, not during retries)
 - Only if `AuthManager` is configured (i.e., user has logged in)
 - Skipped for requests marked with `.skipAuthRetry()` (auth endpoints themselves, to prevent infinite refresh loops)

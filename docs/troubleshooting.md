@@ -33,6 +33,7 @@ Currently, the exception-code branch maps **21208** to `KSeFBatchTimeoutError`.
 The KSeF API enforces per-subject rate limits. The library automatically retries 429 responses up to 3 times with exponential backoff and respects the `Retry-After` header.
 
 **If you still see rate limit errors:**
+
 - Reduce request frequency or add delays between batch operations
 - Tune the client rate limiter: `new KSeFClient({ rateLimit: { globalRps: 5 } })`
 - See [Configuration](./configuration.md) for details
@@ -53,6 +54,7 @@ The KSeF API enforces per-subject rate limits. The library automatically retries
 The library automatically attempts one token refresh on 401. If refresh also fails, the error is thrown.
 
 **What to do:**
+
 - Re-authenticate: `ksef auth login --token "$KSEF_TOKEN"`
 - Check that your token hasn't been revoked in the KSeF portal
 - Verify the correct environment: `--env test` vs `--env prod`
@@ -92,6 +94,7 @@ No dedicated error class — thrown as `KSeFApiError`.
 **CLI hint:** `Check if the resource reference is correct.`
 
 **What to do:**
+
 - Verify the reference number, KSeF number, or serial number
 - Ensure you're querying the correct environment
 
@@ -109,6 +112,7 @@ No dedicated error class — thrown as `KSeFApiError`.
 KSeF API v2.4.0 enforces retention on async operation status endpoints. After the window expires, polling the status returns 410 Gone. Retention windows: **7 days** for authentication and invoice export operation status, **30 days** for certificate and permission enrollment status.
 
 **What to do:**
+
 - Re-issue the action (the underlying outcome — e.g., issued certificate, exported package — is not lost; only the polling endpoint forgets the status)
 - Persist completed reference numbers and result URLs locally so you don't depend on long-term server-side polling
 - Reduce poll intervals or download results closer to completion
@@ -120,6 +124,7 @@ Retried automatically for: `ECONNRESET`, `ECONNREFUSED`, `ETIMEDOUT`, `UND_ERR_C
 **CLI hint:** `Check your network connection and environment. Run 'ksef doctor' to diagnose.`
 
 **What to do:**
+
 - Check internet connectivity
 - Verify the KSeF environment is up: `ksef lighthouse status --env test`
 - Run `ksef doctor` for a full diagnostic
@@ -200,6 +205,7 @@ const client = new KSeFClient({
 The KSeF test environment (`api-test.ksef.mf.gov.pl`) may have planned or unplanned downtime.
 
 **Solution:**
+
 1. Verify `--env test` is set
 2. Run `ksef lighthouse status --env test`
 3. Check KSeF system announcements via `ksef lighthouse messages`
@@ -207,6 +213,7 @@ The KSeF test environment (`api-test.ksef.mf.gov.pl`) may have planned or unplan
 ### Certificate enrollment failures
 
 **Solution:**
+
 - Verify certificate format (PEM) and type (personal / company-seal)
 - Check enrollment limits: `ksef cert limits`
 - Ensure you have sufficient permissions for certificate operations

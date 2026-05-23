@@ -1,0 +1,20 @@
+{
+  // Lint only human-authored docs. OpenSpec specs (openspec/**) are tool-managed
+  // and follow their own heading convention, so they are intentionally not linted.
+  "globs": ["docs/**/*.md", "README.md", "CHANGELOG.md"],
+  "ignores": [
+    "**/node_modules/**",
+    // VitePress special pages without a prose H1 — layout/embed/include stubs:
+    "docs/index.md", // home layout (hero + feature cards)
+    "docs/openapi.md", // Scalar API reference embed
+    "docs/changelog.md" // @include's ../CHANGELOG.md (linted directly as CHANGELOG.md)
+  ],
+  "config": {
+    "default": true,
+    "MD013": false, // line-length — docs have long prose lines, tables, and URLs
+    "MD060": false, // table-column-style — purely cosmetic table formatting
+    "MD024": false, // no-duplicate-heading — repeated section names are legitimate in reference docs
+    "MD033": false, // no-inline-html — VitePress components and custom containers need raw HTML
+    "MD040": false // fenced-code-language — many intentional bare/ascii blocks; revisit to enforce ```text
+  }
+}

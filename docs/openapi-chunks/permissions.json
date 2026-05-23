@@ -51,6 +51,13 @@
         },
         "responses": {
           "202": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -124,9 +131,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-required-permissions": [
           "CredentialsManage"
@@ -179,6 +186,13 @@
         },
         "responses": {
           "202": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -252,9 +266,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-required-permissions": [
           "CredentialsManage"
@@ -298,6 +312,13 @@
         },
         "responses": {
           "202": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -371,9 +392,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-required-permissions": [
           "CredentialsManage"
@@ -428,6 +449,13 @@
         },
         "responses": {
           "202": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -501,9 +529,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-required-permissions": [
           "CredentialsManage"
@@ -555,6 +583,13 @@
         },
         "responses": {
           "202": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -628,9 +663,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-required-permissions": [
           "SubunitManage"
@@ -692,6 +727,13 @@
         },
         "responses": {
           "202": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -765,9 +807,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-required-permissions": [
           "CredentialsManage"
@@ -822,6 +864,13 @@
         },
         "responses": {
           "202": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -895,9 +944,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-required-permissions": [
           "VatUeManage"
@@ -922,6 +971,13 @@
         ],
         "responses": {
           "202": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -995,9 +1051,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-required-permissions": [
           "CredentialsManage",
@@ -1024,6 +1080,13 @@
         ],
         "responses": {
           "202": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1097,9 +1160,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-required-permissions": [
           "CredentialsManage"
@@ -1124,6 +1187,13 @@
         ],
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1216,9 +1286,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         }
       }
     },
@@ -1230,6 +1300,13 @@
         "summary": "Sprawdzenie statusu zgody na wystawianie faktur z załącznikiem",
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1300,9 +1377,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-required-permissions": [
           "CredentialsManage",
@@ -1364,6 +1441,13 @@
         },
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1454,9 +1538,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-sort": [
           {
@@ -1530,6 +1614,13 @@
         },
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1624,9 +1715,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-sort": [
           {
@@ -1695,6 +1786,13 @@
         },
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1787,9 +1885,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-sort": [
           {
@@ -1858,6 +1956,13 @@
         },
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1943,9 +2048,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-sort": [
           {
@@ -1994,6 +2099,13 @@
         ],
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2073,9 +2185,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-sort": [
           {
@@ -2143,6 +2255,13 @@
         },
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2226,9 +2345,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-sort": [
           {
@@ -2306,6 +2425,13 @@
         },
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2398,9 +2524,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-sort": [
           {
@@ -2470,6 +2596,13 @@
         },
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2557,9 +2690,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         },
         "x-sort": [
           {
@@ -5688,6 +5821,9 @@
           "InternalId",
           "Nip"
         ],
+        "type": "string"
+      },
+      "SystemWarning": {
         "type": "string"
       },
       "TooManyRequestsProblemDetails": {

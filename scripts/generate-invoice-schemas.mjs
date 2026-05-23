@@ -39,17 +39,10 @@ const SCHEMA_DEFS = [
     rootElement: 'Faktura',
   },
   {
-    id: 'RR1_V11E',
-    xsdPath: 'RR/schemat_RR(1)_v1-1E.xsd',
-    outputFile: 'rr1-v11e.ts',
+    id: 'FA_RR1',
+    xsdPath: 'RR/schemat_FA_RR(1)_v1-1E.xsd',
+    outputFile: 'fa-rr1.ts',
     namespace: null, // detected at parse time
-    rootElement: 'Faktura',
-  },
-  {
-    id: 'RR1_V10E',
-    xsdPath: 'RR/schemat_RR(1)_v1-0E.xsd',
-    outputFile: 'rr1-v10e.ts',
-    namespace: null,
     rootElement: 'Faktura',
   },
   {

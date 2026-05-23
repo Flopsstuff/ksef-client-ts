@@ -37,6 +37,12 @@ export interface KSeFClientOptions {
   presignedUrlHosts?: string[];
   authManager?: AuthManager;
   /**
+   * Invoked with the raw `X-System-Warning` response header value when present
+   * (KSeF API v2.6.0). Advisory only — does not affect the operation result.
+   * When omitted, warnings are logged at warn level.
+   */
+  onSystemWarning?: (warning: string) => void;
+  /**
    * Request format for server-returned error bodies. Defaults to
    * `'problem-details'` (RFC 7807, KSeF API v2.4.0+). Set to `'legacy'`
    * to suppress the `X-Error-Format` header and receive legacy error

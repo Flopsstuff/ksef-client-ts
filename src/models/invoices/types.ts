@@ -1,4 +1,4 @@
-import type { EncryptionInfo, FormCode, InvoicingMode, OperationStatusInfo } from '../common.js';
+import type { CompressionType, EncryptionInfo, FormCode, InvoicingMode, OperationStatusInfo } from '../common.js';
 
 export type { InvoicingMode } from '../common.js';
 
@@ -23,7 +23,7 @@ export type BuyerIdentifierType = 'Nip' | 'VatUe' | 'Other' | 'None';
 
 export type ThirdSubjectIdentifierType = 'Nip' | 'InternalId' | 'VatUe' | 'Other' | 'None';
 
-export type FormType = 'FA' | 'PEF' | 'RR' | 'FA_RR';
+export type FormType = 'FA' | 'PEF' | 'FA_RR';
 
 export type InvoiceType =
   | 'Vat' | 'Zal' | 'Kor' | 'Roz' | 'Upr' | 'KorZal' | 'KorRoz'
@@ -161,6 +161,8 @@ export interface InvoiceExportRequest {
   encryption: EncryptionInfo;
   filters: InvoiceQueryFilters;
   onlyMetadata?: boolean;
+  /** Archive compression type for the export package (KSeF API v2.6.0). Omitted/`Zip` keeps the legacy behavior. */
+  compressionType?: CompressionType;
 }
 
 export interface InvoiceExportPackagePart {

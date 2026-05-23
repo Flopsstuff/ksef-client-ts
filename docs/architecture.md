@@ -150,6 +150,7 @@ export class FooService {
 ```
 
 **Conventions:**
+
 - Constructor takes `RestClient` (injected by `KSeFClient`)
 - Methods build a `RestRequest` using `Routes` constants, call `execute<T>()` or `executeRaw()`, return `response.body`
 - No business logic — pure API mapping
@@ -228,6 +229,7 @@ models/
 ```
 
 **Conventions:**
+
 - Types derived from the OpenAPI spec (`docs/open-api.json`)
 - Shared types live in `common.ts`, domain-specific types in `{domain}/types.ts`
 - Barrel `index.ts` in each domain folder re-exports types

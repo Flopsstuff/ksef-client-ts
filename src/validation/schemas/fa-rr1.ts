@@ -10,7 +10,7 @@ const TDataCzas = z.string();
 const TZnakowy = z.string().min(1).max(256);
 
 const TNaglowek = z.object({
-  "KodFormularza": z.object({ '#text': TKodFormularza, "@kodSystemowy": z.literal("FA_RR(1)"), "@wersjaSchemy": z.literal("1-0E") }).strict(),
+  "KodFormularza": z.object({ '#text': TKodFormularza, "@kodSystemowy": z.literal("FA_RR (1)"), "@wersjaSchemy": z.literal("1-1E") }).strict(),
   "WariantFormularza": z.literal("1"),
   "DataWytworzeniaFa": z.string(),
   "SystemInfo": TZnakowy.optional()
@@ -109,7 +109,7 @@ const TNrKRS = z.string().regex(/^\d{10}$/);
 const TNrREGON = z.union([z.string().regex(/^\d{9}$/), z.string().regex(/^\d{14}$/)]);
 
 
-export const RR1_V10ESchema = z.object({
+export const FA_RR1Schema = z.object({
   "Naglowek": TNaglowek,
   "Podmiot1": z.object({
   "DaneIdentyfikacyjne": TPodmiot1,
@@ -236,4 +236,4 @@ export const RR1_V10ESchema = z.object({
 }).strict().optional()
 }).strict();
 
-export type RR1_V10E = z.infer<typeof RR1_V10ESchema>;
+export type FA_RR1 = z.infer<typeof FA_RR1Schema>;

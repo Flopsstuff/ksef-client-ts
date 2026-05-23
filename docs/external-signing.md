@@ -124,7 +124,7 @@ const unsignedXml: string = buildUnsignedAuthTokenRequestXml(options);
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
-<AuthTokenRequest xmlns="http://ksef.mf.gov.pl/auth/token/2.0">
+<AuthTokenRequest xmlns="http://ksef.mf.gov.pl/auth/token/2.1">
   <Challenge>abc123-challenge-from-ksef</Challenge>
   <ContextIdentifier>
     <Nip>1234567890</Nip>
@@ -280,7 +280,7 @@ The signed XML must have a `ds:Signature` element appended as a child of the roo
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
-<AuthTokenRequest xmlns="http://ksef.mf.gov.pl/auth/token/2.0">
+<AuthTokenRequest xmlns="http://ksef.mf.gov.pl/auth/token/2.1">
   <Challenge>...</Challenge>
   <ContextIdentifier>
     <Nip>1234567890</Nip>
@@ -313,11 +313,13 @@ The signed XML must have a `ds:Signature` element appended as a child of the roo
 Must contain exactly two `ds:Reference` elements:
 
 **Reference 1 - Document root** (empty `URI=""`):
+
 - Transform 1: enveloped-signature (`http://www.w3.org/2000/09/xmldsig#enveloped-signature`)
 - Transform 2: exclusive canonicalization (`http://www.w3.org/2001/10/xml-exc-c14n#`)
 - Digest: SHA-256 of the canonicalized root element (after removing `ds:Signature`)
 
 **Reference 2 - SignedProperties** (`URI="#SignedProperties"`, `Type="http://uri.etsi.org/01903#SignedProperties"`):
+
 - Transform: exclusive canonicalization
 - Digest: SHA-256 of the canonicalized `xades:SignedProperties` element
 
@@ -380,6 +382,7 @@ The `ds:Object` element must contain `xades:QualifyingProperties` with:
 ```
 
 **Important details:**
+
 - `X509SerialNumber` must be in **decimal** (not hex). Convert with `BigInt('0x' + hexSerial).toString(10)`.
 - `X509IssuerName` must be in comma-separated RFC 2253 format (`CN=..., O=..., C=...`), not newline-separated.
 - The `xades:QualifyingProperties` `Target` attribute must reference the `ds:Signature` `Id` (`"#Signature"`).
@@ -432,6 +435,7 @@ ksef auth login-external --generate --nip 1234567890 --env test --output unsigne
 ```
 
 This phase:
+
 1. Requests a challenge from KSeF
 2. Generates the unsigned `AuthTokenRequest` XML
 3. Saves the challenge metadata to `~/.ksef/pending-challenge.json` (mode `0600`)
@@ -439,6 +443,7 @@ This phase:
 5. Prints the challenge and timestamp to stderr
 
 **Pending challenge file** (`~/.ksef/pending-challenge.json`):
+
 ```json
 {
   "challenge": "abc123-challenge-from-ksef",
@@ -462,6 +467,7 @@ ksef auth login-external --submit --nip 1234567890 --env test --input signed.xml
 ```
 
 This phase:
+
 1. Reads the signed XML from `--input` file or stdin
 2. Submits it to KSeF via `submitXadesAuthRequest()`
 3. Polls auth status (1 second interval, up to 30 attempts)
@@ -627,6 +633,7 @@ pkcs11.C_Finalize();
 | **External signature** | `authenticateWithExternalSignature()` | HSM, smart card, cloud KMS | Enterprise, qualified signatures, non-exportable keys |
 
 **When to use external signing:**
+
 - Private keys cannot be exported (HSM, smart card, cloud KMS)
 - Signing must go through a specific middleware (PKCS#11, vendor SDK)
 - Regulatory requirements mandate qualified electronic signatures on hardware tokens
@@ -634,6 +641,7 @@ pkcs11.C_Finalize();
 - Integration with government identity providers (EPUAP)
 
 **When NOT to use external signing:**
+
 - You have the private key as a PEM file -- use `authenticateWithCertificate()`
 - You have a `.p12`/`.pfx` file -- use `authenticateWithPkcs12()`
 - You are using a KSeF authorization token -- use `authenticateWithToken()`

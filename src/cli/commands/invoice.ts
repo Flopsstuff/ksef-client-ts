@@ -18,6 +18,7 @@ import { normalizeCliDate } from '../date-utils.js';
 import { validate as validateInvoice } from '../../validation/invoice-validator.js';
 import { KSeFValidationError } from '../../errors/ksef-validation-error.js';
 import { type SchemaType, SCHEMA_TYPES } from '../../validation/schemas/index.js';
+import { withKeyRotationRetry } from '../../crypto/with-key-rotation-retry.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -202,7 +203,6 @@ const send = defineCommand({
 
         if (!args.json) consola.start(`Sending ${xmlFiles.length} invoices via batch session...`);
         await client.crypto.init();
-        const encryptionData = await client.crypto.getEncryptionData();
 
         const parts = fileBuffers.map(({ content }, i) => {
           const metadata = client.crypto.getFileMetadata(new Uint8Array(content));
@@ -225,9 +225,13 @@ const send = defineCommand({
           })),
         };
 
-        const openResult = await client.batchSession.openSession(
-          { formCode, batchFile: batchFileInfo, encryption: encryptionData.encryptionInfo },
-        );
+        // Fetch keys inside the retry so a key rotation (KSeF 21470) refreshes them before retrying.
+        const openResult = await withKeyRotationRetry(client.crypto, async () => {
+          const encryptionData = await client.crypto.getEncryptionData();
+          return client.batchSession.openSession(
+            { formCode, batchFile: batchFileInfo, encryption: encryptionData.encryptionInfo },
+          );
+        });
 
         saveOnlineSessionRef(openResult.referenceNumber);
         await client.batchSession.sendParts(openResult, parts, parallelism);
@@ -406,12 +410,15 @@ const exportCmd = defineCommand({
 
       if (!args.json) consola.start('Starting invoice export...');
       await client.crypto.init();
-      const encryptionData = await client.crypto.getEncryptionData();
       const filters = buildQueryFilters(args);
 
-      const result = await client.invoices.exportInvoices(
-        { encryption: encryptionData.encryptionInfo, filters, onlyMetadata: args.onlyMetadata },
-      );
+      // Fetch keys inside the retry so a key rotation (KSeF 21470) refreshes them before retrying.
+      const result = await withKeyRotationRetry(client.crypto, async () => {
+        const encryptionData = await client.crypto.getEncryptionData();
+        return client.invoices.exportInvoices(
+          { encryption: encryptionData.encryptionInfo, filters, onlyMetadata: args.onlyMetadata },
+        );
+      });
 
       if (args.json) {
         outputResult(result, { json: true });

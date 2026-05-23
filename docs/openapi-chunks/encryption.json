@@ -13,6 +13,13 @@
         "summary": "Pobranie certyfikatów",
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -24,10 +31,21 @@
                 "example": [
                   {
                     "certificate": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwocTwdNgt2+PXJ2fcB7k1kn5eFUTXBeep9pH...",
+                    "certificateId": "35k6IVMTxUPZKQdg4Fbx36T5/v3aoJK5hIY7sS7mt3U=",
+                    "publicKeyId": "QIoAK/Yc3s27Z4t3SZY4Mhp8JNLH7Vl4N3lNlJAEig8=",
                     "validFrom": "2024-07-11T12:23:56.0154302+00:00",
                     "validTo": "2028-07-11T12:23:56.0154302+00:00",
                     "usage": [
-                      "KsefTokenEncryption",
+                      "KsefTokenEncryption"
+                    ]
+                  },
+                  {
+                    "certificate": "MIIGWDCCBECgAwIBAgIQe4NvS/i3yyDCcnaXiiC6BTANBgkqhkiG9w0BAQsFADBOMQswCQYDVQQGEwJa...",
+                    "certificateId": "sivtxip78UcnFLzXVsAz2FE1XIpLpySOZsn/f99fDmI=",
+                    "publicKeyId": "tmtCidSRzR4fvNpLU5hMOM6FzamxJf0BBR8IkXIAwsY=",
+                    "validFrom": "2024-07-11T12:23:56.0154302+00:00",
+                    "validTo": "2028-07-11T12:23:56.0154302+00:00",
+                    "usage": [
                       "SymmetricKeyEncryption"
                     ]
                   }
@@ -254,6 +272,8 @@
       "PublicKeyCertificate": {
         "required": [
           "certificate",
+          "certificateId",
+          "publicKeyId",
           "usage",
           "validFrom",
           "validTo"
@@ -261,6 +281,14 @@
         "type": "object",
         "properties": {
           "certificate": {
+            "type": "string",
+            "format": "byte"
+          },
+          "certificateId": {
+            "type": "string",
+            "format": "byte"
+          },
+          "publicKeyId": {
             "type": "string",
             "format": "byte"
           },
@@ -296,6 +324,9 @@
         "type": "integer",
         "format": "int32",
         "example": 30
+      },
+      "SystemWarning": {
+        "type": "string"
       },
       "TooManyRequestsProblemDetails": {
         "required": [

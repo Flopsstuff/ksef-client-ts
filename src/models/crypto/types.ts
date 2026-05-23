@@ -4,6 +4,10 @@ export type PublicKeyCertificateUsage = 'KsefTokenEncryption' | 'SymmetricKeyEnc
 
 export interface PublicKeyCertificate {
   certificate: string;
+  /** SHA-256 of the DER certificate, Base64-encoded (KSeF API v2.5.0). */
+  certificateId: string;
+  /** SHA-256 of the certificate's SubjectPublicKeyInfo, Base64 (44 chars) — key-rotation selector (KSeF API v2.5.0). */
+  publicKeyId: string;
   validFrom: string;
   validTo: string;
   usage: PublicKeyCertificateUsage[];

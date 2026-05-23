@@ -13,6 +13,13 @@
         "summary": "Pobranie limitów dla bieżącego kontekstu",
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -95,9 +102,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         }
       }
     },
@@ -109,6 +116,13 @@
         "summary": "Pobranie limitów dla bieżącego podmiotu",
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -187,9 +201,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         }
       }
     },
@@ -201,6 +215,13 @@
         "summary": "Pobranie aktualnie obowiązujących limitów API",
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -208,64 +229,64 @@
                 },
                 "example": {
                   "onlineSession": {
-                    "perSecond": 100,
-                    "perMinute": 300,
-                    "perHour": 1200
+                    "perSecond": 10,
+                    "perMinute": 30,
+                    "perHour": 120
                   },
                   "batchSession": {
-                    "perSecond": 100,
-                    "perMinute": 200,
-                    "perHour": 600
+                    "perSecond": 10,
+                    "perMinute": 20,
+                    "perHour": 60
                   },
                   "invoiceSend": {
-                    "perSecond": 100,
-                    "perMinute": 300,
-                    "perHour": 1800
+                    "perSecond": 10,
+                    "perMinute": 30,
+                    "perHour": 180
                   },
                   "invoiceStatus": {
-                    "perSecond": 300,
-                    "perMinute": 1200,
-                    "perHour": 12000
+                    "perSecond": 30,
+                    "perMinute": 120,
+                    "perHour": 1200
                   },
                   "sessionList": {
-                    "perSecond": 50,
-                    "perMinute": 100,
-                    "perHour": 600
+                    "perSecond": 5,
+                    "perMinute": 10,
+                    "perHour": 60
                   },
                   "sessionInvoiceList": {
-                    "perSecond": 100,
-                    "perMinute": 200,
-                    "perHour": 2000
+                    "perSecond": 10,
+                    "perMinute": 20,
+                    "perHour": 200
                   },
                   "sessionMisc": {
-                    "perSecond": 100,
-                    "perMinute": 1200,
-                    "perHour": 12000
+                    "perSecond": 10,
+                    "perMinute": 120,
+                    "perHour": 1200
                   },
                   "invoiceMetadata": {
-                    "perSecond": 80,
-                    "perMinute": 160,
-                    "perHour": 200
+                    "perSecond": 8,
+                    "perMinute": 16,
+                    "perHour": 20
                   },
                   "invoiceExport": {
-                    "perSecond": 80,
-                    "perMinute": 160,
-                    "perHour": 200
+                    "perSecond": 8,
+                    "perMinute": 16,
+                    "perHour": 20
                   },
                   "invoiceExportStatus": {
-                    "perSecond": 100,
-                    "perMinute": 600,
-                    "perHour": 6000
+                    "perSecond": 10,
+                    "perMinute": 60,
+                    "perHour": 600
                   },
                   "invoiceDownload": {
-                    "perSecond": 80,
-                    "perMinute": 160,
-                    "perHour": 640
+                    "perSecond": 8,
+                    "perMinute": 16,
+                    "perHour": 64
                   },
                   "other": {
-                    "perSecond": 100,
-                    "perMinute": 300,
-                    "perHour": 1200
+                    "perSecond": 10,
+                    "perMinute": 30,
+                    "perHour": 120
                   }
                 }
               }
@@ -333,9 +354,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         }
       }
     },
@@ -363,7 +384,15 @@
           }
         },
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -426,9 +455,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         }
       },
       "delete": {
@@ -437,7 +466,15 @@
         ],
         "summary": "Przywrócenie domyślnych wartości limitów sesji dla bieżącego kontekstu",
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -500,9 +537,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         }
       }
     },
@@ -526,7 +563,15 @@
           }
         },
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -589,9 +634,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         }
       },
       "delete": {
@@ -600,7 +645,15 @@
         ],
         "summary": "Przywrócenie domyślnych wartości limitów certyfikatów dla bieżącego podmiotu",
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -663,9 +716,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         }
       }
     },
@@ -692,7 +745,15 @@
           }
         },
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -755,9 +816,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         }
       },
       "delete": {
@@ -766,7 +827,15 @@
         ],
         "summary": "Przywrócenie domyślnych wartości limitów API dla bieżącego kontekstu",
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -829,9 +898,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         }
       }
     },
@@ -842,7 +911,15 @@
         ],
         "summary": "Zmiana limitów API dla bieżącego kontekstu na wartości produkcyjne",
         "responses": {
-          "200": {},
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -905,9 +982,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 100,
-          "perMinute": 300,
-          "perHour": 1200
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
         }
       }
     }
@@ -1822,6 +1899,9 @@
           "Pesel",
           "Fingerprint"
         ],
+        "type": "string"
+      },
+      "SystemWarning": {
         "type": "string"
       },
       "TooManyRequestsProblemDetails": {

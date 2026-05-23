@@ -36,6 +36,13 @@
         ],
         "responses": {
           "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -338,6 +345,9 @@
         "type": "integer",
         "format": "int32",
         "example": 30
+      },
+      "SystemWarning": {
+        "type": "string"
       },
       "TooManyRequestsProblemDetails": {
         "required": [

@@ -6,7 +6,7 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 
 ## Features
 
-- **Complete API coverage** — KSeF API v2.4.0, types aligned with the official OpenAPI spec
+- **Complete API coverage** — KSeF API v2.6.0, types aligned with the official OpenAPI spec
 - **Offline invoice mode** — full lifecycle for all 4 KSeF offline modes with QR KOD I + KOD II signing, deadline tracking, local storage, and technical correction
 - **Full-featured CLI** — `ksef` with 15 command groups for auth, sessions, invoices, offline, batch upload, export, and more
 - **High-level workflows** — auth, online/batch sessions, invoice export — full lifecycle in a single call
@@ -88,7 +88,7 @@ yarn test         # Run all tests (vitest)
 
 - [KSeF Web Portal](https://ap.ksef.mf.gov.pl/web/) — official KSeF web application (token management, permissions, invoices)
 - [KSeF official docs](https://github.com/CIRFMF/ksef-docs) — official documentation (Polish)
-- [KSeF docs translated](https://flopsstuff.github.io/ksef-docs/) — translated documentation (EN/RU/UK)
+- [KSeF docs translated](https://flopsstuff.github.io/ksef-docs/) — translated documentation (EN/RU/UK), [source on GitHub](https://github.com/Flopsstuff/ksef-docs)
 - [ksef-client-csharp](https://github.com/CIRFMF/ksef-client-csharp) — official C# reference client
 - [ksef-client-java](https://github.com/CIRFMF/ksef-client-java) — official Java reference client
 
