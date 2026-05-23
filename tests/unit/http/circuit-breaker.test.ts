@@ -202,7 +202,12 @@ describe('CircuitBreakerPolicy', () => {
       (p as unknown as { states: Map<string, unknown> }).states.size;
 
     it('sweeps stale closed entries from many distinct endpoints', async () => {
-      const p = new CircuitBreakerPolicy({ failureThreshold: 100, openMs: 10, scope: 'endpoint' });
+      // openMs is deliberately large (200ms): the staleness window is
+      // 2 × openMs = 400ms, comfortably longer than the priming loop below.
+      // A small openMs would let early entries age past the window mid-loop
+      // (under slow CI / coverage), so the sweep fires during priming and the
+      // first assertion flakes.
+      const p = new CircuitBreakerPolicy({ failureThreshold: 100, openMs: 200, scope: 'endpoint' });
       // Record one failure for 200 distinct endpoints — all remain CLOSED
       // (1 failure << threshold 100). After priming, internal map has 200+.
       for (let i = 0; i < 200; i++) {
@@ -211,7 +216,7 @@ describe('CircuitBreakerPolicy', () => {
       expect(internalSize(p)).toBeGreaterThanOrEqual(200);
 
       // Wait past 2 × openMs so the entries qualify as stale closed.
-      await sleep(30);
+      await sleep(450);
 
       // One more failure on a fresh endpoint triggers the sweep path.
       p.recordFailure('/trigger');
