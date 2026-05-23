@@ -925,7 +925,7 @@ All types are aligned with the KSeF OpenAPI spec (build 2.3.0-te, `docs/open-api
 | `exceptionCode` | `exceptionCode` | Not `exceptionDetailCode` |
 | `Credentials*` (plural) | `CredentialsRead`, `CredentialsManage` | Not `CredentialRead` |
 | `Introspection` | `Introspection` | Not `SelfInvoicing` (which is an `InvoicePermissionType`) |
-| `SubjectIdentifierType` values | `'Nip' \| 'Pesel' \| 'Fingerprint'` | Both auth and permissions use these same values |
+| `SubjectIdentifierType` values | `'Nip' \| 'Pesel' \| 'Fingerprint'` | Used in permission-domain identifiers; XAdES auth uses `XadesSubjectIdentifierType` (e.g. `certificateSubject`) |
 
 Enum values use PascalCase matching the OpenAPI spec exactly (e.g., `'InvoiceRead'` not `'invoice_read'`, `'VatGroupSubUnit'` not `'VAT_GROUP_SUB_UNIT'`).
 
