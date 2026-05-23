@@ -36,11 +36,14 @@ export async function uploadBatch(
   await client.crypto.init();
 
   if (options?.validate) {
-    const { unzip } = await import('../utils/zip.js');
     const { validateBatch, batchValidationDetails } = await import('../validation/invoice-validator.js');
     const { KSeFValidationError } = await import('../errors/ksef-validation-error.js');
     const zipBuf = Buffer.isBuffer(zipData) ? zipData : Buffer.from(zipData.buffer, zipData.byteOffset, zipData.byteLength);
-    const files = await unzip(zipBuf);
+    // The supplied archive must be extracted with the matching codec: TarGz
+    // archives are not valid ZIP streams, so honor compressionType here.
+    const files = options?.compressionType === 'TarGz'
+      ? await (await import('../utils/targz.js')).extractTarGz(zipBuf)
+      : await (await import('../utils/zip.js')).unzip(zipBuf);
     const invoices = [...files.entries()]
       .filter(([name]) => name.endsWith('.xml'))
       .map(([name, data]) => ({ fileName: name, xml: data.toString('utf-8') }));
