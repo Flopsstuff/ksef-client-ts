@@ -70,16 +70,19 @@ constructor(options?: KSeFClientOptions)
 ```ts
 loginWithToken(token: string, nip: string): Promise<void>
 ```
+
 High-level login: challenge → crypto init → encrypt token → submit → redeem → store tokens in `authManager`.
 
 ```ts
 loginWithCertificate(certPem: string, keyPem: string, nip: string): Promise<void>
 ```
+
 High-level login: challenge → build AuthTokenRequest XML → XAdES sign → submit → redeem → store tokens. `SignatureService` is dynamically imported.
 
 ```ts
 logout(): Promise<void>
 ```
+
 Clear access and refresh tokens from `authManager`.
 
 ---
@@ -91,31 +94,37 @@ Accessed via `client.auth`.
 ```ts
 getChallenge(): Promise<AuthChallengeResponse>
 ```
+
 Request an authorization challenge from the KSeF API.
 
 ```ts
 submitXadesAuthRequest(signedXml: string, verifyCertificateChain?: boolean): Promise<AuthenticationInitResponse>
 ```
+
 Submit a signed XAdES XML for authentication. Sends XML as `application/octet-stream`.
 
 ```ts
 submitKsefTokenAuthRequest(payload: AuthKsefTokenRequest): Promise<AuthenticationInitResponse>
 ```
+
 Authenticate using an encrypted KSeF token.
 
 ```ts
 getAuthStatus(referenceNumber: string, authToken: string): Promise<AuthenticationOperationStatusResponse>
 ```
+
 Poll the authorization status by reference number.
 
 ```ts
 getAccessToken(authToken: string): Promise<AuthenticationTokensResponse>
 ```
+
 Redeem the auth token for a session access token.
 
 ```ts
 refreshAccessToken(refreshToken: string): Promise<AuthenticationTokenRefreshResponse>
 ```
+
 Refresh an expired access token using a refresh token.
 
 ---
@@ -127,16 +136,19 @@ Accessed via `client.activeSessions`.
 ```ts
 getActiveSessions(pageSize?: number, continuationToken?: string): Promise<AuthenticationListResponse>
 ```
+
 List all active sessions for the current subject.
 
 ```ts
 revokeCurrentSession(): Promise<void>
 ```
+
 Revoke the caller's current session.
 
 ```ts
 revokeSession(sessionRef: string): Promise<void>
 ```
+
 Revoke a specific session by its reference number.
 
 ---
@@ -148,16 +160,19 @@ Accessed via `client.onlineSession`.
 ```ts
 openSession(request: OpenOnlineSessionRequest, upoVersion?: string): Promise<OpenOnlineSessionResponse>
 ```
+
 Open a new online (interactive) session.
 
 ```ts
 sendInvoice(sessionRef: string, request: SendInvoiceRequest): Promise<SendInvoiceResponse>
 ```
+
 Send an invoice within an open online session.
 
 ```ts
 closeSession(sessionRef: string): Promise<void>
 ```
+
 Close an online session.
 
 ---
@@ -169,16 +184,19 @@ Accessed via `client.batchSession`.
 ```ts
 openSession(request: OpenBatchSessionRequest, upoVersion?: string): Promise<OpenBatchSessionResponse>
 ```
+
 Open a new batch session and receive part upload URLs.
 
 ```ts
 sendParts(openResponse: OpenBatchSessionResponse, parts: BatchPartSendingInfo[]): Promise<void>
 ```
+
 Upload batch parts to the pre-signed URLs from the open response.
 
 ```ts
 closeSession(batchRef: string): Promise<void>
 ```
+
 Close a batch session.
 
 ---
@@ -190,41 +208,49 @@ Accessed via `client.sessionStatus`.
 ```ts
 getSessions(type: SessionType, pageSize?: number, continuationToken?: string, filter?: SessionsFilter): Promise<SessionsQueryResponse>
 ```
+
 List sessions by type with optional filtering.
 
 ```ts
 getSessionStatus(sessionRef: string): Promise<SessionStatusResponse>
 ```
+
 Get the status of a specific session.
 
 ```ts
 getSessionInvoices(sessionRef: string, pageSize?: number, continuationToken?: string): Promise<SessionInvoicesResponse>
 ```
+
 List invoices processed within a session.
 
 ```ts
 getSessionInvoice(sessionRef: string, invoiceRef: string): Promise<SessionInvoiceStatusResponse>
 ```
+
 Get details of a specific invoice within a session.
 
 ```ts
 getSessionFailedInvoices(sessionRef: string, pageSize?: number, continuationToken?: string): Promise<SessionInvoicesResponse>
 ```
+
 List invoices that failed processing within a session.
 
 ```ts
 getInvoiceUpoByKsefNumber(sessionRef: string, ksefNumber: string): Promise<UpoResult>
 ```
+
 Download UPO (official receipt) for an invoice by its KSeF number. Returns `{ upo: string, hash?: string }`.
 
 ```ts
 getInvoiceUpoByReference(sessionRef: string, invoiceRef: string): Promise<UpoResult>
 ```
+
 Download UPO for an invoice by its reference number. Returns `{ upo: string, hash?: string }`.
 
 ```ts
 getSessionUpo(sessionRef: string, upoRef: string): Promise<UpoResult>
 ```
+
 Download a session-level UPO by reference. Returns `{ upo: string, hash?: string }`.
 
 ---
@@ -236,21 +262,25 @@ Accessed via `client.invoices`.
 ```ts
 getInvoice(ksefNumber: string): Promise<string>
 ```
+
 Download an invoice XML by its KSeF number.
 
 ```ts
 queryInvoiceMetadata(filters: InvoiceQueryFilters, pageOffset?: number, pageSize?: number, sortOrder?: SortOrder): Promise<PagedInvoiceResponse>
 ```
+
 Query invoice metadata with filters and pagination.
 
 ```ts
 exportInvoices(request: InvoiceExportRequest): Promise<OperationResponse>
 ```
+
 Start an asynchronous invoice export job.
 
 ```ts
 getInvoiceExportStatus(ref: string): Promise<InvoiceExportStatusResponse>
 ```
+
 Check the status of an invoice export operation.
 
 ---
@@ -264,36 +294,43 @@ Accessed via `client.permissions`.
 ```ts
 grantPersonPermissions(request: GrantPermissionsPersonRequest): Promise<OperationResponse>
 ```
+
 Grant permissions to a person (by PESEL, NIP, or other identifier).
 
 ```ts
 grantEntityPermissions(request: GrantPermissionsEntityRequest): Promise<OperationResponse>
 ```
+
 Grant permissions to a legal entity (by NIP).
 
 ```ts
 grantAuthorizationPermissions(request: GrantPermissionsAuthorizationRequest): Promise<OperationResponse>
 ```
+
 Grant authorization-level permissions.
 
 ```ts
 grantIndirectPermissions(request: GrantPermissionsIndirectRequest): Promise<OperationResponse>
 ```
+
 Grant indirect permissions.
 
 ```ts
 grantSubunitPermissions(request: GrantPermissionsSubunitRequest): Promise<OperationResponse>
 ```
+
 Grant permissions to a subunit.
 
 ```ts
 grantEuEntityAdminPermissions(request: GrantPermissionsEuEntityAdminRequest): Promise<OperationResponse>
 ```
+
 Grant permissions to an EU entity.
 
 ```ts
 grantEuEntityRepresentativePermissions(request: GrantPermissionsEuEntityRepresentativeRequest): Promise<OperationResponse>
 ```
+
 Grant permissions to an EU entity representative.
 
 ### Revoke Methods
@@ -301,11 +338,13 @@ Grant permissions to an EU entity representative.
 ```ts
 revokeCommonGrant(grantId: string): Promise<OperationResponse>
 ```
+
 Revoke a common (person/entity/subunit) permission grant by ID.
 
 ```ts
 revokeAuthorizationGrant(grantId: string): Promise<OperationResponse>
 ```
+
 Revoke an authorization permission grant by ID.
 
 ### Query Methods
@@ -349,16 +388,19 @@ Query permissions granted to entities. Supports `contextIdentifier` filtering (N
 ```ts
 querySubordinateEntitiesRoles(options?: QuerySubordinateEntitiesRolesRequest): Promise<PagedRolesResponse<SubordinateEntityRole>>
 ```
+
 Query roles assigned to subordinate entities.
 
 ```ts
 queryAuthorizationsGrants(options: QueryAuthorizationsGrantsRequest, pageOffset?: number, pageSize?: number): Promise<PagedAuthorizationsResponse<EntityAuthorizationGrant>>
 ```
+
 Query authorization-level grants.
 
 ```ts
 queryEuEntitiesGrants(options?: QueryEuEntitiesGrantsRequest): Promise<PagedPermissionsResponse<EuEntityPermission>>
 ```
+
 Query permissions granted to EU entities.
 
 ### Status Methods
@@ -366,11 +408,13 @@ Query permissions granted to EU entities.
 ```ts
 getOperationStatus(ref: string): Promise<PermissionsOperationStatusResponse>
 ```
+
 Check the status of a permissions operation by reference.
 
 ```ts
 getAttachmentStatus(): Promise<PermissionsAttachmentAllowedResponse>
 ```
+
 Check whether attachment permissions are enabled for the current context.
 
 ---
@@ -382,21 +426,25 @@ Accessed via `client.tokens`.
 ```ts
 generateToken(request: KsefTokenRequest): Promise<KsefTokenResponse>
 ```
+
 Generate a new KSeF authentication token.
 
 ```ts
 queryTokens(options?: QueryKsefTokensOptions): Promise<QueryKsefTokensResponse>
 ```
+
 List all tokens for the current subject.
 
 ```ts
 getToken(ref: string): Promise<AuthenticationKsefToken>
 ```
+
 Get a specific token by reference.
 
 ```ts
 revokeToken(ref: string): Promise<void>
 ```
+
 Revoke a token by reference.
 
 ---
@@ -408,36 +456,43 @@ Accessed via `client.certificates`.
 ```ts
 getLimits(): Promise<CertificateLimitResponse>
 ```
+
 Get certificate enrollment limits.
 
 ```ts
 getEnrollmentData(): Promise<CertificateEnrollmentsInfoResponse>
 ```
+
 Get certificate enrollment configuration data.
 
 ```ts
 enroll(request: SendCertificateEnrollmentRequest): Promise<CertificateEnrollmentResponse>
 ```
+
 Submit a certificate enrollment request (CSR).
 
 ```ts
 getEnrollmentStatus(ref: string): Promise<CertificateEnrollmentStatusResponse>
 ```
+
 Check the status of a certificate enrollment by reference.
 
 ```ts
 retrieve(request: CertificateListRequest): Promise<CertificateListResponse>
 ```
+
 Retrieve certificates matching the given criteria.
 
 ```ts
 revoke(serialNumber: string, request: CertificateRevokeRequest): Promise<void>
 ```
+
 Revoke a certificate by serial number.
 
 ```ts
 query(request: CertificateMetadataListRequest): Promise<CertificateMetadataListResponse>
 ```
+
 Query certificate metadata.
 
 ---
@@ -449,11 +504,13 @@ Accessed via `client.lighthouse`. Uses raw `fetch()` against the lighthouse URL 
 ```ts
 getStatus(): Promise<KsefStatusResponse>
 ```
+
 Get the current KSeF system status.
 
 ```ts
 getMessages(): Promise<LighthouseMessage[]>
 ```
+
 Get system status messages.
 
 ---
@@ -465,16 +522,19 @@ Accessed via `client.limits`.
 ```ts
 getContextLimits(): Promise<SessionLimitsInCurrentContextResponse>
 ```
+
 Get session limits for the current context.
 
 ```ts
 getSubjectLimits(): Promise<CertificatesLimitInCurrentSubjectResponse>
 ```
+
 Get certificate limits for the current subject.
 
 ```ts
 getRateLimits(): Promise<EffectiveApiRateLimits>
 ```
+
 Get the effective API rate limits.
 
 ---
@@ -486,6 +546,7 @@ Accessed via `client.peppol`.
 ```ts
 queryProviders(pageOffset?: number, pageSize?: number): Promise<QueryPeppolProvidersResponse>
 ```
+
 Query registered PEPPOL providers.
 
 ---
@@ -499,11 +560,13 @@ Accessed via `client.testData`. Available only in the TEST environment.
 ```ts
 createSubject(request: SubjectCreateRequest): Promise<void>
 ```
+
 Create a test subject (NIP entity).
 
 ```ts
 removeSubject(request: SubjectRemoveRequest): Promise<void>
 ```
+
 Remove a test subject.
 
 ### Person Management
@@ -511,11 +574,13 @@ Remove a test subject.
 ```ts
 createPerson(request: PersonCreateRequest): Promise<void>
 ```
+
 Create a test person (PESEL identity).
 
 ```ts
 removePerson(request: PersonRemoveRequest): Promise<void>
 ```
+
 Remove a test person.
 
 ### Permissions
@@ -523,11 +588,13 @@ Remove a test person.
 ```ts
 grantPermissions(request: TestDataPermissionsGrantRequest): Promise<void>
 ```
+
 Grant test permissions directly (bypasses normal flow).
 
 ```ts
 revokePermissions(request: TestDataPermissionsRevokeRequest): Promise<void>
 ```
+
 Revoke test permissions directly.
 
 ### Attachment Permissions
@@ -535,11 +602,13 @@ Revoke test permissions directly.
 ```ts
 enableAttachment(request: AttachmentPermissionGrantRequest): Promise<void>
 ```
+
 Enable attachment permissions for a test subject.
 
 ```ts
 disableAttachment(request: AttachmentPermissionRevokeRequest): Promise<void>
 ```
+
 Disable attachment permissions for a test subject.
 
 ### Session Limits
@@ -547,11 +616,13 @@ Disable attachment permissions for a test subject.
 ```ts
 changeSessionLimits(request: SetSessionLimitsRequest): Promise<void>
 ```
+
 Override session limits in the current context.
 
 ```ts
 restoreDefaultSessionLimits(): Promise<void>
 ```
+
 Restore default session limits.
 
 ### Certificate Limits
@@ -559,11 +630,13 @@ Restore default session limits.
 ```ts
 changeCertificatesLimit(request: SetSubjectLimitsRequest): Promise<void>
 ```
+
 Override subject limits (enrollment/certificate) for the current subject.
 
 ```ts
 restoreDefaultCertificatesLimit(): Promise<void>
 ```
+
 Restore default certificate limits.
 
 ### Rate Limits
@@ -571,16 +644,19 @@ Restore default certificate limits.
 ```ts
 setRateLimits(request: SetRateLimitsRequest): Promise<void>
 ```
+
 Set custom API rate limits.
 
 ```ts
 restoreDefaultRateLimits(): Promise<void>
 ```
+
 Restore default API rate limits.
 
 ```ts
 setProductionRateLimits(): Promise<void>
 ```
+
 Set production-level rate limits in the test environment.
 
 ### Context Blocking
@@ -588,11 +664,13 @@ Set production-level rate limits in the test environment.
 ```ts
 blockContext(request: BlockContextAuthenticationRequest): Promise<void>
 ```
+
 Block a context (simulate maintenance or ban).
 
 ```ts
 unblockContext(request: UnblockContextAuthenticationRequest): Promise<void>
 ```
+
 Unblock a previously blocked context.
 
 ---
@@ -604,6 +682,7 @@ Accessed via `client.crypto`. Requires explicit initialization before use.
 ```ts
 init(): Promise<void>
 ```
+
 Initialize the service by fetching and caching KSeF public certificates. Must be called before any encryption method.
 
 ### AES-256-CBC
@@ -611,11 +690,13 @@ Initialize the service by fetching and caching KSeF public certificates. Must be
 ```ts
 encryptAES256(content: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array
 ```
+
 Encrypt data with AES-256-CBC (PKCS7 padding).
 
 ```ts
 decryptAES256(content: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array
 ```
+
 Decrypt AES-256-CBC encrypted data.
 
 ### Key Wrapping
@@ -639,6 +720,7 @@ Encrypt a KSeF token for session authorization. Auto-selects RSA-OAEP (via Web C
 ```ts
 getFileMetadata(file: Uint8Array): FileMetadata
 ```
+
 Compute SHA-256 hash (base64) and byte length of a file.
 
 ### CSR Generation
@@ -646,11 +728,13 @@ Compute SHA-256 hash (base64) and byte length of a file.
 ```ts
 generateCsrRsa(fields: X500NameFields): Promise<CsrResult>
 ```
+
 Generate an RSA-2048 CSR (PKCS#10 DER) and private key PEM.
 
 ```ts
 generateCsrEcdsa(fields: X500NameFields): Promise<CsrResult>
 ```
+
 Generate an ECDSA P-256 CSR (PKCS#10 DER) and private key PEM.
 
 ### Key Parsing
@@ -658,6 +742,7 @@ Generate an ECDSA P-256 CSR (PKCS#10 DER) and private key PEM.
 ```ts
 parsePrivateKey(pem: string): crypto.KeyObject
 ```
+
 Parse a PEM-encoded private key into a Node.js `KeyObject`.
 
 ---
@@ -669,11 +754,13 @@ Accessed via `client.qr`.
 ```ts
 buildInvoiceVerificationUrl(nip: string, issueDate: Date | string, invoiceHashBase64: string): string
 ```
+
 Build an invoice verification URL (Code I). Format: `{baseQrUrl}/invoice/{NIP}/{DD-MM-YYYY}/{hash_base64url}`.
 
 ```ts
 buildCertificateVerificationUrl(contextType: string, contextId: string, sellerNip: string, certSerial: string, invoiceHashBase64: string, privateKeyPem: string, privateKeyPassword?: string): string
 ```
+
 Build a certificate verification URL (Code II) with a cryptographic signature. Uses RSA-PSS (SHA-256, salt=32) for RSA keys or ECDSA (SHA-256, IEEE P1363) for EC keys. Pass `privateKeyPassword` to decrypt a password-protected PEM.
 
 ---
@@ -685,6 +772,7 @@ Imported directly: `import { SignatureService } from 'ksef-client-ts'`.
 ```ts
 static sign(xml: string, certPem: string, privateKeyPem: string): string
 ```
+
 Sign an XML document with an XAdES-B enveloped signature. Supports both RSA and ECDSA keys. Returns the complete signed XML document.
 
 ---
@@ -696,16 +784,19 @@ Imported directly: `import { CertificateService } from 'ksef-client-ts'`.
 ```ts
 static getSha256Fingerprint(certPem: string): string
 ```
+
 Compute the SHA-256 fingerprint of a PEM certificate. Returns uppercase hex string.
 
 ```ts
 static generatePersonalCertificate(givenName: string, surname: string, serialNumber: string, commonName: string, method?: CryptoEncryptionMethod): Promise<SelfSignedCertificateResult>
 ```
+
 Generate a self-signed personal certificate (for individual authentication). Default method is `'RSA'`.
 
 ```ts
 static generateCompanySeal(orgName: string, orgIdentifier: string, commonName: string, method?: CryptoEncryptionMethod): Promise<SelfSignedCertificateResult>
 ```
+
 Generate a self-signed company seal certificate (for entity authentication). Default method is `'RSA'`.
 
 `CryptoEncryptionMethod` is `'RSA' | 'ECDSA'`.
@@ -721,26 +812,31 @@ Imported directly: `import { QrCodeService } from 'ksef-client-ts'`.
 ```ts
 static generateQrCode(url: string, options?: QrCodeOptions): Promise<Buffer>
 ```
+
 Generate a QR code as a PNG buffer.
 
 ```ts
 static generateQrCodeBase64(url: string, options?: QrCodeOptions): Promise<string>
 ```
+
 Generate a QR code as a base64-encoded PNG string.
 
 ```ts
 static generateQrCodeSvg(url: string, options?: QrCodeOptions): Promise<string>
 ```
+
 Generate a QR code as an SVG string.
 
 ```ts
 static generateQrCodeSvgWithLabel(url: string, label: string, options?: QrCodeOptions): Promise<string>
 ```
+
 Generate a QR code as an SVG string with a text label below.
 
 ```ts
 static generateResult(url: string, options?: QrCodeOptions): Promise<QrCodeResult>
 ```
+
 Generate a `QrCodeResult` containing both the URL and its base64-encoded QR code.
 
 ### QrCodeOptions

@@ -43,6 +43,7 @@ async function authenticateWithXades() {
 ```
 
 **Notes:**
+
 - `loginWithCertificate()` dynamically imports `SignatureService` (avoids loading xml-crypto when using token auth).
 - Internally builds an `AuthTokenRequest` XML document with the challenge and NIP, signs it with XAdES-B, submits to `/auth/xades-signature`, and redeems the operation token.
 - Pass `verifyCertificateChain: true` as the second argument to `submitXadesAuthRequest()` if using the low-level API and you want KSeF to verify the full certificate chain.
@@ -71,6 +72,7 @@ async function authenticateWithKsefToken() {
 ```
 
 **Notes:**
+
 - Unlike XAdES, this flow does not require a qualified certificate or XML signing.
 - Internally, `loginWithToken()` fetches KSeF certificates, encrypts the token (RSA-OAEP or ECDH+AES-GCM based on KSeF cert key type), and stores both access and refresh tokens in `AuthManager`.
 - For low-level control, use `AuthKsefTokenRequestBuilder` with individual `AuthService` methods and hydrate `authManager` manually (see [authentication.md](./authentication.md)).
@@ -154,6 +156,7 @@ async function sendInvoiceInSession() {
 ```
 
 **Notes:**
+
 - `getEncryptionData()` generates a fresh AES-256 key and IV, then wraps the key with the KSeF SymmetricKeyEncryption certificate (RSA-OAEP). The `encryptionInfo` object contains the base64-encoded encrypted key and IV for the API request.
 - `getFileMetadata()` returns `{ hashSHA: string, fileSize: number }` -- SHA-256 hash (base64) and byte length.
 - Always close the session in a `finally` block to avoid leaving orphan sessions.
@@ -224,6 +227,7 @@ async function queryInvoices() {
 ```
 
 **Notes:**
+
 - `withSubjectType()` and `withDateRange()` are required -- the builder will throw if they are missing.
 - `InvoiceSubjectType` values: `'Subject1'` (seller), `'Subject2'` (buyer), `'Subject3'` (other party), `'SubjectAuthorized'` (authorized subject).
 - `pageOffset` and `pageSize` are optional in `queryInvoiceMetadata()`. If omitted, the API uses its defaults.
@@ -292,6 +296,7 @@ async function managePermissions() {
 ```
 
 **Notes:**
+
 - `PersonPermissionGrantBuilder.withSubjectIdentifier()` accepts a `PermissionSubjectIdentifierType` (`'Nip'`, `'Pesel'`, or `'Fingerprint'`) and a value.
 - Available `PersonPermissionType` values: `'InvoiceRead'`, `'InvoiceWrite'`, `'CredentialsRead'`, `'CredentialsManage'`, `'EnforcementOperations'`, `'SubunitManage'`, `'Introspection'`.
 - Use `revokeCommonGrant()` for person/entity/subunit grants, and `revokeAuthorizationGrant()` for authorization grants.
@@ -375,6 +380,7 @@ async function generateQrCodes() {
 ```
 
 **Notes:**
+
 - `QrCodeService` methods are all static -- no instance needed.
 - `buildInvoiceVerificationUrl()` accepts `Date` objects or ISO date strings for the issue date. Internally, it formats the date as `DD-MM-YYYY` and converts the hash to base64url encoding.
 - `QrCodeOptions` fields are all optional: `width` (default 300), `margin` (default 2), `errorCorrectionLevel` (default `'M'`, options: `'L'`, `'M'`, `'Q'`, `'H'`).
@@ -429,6 +435,7 @@ async function generateTestCertificate() {
 ```
 
 **Notes:**
+
 - `CertificateService` methods are all static.
 - `generatePersonalCertificate()` creates a certificate with subject fields: `givenName`, `surname`, `serialNumber`, `CN`, and `C=PL`.
 - `generateCompanySeal()` creates a certificate with subject fields: `O`, `organizationIdentifier`, `CN`, and `C=PL`.
@@ -505,6 +512,7 @@ async function exportWorkflow() {
 ```
 
 **Notes:**
+
 - Workflow functions accept a `KSeFClient` instance as the first argument — they don't create their own client.
 - `openSendAndClose()` handles the full lifecycle: open session → send all invoices → close → poll for UPO.
 - `exportAndDownload()` initiates export, polls until ready, downloads all parts, and decrypts them with AES-256-CBC.
@@ -581,6 +589,7 @@ async function buildAndSendFa3() {
 ```
 
 **Notes:**
+
 - `serializeInvoiceXml()` is polymorphic: typed `FakturaInput` / `PefUblDocumentInput` objects dispatch to the right builder, while `Buffer` and `string` inputs are passed through (no reordering, no validation — `Buffer` is returned by reference).
 - Default schema for `FakturaInput` is FA3. Pass `{ schema: 'FA2' }` in `options` to target the legacy schema.
 - For PEF (UBL) invoices, use `{ Invoice: { ... } }` or `{ CreditNote: { ... } }` — the schema is inferred from the root key.

@@ -485,6 +485,7 @@ type InvoiceType =
 ```
 
 `InvoiceSubjectType` defines the taxpayer's role:
+
 - `Subject1` -- seller (invoices issued)
 - `Subject2` -- buyer (invoices received)
 - `Subject3` -- third party (intermediary)
@@ -692,6 +693,7 @@ type IndirectPermissionsTargetIdentifierType = 'Nip' | 'AllPartners' | 'Internal
 KSeF authentication tokens (not to be confused with JWT access tokens from the auth ceremony).
 
 Key types:
+
 - `KsefTokenRequest` -- create a token with description and permission scopes
 - `KsefTokenResponse` -- returns `referenceNumber` + `token`
 - `AuthenticationKsefToken` -- full token details including status, permissions, usage dates
@@ -706,6 +708,7 @@ Key types:
 Certificate enrollment and management for KSeF internal certificates.
 
 Key types:
+
 - `EnrollCertificateRequest` -- name, type (`'Authentication' | 'Offline'`), CSR (PEM), validFrom
 - `CertificateLimitsResponse` -- enrollment and certificate limits with remaining counts
 - `CertificateEnrollmentDataResponse` -- X.500 subject fields for CSR generation
@@ -749,6 +752,7 @@ interface LighthouseMessage {
 Effective rate limits and session context limits, plus override types for the test environment.
 
 Key types:
+
 - `EffectiveApiRateLimits` -- per-second/minute/hour limits for 12 endpoint categories
 - `EffectiveContextLimits` -- max invoice size and count for online/batch sessions
 - `EffectiveSubjectLimits` -- enrollment and certificate limits per subject
@@ -780,6 +784,7 @@ interface QueryPeppolProvidersResponse {
 Types for seeding test data in the KSeF TEST environment: subjects, persons, permissions, attachment permissions, and authentication blocking.
 
 Key types:
+
 - `SubjectCreateRequest` -- create test subjects (with optional subunits)
 - `PersonCreateRequest` -- create test persons (NIP, PESEL, bailiff flag)
 - `TestDataPermissionsGrantRequest` -- grant test permissions
@@ -920,7 +925,7 @@ All types are aligned with the KSeF OpenAPI spec (build 2.3.0-te, `docs/open-api
 | `exceptionCode` | `exceptionCode` | Not `exceptionDetailCode` |
 | `Credentials*` (plural) | `CredentialsRead`, `CredentialsManage` | Not `CredentialRead` |
 | `Introspection` | `Introspection` | Not `SelfInvoicing` (which is an `InvoicePermissionType`) |
-| `SubjectIdentifierType` values | `'Nip' | 'Pesel' | 'Fingerprint'` | Both auth and permissions use these same values |
+| `SubjectIdentifierType` values | `'Nip' \| 'Pesel' \| 'Fingerprint'` | Both auth and permissions use these same values |
 
 Enum values use PascalCase matching the OpenAPI spec exactly (e.g., `'InvoiceRead'` not `'invoice_read'`, `'VatGroupSubUnit'` not `'VAT_GROUP_SUB_UNIT'`).
 

@@ -118,6 +118,7 @@ const result = await authenticateWithToken(client, {
 ```
 
 Internally:
+
 1. `getChallenge()` → receives a challenge string and timestamp
 2. `crypto.init()` → fetches and caches KSeF public certificates
 3. `encryptKsefToken(token, timestamp)` → encrypts the token with KSeF RSA-OAEP or ECDH+AES-GCM (auto-detected)
@@ -338,6 +339,7 @@ Input: raw ZIP (Uint8Array)
 | `BATCH_MAX_PARTS` | 50 | `src/builders/batch-file.ts` |
 
 **Two types of hashes:**
+
 - `batchFile.fileHash` — SHA-256 of the **original unencrypted ZIP** (sent in `OpenBatchSessionRequest` so KSeF can verify integrity after decryption)
 - `fileParts[i].fileHash` — SHA-256 of the **encrypted part** (sent alongside each part so KSeF can verify upload integrity)
 
@@ -424,6 +426,7 @@ const extracted = await exportAndDownload(client, filters, {
 ```
 
 The function has two overloads:
+
 - `extract: true` → returns `ExportExtractedResult` with `files: Map<string, Buffer>`
 - Default (no extract / `extract: false`) → returns `ExportDownloadResult` with `decryptedParts: Uint8Array[]`
 
@@ -522,6 +525,7 @@ console.log(`Downloaded ${result.decryptedParts.length} parts`);
 ### Loop termination
 
 The loop stops when any of these is true:
+
 1. `!result.isTruncated` — all data retrieved within the window
 2. `effectiveFrom === previousFrom` — continuation point didn't advance (no new data)
 3. `iteration >= maxIterations` — safety limit reached
@@ -546,6 +550,7 @@ deduplicateByKsefNumber(entries);
 ```
 
 `updateContinuationPoint` logic:
+
 - If truncated: save `lastPermanentStorageDate` (the date of the last invoice in the batch)
 - If not truncated: save `permanentStorageHwmDate` (the server-reported high-water mark)
 - If neither date is available: delete the point (reset to window start)

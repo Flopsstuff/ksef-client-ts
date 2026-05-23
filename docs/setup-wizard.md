@@ -35,6 +35,7 @@ After completion, you have a fully configured CLI ready to send invoices and man
 The wizard prompts for your NIP (10-digit Polish tax identification number) and validates it using the NIP checksum algorithm.
 
 The environment is resolved in this order:
+
 1. `--env` argument (if provided)
 2. Current value from `~/.ksef/config.json`
 3. Default: `prod`
@@ -75,8 +76,8 @@ For demo and production environments (or if you decline self-signed auth on test
 └─────────────────────────────────────────────────────────┘
 ```
 
-5. Prompts for the path to the signed XML file
-6. Submits the signed XML to KSeF and completes authentication
+1. Prompts for the path to the signed XML file
+2. Submits the signed XML to KSeF and completes authentication
 
 If authentication fails (e.g., expired challenge or invalid signature), the wizard offers to retry with a fresh challenge.
 

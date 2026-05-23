@@ -266,6 +266,7 @@ const type = SchemaRegistry.detect(
 | `FUTURE_INVOICE_DATE` | 3 | Invoice date (P_1) is in the future — KSeF rejects such invoices with status 445 |
 
 Each error includes:
+
 - `code` -- classification from the table above
 - `message` -- human-readable description
 - `path` -- XPath-like location, e.g. `/Faktura/Podmiot1/DaneIdentyfikacyjne/NIP`
@@ -456,6 +457,7 @@ Structure: NNNNNNNNNN-YYYYMMDD-HHHHHH-HHHHHH-CC
 ```
 
 The V35 and V36 patterns also accept alternative identifier prefixes beyond NIP:
+
 - `M\d{9}` -- municipality identifiers
 - `[A-Z]{3}\d{7}` -- three-letter-prefix identifiers
 
@@ -781,6 +783,7 @@ Validation is used across the library at three levels: builders, HTTP policies, 
 Every builder in `src/builders/` calls validation logic in its `build()` method. The pattern is consistent: check required fields, validate formats/constraints, throw `KSeFValidationError` on failure.
 
 **`AuthTokenRequestBuilder`** (`src/builders/auth-token-request.ts`):
+
 ```typescript
 build(): AuthTokenRequest {
   if (!this.challenge) {
@@ -794,6 +797,7 @@ build(): AuthTokenRequest {
 ```
 
 **`BatchFileBuilder`** (`src/builders/batch-file.ts`):
+
 ```typescript
 static build(zipBytes: Uint8Array, encryptFn, options?): BatchFileBuildResult {
   if (zipBytes.length === 0) {
@@ -807,6 +811,7 @@ static build(zipBytes: Uint8Array, encryptFn, options?): BatchFileBuildResult {
 ```
 
 **Permission builders** (`src/builders/permissions/person-permission.ts`, `entity-permission.ts`, `authorization-permission.ts`):
+
 ```typescript
 build(): GrantPermissionsPersonRequest {
   if (!this.subjectIdentifier) {
@@ -820,6 +825,7 @@ build(): GrantPermissionsPersonRequest {
 ```
 
 **`InvoiceQueryFilterBuilder`** (`src/builders/invoice-query-filter.ts`):
+
 ```typescript
 build(): InvoiceQueryFilters {
   if (!this.subjectType) {

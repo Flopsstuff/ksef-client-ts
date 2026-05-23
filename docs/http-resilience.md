@@ -129,6 +129,7 @@ private async doRequest(request: RestRequest, url: string, overrideToken?: strin
 ```
 
 Priority for `Authorization` header:
+
 1. Explicit `request.accessToken('...')` — used for challenge/redeem flows that use a different token
 2. `overrideToken` — passed after auth refresh
 3. `authManager.getAccessToken()` — the stored session token
@@ -224,6 +225,7 @@ The rate limiter uses a token bucket algorithm. Each bucket starts full and refi
 ```
 
 **Key properties:**
+
 - **Burst capacity** = `maxTokens` = RPS. A fresh bucket allows a burst of RPS requests instantly.
 - **Sustained rate** = RPS requests per second. After the burst, requests are spaced by `1000/rps` ms.
 - **No rejection** — `acquire()` always resolves, it just delays until a token is available.
@@ -432,6 +434,7 @@ if (response.status === 401 && this.authManager && attempt === 0 && !request.isS
 ```
 
 Guard conditions:
+
 - `attempt === 0` — only on the first attempt, not during retries
 - `!request.isSkipAuthRetry()` — skipped for auth endpoints themselves (prevents infinite loops: refresh → 401 → refresh → 401 → ...)
 - If `onUnauthorized()` returns `null` (refresh failed), the 401 falls through to `ensureSuccess()` which throws `KSeFUnauthorizedError`
@@ -516,6 +519,7 @@ This prevents open redirect attacks where a valid host returns a 302 to a malici
 DNS rebinding defense. If the hostname resolves to a private/reserved IP, the request is blocked:
 
 **IPv4:**
+
 | Range | Type |
 |-------|------|
 | `127.0.0.0/8` | Loopback |
@@ -525,6 +529,7 @@ DNS rebinding defense. If the hostname resolves to a private/reserved IP, the re
 | `169.254.0.0/16` | Link-local |
 
 **IPv6:**
+
 | Range | Type |
 |-------|------|
 | `::1` | Loopback |

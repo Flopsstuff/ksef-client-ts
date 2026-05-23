@@ -56,6 +56,7 @@ yarn vitest run tests/unit/services/auth.test.ts   # Single file
 ### Zero Secrets
 
 All tests use **self-signed certificate authentication**:
+
 1. Generate a random valid NIP
 2. Generate a self-signed RSA company seal certificate with `VATPL-{NIP}` in Subject DN
 3. Sign an XAdES auth request and submit to KSeF
@@ -108,6 +109,7 @@ Placeholders: `#nip#`, `#invoicing_date#`, `#invoice_number#`.
 ### How Token Auth Test Works (02)
 
 Since no env vars are available, the test bootstraps its own token:
+
 1. `beforeAll`: authenticate via cert, call `tokens.generateToken()`, save the token string
 2. Tests use the generated token for `loginWithToken`, manual step-by-step flow, and refresh
 
@@ -123,6 +125,7 @@ Since no env vars are available, the test bootstraps its own token:
 ## CI
 
 GitHub Actions workflow at `.github/workflows/ci.yml` (consolidated):
+
 - Triggers: push to `main` (src/tests changes), pull requests, manual dispatch
 - **Unit tests**: Node 18/20/22 matrix, coverage badge via gist
 - **E2E tests**: against KSeF TEST environment, 30min timeout, no secrets required

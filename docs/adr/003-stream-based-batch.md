@@ -40,6 +40,7 @@ The whole point of streaming is constant memory. Concurrent uploads would requir
 ### TransformStream wrapper for node:crypto cipher
 
 `encryptAES256Stream()` creates a `TransformStream` wrapping a `node:crypto` `Cipher`:
+
 - `transform(chunk)`: `cipher.update(chunk)` -> enqueue
 - `flush()`: `cipher.final()` -> enqueue (PKCS7 padding)
 
@@ -50,6 +51,7 @@ Clean composition: `sourceStream.pipeThrough(encryptTransform)` produces a `Read
 Each part (up to 100 MB) is buffered in memory to compute its hash before upload. True zero-copy would require complex async coordination (hash needs all bytes before upload can set headers).
 
 **Memory profile:**
+
 - In-memory path: O(zip_size + all_encrypted_parts) — can be ~2x total size
 - Stream path: **O(max_part_size)** — at most 100 MB at any point
 

@@ -155,6 +155,7 @@ static build(
 ```
 
 **Parameters:**
+
 - `zipBytes` — Raw unencrypted ZIP data
 - `encryptFn` — Encryption function called once per part (typically `crypto.encryptAES256(part, key, iv)`)
 - `options.maxPartSize` — Override default 100 MB limit
@@ -181,6 +182,7 @@ interface BatchFilePartInfo {
 ```
 
 **Validation (throws `KSeFValidationError`):**
+
 - `maxPartSize <= 0`
 - `zipBytes.length === 0` (empty ZIP)
 - `zipBytes.length > 5 GB`
