@@ -220,8 +220,7 @@ The validator detects the invoice schema type from the root element's XML namesp
 |-----------|--------|-------------|
 | `http://crd.gov.pl/wzor/2025/06/25/13775/` | FA3 | `Faktura` |
 | `http://crd.gov.pl/wzor/2023/06/29/12648/` | FA2 | `Faktura` |
-| `http://crd.gov.pl/wzor/2026/03/06/14189/` | RR1_V11E | `Faktura` |
-| `http://crd.gov.pl/wzor/2026/02/17/14164/` | RR1_V10E | `Faktura` |
+| `http://crd.gov.pl/wzor/2026/03/06/14189/` | FA_RR1 | `Faktura` |
 | `urn:oasis:names:specification:ubl:schema:xsd:Invoice-2` | PEF3 | `Invoice` |
 | `urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2` | PEF_KOR3 | `CreditNote` |
 
@@ -236,7 +235,7 @@ import { SchemaRegistry } from 'ksef-client-ts';
 
 // List all available schemas
 SchemaRegistry.availableSchemas();
-// ['FA3', 'FA2', 'RR1_V11E', 'RR1_V10E', 'PEF3', 'PEF_KOR3']
+// ['FA3', 'FA2', 'FA_RR1', 'PEF3', 'PEF_KOR3']
 
 // Load a schema (lazy, cached after first load)
 const schema = await SchemaRegistry.get('FA3');
@@ -279,8 +278,7 @@ This is the build-time half of the [validation pipeline](#how-it-works). The gen
 |------|-----------|-------|
 | `fa3.ts` | `FA/schemat_FA(3)_v1-0E.xsd` | ~113 Zod types |
 | `fa2.ts` | `FA/schemat_FA(2)_v1-0E.xsd` | ~111 Zod types |
-| `rr1-v11e.ts` | `RR/schemat_FA_RR(1)_v1-1E.xsd` | ~102 Zod types |
-| `rr1-v10e.ts` | `RR/schemat_FA_RR(1)_v1-0E.xsd` | ~102 Zod types |
+| `fa-rr1.ts` | `RR/schemat_FA_RR(1)_v1-1E.xsd` | ~102 Zod types |
 | `pef3.ts` | `PEF/Schemat_PEF(3)_v2-1.xsd` | Wrapper-level validation |
 | `pef-kor3.ts` | `PEF/Schemat_PEF_KOR(3)_v2-1.xsd` | Wrapper-level validation |
 

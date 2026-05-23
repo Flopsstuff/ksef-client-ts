@@ -24,8 +24,7 @@ async function loadSchema(type: SchemaType): Promise<ZodType> {
   switch (type) {
     case 'FA3':     mod = await import('./schemas/fa3.js'); break;
     case 'FA2':     mod = await import('./schemas/fa2.js'); break;
-    case 'RR1_V11E': mod = await import('./schemas/rr1-v11e.js'); break;
-    case 'RR1_V10E': mod = await import('./schemas/rr1-v10e.js'); break;
+    case 'FA_RR1': mod = await import('./schemas/fa-rr1.js'); break;
     case 'PEF3':    mod = await import('./schemas/pef3.js'); break;
     case 'PEF_KOR3': mod = await import('./schemas/pef-kor3.js'); break;
     default: throw new Error(`Unknown schema type: ${type}`);
@@ -52,7 +51,7 @@ export const SchemaRegistry = {
    * List all available schema types.
    */
   availableSchemas(): SchemaType[] {
-    return ['FA3', 'FA2', 'RR1_V11E', 'RR1_V10E', 'PEF3', 'PEF_KOR3'];
+    return ['FA3', 'FA2', 'FA_RR1', 'PEF3', 'PEF_KOR3'];
   },
 
   /**

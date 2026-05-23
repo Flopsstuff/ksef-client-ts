@@ -476,7 +476,7 @@ type InvoiceSubjectType = 'Subject1' | 'Subject2' | 'Subject3' | 'SubjectAuthori
 type InvoiceQueryDateType = 'Issue' | 'Invoicing' | 'PermanentStorage';
 type AmountType = 'Brutto' | 'Netto' | 'Vat';
 type BuyerIdentifierType = 'Nip' | 'VatUe' | 'Other' | 'None';
-type FormType = 'FA' | 'PEF' | 'RR' | 'FA_RR';
+type FormType = 'FA' | 'PEF' | 'FA_RR';
 
 type InvoiceType =
   | 'Vat' | 'Zal' | 'Kor' | 'Roz' | 'Upr' | 'KorZal' | 'KorRoz'

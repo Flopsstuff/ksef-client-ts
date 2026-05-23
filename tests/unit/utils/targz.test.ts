@@ -80,4 +80,23 @@ describe('targz', () => {
       extractTarGz(archive, { maxFileUncompressedSize: 100, maxTotalUncompressedSize: 1_000_000 }),
     ).rejects.toThrow('tar.gz entry exceeds max_file_uncompressed_size');
   });
+
+  it('enforces the max-compression-ratio limit', async () => {
+    // Highly compressible payload: the gzipped archive is tiny relative to the
+    // decompressed bytes, so a low ratio ceiling must trip before size limits do.
+    const archive = await createTarGz([{ fileName: 'bomb.xml', content: Buffer.alloc(100_000, 'a') }]);
+    await expect(
+      extractTarGz(archive, {
+        maxCompressionRatio: 5,
+        maxTotalUncompressedSize: 1_000_000_000,
+        maxFileUncompressedSize: 1_000_000_000,
+      }),
+    ).rejects.toThrow('tar.gz exceeds max_compression_ratio');
+  });
+
+  it('allows disabling the compression-ratio check with null', async () => {
+    const archive = await createTarGz([{ fileName: 'bomb.xml', content: Buffer.alloc(100_000, 'a') }]);
+    const files = await extractTarGz(archive, { maxCompressionRatio: null });
+    expect(files.get('bomb.xml')?.length).toBe(100_000);
+  });
 });

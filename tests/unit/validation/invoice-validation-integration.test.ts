@@ -103,17 +103,17 @@ describe('FA_RR(1) invoice validation', () => {
   it('passes well-formedness check', () => {
     const result = validateWellFormedness(xml);
     expect(result.valid).toBe(true);
-    expect(result.schemaType).toBe('RR1_V11E');
+    expect(result.schemaType).toBe('FA_RR1');
   });
 
-  it('auto-detects RR1_V11E schema from namespace', () => {
+  it('auto-detects FA_RR1 schema from namespace', () => {
     const result = validateWellFormedness(xml);
-    expect(result.schemaType).toBe('RR1_V11E');
+    expect(result.schemaType).toBe('FA_RR1');
   });
 
   it('passes schema validation', async () => {
     const result = await validateSchema(xml);
-    expect(result.schemaType).toBe('RR1_V11E');
+    expect(result.schemaType).toBe('FA_RR1');
     if (!result.valid) {
       console.log('Schema errors:', JSON.stringify(result.errors, null, 2));
     }
@@ -132,7 +132,7 @@ describe('FA_RR(1) invoice validation', () => {
       console.log('Validation errors:', JSON.stringify(result.errors, null, 2));
     }
     expect(result.valid).toBe(true);
-    expect(result.schemaType).toBe('RR1_V11E');
+    expect(result.schemaType).toBe('FA_RR1');
   });
 });
 

@@ -3,10 +3,16 @@ import { Readable } from 'node:stream';
 import { extract, pack } from 'tar-stream';
 import type { ZipEntryInput, UnzipOptions } from './zip.js';
 
-const DEFAULT_LIMITS: Required<Pick<UnzipOptions, 'maxFiles' | 'maxTotalUncompressedSize' | 'maxFileUncompressedSize'>> = {
+type TarGzLimits = Pick<
+  UnzipOptions,
+  'maxFiles' | 'maxTotalUncompressedSize' | 'maxFileUncompressedSize' | 'maxCompressionRatio'
+>;
+
+const DEFAULT_LIMITS: Required<TarGzLimits> = {
   maxFiles: 10_000,
   maxTotalUncompressedSize: 2_000_000_000,
   maxFileUncompressedSize: 500_000_000,
+  maxCompressionRatio: 200,
 };
 
 /**
@@ -61,13 +67,20 @@ export async function createTarGz(entries: ZipEntryInput[]): Promise<Buffer> {
  * level (so an archive that inflates massively before the tar layer even sees a
  * full entry is stopped) and per-entry; `maxFileUncompressedSize` is enforced
  * incrementally while an individual entry streams in; `maxFiles` caps the entry
- * count.
+ * count. `maxCompressionRatio` caps the ratio of total decompressed bytes to the
+ * compressed archive size (gzip is a single stream, so the ratio is measured over
+ * the whole archive rather than per entry); pass `null` to disable it.
  */
 export async function extractTarGz(
   buffer: Buffer,
-  options: Pick<UnzipOptions, 'maxFiles' | 'maxTotalUncompressedSize' | 'maxFileUncompressedSize'> = {},
+  options: TarGzLimits = {},
 ): Promise<Map<string, Buffer>> {
   const limits = { ...DEFAULT_LIMITS, ...options };
+  // Guard against ratio checks when the compressed size is unknown/zero.
+  const ratioCeiling =
+    limits.maxCompressionRatio !== null && limits.maxCompressionRatio !== undefined && buffer.length > 0
+      ? buffer.length * limits.maxCompressionRatio
+      : null;
 
   return new Promise((resolve, reject) => {
     const source = Readable.from(buffer);
@@ -102,6 +115,10 @@ export async function extractTarGz(
       totalUncompressed += chunk.length;
       if (limits.maxTotalUncompressedSize > 0 && totalUncompressed > limits.maxTotalUncompressedSize) {
         fail(new Error('tar.gz exceeds max_total_uncompressed_size'));
+        return;
+      }
+      if (ratioCeiling !== null && totalUncompressed > ratioCeiling) {
+        fail(new Error('tar.gz exceeds max_compression_ratio'));
       }
     });
 
