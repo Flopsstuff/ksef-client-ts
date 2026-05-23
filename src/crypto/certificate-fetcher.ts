@@ -8,8 +8,8 @@ import type {
 
 /** A selected encryption certificate: its PEM plus the key-rotation selector. */
 export interface SelectedCertificate {
-  pem: string;
-  publicKeyId: string;
+  readonly pem: string;
+  readonly publicKeyId: string;
 }
 
 export class CertificateFetcher {
@@ -38,13 +38,13 @@ export class CertificateFetcher {
    * by {@link refresh}, never mutated, so holding the returned reference yields a
    * consistent pem + publicKeyId pair even if a concurrent refresh swaps the cache.
    */
-  getSymmetricKeyEncryption(): SelectedCertificate {
-    return this.requireSelected(this.symmetricKey);
+  getSymmetricKeyEncryption(): Readonly<SelectedCertificate> {
+    return { ...this.requireSelected(this.symmetricKey) };
   }
 
   /** Immutable snapshot of the selected KsefTokenEncryption certificate. See {@link getSymmetricKeyEncryption}. */
-  getKsefTokenEncryption(): SelectedCertificate {
-    return this.requireSelected(this.ksefToken);
+  getKsefTokenEncryption(): Readonly<SelectedCertificate> {
+    return { ...this.requireSelected(this.ksefToken) };
   }
 
   getSymmetricKeyEncryptionPem(): string {
