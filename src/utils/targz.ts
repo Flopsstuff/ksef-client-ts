@@ -87,6 +87,9 @@ export async function extractTarGz(
     const gunzip = createGunzip();
     const extractor = extract();
     const files = new Map<string, Buffer>();
+    // Count every entry independently of the Map: duplicate filenames collapse
+    // into one key, so files.size would under-count and let maxFiles be bypassed.
+    let extractedFileCount = 0;
     let totalUncompressed = 0;
     let settled = false;
 
@@ -132,7 +135,7 @@ export async function extractTarGz(
         stream.on('end', next);
         return;
       }
-      if (limits.maxFiles > 0 && files.size >= limits.maxFiles) {
+      if (limits.maxFiles > 0 && extractedFileCount >= limits.maxFiles) {
         fail(new Error('tar.gz contains too many files'));
         return;
       }
@@ -151,6 +154,7 @@ export async function extractTarGz(
       stream.on('error', fail);
       stream.on('end', () => {
         if (settled) return;
+        extractedFileCount += 1;
         files.set(header.name, Buffer.concat(chunks));
         next();
       });

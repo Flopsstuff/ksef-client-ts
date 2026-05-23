@@ -41,6 +41,17 @@ describe('targz', () => {
     await expect(extractTarGz(archive, { maxFiles: 2 })).rejects.toThrow('too many files');
   });
 
+  it('counts duplicate filenames toward the max-files limit', async () => {
+    // Same name three times: the extracted Map collapses to one key, so the
+    // guard must track entry count independently or it would never trip.
+    const entries = Array.from({ length: 3 }, () => ({
+      fileName: 'dup.xml',
+      content: Buffer.from('x'),
+    }));
+    const archive = await createTarGz(entries);
+    await expect(extractTarGz(archive, { maxFiles: 2 })).rejects.toThrow('too many files');
+  });
+
   it('enforces the max-file-uncompressed-size limit', async () => {
     const archive = await createTarGz([{ fileName: 'big.xml', content: Buffer.from('0123456789') }]);
     await expect(extractTarGz(archive, { maxFileUncompressedSize: 5 })).rejects.toThrow(
