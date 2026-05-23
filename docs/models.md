@@ -1,6 +1,6 @@
 # Models & Type System
 
-Complete reference for the model layer that defines every request, response, enum, and identifier type used by the KSeF client. All types are derived from the KSeF OpenAPI spec (build 2.3.0-te) and organized by API domain.
+Complete reference for the model layer that defines every request, response, enum, and identifier type used by the KSeF client. All types are derived from the KSeF OpenAPI spec (API v2.6.0, build 2.5.0-te) and organized by API domain.
 
 ---
 
@@ -917,7 +917,7 @@ The `Permission` prefix prevents collision with the auth-domain identifier type 
 
 ## OpenAPI Alignment
 
-All types are aligned with the KSeF OpenAPI spec (build 2.3.0-te, `docs/open-api.json`). Key alignment decisions:
+All types are aligned with the KSeF OpenAPI spec (API v2.6.0, build 2.5.0-te, `docs/open-api.json`). Key alignment decisions:
 
 | OpenAPI spec | TypeScript type | Note |
 |---|---|---|
