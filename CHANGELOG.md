@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Changed (breaking)
 
 - **Removed the deprecated `RR` invoice form type** — use `FA_RR` for farmer invoices instead (KSeF API v2.5.0).
+- **Renamed the farmer-invoice validation schema identifier** — `RR1_V11E` is now `FA_RR1`, and the obsolete `RR1_V10E` variant was dropped.
 
 ### Added
 
