@@ -43,6 +43,40 @@ function createClient(transport: TransportFn, config?: Partial<RestClientConfig>
 }
 
 describe('RestClient', () => {
+  describe('X-System-Warning', () => {
+    it('invokes onSystemWarning with the raw header value when present', async () => {
+      const onSystemWarning = vi.fn();
+      const transport = vi.fn<TransportFn>().mockResolvedValue(
+        mockResponse(200, { ok: true }, { 'X-System-Warning': '[123]: deprecated field' }),
+      );
+      const client = createClient(transport, { onSystemWarning });
+
+      await client.execute(RestRequest.get('/test'));
+
+      expect(onSystemWarning).toHaveBeenCalledWith('[123]: deprecated field');
+    });
+
+    it('does not invoke the callback when the header is absent', async () => {
+      const onSystemWarning = vi.fn();
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(200, { ok: true }));
+      const client = createClient(transport, { onSystemWarning });
+
+      await client.execute(RestRequest.get('/test'));
+
+      expect(onSystemWarning).not.toHaveBeenCalled();
+    });
+
+    it('does not affect the operation result', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(
+        mockResponse(200, { ok: true }, { 'X-System-Warning': 'heads up' }),
+      );
+      const client = createClient(transport);
+
+      const result = await client.execute<{ ok: boolean }>(RestRequest.get('/test'));
+      expect(result.body).toEqual({ ok: true });
+    });
+  });
+
   describe('retry integration', () => {
     it('retries on 503 then succeeds', async () => {
       const transport = vi.fn<TransportFn>()

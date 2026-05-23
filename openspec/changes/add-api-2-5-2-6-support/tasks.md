@@ -36,15 +36,15 @@
 
 ## 5. X-System-Warning handler
 
-- [ ] 5.1 Add optional `onSystemWarning?: (warning: string) => void` to `RestClient` options.
-- [ ] 5.2 In `RestClient.execute()` (`src/http/rest-client.ts`), read the `X-System-Warning` response header; invoke the callback with the raw value if configured, else log at warn level. Never alter result.
-- [ ] 5.3 Document the callback in the resilience/options docs section.
-- [ ] 5.4 Unit tests: callback fires with raw value when header present; warn-log fallback; not called when absent (`tests/unit/http/rest-client.test.ts`).
+- [x] 5.1 Add optional `onSystemWarning?: (warning: string) => void` to `RestClient` options.
+- [x] 5.2 In `RestClient.execute()` (`src/http/rest-client.ts`), read the `X-System-Warning` response header; invoke the callback with the raw value if configured, else log at warn level. Never alter result.
+- [x] 5.3 Document the callback in the resilience/options docs section.
+- [x] 5.4 Unit tests: callback fires with raw value when header present; warn-log fallback; not called when absent (`tests/unit/http/rest-client.test.ts`).
 
 ## 6. AuthTokenRequest schema 2.1
 
-- [ ] 6.1 Bump `AUTH_TOKEN_REQUEST_NS` to `http://ksef.mf.gov.pl/auth/token/2.1` in `src/crypto/auth-xml-builder.ts:10` (no config flag).
-- [ ] 6.2 Update `tests/unit/crypto/auth-xml-builder.test.ts` assertions to expect the 2.1 namespace.
+- [x] 6.1 Bump `AUTH_TOKEN_REQUEST_NS` to `http://ksef.mf.gov.pl/auth/token/2.1` in `src/crypto/auth-xml-builder.ts:10` (no config flag).
+- [x] 6.2 Update `tests/unit/crypto/auth-xml-builder.test.ts` assertions to expect the 2.1 namespace.
 
 ## 7. Release wrap-up
 

@@ -571,6 +571,21 @@ The dispatch order (429 > 401 > 403 > generic) is intentional. A 429 that also h
 
 ---
 
+## System Warnings
+
+**Config:** `onSystemWarning?: (warning: string) => void` on `RestClientConfig`
+
+KSeF API v2.6.0 may return an optional `X-System-Warning` response header carrying non-fatal technical warnings (for example, a deprecated field that may be rejected in a future release). The warning never affects the operation result.
+
+After a successful response, `RestClient` reads the header and:
+
+- invokes the configured `onSystemWarning` callback with the raw header value, or
+- logs it at `warn` level when no callback is configured.
+
+The raw value is passed through unparsed (format `[code]: message | [code]: message`). On the KSeF TEST environment a warning can be forced with the `X-Test-System-Warning` request header.
+
+---
+
 ## RestRequest Builder
 
 **File:** `src/http/rest-request.ts`

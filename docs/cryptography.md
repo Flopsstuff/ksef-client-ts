@@ -701,7 +701,7 @@ interface AuthTokenRequestXmlOptions {
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
-<AuthTokenRequest xmlns="http://ksef.mf.gov.pl/auth/token/2.0">
+<AuthTokenRequest xmlns="http://ksef.mf.gov.pl/auth/token/2.1">
   <Challenge>...</Challenge>
   <ContextIdentifier>
     <Nip>1234567890</Nip>

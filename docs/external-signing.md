@@ -124,7 +124,7 @@ const unsignedXml: string = buildUnsignedAuthTokenRequestXml(options);
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
-<AuthTokenRequest xmlns="http://ksef.mf.gov.pl/auth/token/2.0">
+<AuthTokenRequest xmlns="http://ksef.mf.gov.pl/auth/token/2.1">
   <Challenge>abc123-challenge-from-ksef</Challenge>
   <ContextIdentifier>
     <Nip>1234567890</Nip>
@@ -280,7 +280,7 @@ The signed XML must have a `ds:Signature` element appended as a child of the roo
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
-<AuthTokenRequest xmlns="http://ksef.mf.gov.pl/auth/token/2.0">
+<AuthTokenRequest xmlns="http://ksef.mf.gov.pl/auth/token/2.1">
   <Challenge>...</Challenge>
   <ContextIdentifier>
     <Nip>1234567890</Nip>

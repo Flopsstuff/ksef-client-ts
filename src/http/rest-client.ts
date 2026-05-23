@@ -43,6 +43,12 @@ export interface RestClientConfig {
   circuitBreakerPolicy?: CircuitBreakerPolicy | null;
   authManager?: AuthManager;
   presignedUrlPolicy?: PresignedUrlPolicy;
+  /**
+   * Invoked with the raw `X-System-Warning` response header value when present
+   * (KSeF API v2.6.0). Advisory only — does not affect the operation result.
+   * When omitted, warnings are logged at warn level.
+   */
+  onSystemWarning?: (warning: string) => void;
 }
 
 export class RestClient {
@@ -54,6 +60,7 @@ export class RestClient {
   private readonly circuitBreakerPolicy: CircuitBreakerPolicy | null;
   private readonly authManager?: AuthManager;
   private readonly presignedUrlPolicy?: PresignedUrlPolicy;
+  private readonly onSystemWarning?: (warning: string) => void;
 
   constructor(options: ResolvedOptions, config?: RestClientConfig) {
     this.options = options;
@@ -64,11 +71,13 @@ export class RestClient {
     this.circuitBreakerPolicy = config?.circuitBreakerPolicy ?? null;
     this.authManager = config?.authManager;
     this.presignedUrlPolicy = config?.presignedUrlPolicy;
+    this.onSystemWarning = config?.onSystemWarning;
   }
 
   async execute<T>(request: RestRequest): Promise<RestResponse<T>> {
     const response = await this.sendRequest(request);
     await this.ensureSuccess(response);
+    this.handleSystemWarning(response);
     const body = (await response.json()) as T;
     return { body, headers: response.headers, statusCode: response.status };
   }
@@ -76,13 +85,26 @@ export class RestClient {
   async executeVoid(request: RestRequest): Promise<void> {
     const response = await this.sendRequest(request);
     await this.ensureSuccess(response);
+    this.handleSystemWarning(response);
   }
 
   async executeRaw(request: RestRequest): Promise<RestResponse<ArrayBuffer>> {
     const response = await this.sendRequest(request);
     await this.ensureSuccess(response);
+    this.handleSystemWarning(response);
     const body = await response.arrayBuffer();
     return { body, headers: response.headers, statusCode: response.status };
+  }
+
+  /** Surface the optional `X-System-Warning` response header (KSeF API v2.6.0). */
+  private handleSystemWarning(response: Response): void {
+    const warning = response.headers.get('x-system-warning');
+    if (!warning) return;
+    if (this.onSystemWarning) {
+      this.onSystemWarning(warning);
+    } else {
+      consola.warn(`KSeF system warning: ${warning}`);
+    }
   }
 
   private async sendRequest(request: RestRequest): Promise<Response> {

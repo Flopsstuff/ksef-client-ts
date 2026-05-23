@@ -12,6 +12,11 @@ All notable changes to this project will be documented in this file.
 
 - **Encryption key rotation** — the client now selects the currently-valid KSeF public certificate and tags each encrypted request with the key it used, so authentication, sessions, and exports keep working across KSeF key rotations and recover automatically if a key is retired mid-flight (KSeF API v2.5.0).
 - **TarGz compression** — batch uploads and invoice exports can use TarGz archives, which compress collections of similar invoice XML better than ZIP; ZIP remains the default (KSeF API v2.6.0).
+- **System warnings** — non-fatal technical warnings returned by KSeF are now surfaced through an optional callback (or logged), giving applications early notice of behavior that may be rejected in a future API release (KSeF API v2.6.0).
+
+### Changed
+
+- **Authentication request schema 2.1** — the signed authentication request now uses the current KSeF auth token schema; no action needed for existing callers (KSeF API v2.5.0).
 
 ### Fixed
 

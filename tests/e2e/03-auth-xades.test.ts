@@ -9,7 +9,7 @@ import { generateRandomNip } from './helpers/identifiers.js';
 const NIP = generateRandomNip();
 
 function serializeAuthTokenRequest(req: AuthTokenRequest): string {
-  const ns = 'http://ksef.mf.gov.pl/auth/token/2.0';
+  const ns = 'http://ksef.mf.gov.pl/auth/token/2.1';
   const ctx = `<${req.contextIdentifier.type}>${req.contextIdentifier.value}</${req.contextIdentifier.type}>`;
 
   let policy = '';
