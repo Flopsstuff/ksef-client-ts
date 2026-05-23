@@ -39,6 +39,9 @@ export class AuthKsefTokenRequestBuilder {
   }
 
   withPublicKeyId(publicKeyId: string): this {
+    if (!publicKeyId) {
+      throw KSeFValidationError.fromField('publicKeyId', 'Public key id is required');
+    }
     this.publicKeyId = publicKeyId;
     return this;
   }
