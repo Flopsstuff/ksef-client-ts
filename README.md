@@ -88,7 +88,7 @@ yarn test         # Run all tests (vitest)
 
 - [KSeF Web Portal](https://ap.ksef.mf.gov.pl/web/) — official KSeF web application (token management, permissions, invoices)
 - [KSeF official docs](https://github.com/CIRFMF/ksef-docs) — official documentation (Polish)
-- [KSeF docs translated](https://flopsstuff.github.io/ksef-docs/) — translated documentation (EN/RU/UK)
+- [KSeF docs translated](https://flopsstuff.github.io/ksef-docs/) — translated documentation (EN/RU/UK), [source on GitHub](https://github.com/Flopsstuff/ksef-docs)
 - [ksef-client-csharp](https://github.com/CIRFMF/ksef-client-csharp) — official C# reference client
 - [ksef-client-java](https://github.com/CIRFMF/ksef-client-java) — official Java reference client
 
