@@ -6,6 +6,7 @@ import type { BatchPartSendingInfo } from '../models/sessions/batch-types.js';
 import type { BatchUploadResult, ParsedBatchUploadResult, PollOptions } from './types.js';
 import { BatchFileBuilder, type BatchStreamBuildResult } from '../builders/batch-file.js';
 import { pollUntil } from './polling.js';
+import { withKeyRotationRetry } from '../crypto/with-key-rotation-retry.js';
 import { parseUpoXml } from '../xml/index.js';
 
 export interface BatchUploadOptions {
@@ -53,26 +54,30 @@ export async function uploadBatch(
     }
   }
 
-  const encData = await client.crypto.getEncryptionData();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
 
-  // KSeF provides a single (key, IV) pair per session — all parts share it.
-  const encryptFn = (part: Uint8Array) =>
-    client.crypto.encryptAES256(part, encData.cipherKey, encData.cipherIv);
+  const { batchFile, encryptedParts, openResp } = await withKeyRotationRetry(client.crypto, async () => {
+    const encData = await client.crypto.getEncryptionData();
 
-  const { batchFile, encryptedParts } = BatchFileBuilder.build(zipData, encryptFn, {
-    maxPartSize: options?.maxPartSize,
+    // KSeF provides a single (key, IV) pair per session — all parts share it.
+    const encryptFn = (part: Uint8Array) =>
+      client.crypto.encryptAES256(part, encData.cipherKey, encData.cipherIv);
+
+    const { batchFile, encryptedParts } = BatchFileBuilder.build(zipData, encryptFn, {
+      maxPartSize: options?.maxPartSize,
+    });
+
+    const openResp = await client.batchSession.openSession(
+      {
+        formCode,
+        encryption: encData.encryptionInfo,
+        batchFile,
+        offlineMode: options?.offlineMode,
+      },
+      options?.upoVersion,
+    );
+    return { batchFile, encryptedParts, openResp };
   });
-
-  const openResp = await client.batchSession.openSession(
-    {
-      formCode,
-      encryption: encData.encryptionInfo,
-      batchFile,
-      offlineMode: options?.offlineMode,
-    },
-    options?.upoVersion,
-  );
 
   const sendingParts: BatchPartSendingInfo[] = encryptedParts.map((part, i) => ({
     data: part.buffer.slice(part.byteOffset, part.byteOffset + part.byteLength) as ArrayBuffer,
@@ -118,32 +123,36 @@ export async function uploadBatchStream(
     throw new Error('parallelism must be a positive integer');
   }
   await client.crypto.init();
-  const encData = await client.crypto.getEncryptionData();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
 
-  const encryptStreamFn = (stream: ReadableStream<Uint8Array>) =>
-    client.crypto.encryptAES256Stream(stream, encData.cipherKey, encData.cipherIv);
+  const { streamParts, openResp } = await withKeyRotationRetry(client.crypto, async () => {
+    const encData = await client.crypto.getEncryptionData();
 
-  const hashStreamFn = (stream: ReadableStream<Uint8Array>) =>
-    client.crypto.getFileMetadataFromStream(stream);
+    const encryptStreamFn = (stream: ReadableStream<Uint8Array>) =>
+      client.crypto.encryptAES256Stream(stream, encData.cipherKey, encData.cipherIv);
 
-  const { batchFile, streamParts } = await BatchFileBuilder.buildFromStream(
-    zipStreamFactory,
-    zipSize,
-    encryptStreamFn,
-    hashStreamFn,
-    { maxPartSize: options?.maxPartSize },
-  );
+    const hashStreamFn = (stream: ReadableStream<Uint8Array>) =>
+      client.crypto.getFileMetadataFromStream(stream);
 
-  const openResp = await client.batchSession.openSession(
-    {
-      formCode,
-      encryption: encData.encryptionInfo,
-      batchFile,
-      offlineMode: options?.offlineMode,
-    },
-    options?.upoVersion,
-  );
+    const { batchFile, streamParts } = await BatchFileBuilder.buildFromStream(
+      zipStreamFactory,
+      zipSize,
+      encryptStreamFn,
+      hashStreamFn,
+      { maxPartSize: options?.maxPartSize },
+    );
+
+    const openResp = await client.batchSession.openSession(
+      {
+        formCode,
+        encryption: encData.encryptionInfo,
+        batchFile,
+        offlineMode: options?.offlineMode,
+      },
+      options?.upoVersion,
+    );
+    return { streamParts, openResp };
+  });
 
   await client.batchSession.sendPartsWithStream(openResp, streamParts, options?.parallelism);
 

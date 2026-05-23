@@ -97,6 +97,8 @@ export async function getEcPair(curve: EcCurveName = 'P-256'): Promise<CertKeyPa
 export function createMockCertificateFetcher(overrides?: {
   symmetricKeyPem?: string;
   ksefTokenPem?: string;
+  symmetricKeyPublicKeyId?: string;
+  ksefTokenPublicKeyId?: string;
 }): CertificateFetcher {
   return {
     init: vi.fn().mockResolvedValue(undefined),
@@ -106,6 +108,12 @@ export function createMockCertificateFetcher(overrides?: {
     ),
     getKsefTokenEncryptionPem: vi.fn().mockReturnValue(
       overrides?.ksefTokenPem ?? 'PLACEHOLDER',
+    ),
+    getSymmetricKeyPublicKeyId: vi.fn().mockReturnValue(
+      overrides?.symmetricKeyPublicKeyId ?? 'symmetric-public-key-id',
+    ),
+    getKsefTokenPublicKeyId: vi.fn().mockReturnValue(
+      overrides?.ksefTokenPublicKeyId ?? 'ksef-token-public-key-id',
     ),
   } as unknown as CertificateFetcher;
 }
@@ -118,11 +126,14 @@ export function makeCertFixture(
   usage: ('SymmetricKeyEncryption' | 'KsefTokenEncryption')[],
   certDerBase64: string,
   validFrom = '2025-01-01T00:00:00Z',
+  validTo = '2099-01-01T00:00:00Z',
 ): PublicKeyCertificate {
   return {
     certificate: certDerBase64,
+    certificateId: `cert-${certDerBase64.slice(0, 12)}`,
+    publicKeyId: `pk-${certDerBase64.slice(0, 12)}`,
     validFrom,
-    validTo: '2026-01-01T00:00:00Z',
+    validTo,
     usage,
   };
 }

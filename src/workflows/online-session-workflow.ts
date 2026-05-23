@@ -9,6 +9,7 @@ import { SessionStatusService } from '../services/session-status.js';
 import { DEFAULT_FORM_CODE } from '../models/document-structures/index.js';
 import type { OnlineSessionHandle, ParsedUpoInfo, PollOptions, UpoInfo } from './types.js';
 import { pollUntil } from './polling.js';
+import { withKeyRotationRetry } from '../crypto/with-key-rotation-retry.js';
 import { parseUpoXml } from '../xml/index.js';
 import { validate as validateInvoice } from '../validation/invoice-validator.js';
 import { KSeFValidationError } from '../errors/ksef-validation-error.js';
@@ -132,13 +133,16 @@ export async function openOnlineSession(
   options?: OpenOnlineSessionOptions,
 ): Promise<OnlineSessionHandle> {
   await client.crypto.init();
-  const encData = await client.crypto.getEncryptionData();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
 
-  const openResp = await client.onlineSession.openSession(
-    { formCode, encryption: encData.encryptionInfo },
-    options?.upoVersion,
-  );
+  const { encData, openResp } = await withKeyRotationRetry(client.crypto, async () => {
+    const encData = await client.crypto.getEncryptionData();
+    const openResp = await client.onlineSession.openSession(
+      { formCode, encryption: encData.encryptionInfo },
+      options?.upoVersion,
+    );
+    return { encData, openResp };
+  });
 
   return buildSessionHandle({
     deps: {

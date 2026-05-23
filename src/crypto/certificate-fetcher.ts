@@ -1,12 +1,21 @@
 import { RestClient } from '../http/rest-client.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
-import type { PublicKeyCertificate } from '../models/crypto/types.js';
+import type {
+  PublicKeyCertificate,
+  PublicKeyCertificateUsage,
+} from '../models/crypto/types.js';
+
+/** A selected encryption certificate: its PEM plus the key-rotation selector. */
+interface SelectedCertificate {
+  pem: string;
+  publicKeyId: string;
+}
 
 export class CertificateFetcher {
   private readonly restClient: RestClient;
-  private symmetricKeyPem: string | undefined;
-  private ksefTokenPem: string | undefined;
+  private symmetricKey: SelectedCertificate | undefined;
+  private ksefToken: SelectedCertificate | undefined;
   private initialized = false;
 
   constructor(restClient: RestClient) {
@@ -24,17 +33,28 @@ export class CertificateFetcher {
   }
 
   getSymmetricKeyEncryptionPem(): string {
-    if (!this.symmetricKeyPem) {
-      throw new Error('CertificateFetcher not initialized. Call init() first.');
-    }
-    return this.symmetricKeyPem;
+    return this.requireSelected(this.symmetricKey).pem;
   }
 
   getKsefTokenEncryptionPem(): string {
-    if (!this.ksefTokenPem) {
+    return this.requireSelected(this.ksefToken).pem;
+  }
+
+  /** Public key identifier of the selected SymmetricKeyEncryption certificate (KSeF API v2.5.0). */
+  getSymmetricKeyPublicKeyId(): string {
+    return this.requireSelected(this.symmetricKey).publicKeyId;
+  }
+
+  /** Public key identifier of the selected KsefTokenEncryption certificate (KSeF API v2.5.0). */
+  getKsefTokenPublicKeyId(): string {
+    return this.requireSelected(this.ksefToken).publicKeyId;
+  }
+
+  private requireSelected(selected: SelectedCertificate | undefined): SelectedCertificate {
+    if (!selected) {
       throw new Error('CertificateFetcher not initialized. Call init() first.');
     }
-    return this.ksefTokenPem;
+    return selected;
   }
 
   private async fetchCertificates(): Promise<void> {
@@ -46,24 +66,37 @@ export class CertificateFetcher {
       throw new Error('No public key certificates returned from KSeF API.');
     }
 
-    // Find SymmetricKeyEncryption cert
-    const symmetricCert = certs.find(c => c.usage.includes('SymmetricKeyEncryption'));
-    if (!symmetricCert) {
-      throw new Error('No SymmetricKeyEncryption certificate found.');
-    }
-    this.symmetricKeyPem = this.derBase64ToPem(symmetricCert.certificate);
-
-    // Find KsefTokenEncryption cert — pick earliest by validFrom (matches Java ref: .min(comparing(validFrom)))
-    const tokenCerts = certs
-      .filter(c => c.usage.includes('KsefTokenEncryption'))
-      .sort((a, b) => a.validFrom.localeCompare(b.validFrom));
-    const tokenCert = tokenCerts[0];
-    if (!tokenCert) {
-      throw new Error('No KsefTokenEncryption certificate found.');
-    }
-    this.ksefTokenPem = this.derBase64ToPem(tokenCert.certificate);
+    this.symmetricKey = this.select(certs, 'SymmetricKeyEncryption');
+    this.ksefToken = this.select(certs, 'KsefTokenEncryption');
 
     this.initialized = true;
+  }
+
+  /**
+   * Select the certificate to use for a given usage under key rotation:
+   * filter to currently-valid certificates (validFrom ≤ now < validTo) and pick
+   * the newest by validFrom. If none are currently valid, fall back to the newest
+   * overall so the server can reject it with a clear error rather than sending nothing.
+   */
+  private select(
+    certs: PublicKeyCertificate[],
+    usage: PublicKeyCertificateUsage,
+  ): SelectedCertificate {
+    const candidates = certs.filter(c => c.usage.includes(usage));
+    if (candidates.length === 0) {
+      throw new Error(`No ${usage} certificate found.`);
+    }
+
+    const now = Date.now();
+    const byNewestValidFrom = (a: PublicKeyCertificate, b: PublicKeyCertificate) =>
+      Date.parse(b.validFrom) - Date.parse(a.validFrom);
+
+    const valid = candidates
+      .filter(c => Date.parse(c.validFrom) <= now && now < Date.parse(c.validTo))
+      .sort(byNewestValidFrom);
+
+    const chosen = valid[0] ?? [...candidates].sort(byNewestValidFrom)[0]!;
+    return { pem: this.derBase64ToPem(chosen.certificate), publicKeyId: chosen.publicKeyId };
   }
 
   private derBase64ToPem(base64Der: string): string {

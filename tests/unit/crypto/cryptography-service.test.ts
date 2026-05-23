@@ -150,6 +150,11 @@ describe('CryptographyService', () => {
       expect(decoded.length).toBe(16);
     });
 
+    it('carries the symmetric-key publicKeyId selector', async () => {
+      const data = await service.getEncryptionData();
+      expect(data.encryptionInfo.publicKeyId).toBe('symmetric-public-key-id');
+    });
+
     it('encrypted key can be decrypted with private key', async () => {
       const data = await service.getEncryptionData();
       const encryptedKey = Buffer.from(

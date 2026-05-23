@@ -23,6 +23,16 @@ export class CryptographyService {
     await this.fetcher.init();
   }
 
+  /** Re-fetch KSeF public certificates, discarding the cached selection (used for key-rotation recovery). */
+  async refresh(): Promise<void> {
+    await this.fetcher.refresh();
+  }
+
+  /** Identifier of the KsefTokenEncryption public key used by {@link encryptKsefToken} (KSeF API v2.5.0). */
+  getKsefTokenPublicKeyId(): string {
+    return this.fetcher.getKsefTokenPublicKeyId();
+  }
+
   // ---------------------------------------------------------------------------
   // AES-256-CBC
   // ---------------------------------------------------------------------------
@@ -84,6 +94,7 @@ export class CryptographyService {
     const encryptionInfo: EncryptionInfo = {
       encryptedSymmetricKey: Buffer.from(encryptedKey).toString('base64'),
       initializationVector: iv.toString('base64'),
+      publicKeyId: this.fetcher.getSymmetricKeyPublicKeyId(),
     };
 
     return {

@@ -5,7 +5,9 @@ function createMockClient() {
   return {
     crypto: {
       init: vi.fn(),
+      refresh: vi.fn(),
       encryptKsefToken: vi.fn().mockReturnValue(new Uint8Array([1, 2, 3])),
+      getKsefTokenPublicKeyId: vi.fn().mockReturnValue('ksef-token-public-key-id'),
     },
     auth: {
       getChallenge: vi.fn().mockResolvedValue({

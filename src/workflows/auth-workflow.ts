@@ -4,6 +4,7 @@ import type { ContextIdentifier } from '../models/common.js';
 import type { PollOptions } from './types.js';
 import { pollUntil } from './polling.js';
 import { buildUnsignedAuthTokenRequestXml } from '../crypto/auth-xml-builder.js';
+import { withKeyRotationRetry } from '../crypto/with-key-rotation-retry.js';
 
 export interface AuthResult {
   accessToken: string;
@@ -44,13 +45,16 @@ export async function authenticateWithToken(
 ): Promise<AuthResult> {
   const challenge = await client.auth.getChallenge();
   await client.crypto.init();
-  const encryptedToken = await client.crypto.encryptKsefToken(options.token, challenge.timestamp);
 
-  const submitResult = await client.auth.submitKsefTokenAuthRequest({
-    challenge: challenge.challenge,
-    contextIdentifier: { type: 'Nip', value: options.nip },
-    encryptedToken: Buffer.from(encryptedToken).toString('base64'),
-    authorizationPolicy: options.authorizationPolicy,
+  const submitResult = await withKeyRotationRetry(client.crypto, async () => {
+    const encryptedToken = await client.crypto.encryptKsefToken(options.token, challenge.timestamp);
+    return client.auth.submitKsefTokenAuthRequest({
+      challenge: challenge.challenge,
+      contextIdentifier: { type: 'Nip', value: options.nip },
+      encryptedToken: Buffer.from(encryptedToken).toString('base64'),
+      publicKeyId: client.crypto.getKsefTokenPublicKeyId(),
+      authorizationPolicy: options.authorizationPolicy,
+    });
   });
 
   const authToken = submitResult.authenticationToken.token;

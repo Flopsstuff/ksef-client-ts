@@ -117,28 +117,85 @@ describe('CertificateFetcher', () => {
       );
     });
 
-    it('selects earliest KsefTokenEncryption cert by validFrom', async () => {
-      const earlyDer = CERT_DER_BASE64;
-      const lateDer = CERT_DER_BASE64_ALT;
+    const pemBodyOf = (pem: string): string =>
+      pem
+        .replace(/-----BEGIN CERTIFICATE-----/, '')
+        .replace(/-----END CERTIFICATE-----/, '')
+        .replace(/\s+/g, '');
+
+    it('selects the newest currently-valid KsefTokenEncryption cert by validFrom', async () => {
+      const olderDer = CERT_DER_BASE64;
+      const newerDer = CERT_DER_BASE64_ALT;
       const restClient = createMockRestClient();
       vi.mocked(restClient.execute).mockResolvedValue(
         mockResponse([
           makeCertFixture(['SymmetricKeyEncryption'], CERT_DER_BASE64),
-          makeCertFixture(['KsefTokenEncryption'], lateDer, '2025-06-01T00:00:00Z'),
-          makeCertFixture(['KsefTokenEncryption'], earlyDer, '2025-01-01T00:00:00Z'),
+          makeCertFixture(['KsefTokenEncryption'], olderDer, '2025-01-01T00:00:00Z'),
+          makeCertFixture(['KsefTokenEncryption'], newerDer, '2025-06-01T00:00:00Z'),
         ]),
       );
       const fetcher = new CertificateFetcher(restClient);
 
       await fetcher.init();
 
-      const pem = fetcher.getKsefTokenEncryptionPem();
-      // PEM should contain the base64 lines from earlyDer, not lateDer
-      const pemBody = pem
-        .replace(/-----BEGIN CERTIFICATE-----/, '')
-        .replace(/-----END CERTIFICATE-----/, '')
-        .replace(/\s+/g, '');
-      expect(pemBody).toBe(earlyDer);
+      // Both windows are open → the newer validFrom wins (rotation-safe selection).
+      expect(pemBodyOf(fetcher.getKsefTokenEncryptionPem())).toBe(newerDer);
+    });
+
+    it('ignores expired and not-yet-valid certs when a valid one exists', async () => {
+      const expiredDer = CERT_DER_BASE64;
+      const futureDer = CERT_DER_BASE64_ALT;
+      const validDer = CERT_DER_BASE64.slice(0, -4) + 'BBBB';
+      const restClient = createMockRestClient();
+      vi.mocked(restClient.execute).mockResolvedValue(
+        mockResponse([
+          makeCertFixture(['SymmetricKeyEncryption'], CERT_DER_BASE64),
+          // expired window
+          makeCertFixture(['KsefTokenEncryption'], expiredDer, '2020-01-01T00:00:00Z', '2021-01-01T00:00:00Z'),
+          // not yet valid
+          makeCertFixture(['KsefTokenEncryption'], futureDer, '2099-01-01T00:00:00Z', '2099-12-31T00:00:00Z'),
+          // currently valid (newest validFrom among valid)
+          makeCertFixture(['KsefTokenEncryption'], validDer, '2025-01-01T00:00:00Z', '2099-01-01T00:00:00Z'),
+        ]),
+      );
+      const fetcher = new CertificateFetcher(restClient);
+
+      await fetcher.init();
+
+      expect(pemBodyOf(fetcher.getKsefTokenEncryptionPem())).toBe(validDer);
+    });
+
+    it('falls back to the newest cert by validFrom when none are currently valid', async () => {
+      const olderExpiredDer = CERT_DER_BASE64;
+      const newerExpiredDer = CERT_DER_BASE64_ALT;
+      const restClient = createMockRestClient();
+      vi.mocked(restClient.execute).mockResolvedValue(
+        mockResponse([
+          makeCertFixture(['SymmetricKeyEncryption'], CERT_DER_BASE64),
+          makeCertFixture(['KsefTokenEncryption'], olderExpiredDer, '2020-01-01T00:00:00Z', '2021-01-01T00:00:00Z'),
+          makeCertFixture(['KsefTokenEncryption'], newerExpiredDer, '2022-01-01T00:00:00Z', '2023-01-01T00:00:00Z'),
+        ]),
+      );
+      const fetcher = new CertificateFetcher(restClient);
+
+      await fetcher.init();
+
+      // No window is open now → newest validFrom (2022) is chosen so the server can reject it clearly.
+      expect(pemBodyOf(fetcher.getKsefTokenEncryptionPem())).toBe(newerExpiredDer);
+    });
+
+    it('exposes the selected certs publicKeyId per usage', async () => {
+      const restClient = createMockRestClient();
+      const certs = makeBothCerts();
+      vi.mocked(restClient.execute).mockResolvedValue(mockResponse(certs));
+      const fetcher = new CertificateFetcher(restClient);
+
+      await fetcher.init();
+
+      const symmetric = certs.find(c => c.usage.includes('SymmetricKeyEncryption'))!;
+      const token = certs.find(c => c.usage.includes('KsefTokenEncryption'))!;
+      expect(fetcher.getSymmetricKeyPublicKeyId()).toBe(symmetric.publicKeyId);
+      expect(fetcher.getKsefTokenPublicKeyId()).toBe(token.publicKeyId);
     });
 
     it('sends GET to Routes.Security.publicKeyCertificates', async () => {

@@ -5,6 +5,7 @@ import type { ExportDownloadResult, ExportExtractedResult, ExportResult, PollOpt
 import type { UnzipOptions } from '../utils/zip.js';
 import { unzip } from '../utils/zip.js';
 import { pollUntil } from './polling.js';
+import { withKeyRotationRetry } from '../crypto/with-key-rotation-retry.js';
 import { verifyHash } from '../utils/hash.js';
 
 export interface ExportOptions {
@@ -29,12 +30,15 @@ export async function doExport(
   options?: ExportOptions,
 ): Promise<{ result: ExportResult; encData: EncryptionData; referenceNumber: string }> {
   await client.crypto.init();
-  const encData = await client.crypto.getEncryptionData();
 
-  const opResp = await client.invoices.exportInvoices({
-    encryption: encData.encryptionInfo,
-    filters,
-    onlyMetadata: options?.onlyMetadata,
+  const { encData, opResp } = await withKeyRotationRetry(client.crypto, async () => {
+    const encData = await client.crypto.getEncryptionData();
+    const opResp = await client.invoices.exportInvoices({
+      encryption: encData.encryptionInfo,
+      filters,
+      onlyMetadata: options?.onlyMetadata,
+    });
+    return { encData, opResp };
   });
 
   const result = await pollUntil(

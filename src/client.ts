@@ -20,6 +20,7 @@ import { PeppolService } from './services/peppol.js';
 import { TestDataService } from './services/test-data.js';
 import { CertificateFetcher } from './crypto/certificate-fetcher.js';
 import { CryptographyService } from './crypto/cryptography-service.js';
+import { withKeyRotationRetry } from './crypto/with-key-rotation-retry.js';
 import { VerificationLinkService } from './qr/verification-link-service.js';
 import { buildUnsignedAuthTokenRequestXml } from './crypto/auth-xml-builder.js';
 import { OfflineInvoiceWorkflow } from './workflows/offline-invoice-workflow.js';
@@ -95,12 +96,15 @@ export class KSeFClient {
   async loginWithToken(token: string, nip: string): Promise<LoginResult> {
     const challenge = await this.auth.getChallenge();
     await this.crypto.init();
-    const encryptedToken = await this.crypto.encryptKsefToken(token, challenge.timestamp);
 
-    const submitResult = await this.auth.submitKsefTokenAuthRequest({
-      challenge: challenge.challenge,
-      contextIdentifier: { type: 'Nip', value: nip },
-      encryptedToken: Buffer.from(encryptedToken).toString('base64'),
+    const submitResult = await withKeyRotationRetry(this.crypto, async () => {
+      const encryptedToken = await this.crypto.encryptKsefToken(token, challenge.timestamp);
+      return this.auth.submitKsefTokenAuthRequest({
+        challenge: challenge.challenge,
+        contextIdentifier: { type: 'Nip', value: nip },
+        encryptedToken: Buffer.from(encryptedToken).toString('base64'),
+        publicKeyId: this.crypto.getKsefTokenPublicKeyId(),
+      });
     });
 
     const authToken = submitResult.authenticationToken.token;

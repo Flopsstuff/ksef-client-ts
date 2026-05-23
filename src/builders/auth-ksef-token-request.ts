@@ -9,6 +9,7 @@ export class AuthKsefTokenRequestBuilder {
   private challenge?: string;
   private contextIdentifier?: ContextIdentifier;
   private encryptedToken?: string;
+  private publicKeyId?: string;
   private authorizationPolicy?: AuthorizationPolicy;
 
   withChallenge(challenge: string): this {
@@ -37,6 +38,11 @@ export class AuthKsefTokenRequestBuilder {
     return this;
   }
 
+  withPublicKeyId(publicKeyId: string): this {
+    this.publicKeyId = publicKeyId;
+    return this;
+  }
+
   withAuthorizationPolicy(policy: AuthorizationPolicy): this {
     this.authorizationPolicy = policy;
     return this;
@@ -57,6 +63,7 @@ export class AuthKsefTokenRequestBuilder {
       challenge: this.challenge,
       contextIdentifier: this.contextIdentifier,
       encryptedToken: this.encryptedToken,
+      ...(this.publicKeyId && { publicKeyId: this.publicKeyId }),
       ...(this.authorizationPolicy && { authorizationPolicy: this.authorizationPolicy }),
     };
   }

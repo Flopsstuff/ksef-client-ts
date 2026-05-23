@@ -1,28 +1,28 @@
 ## 1. OpenAPI spec refresh (done)
 
 - [x] 1.1 Refresh `docs/open-api.json` to v2.6.0 from `ref/ksef-docs`, re-run `yarn split-openapi`, `yarn sync-schemas`; `yarn check-api` passes (78/78). Committed as `5471556`.
-- [ ] 1.2 Confirm exact wire field names/casing for `publicKeyId`, `certificateId`, and `compressionType` against the refreshed chunks under `docs/openapi-chunks/` (resolves design Open Question).
+- [x] 1.2 Confirmed wire field names against the refreshed spec: `PublicKeyCertificate` adds `certificateId` + `publicKeyId`; `EncryptionInfo.publicKeyId` and `InitTokenAuthenticationRequest.publicKeyId` (string, 44 chars, nullable); `CompressionType` enum `['Zip','TarGz']`; `BatchFileInfo.compressionType` + `InvoiceExportRequest.compressionType`.
 
 ## 2. publicKeyId & rotation-safe certificate selection
 
-- [ ] 2.1 Add `publicKeyId: string` and `certificateId: string` to `PublicKeyCertificate` (`src/models/crypto/types.ts`).
-- [ ] 2.2 Add `publicKeyId?: string` to `EncryptionInfo` (`src/models/common.ts`).
-- [ ] 2.3 Rewrite `CertificateFetcher.fetchCertificates()` (`src/crypto/certificate-fetcher.ts`): per usage, filter to currently-valid certs (`validFrom ≤ now < validTo`), pick latest `validFrom`; fall back to newest by `validFrom` if none valid. Cache `{ pem, publicKeyId }` per usage.
-- [ ] 2.4 Expose `getSymmetricKeyPublicKeyId()` / `getKsefTokenPublicKeyId()` on `CertificateFetcher`.
-- [ ] 2.5 `CryptographyService.getEncryptionData()` (`src/crypto/cryptography-service.ts`) includes the symmetric `publicKeyId` in the returned `EncryptionInfo`.
-- [ ] 2.6 Thread the ksef-token `publicKeyId` from `encryptKsefToken()` into the auth-ksef-token request model (`src/models/auth/types.ts`).
-- [ ] 2.7 Verify online session, batch session, and invoice export requests all carry `publicKeyId` in their encryption info (no extra change expected once `EncryptionInfo` has it — confirm each call-site).
-- [ ] 2.8 Add error code `21470` to the error-code enum and map it to a typed unknown-public-key error in the 400 branch of `RestClient.ensureSuccess` (`src/http/rest-client.ts`).
-- [ ] 2.9 Add refresh-and-retry-once recovery around encryption-bearing operations (token auth, session open, invoice export): on the typed 21470 error → `fetcher.refresh()` → rebuild encryption → retry once → rethrow on second failure. Decide shared helper vs inline (design Open Question).
-- [ ] 2.10 Unit tests: cert selection rotation scenarios (newest valid, expired/not-yet-valid ignored, no-valid fallback) + `publicKeyId` surfaced (`tests/unit/crypto/certificate-fetcher.test.ts`).
-- [ ] 2.11 Unit tests: `EncryptionInfo` carries `publicKeyId` (`tests/unit/crypto/cryptography-service.test.ts`); 21470 → typed error + refresh-retry path (`tests/unit/http/rest-client.test.ts`).
+- [x] 2.1 Add `publicKeyId: string` and `certificateId: string` to `PublicKeyCertificate` (`src/models/crypto/types.ts`).
+- [x] 2.2 Add `publicKeyId?: string` to `EncryptionInfo` (`src/models/common.ts`).
+- [x] 2.3 Rewrite `CertificateFetcher.fetchCertificates()` (`src/crypto/certificate-fetcher.ts`): per usage, filter to currently-valid certs (`validFrom ≤ now < validTo`), pick latest `validFrom`; fall back to newest by `validFrom` if none valid. Cache `{ pem, publicKeyId }` per usage.
+- [x] 2.4 Expose `getSymmetricKeyPublicKeyId()` / `getKsefTokenPublicKeyId()` on `CertificateFetcher`.
+- [x] 2.5 `CryptographyService.getEncryptionData()` (`src/crypto/cryptography-service.ts`) includes the symmetric `publicKeyId` in the returned `EncryptionInfo`.
+- [x] 2.6 Thread the ksef-token `publicKeyId` from `encryptKsefToken()` into the auth-ksef-token request model (`src/models/auth/types.ts`).
+- [x] 2.7 Verify online session, batch session, and invoice export requests all carry `publicKeyId` in their encryption info (no extra change expected once `EncryptionInfo` has it — confirm each call-site).
+- [x] 2.8 Add error code `21470` to the error-code enum and map it to a typed unknown-public-key error in the 400 branch of `RestClient.ensureSuccess` (`src/http/rest-client.ts`).
+- [x] 2.9 Add refresh-and-retry-once recovery around encryption-bearing operations (token auth, session open, invoice export): on the typed 21470 error → `fetcher.refresh()` → rebuild encryption → retry once → rethrow on second failure. Decide shared helper vs inline (design Open Question).
+- [x] 2.10 Unit tests: cert selection rotation scenarios (newest valid, expired/not-yet-valid ignored, no-valid fallback) + `publicKeyId` surfaced (`tests/unit/crypto/certificate-fetcher.test.ts`).
+- [x] 2.11 Unit tests: `EncryptionInfo` carries `publicKeyId` (`tests/unit/crypto/cryptography-service.test.ts`); 21470 → typed error + refresh-retry path (`tests/unit/http/rest-client.test.ts`).
 
 ## 3. Drop deprecated RR query form type
 
-- [ ] 3.1 Remove `'RR'` from `FormType` in `src/models/invoices/types.ts` → `'FA' | 'PEF' | 'FA_RR'`.
-- [ ] 3.2 Update `scripts/generate-invoice-schemas.mjs:43,50` to drop the deleted `schemat_RR(1)_v1-1E.xsd` / `_v1-0E.xsd` entries (surviving file: `RR/schemat_FA_RR(1)_v1-1E.xsd`).
-- [ ] 3.3 Confirm `document-structures` `FA_RR_1_LEGACY`/`_TRANSITION` (`value: 'RR'`) are untouched (document system code, not query form type).
-- [ ] 3.4 `yarn lint` passes (catches any remaining `'RR'` form-type literal); existing invoice-query tests still pass.
+- [x] 3.1 Remove `'RR'` from `FormType` in `src/models/invoices/types.ts` → `'FA' | 'PEF' | 'FA_RR'`.
+- [x] 3.2 Update `scripts/generate-invoice-schemas.mjs:43,50` to drop the deleted `schemat_RR(1)_v1-1E.xsd` / `_v1-0E.xsd` entries (surviving file: `RR/schemat_FA_RR(1)_v1-1E.xsd`).
+- [x] 3.3 Confirm `document-structures` `FA_RR_1_LEGACY`/`_TRANSITION` (`value: 'RR'`) are untouched (document system code, not query form type).
+- [x] 3.4 `yarn lint` passes (catches any remaining `'RR'` form-type literal); existing invoice-query tests still pass.
 
 ## 4. TarGz compression
 

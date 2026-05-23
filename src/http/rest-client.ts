@@ -6,6 +6,7 @@ import { KSeFForbiddenError } from '../errors/ksef-forbidden-error.js';
 import { KSeFGoneError } from '../errors/ksef-gone-error.js';
 import { KSeFBadRequestError } from '../errors/ksef-bad-request-error.js';
 import { KSeFBatchTimeoutError } from '../errors/ksef-batch-timeout-error.js';
+import { KSeFUnknownPublicKeyError } from '../errors/ksef-unknown-public-key-error.js';
 import { KSeFErrorCode, hasErrorCode } from '../errors/error-codes.js';
 import type {
   ApiErrorResponse,
@@ -304,9 +305,15 @@ export class RestClient {
     if (response.status === 400) {
       const problem = tryParseProblem(isBadRequestProblem);
       if (problem) {
+        if (problem.errors?.some((e) => e.code === KSeFErrorCode.UnknownPublicKeyId)) {
+          throw KSeFUnknownPublicKeyError.fromProblem(problem);
+        }
         throw new KSeFBadRequestError(problem);
       }
       const legacy = parseJson<ApiErrorResponse>();
+      if (hasErrorCode(legacy, KSeFErrorCode.UnknownPublicKeyId)) {
+        throw KSeFUnknownPublicKeyError.fromLegacy(legacy);
+      }
       if (hasErrorCode(legacy, KSeFErrorCode.BatchTimeout)) {
         throw KSeFBatchTimeoutError.fromResponse(400, legacy);
       }

@@ -23,7 +23,7 @@ export type BuyerIdentifierType = 'Nip' | 'VatUe' | 'Other' | 'None';
 
 export type ThirdSubjectIdentifierType = 'Nip' | 'InternalId' | 'VatUe' | 'Other' | 'None';
 
-export type FormType = 'FA' | 'PEF' | 'RR' | 'FA_RR';
+export type FormType = 'FA' | 'PEF' | 'FA_RR';
 
 export type InvoiceType =
   | 'Vat' | 'Zal' | 'Kor' | 'Roz' | 'Upr' | 'KorZal' | 'KorRoz'

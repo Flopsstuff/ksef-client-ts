@@ -137,6 +137,8 @@ describe('KSeFClient', () => {
         .mockResolvedValue(undefined);
       encryptSpy = vi.spyOn(client.crypto, 'encryptKsefToken')
         .mockReturnValue(new Uint8Array([1, 2, 3]));
+      vi.spyOn(client.crypto, 'getKsefTokenPublicKeyId')
+        .mockReturnValue('ksef-token-public-key-id');
     });
 
     it('happy path — stores tokens after successful login', async () => {
@@ -173,6 +175,7 @@ describe('KSeFClient', () => {
         challenge: 'challenge-uuid-12345',
         contextIdentifier: { type: 'Nip', value: '1234567890' },
         encryptedToken: Buffer.from(new Uint8Array([1, 2, 3])).toString('base64'),
+        publicKeyId: 'ksef-token-public-key-id',
       });
     });
 
@@ -427,6 +430,7 @@ describe('KSeFClient', () => {
       vi.spyOn(client.auth, 'getAccessToken').mockResolvedValue(FIXTURES.tokensResponse);
       vi.spyOn(client.crypto, 'init').mockResolvedValue(undefined);
       vi.spyOn(client.crypto, 'encryptKsefToken').mockReturnValue(new Uint8Array([1, 2, 3]));
+      vi.spyOn(client.crypto, 'getKsefTokenPublicKeyId').mockReturnValue('ksef-token-public-key-id');
 
       await client.loginWithToken(FIXTURES.token, FIXTURES.nip);
       expect(authManager.setAccessToken).toHaveBeenCalledWith('access-token-final-abc');

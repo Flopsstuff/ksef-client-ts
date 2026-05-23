@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [0.9.0] - Unreleased
 
+### Changed (breaking)
+
+- **Removed the deprecated `RR` invoice form type** — use `FA_RR` for farmer invoices; the standalone `RR` form type was removed upstream (KSeF API v2.5.0). Code that filtered invoice queries by `RR` must switch to `FA_RR`.
+
 ### Added
+
+- **Encryption key rotation** — the client now selects the currently-valid KSeF public certificate and tags each encrypted request with the key it used, so authentication, sessions, and exports keep working across KSeF key rotations and recover automatically if a key is retired mid-flight (KSeF API v2.5.0).
 
 ### Fixed
 

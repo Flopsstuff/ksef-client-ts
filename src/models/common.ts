@@ -22,6 +22,8 @@ export interface FormCode {
 export interface EncryptionInfo {
   encryptedSymmetricKey: string;
   initializationVector: string;
+  /** Identifier of the public key used to encrypt the symmetric key — key-rotation selector (KSeF API v2.5.0). */
+  publicKeyId?: string;
 }
 
 export interface FileMetadata {
