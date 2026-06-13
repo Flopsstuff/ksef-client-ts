@@ -917,7 +917,7 @@ The `Permission` prefix prevents collision with the auth-domain identifier type 
 
 ## OpenAPI Alignment
 
-All types are aligned with the KSeF OpenAPI spec (API v2.6.0, build 2.5.0-te, `docs/open-api.json`). Key alignment decisions:
+All types are aligned with the KSeF OpenAPI spec (API v2.6.1, build 2.6.1-te, `docs/open-api.json`). Key alignment decisions:
 
 | OpenAPI spec | TypeScript type | Note |
 |---|---|---|
