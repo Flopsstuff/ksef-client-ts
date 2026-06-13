@@ -83,7 +83,9 @@ export async function* queryAllInvoiceMetadata(
   let carryValue: string | undefined;
 
   for (;;) {
-    let offset = 0;
+    // `pageOffset` is a zero-based page index (0 = first page), not a record
+    // offset, so it advances by 1 per page — not by `pageSize`.
+    let pageIndex = 0;
     let lastBoundaryValue: string | undefined;
     let isTruncated = false;
     // Keys yielded at the current `lastBoundaryValue` within this window.
@@ -94,7 +96,7 @@ export async function* queryAllInvoiceMetadata(
       const window: InvoiceQueryFilters = { ...filters, dateRange };
       const response = await client.invoices.queryInvoiceMetadata(
         window,
-        offset,
+        pageIndex,
         pageSize,
         sortOrder,
       );
@@ -116,7 +118,7 @@ export async function* queryAllInvoiceMetadata(
       }
 
       if (response.hasMore) {
-        offset += pageSize;
+        pageIndex += 1;
         continue;
       }
       break;

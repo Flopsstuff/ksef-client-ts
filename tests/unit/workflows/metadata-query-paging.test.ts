@@ -54,7 +54,7 @@ describe('queryAllInvoiceMetadata', () => {
     expect(client.invoices.queryInvoiceMetadata).toHaveBeenCalledTimes(1);
   });
 
-  it('advances pageOffset while hasMore is true', async () => {
+  it('advances the page index by one while hasMore is true', async () => {
     const client = mockClient([
       resp([inv('A', '2026-01-02'), inv('B', '2026-01-03')], { hasMore: true }),
       resp([inv('C', '2026-01-04')]),
@@ -65,8 +65,8 @@ describe('queryAllInvoiceMetadata', () => {
     expect(out.map((i) => i.ksefNumber)).toEqual(['A', 'B', 'C']);
     const calls = client.invoices.queryInvoiceMetadata.mock.calls;
     expect(calls).toHaveLength(2);
-    expect(calls[0][1]).toBe(0); // first offset
-    expect(calls[1][1]).toBe(2); // advanced by pageSize
+    expect(calls[0][1]).toBe(0); // first page index
+    expect(calls[1][1]).toBe(1); // pageOffset is a page index → +1, not +pageSize
   });
 
   it('crosses one truncation boundary by pushing `from` forward (Asc) and dedupes the boundary invoice', async () => {
