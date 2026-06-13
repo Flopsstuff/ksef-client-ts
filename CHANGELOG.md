@@ -8,9 +8,13 @@ All notable changes to this project will be documented in this file.
 
 - **Updated to KSeF API v2.6.1** — the bundled API specification now tracks the current KSeF release; no changes to existing requests or responses.
 
+### Added
+
+- **Certificate serial number validation** — retrieving certificates by serial now rejects malformed values with a clear error before the request reaches KSeF.
+
 ### Fixed
 
-- **Clearer authentication failures** — when KSeF reports that authentication finished unsuccessfully (for example an invalid, inactive, or wrongly-encrypted token), the client now raises a descriptive authentication error carrying the reported reason instead of a confusing follow-up error.
+- **Clearer authentication failures** — a failed authentication now raises a descriptive error with the reason reported by KSeF.
 
 ## [0.9.0] - 2026-05-24
 
