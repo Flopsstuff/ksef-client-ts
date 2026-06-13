@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { uploadBatch, uploadBatchParsed, uploadBatchStream, uploadBatchStreamParsed } from '../../../src/workflows/batch-session-workflow.js';
+import { createZip } from '../../../src/utils/zip.js';
+import { createTarGz } from '../../../src/utils/targz.js';
+import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
 import type { UpoPotwierdzenie } from '../../../src/xml/index.js';
+
+const invoicesDir = path.join(__dirname, '../../fixtures/invoices');
+const readInvoice = (name: string) => fs.readFileSync(path.join(invoicesDir, name));
 
 function createMockClient() {
   return {
@@ -206,6 +214,68 @@ describe('uploadBatch', () => {
     });
     const result = await uploadBatch(client, zipData, { pollOptions: { intervalMs: 1 } });
     expect(result.upo.pages).toEqual([]);
+  });
+});
+
+describe('uploadBatch with validate', () => {
+  it('extracts the ZIP and uploads when every invoice is valid', async () => {
+    const zip = await createZip([
+      { fileName: 'inv-1.xml', content: readInvoice('valid-fa3.xml') },
+      { fileName: 'inv-2.xml', content: readInvoice('valid-pef3.xml') },
+    ]);
+    const result = await uploadBatch(client, zip, { validate: true, pollOptions: { intervalMs: 1 } });
+    expect(client.batchSession.openSession).toHaveBeenCalled();
+    expect(result.sessionRef).toBe('batch-ref-1');
+  });
+
+  it('throws KSeFValidationError before opening a session when an invoice is invalid', async () => {
+    const zip = await createZip([
+      { fileName: 'bad.xml', content: readInvoice('invalid-bad-nip-fa3.xml') },
+    ]);
+    await expect(
+      uploadBatch(client, zip, { validate: true, pollOptions: { intervalMs: 1 } }),
+    ).rejects.toThrow(KSeFValidationError);
+    expect(client.batchSession.openSession).not.toHaveBeenCalled();
+  });
+
+  it('reports the invalid count in the error message', async () => {
+    const zip = await createZip([
+      { fileName: 'good.xml', content: readInvoice('valid-fa3.xml') },
+      { fileName: 'bad.xml', content: readInvoice('invalid-bad-nip-fa3.xml') },
+    ]);
+    await expect(
+      uploadBatch(client, zip, { validate: true, pollOptions: { intervalMs: 1 } }),
+    ).rejects.toThrow(/Batch validation failed: 1 of 2 invoices invalid/);
+  });
+
+  it('extracts a TarGz archive when compressionType is TarGz', async () => {
+    const targz = await createTarGz([
+      { fileName: 'inv-1.xml', content: readInvoice('valid-fa3.xml') },
+    ]);
+    const result = await uploadBatch(client, targz, {
+      validate: true,
+      compressionType: 'TarGz',
+      pollOptions: { intervalMs: 1 },
+    });
+    expect(client.batchSession.openSession).toHaveBeenCalled();
+    expect(result.sessionRef).toBe('batch-ref-1');
+  });
+
+  it('skips validation when the archive holds no XML files', async () => {
+    const zip = await createZip([
+      { fileName: 'readme.txt', content: Buffer.from('not an invoice') },
+    ]);
+    const result = await uploadBatch(client, zip, { validate: true, pollOptions: { intervalMs: 1 } });
+    expect(result.sessionRef).toBe('batch-ref-1');
+  });
+
+  it('accepts a Uint8Array view of the archive', async () => {
+    const zip = await createZip([
+      { fileName: 'inv-1.xml', content: readInvoice('valid-fa3.xml') },
+    ]);
+    const view = new Uint8Array(zip.buffer, zip.byteOffset, zip.byteLength);
+    const result = await uploadBatch(client, view, { validate: true, pollOptions: { intervalMs: 1 } });
+    expect(result.sessionRef).toBe('batch-ref-1');
   });
 });
 

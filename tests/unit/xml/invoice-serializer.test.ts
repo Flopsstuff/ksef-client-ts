@@ -186,6 +186,42 @@ describe('serializeInvoiceXml — unknown-shape validation', () => {
     },
   );
 
+  // A single PEF root key is present but its value is not a non-array object,
+  // so isPefUblDocumentInput rejects it and classifyUnknownObject reports the
+  // specific PEF-shape failure rather than the generic "unsupported shape".
+  it.each([
+    ['Invoice', { Invoice: 'not-an-object' }],
+    ['CreditNote', { CreditNote: 42 }],
+    ['Invoice', { Invoice: [] }],
+  ] as const)(
+    'throws KSeFValidationError naming `%s` when the PEF root value is not a non-array object',
+    (rootKey, input) => {
+      try {
+        serializeInvoiceXml(input as never);
+        throw new Error('expected throw');
+      } catch (err) {
+        expect(err).toBeInstanceOf(KSeFValidationError);
+        expect((err as Error).message).toMatch(new RegExp(rootKey));
+        expect((err as Error).message).toMatch(/non-array object/);
+      }
+    },
+  );
+
+  // Naglowek/Fa resolve via the prototype chain (so `in` and value checks pass)
+  // but are not OWN properties, so isFakturaInput rejects the input — exercising
+  // the final own-enumerable-property guard in classifyUnknownObject.
+  it('throws KSeFValidationError when Naglowek/Fa are inherited, not own, properties', () => {
+    const proto = { Naglowek: { WariantFormularza: 3 }, Fa: { P_1: '2026-04-18' } };
+    const input = Object.create(proto) as Record<string, unknown>;
+    try {
+      serializeInvoiceXml(input as unknown as FakturaInput);
+      throw new Error('expected throw');
+    } catch (err) {
+      expect(err).toBeInstanceOf(KSeFValidationError);
+      expect((err as Error).message).toMatch(/own enumerable properties/);
+    }
+  });
+
   it('accepts a Faktura-shaped object and dispatches to buildFakturaXml', () => {
     const out = serializeInvoiceXml({
       Naglowek: { WariantFormularza: 3 },
@@ -196,6 +232,27 @@ describe('serializeInvoiceXml — unknown-shape validation', () => {
     const xml = out.toString('utf8');
     expect(xml).toContain('<Faktura');
     expect(xml).toContain('</Faktura>');
+  });
+});
+
+// ── schema-option compatibility ─────────────────────────────────────────
+
+describe('serializeInvoiceXml — schema-option compatibility', () => {
+  it('rejects a Faktura schema on a PEF input', () => {
+    expect(() => serializeInvoiceXml({ Invoice: { ID: 'INV' } }, { schema: 'FA3' })).toThrow(
+      /schema option FA3 is not compatible with a PEF \/ PEF_KOR input/,
+    );
+  });
+
+  it('rejects a PEF schema on a Faktura input', () => {
+    expect(() => serializeInvoiceXml(minimalFaktura(), { schema: 'PEF' })).toThrow(
+      /schema option PEF is not compatible with a Faktura input/,
+    );
+  });
+
+  it('accepts a matching PEF schema on a PEF input', () => {
+    const out = serializeInvoiceXml({ CreditNote: { ID: 'CN' } }, { schema: 'PEF_KOR' });
+    expect(out.toString('utf8')).toContain('CreditNote-2');
   });
 });
 

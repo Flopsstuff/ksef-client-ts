@@ -1,6 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { authenticateWithToken, authenticateWithCertificate, authenticateWithExternalSignature } from '../../../src/workflows/auth-workflow.js';
+import forge from 'node-forge';
+import { authenticateWithToken, authenticateWithCertificate, authenticateWithExternalSignature, authenticateWithPkcs12 } from '../../../src/workflows/auth-workflow.js';
 import { KSeFAuthStatusError } from '../../../src/errors/ksef-auth-status-error.js';
+
+function createRsaP12(password: string): Buffer {
+  const keys = forge.pki.rsa.generateKeyPair(2048);
+  const cert = forge.pki.createCertificate();
+  cert.publicKey = keys.publicKey;
+  cert.serialNumber = '01';
+  cert.validity.notBefore = new Date();
+  cert.validity.notAfter = new Date();
+  cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
+  const attrs = [
+    { name: 'commonName', value: 'Test P12 RSA' },
+    { name: 'countryName', value: 'PL' },
+  ];
+  cert.setSubject(attrs);
+  cert.setIssuer(attrs);
+  cert.sign(keys.privateKey, forge.md.sha256.create());
+  const p12Asn1 = forge.pkcs12.toPkcs12Asn1(keys.privateKey, cert, password, { algorithm: '3des' });
+  return Buffer.from(forge.asn1.toDer(p12Asn1).getBytes(), 'binary');
+}
 
 function createMockClient() {
   return {
@@ -93,6 +113,17 @@ describe('authenticateWithToken', () => {
     expect(client.auth.getAccessToken).not.toHaveBeenCalled();
   });
 
+  it('throws without a details suffix when the failure status carries no details', async () => {
+    client.auth.getAuthStatus.mockResolvedValue({
+      status: { code: 450, description: 'Uwierzytelnianie nieudane' },
+    });
+
+    await expect(
+      authenticateWithToken(client, { nip: '1234567890', token: 'tok', pollOptions: { intervalMs: 1 } }),
+    ).rejects.toThrow(/status 450: Uwierzytelnianie nieudane$/);
+    expect(client.auth.getAccessToken).not.toHaveBeenCalled();
+  });
+
   it('passes authorizationPolicy through', async () => {
     const policy = { allowedIps: { ip4Addresses: ['1.2.3.4'] } };
     await authenticateWithToken(client, {
@@ -180,6 +211,82 @@ describe('authenticateWithCertificate', () => {
 
     vi.doUnmock('../../../src/client.js');
     vi.doUnmock('../../../src/crypto/signature-service.js');
+  });
+});
+
+describe('authenticateWithPkcs12', () => {
+  let p12: Buffer;
+
+  beforeEach(() => {
+    p12 = createRsaP12('p12-pass');
+  });
+
+  it('loads cert/key from the P12 and delegates to the certificate flow', async () => {
+    vi.doMock('../../../src/client.js', () => ({
+      buildAuthTokenRequestXml: vi.fn().mockReturnValue('<AuthTokenRequest/>'),
+    }));
+    const signSpy = vi.fn().mockReturnValue('<SignedXml/>');
+    vi.doMock('../../../src/crypto/signature-service.js', () => ({
+      SignatureService: { sign: signSpy },
+    }));
+
+    // Re-import so the dynamic imports inside the cert flow pick up the mocks.
+    const { authenticateWithPkcs12: authP12 } = await import('../../../src/workflows/auth-workflow.js');
+
+    const result = await authP12(client, {
+      nip: '1234567890',
+      p12,
+      password: 'p12-pass',
+      pollOptions: { intervalMs: 1 },
+    });
+
+    // The real cert + key extracted from the P12 must reach the signer.
+    const [, certPem, keyPem] = signSpy.mock.calls[0];
+    expect(certPem).toContain('-----BEGIN CERTIFICATE-----');
+    expect(keyPem).toContain('PRIVATE KEY-----');
+    expect(client.auth.submitXadesAuthRequest).toHaveBeenCalledWith('<SignedXml/>', false, false);
+    expect(result.accessToken).toBe('access-tok');
+    expect(result.refreshToken).toBe('refresh-tok');
+
+    vi.doUnmock('../../../src/client.js');
+    vi.doUnmock('../../../src/crypto/signature-service.js');
+  });
+
+  it('forwards verifyCertificateChain and enforceXadesCompliance', async () => {
+    vi.doMock('../../../src/client.js', () => ({
+      buildAuthTokenRequestXml: vi.fn().mockReturnValue('<AuthTokenRequest/>'),
+    }));
+    vi.doMock('../../../src/crypto/signature-service.js', () => ({
+      SignatureService: { sign: vi.fn().mockReturnValue('<SignedXml/>') },
+    }));
+
+    const { authenticateWithPkcs12: authP12 } = await import('../../../src/workflows/auth-workflow.js');
+
+    await authP12(client, {
+      nip: '1234567890',
+      p12,
+      password: 'p12-pass',
+      verifyCertificateChain: true,
+      enforceXadesCompliance: true,
+      pollOptions: { intervalMs: 1 },
+    });
+
+    expect(client.auth.submitXadesAuthRequest).toHaveBeenCalledWith('<SignedXml/>', true, true);
+
+    vi.doUnmock('../../../src/client.js');
+    vi.doUnmock('../../../src/crypto/signature-service.js');
+  });
+
+  it('propagates a load failure for an invalid P12', async () => {
+    await expect(
+      authenticateWithPkcs12(client, {
+        nip: '1234567890',
+        p12: Buffer.from('not-a-p12'),
+        password: 'whatever',
+        pollOptions: { intervalMs: 1 },
+      }),
+    ).rejects.toThrow();
+    expect(client.auth.submitXadesAuthRequest).not.toHaveBeenCalled();
   });
 });
 

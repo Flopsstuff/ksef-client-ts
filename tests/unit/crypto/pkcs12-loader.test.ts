@@ -141,6 +141,88 @@ describe('Pkcs12Loader', () => {
       }
     });
 
+    it('throws "does not contain a certificate" when the cert bag is empty', () => {
+      const fakeParsed = {
+        getBags: (opts: { bagType: string }) => {
+          if (opts.bagType === forge.pki.oids.certBag) {
+            return { [forge.pki.oids.certBag!]: [] };
+          }
+          if (opts.bagType === forge.pki.oids.pkcs8ShroudedKeyBag) {
+            return { [forge.pki.oids.pkcs8ShroudedKeyBag!]: [{ key: {} }] };
+          }
+          return {};
+        },
+      };
+      const spy = vi
+        .spyOn(forge.pkcs12, 'pkcs12FromAsn1')
+        .mockReturnValue(fakeParsed as never);
+      try {
+        expect(() => Pkcs12Loader.load(cachedP12, cachedPassword)).toThrow(
+          /does not contain a certificate/,
+        );
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('throws "does not contain a private key" when both key bags are empty', () => {
+      const fakeParsed = {
+        getBags: (opts: { bagType: string }) => {
+          if (opts.bagType === forge.pki.oids.certBag) {
+            return { [forge.pki.oids.certBag!]: [{ cert: { validity: {} } }] };
+          }
+          // Neither shrouded nor plain key bag yields a key.
+          return {};
+        },
+      };
+      const spy = vi
+        .spyOn(forge.pkcs12, 'pkcs12FromAsn1')
+        .mockReturnValue(fakeParsed as never);
+      try {
+        expect(() => Pkcs12Loader.load(cachedP12, cachedPassword)).toThrow(
+          /does not contain a private key/,
+        );
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('falls back to the plain key bag when no shrouded key is present', () => {
+      const fakeParsed = {
+        getBags: (opts: { bagType: string }) => {
+          if (opts.bagType === forge.pki.oids.certBag) {
+            return { [forge.pki.oids.certBag!]: [{ cert: { validity: {} } }] };
+          }
+          if (opts.bagType === forge.pki.oids.pkcs8ShroudedKeyBag) {
+            return { [forge.pki.oids.pkcs8ShroudedKeyBag!]: [] };
+          }
+          // Plain (unencrypted) key bag carries the key instead.
+          if (opts.bagType === forge.pki.oids.keyBag) {
+            return { [forge.pki.oids.keyBag!]: [{ key: {} }] };
+          }
+          return {};
+        },
+      };
+      const parsedSpy = vi
+        .spyOn(forge.pkcs12, 'pkcs12FromAsn1')
+        .mockReturnValue(fakeParsed as never);
+      const certSpy = vi
+        .spyOn(forge.pki, 'certificateToPem')
+        .mockReturnValue('-----BEGIN CERTIFICATE-----\nfake\n-----END CERTIFICATE-----\n');
+      const keySpy = vi
+        .spyOn(forge.pki, 'privateKeyToPem')
+        .mockReturnValue('-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----\n');
+      try {
+        const result = Pkcs12Loader.load(cachedP12, cachedPassword);
+        expect(result.certificatePem).toContain('-----BEGIN CERTIFICATE-----');
+        expect(result.privateKeyPem).toContain('-----BEGIN RSA PRIVATE KEY-----');
+      } finally {
+        parsedSpy.mockRestore();
+        certSpy.mockRestore();
+        keySpy.mockRestore();
+      }
+    });
+
     it('surfaces a clear EC-key hint when privateKeyToPem throws', () => {
       const fakeParsed = {
         getBags: (opts: { bagType: string }) => {
