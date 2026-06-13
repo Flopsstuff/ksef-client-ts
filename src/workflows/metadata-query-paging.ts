@@ -74,13 +74,20 @@ export async function* queryAllInvoiceMetadata(
 
   // Work on a shallow clone so the caller's filters stay untouched.
   let dateRange = { ...filters.dateRange };
-  const seen = new Set<string>();
   let boundaryCrossings = 0;
+  // Bounded de-dup: re-narrowing resumes exactly at the previous window's
+  // boundary value, so the only invoices that can re-appear are those sharing
+  // that single date value. We carry just those keys forward, not every key
+  // ever seen — memory stays bounded by the count of invoices on one date.
+  let carryKeys = new Set<string>();
+  let carryValue: string | undefined;
 
   for (;;) {
     let offset = 0;
     let lastBoundaryValue: string | undefined;
     let isTruncated = false;
+    // Keys yielded at the current `lastBoundaryValue` within this window.
+    let boundaryKeys = new Set<string>();
 
     // --- inner loop: page through the current (capped) window ---
     for (;;) {
@@ -94,10 +101,17 @@ export async function* queryAllInvoiceMetadata(
       isTruncated = response.isTruncated;
 
       for (const invoice of response.invoices) {
-        lastBoundaryValue = invoice[boundaryField] as string;
+        const boundaryValue = invoice[boundaryField] as string;
         const key = invoice.ksefNumber.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
+        // Skip only the boundary invoices carried over from the prior window.
+        if (boundaryValue === carryValue && carryKeys.has(key)) continue;
+        // Results are sorted by the boundary field, so a changed value means a
+        // new boundary group — reset the per-value key set.
+        if (boundaryValue !== lastBoundaryValue) {
+          lastBoundaryValue = boundaryValue;
+          boundaryKeys = new Set<string>();
+        }
+        boundaryKeys.add(key);
         yield invoice;
       }
 
@@ -127,6 +141,10 @@ export async function* queryAllInvoiceMetadata(
         lastBoundaryValue,
       );
     }
+
+    // Carry forward only the keys at the boundary we resume from.
+    carryKeys = boundaryKeys;
+    carryValue = lastBoundaryValue;
 
     dateRange =
       sortOrder === 'Asc'
