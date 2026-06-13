@@ -241,6 +241,7 @@ describe('authenticateWithPkcs12', () => {
     });
 
     // The real cert + key extracted from the P12 must reach the signer.
+    expect(signSpy).toHaveBeenCalledOnce();
     const [, certPem, keyPem] = signSpy.mock.calls[0];
     expect(certPem).toContain('-----BEGIN CERTIFICATE-----');
     expect(keyPem).toContain('PRIVATE KEY-----');
