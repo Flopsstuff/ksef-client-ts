@@ -1,7 +1,7 @@
 import * as crypto from 'node:crypto';
 import { describe, it, expect } from 'vitest';
 import { authenticateWithCertAndCrypto } from './helpers/auth.js';
-import { getFormCode, prepareAndEncryptInvoice } from './helpers/invoices.js';
+import { getFormCode, prepareAndEncryptInvoice, getInvoiceWithRetry } from './helpers/invoices.js';
 import { pollUntil } from './helpers/polling.js';
 import { QrCodeService } from '../../src/qr/qrcode-service.js';
 
@@ -85,7 +85,7 @@ describe('04 - Online Session E2E', { timeout: 180_000 }, () => {
     expect(sessionUpo.upo).toBeTruthy();
 
     // Step 10: Get invoice XML by KSeF number
-    const { xml: invoiceXml } = await client.invoices.getInvoice(ksefNumber);
+    const { xml: invoiceXml } = await getInvoiceWithRetry(client, ksefNumber);
     expect(invoiceXml).toContain(nip);
     expect(invoiceXml).toContain('Faktura');
 

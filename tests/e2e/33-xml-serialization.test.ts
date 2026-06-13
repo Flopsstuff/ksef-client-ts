@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { authenticateWithCertAndCrypto } from './helpers/auth.js';
-import { getFormCode, loadInvoiceTemplate } from './helpers/invoices.js';
+import { getFormCode, loadInvoiceTemplate, getInvoiceWithRetry } from './helpers/invoices.js';
 import { generateUniqueInvoiceNumber } from './helpers/identifiers.js';
 import { pollUntil } from './helpers/polling.js';
 import {
@@ -191,7 +191,7 @@ describe('33 - XML Serialization E2E', { timeout: 180_000 }, () => {
     const { ksefNumber } = await openSendCloseVerify(client, encryptionData, sendRequest);
 
     // Round-trip check: KSeF should have stored the same invoice number / content.
-    const { xml: storedXml } = await client.invoices.getInvoice(ksefNumber);
+    const { xml: storedXml } = await getInvoiceWithRetry(client, ksefNumber);
     expect(storedXml).toContain(`<NIP>${nip}</NIP>`);
     expect(storedXml).toContain('Faktura');
   });
