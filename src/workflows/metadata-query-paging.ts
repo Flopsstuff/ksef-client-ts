@@ -6,6 +6,7 @@ import type {
   InvoiceQueryFilters,
 } from '../models/invoices/types.js';
 import { KSeFMetadataPaginationError } from '../errors/ksef-metadata-pagination-error.js';
+import { KSeFValidationError } from '../errors/ksef-validation-error.js';
 
 /** Minimal surface of {@link KSeFClient} the paging helper depends on. */
 export type MetadataQueryClient = Pick<KSeFClient, 'invoices'>;
@@ -63,6 +64,12 @@ export async function* queryAllInvoiceMetadata(
   const sortOrder: SortOrder = options.sortOrder ?? 'Asc';
   const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE;
   const maxBoundaryCrossings = options.maxBoundaryCrossings ?? DEFAULT_MAX_BOUNDARY_CROSSINGS;
+  if (!Number.isInteger(pageSize) || pageSize <= 0) {
+    throw new KSeFValidationError('`pageSize` must be a positive integer.');
+  }
+  if (!Number.isInteger(maxBoundaryCrossings) || maxBoundaryCrossings < 0) {
+    throw new KSeFValidationError('`maxBoundaryCrossings` must be a non-negative integer.');
+  }
   const boundaryField = boundaryFieldFor(filters.dateRange.dateType);
 
   // Work on a shallow clone so the caller's filters stay untouched.
