@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - **Certificate serial number validation** — retrieving certificates by serial now rejects malformed values with a clear error before the request reaches KSeF.
+- **Complete invoice metadata queries** — a new paging helper reads metadata query results of any size, automatically crossing the server's result cap so large date ranges no longer silently drop the tail.
 
 ### Fixed
 
