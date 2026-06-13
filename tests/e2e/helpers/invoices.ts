@@ -103,6 +103,9 @@ export async function getInvoiceWithRetry(
   attempts = 3,
   delayMs = 2000,
 ): Promise<InvoiceResult> {
+  if (attempts < 1) {
+    throw new RangeError('attempts must be at least 1');
+  }
   let lastError: unknown;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
