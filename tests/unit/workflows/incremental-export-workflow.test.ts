@@ -993,4 +993,123 @@ describe('incrementalExportAndDownload', () => {
       expect(client.crypto.decryptAES256).not.toHaveBeenCalled();
     });
   });
+
+  // P2.10 — KSeF API v2.6.1 fixed a server-side bug where onlyMetadata exports
+  // covering >10k invoices could over-fill a package (10 001 records) while
+  // reporting isTruncated=false, silently dropping the tail. The server now
+  // splits correctly and reports isTruncated accurately. These tests prove our
+  // continuation loop consumes every package and advances monotonically once the
+  // server reports truncation correctly — no gaps, no infinite loop.
+  describe('>10k onlyMetadata multi-package truncation (P2.10 regression)', () => {
+    it('consumes every package and advances the continuation point monotonically', async () => {
+      // Simulate a >10k onlyMetadata export split into 6 packages of ~2000
+      // metadata records each: the first 5 are truncated with distinct,
+      // strictly-increasing lastPermanentStorageDate, the 6th is the tail.
+      const boundaries = [
+        '2026-01-05T00:00:00Z',
+        '2026-01-12T00:00:00Z',
+        '2026-01-19T00:00:00Z',
+        '2026-01-26T00:00:00Z',
+        '2026-02-02T00:00:00Z',
+      ];
+
+      boundaries.forEach((boundary, i) => {
+        mockDoExport.mockResolvedValueOnce(
+          mockExportResult({
+            referenceNumber: `pkg-${i + 1}`,
+            isTruncated: true,
+            lastPermanentStorageDate: boundary,
+            invoiceCount: 2000,
+          }),
+        );
+      });
+      mockDoExport.mockResolvedValueOnce(
+        mockExportResult({
+          referenceNumber: 'pkg-tail',
+          isTruncated: false,
+          permanentStorageHwmDate: '2026-02-09T00:00:00Z',
+          invoiceCount: 1234,
+        }),
+      );
+
+      const result = await incrementalExportAndDownload(client, {
+        subjectType: 'Subject1',
+        windowFrom: '2026-01-01',
+        windowTo: '2026-03-01',
+        continuationPoints: {},
+        onlyMetadata: true,
+        pollOptions: { intervalMs: 1 },
+        transport: mockTransport,
+      });
+
+      // Every package was consumed exactly once — no gaps, no infinite loop.
+      expect(mockDoExport).toHaveBeenCalledTimes(6);
+      expect(result.iterationCount).toBe(6);
+      expect(result.referenceNumbers).toEqual([
+        'pkg-1',
+        'pkg-2',
+        'pkg-3',
+        'pkg-4',
+        'pkg-5',
+        'pkg-tail',
+      ]);
+      expect(result.decryptedParts).toHaveLength(6);
+
+      // onlyMetadata is threaded through to every export call.
+      for (const call of mockDoExport.mock.calls) {
+        expect(call[2]).toEqual(expect.objectContaining({ onlyMetadata: true }));
+      }
+
+      // The continuation point advances monotonically with no gaps: each
+      // iteration starts exactly where the previous package's truncation
+      // boundary left off (first call uses windowFrom).
+      const starts = mockDoExport.mock.calls.map((c) => c[1].dateRange?.from);
+      expect(starts).toEqual([
+        '2026-01-01', // windowFrom
+        ...boundaries, // each subsequent start = prior package boundary
+      ]);
+      for (let i = 1; i < starts.length; i++) {
+        expect(starts[i]! > starts[i - 1]!).toBe(true);
+      }
+
+      // Final continuation point keys off the tail package's HWM date.
+      expect(result.continuationPoints['Subject1']).toBe('2026-02-09T00:00:00Z');
+    });
+
+    it('does not drop the tail: a long truncated run still terminates within maxIterations', async () => {
+      // 11 truncated packages then a non-truncated tail — well within the
+      // default maxIterations of 20. Proves the loop neither stops early
+      // (dropping the tail) nor spins forever.
+      const total = 11;
+      for (let i = 0; i < total; i++) {
+        const day = String(i + 2).padStart(2, '0');
+        mockDoExport.mockResolvedValueOnce(
+          mockExportResult({
+            referenceNumber: `chunk-${i + 1}`,
+            isTruncated: true,
+            lastPermanentStorageDate: `2026-01-${day}T00:00:00Z`,
+            invoiceCount: 2000,
+          }),
+        );
+      }
+      mockDoExport.mockResolvedValueOnce(
+        mockExportResult({ referenceNumber: 'chunk-tail', isTruncated: false }),
+      );
+
+      const result = await incrementalExportAndDownload(client, {
+        subjectType: 'Subject1',
+        windowFrom: '2026-01-01',
+        windowTo: '2026-03-01',
+        continuationPoints: {},
+        onlyMetadata: true,
+        pollOptions: { intervalMs: 1 },
+        transport: mockTransport,
+      });
+
+      expect(result.iterationCount).toBe(total + 1);
+      expect(mockDoExport).toHaveBeenCalledTimes(total + 1);
+      expect(result.referenceNumbers[result.referenceNumbers.length - 1]).toBe('chunk-tail');
+      expect(result.decryptedParts).toHaveLength(total + 1);
+    });
+  });
 });
