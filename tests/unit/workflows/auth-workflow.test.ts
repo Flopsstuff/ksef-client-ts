@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { authenticateWithToken, authenticateWithCertificate, authenticateWithExternalSignature } from '../../../src/workflows/auth-workflow.js';
+import { KSeFAuthStatusError } from '../../../src/errors/ksef-auth-status-error.js';
 
 function createMockClient() {
   return {
@@ -69,6 +70,27 @@ describe('authenticateWithToken', () => {
     expect(client.authManager.setRefreshToken).toHaveBeenCalledWith('refresh-tok');
     expect(result.accessToken).toBe('access-tok');
     expect(result.refreshToken).toBe('refresh-tok');
+  });
+
+  it('throws KSeFAuthStatusError on a terminal failure status, surfacing details', async () => {
+    client.auth.getAuthStatus.mockResolvedValue({
+      status: {
+        code: 450,
+        description: 'Uwierzytelnianie zakończone niepowodzeniem z powodu błędnego tokenu',
+        details: ['Token nieaktywny', 'Nieprawidłowe szyfrowanie tokena'],
+      },
+    });
+
+    await expect(
+      authenticateWithToken(client, { nip: '1234567890', token: 'tok', pollOptions: { intervalMs: 1 } }),
+    ).rejects.toThrow(KSeFAuthStatusError);
+
+    await expect(
+      authenticateWithToken(client, { nip: '1234567890', token: 'tok', pollOptions: { intervalMs: 1 } }),
+    ).rejects.toThrow(/450.*Token nieaktywny; Nieprawidłowe szyfrowanie tokena/s);
+
+    // Must not attempt to exchange the auth token after a failure.
+    expect(client.auth.getAccessToken).not.toHaveBeenCalled();
   });
 
   it('passes authorizationPolicy through', async () => {

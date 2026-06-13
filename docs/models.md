@@ -1,6 +1,6 @@
 # Models & Type System
 
-Complete reference for the model layer that defines every request, response, enum, and identifier type used by the KSeF client. All types are derived from the KSeF OpenAPI spec (API v2.6.0, build 2.5.0-te) and organized by API domain.
+Complete reference for the model layer that defines every request, response, enum, and identifier type used by the KSeF client. All types are derived from the KSeF OpenAPI spec (API v2.6.1, build 2.6.1-te) and organized by API domain.
 
 ---
 

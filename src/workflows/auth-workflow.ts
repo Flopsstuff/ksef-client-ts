@@ -5,12 +5,58 @@ import type { PollOptions } from './types.js';
 import { pollUntil } from './polling.js';
 import { buildUnsignedAuthTokenRequestXml } from '../crypto/auth-xml-builder.js';
 import { withKeyRotationRetry } from '../crypto/with-key-rotation-retry.js';
+import { KSeFAuthStatusError } from '../errors/ksef-auth-status-error.js';
 
 export interface AuthResult {
   accessToken: string;
   accessTokenValidUntil: string;
   refreshToken: string;
   refreshTokenValidUntil: string;
+}
+
+/** Status code returned by KSeF when authentication completes successfully. */
+const AUTH_STATUS_SUCCESS = 200;
+/** Status code returned by KSeF while authentication is still in progress. */
+const AUTH_STATUS_IN_PROGRESS = 100;
+
+/**
+ * Polls the authentication status until it reaches a terminal state, then
+ * exchanges the auth token for access/refresh tokens. Throws
+ * {@link KSeFAuthStatusError} if KSeF reports a terminal failure (e.g. 415, 450,
+ * 460), surfacing the status description and any `details` returned by the API.
+ */
+async function awaitAuthentication(
+  client: KSeFClient,
+  referenceNumber: string,
+  authToken: string,
+  pollOptions: PollOptions | undefined,
+): Promise<AuthResult> {
+  const final = await pollUntil(
+    () => client.auth.getAuthStatus(referenceNumber, authToken),
+    (s) => s.status.code !== AUTH_STATUS_IN_PROGRESS,
+    { ...pollOptions, description: `auth ${referenceNumber}` },
+  );
+
+  if (final.status.code !== AUTH_STATUS_SUCCESS) {
+    const details = final.status.details?.length ? ` (${final.status.details.join('; ')})` : '';
+    throw new KSeFAuthStatusError(
+      `Authentication failed with status ${final.status.code}: ${final.status.description}${details}`,
+      referenceNumber,
+      final.status.description,
+    );
+  }
+
+  const tokens = await client.auth.getAccessToken(authToken);
+
+  client.authManager.setAccessToken(tokens.accessToken.token);
+  client.authManager.setRefreshToken(tokens.refreshToken.token);
+
+  return {
+    accessToken: tokens.accessToken.token,
+    accessTokenValidUntil: tokens.accessToken.validUntil,
+    refreshToken: tokens.refreshToken.token,
+    refreshTokenValidUntil: tokens.refreshToken.validUntil,
+  };
 }
 
 export interface TokenAuthOptions {
@@ -59,23 +105,7 @@ export async function authenticateWithToken(
 
   const authToken = submitResult.authenticationToken.token;
 
-  await pollUntil(
-    () => client.auth.getAuthStatus(submitResult.referenceNumber, authToken),
-    (s) => s.status.code !== 100,
-    { ...options.pollOptions, description: `auth ${submitResult.referenceNumber}` },
-  );
-
-  const tokens = await client.auth.getAccessToken(authToken);
-
-  client.authManager.setAccessToken(tokens.accessToken.token);
-  client.authManager.setRefreshToken(tokens.refreshToken.token);
-
-  return {
-    accessToken: tokens.accessToken.token,
-    accessTokenValidUntil: tokens.accessToken.validUntil,
-    refreshToken: tokens.refreshToken.token,
-    refreshTokenValidUntil: tokens.refreshToken.validUntil,
-  };
+  return awaitAuthentication(client, submitResult.referenceNumber, authToken, options.pollOptions);
 }
 
 export async function authenticateWithCertificate(
@@ -97,23 +127,7 @@ export async function authenticateWithCertificate(
 
   const authToken = submitResult.authenticationToken.token;
 
-  await pollUntil(
-    () => client.auth.getAuthStatus(submitResult.referenceNumber, authToken),
-    (s) => s.status.code !== 100,
-    { ...options.pollOptions, description: `auth ${submitResult.referenceNumber}` },
-  );
-
-  const tokens = await client.auth.getAccessToken(authToken);
-
-  client.authManager.setAccessToken(tokens.accessToken.token);
-  client.authManager.setRefreshToken(tokens.refreshToken.token);
-
-  return {
-    accessToken: tokens.accessToken.token,
-    accessTokenValidUntil: tokens.accessToken.validUntil,
-    refreshToken: tokens.refreshToken.token,
-    refreshTokenValidUntil: tokens.refreshToken.validUntil,
-  };
+  return awaitAuthentication(client, submitResult.referenceNumber, authToken, options.pollOptions);
 }
 
 export interface ExternalSignatureAuthOptions {
@@ -145,23 +159,7 @@ export async function authenticateWithExternalSignature(
 
   const authToken = submitResult.authenticationToken.token;
 
-  await pollUntil(
-    () => client.auth.getAuthStatus(submitResult.referenceNumber, authToken),
-    (s) => s.status.code !== 100,
-    { ...options.pollOptions, description: `auth ${submitResult.referenceNumber}` },
-  );
-
-  const tokens = await client.auth.getAccessToken(authToken);
-
-  client.authManager.setAccessToken(tokens.accessToken.token);
-  client.authManager.setRefreshToken(tokens.refreshToken.token);
-
-  return {
-    accessToken: tokens.accessToken.token,
-    accessTokenValidUntil: tokens.accessToken.validUntil,
-    refreshToken: tokens.refreshToken.token,
-    refreshTokenValidUntil: tokens.refreshToken.validUntil,
-  };
+  return awaitAuthentication(client, submitResult.referenceNumber, authToken, options.pollOptions);
 }
 
 export async function authenticateWithPkcs12(

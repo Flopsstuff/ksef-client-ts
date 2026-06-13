@@ -4,9 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [0.9.1] - Unreleased
 
-### Added
+### Changed
+
+- **Updated to KSeF API v2.6.1** — the bundled API specification now tracks the current KSeF release; no changes to existing requests or responses.
 
 ### Fixed
+
+- **Clearer authentication failures** — when KSeF reports that authentication finished unsuccessfully (for example an invalid, inactive, or wrongly-encrypted token), the client now raises a descriptive authentication error carrying the reported reason instead of a confusing follow-up error.
 
 ## [0.9.0] - 2026-05-24
 
