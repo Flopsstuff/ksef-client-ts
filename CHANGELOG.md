@@ -16,7 +16,6 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - **Clearer authentication failures** — failed authentication now reports the reason from KSeF.
-- **Reliable large metadata-only exports** — verified that exports covering more than 10,000 invoices retrieve every record across all packages without dropping the tail (KSeF API v2.6.1).
 
 ## [0.9.0] - 2026-05-24
 
