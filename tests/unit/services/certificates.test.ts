@@ -64,8 +64,8 @@ describe('CertificateApiService', () => {
   it('retrieve sends POST with body to certificates/retrieve', async () => {
     const client = createMockRestClient();
     const service = new CertificateApiService(client);
-    const request = { serialNumbers: ['SN-001', 'SN-002'] };
-    const expected = { certificates: [{ serialNumber: 'SN-001' }] };
+    const request = { certificateSerialNumbers: ['0123456789ABCDEF', 'FEDCBA9876543210'] };
+    const expected = { certificates: [{ certificateSerialNumber: '0123456789ABCDEF' }] };
     vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
 
     const result = await service.retrieve(request as any);
@@ -75,6 +75,28 @@ describe('CertificateApiService', () => {
     expect(req.path).toBe(Routes.Certificates.retrieve);
     expect(req.getBody()).toEqual(request);
     expect(result).toEqual(expected);
+  });
+
+  it('retrieve rejects a malformed serial number before the HTTP call', async () => {
+    const client = createMockRestClient();
+    const service = new CertificateApiService(client);
+    const request = { certificateSerialNumbers: ['0123456789ABCDEF', 'not-a-serial'] };
+
+    await expect(service.retrieve(request as any)).rejects.toMatchObject({
+      name: 'KSeFValidationError',
+    });
+    expect(client.execute).not.toHaveBeenCalled();
+  });
+
+  it('retrieve rejects lowercase hex serials', async () => {
+    const client = createMockRestClient();
+    const service = new CertificateApiService(client);
+    const request = { certificateSerialNumbers: ['0123456789abcdef'] };
+
+    await expect(service.retrieve(request as any)).rejects.toMatchObject({
+      name: 'KSeFValidationError',
+    });
+    expect(client.execute).not.toHaveBeenCalled();
   });
 
   it('revoke sends POST with serialNumber in path and body', async () => {

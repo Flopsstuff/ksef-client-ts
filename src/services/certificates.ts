@@ -1,6 +1,8 @@
 import { RestClient } from '../http/rest-client.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
+import { KSeFValidationError } from '../errors/ksef-validation-error.js';
+import { isValidCertificateSerialNumber } from '../validation/patterns.js';
 import type {
   CertificateLimitsResponse,
   CertificateEnrollmentDataResponse,
@@ -47,6 +49,14 @@ export class CertificateApiService {
   }
 
   async retrieve(request: RetrieveCertificatesRequest): Promise<RetrieveCertificatesResponse> {
+    for (const serial of request.certificateSerialNumbers ?? []) {
+      if (!isValidCertificateSerialNumber(serial)) {
+        throw KSeFValidationError.fromField(
+          'certificateSerialNumbers',
+          `Invalid certificate serial number "${serial}": must be exactly 16 uppercase hex characters (^[0-9A-F]{16}$)`,
+        );
+      }
+    }
     const req = RestRequest.post(Routes.Certificates.retrieve)
       .body(request);
     const response = await this.restClient.execute<RetrieveCertificatesResponse>(req);

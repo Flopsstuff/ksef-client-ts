@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { InvoiceQueryFilterBuilder } from '../../src/builders/invoice-query-filter.js';
 import { authenticateWithCertAndCrypto } from './helpers/auth.js';
-import { getFormCode, prepareAndEncryptInvoice } from './helpers/invoices.js';
+import { getFormCode, prepareAndEncryptInvoice, getInvoiceWithRetry } from './helpers/invoices.js';
 import { pollUntil } from './helpers/polling.js';
 import type { KSeFClient } from '../../src/client.js';
 
@@ -58,7 +58,7 @@ describe('06 - Invoice Query & Export', { timeout: 300_000 }, () => {
   });
 
   it('should get invoice by KSeF number', async () => {
-    const { xml } = await client.invoices.getInvoice(sentKsefNumber);
+    const { xml } = await getInvoiceWithRetry(client, sentKsefNumber);
     expect(xml).toContain('Faktura');
     expect(xml).toContain(sentNip);
   });

@@ -1,3 +1,4 @@
+import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -5,7 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { parseXml, serializeInvoiceXml } from '../../../src/xml/index.js';
 import {
   FA_XSD_PATHS,
+  PEF_XSD_PATHS,
   libxmljsAvailable,
+  resolveXsdFor,
   validateAgainstXsd,
 } from './xsd-validator.js';
 
@@ -50,5 +53,46 @@ describe.skipIf(!libxmljsAvailable)('Invoice XML XSD harness', () => {
     const result = validateAgainstXsd(rebuilt, FA_XSD_PATHS.FA3);
     expect(result.errors).toEqual([]);
     expect(result.valid).toBe(true);
+  });
+});
+
+describe('resolveXsdFor', () => {
+  it('throws on an unknown schema id', () => {
+    expect(() => resolveXsdFor('NOPE' as never)).toThrow(/Unknown invoice schema/);
+  });
+
+  it('resolves each known schema to an existing XSD file', () => {
+    for (const id of ['FA2', 'FA3', 'PEF', 'PEF_KOR'] as const) {
+      const p = resolveXsdFor(id);
+      expect(fs.existsSync(p)).toBe(true);
+    }
+  });
+});
+
+describe.skipIf(!libxmljsAvailable)('validateAgainstXsd — error and fallback paths', () => {
+  it('validates against a PEF XSD that needs no schemaLocation rewrite', () => {
+    // PEF XSDs carry no crd.gov.pl import, so rewriteSchemaLocations returns the
+    // content unchanged — a malformed PEF doc still parses and yields errors.
+    const result = validateAgainstXsd('<Invoice xmlns="bad"/>', PEF_XSD_PATHS.PEF);
+    expect(result.valid).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it('returns an XSD-parse-failure result for a malformed schema file', () => {
+    const badXsd = path.join(os.tmpdir(), `ksef-bad-${process.pid}.xsd`);
+    fs.writeFileSync(badXsd, '<xsd:schema><not-closed>');
+    try {
+      const result = validateAgainstXsd('<Faktura/>', badXsd);
+      expect(result.valid).toBe(false);
+      expect(result.errors[0]).toMatch(/XSD parse failed/);
+    } finally {
+      fs.rmSync(badXsd, { force: true });
+    }
+  });
+
+  it('returns an XML-parse-failure result for malformed XML against a valid XSD', () => {
+    const result = validateAgainstXsd('<Faktura><unclosed>', FA_XSD_PATHS.FA3);
+    expect(result.valid).toBe(false);
+    expect(result.errors[0]).toMatch(/XML parse failed/);
   });
 });

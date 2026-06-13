@@ -4,6 +4,7 @@ import {
   isValidPeppolId, isValidReferenceNumber, isValidKsefNumber,
   isValidKsefNumberV35, isValidKsefNumberV36,
   isValidPesel, isValidCertificateName, isValidCertificateFingerprint,
+  isValidCertificateSerialNumber,
   isValidBase64, isValidIp4Address, isValidSha256Base64,
   KsefNumberV35, KsefNumberV36, Ip4Range, Ip4Mask,
 } from '../../../src/validation/index.js';
@@ -297,6 +298,29 @@ describe('isValidCertificateFingerprint', () => {
 
   it('rejects non-hex chars', () => {
     expect(isValidCertificateFingerprint('G'.repeat(64))).toBe(false);
+  });
+});
+
+describe('isValidCertificateSerialNumber', () => {
+  it('accepts 16 uppercase hex chars', () => {
+    expect(isValidCertificateSerialNumber('0123456789ABCDEF')).toBe(true);
+    expect(isValidCertificateSerialNumber('A'.repeat(16))).toBe(true);
+  });
+
+  it('rejects 15 chars', () => {
+    expect(isValidCertificateSerialNumber('A'.repeat(15))).toBe(false);
+  });
+
+  it('rejects 17 chars', () => {
+    expect(isValidCertificateSerialNumber('A'.repeat(17))).toBe(false);
+  });
+
+  it('rejects lowercase hex', () => {
+    expect(isValidCertificateSerialNumber('0123456789abcdef')).toBe(false);
+  });
+
+  it('rejects non-hex chars', () => {
+    expect(isValidCertificateSerialNumber('G'.repeat(16))).toBe(false);
   });
 });
 

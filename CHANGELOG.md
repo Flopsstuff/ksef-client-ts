@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.1] - Unreleased
+
+### Changed
+
+- **Updated to KSeF API v2.6.1** — the bundled API specification now tracks the current KSeF release; no changes to existing requests or responses.
+
+### Added
+
+- **Certificate serial number validation** — retrieving certificates by serial now rejects malformed values with a clear error before the request reaches KSeF.
+- **Complete invoice metadata queries** — a new paging helper reads metadata query results of any size, automatically crossing the server's result cap so large date ranges no longer silently drop the tail.
+
+### Fixed
+
+- **Clearer authentication failures** — failed authentication now reports the reason from KSeF.
+
 ## [0.9.0] - 2026-05-24
 
 ### Changed (breaking)

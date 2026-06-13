@@ -375,6 +375,33 @@ describe('PermissionsService', () => {
       ]);
       expect(result).toEqual(expected);
     });
+
+    // Pagination pass-through for the remaining query methods: each forwards
+    // pageOffset/pageSize as query params only when the args are provided.
+    it.each([
+      ['queryPersonsGrants', Routes.Permissions.Query.personsGrants, { nip: '1234567890' }],
+      ['querySubunitsGrants', Routes.Permissions.Query.subunitsGrants, { subunitCode: 'SUB-001' }],
+      ['queryEntitiesGrants', Routes.Permissions.Query.entitiesGrants, {}],
+      ['querySubordinateEntitiesRoles', Routes.Permissions.Query.subordinateEntitiesRoles, {}],
+      ['queryAuthorizationsGrants', Routes.Permissions.Query.authorizationsGrants, { authorizationType: 'SelfInvoicing' }],
+    ] as const)(
+      '%s forwards pageOffset and pageSize as query params',
+      async (method, route, options) => {
+        const expected = { grants: [], hasMore: false };
+        vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
+
+        const result = await (service[method] as any)(options, 4, 75);
+
+        const req = getRequest(vi.mocked(client.execute));
+        expect(req.method).toBe('POST');
+        expect(req.path).toBe(route);
+        expect(req.getQuery()).toEqual([
+          ['pageOffset', '4'],
+          ['pageSize', '75'],
+        ]);
+        expect(result).toEqual(expected);
+      },
+    );
   });
 
   describe('status methods', () => {

@@ -14,3 +14,5 @@ export { InMemoryHwmStore, FileHwmStore } from './hwm-storage.js';
 export type { HwmStore } from './hwm-storage.js';
 export { authenticateWithToken, authenticateWithCertificate, authenticateWithPkcs12, authenticateWithExternalSignature } from './auth-workflow.js';
 export type { AuthResult, TokenAuthOptions, CertificateAuthOptions, Pkcs12AuthOptions, ExternalSignatureAuthOptions } from './auth-workflow.js';
+export { queryAllInvoiceMetadata, collectAllInvoiceMetadata } from './metadata-query-paging.js';
+export type { MetadataQueryClient, QueryAllMetadataOptions } from './metadata-query-paging.js';

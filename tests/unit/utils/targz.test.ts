@@ -1,6 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { gunzipSync } from 'node:zlib';
+import { gunzipSync, gzipSync } from 'node:zlib';
+import { pack } from 'tar-stream';
 import { createTarGz, extractTarGz } from '../../../src/utils/targz.js';
+
+/** Build a raw tar.gz with arbitrary entry headers (e.g. directories). */
+async function packTarGz(
+  entries: Array<{ header: { name: string; type?: string; size?: number }; content?: Buffer }>,
+): Promise<Buffer> {
+  const packer = pack();
+  for (const { header, content } of entries) {
+    packer.entry(header as never, content ?? Buffer.alloc(0));
+  }
+  packer.finalize();
+  const chunks: Buffer[] = [];
+  for await (const chunk of packer) chunks.push(chunk as Buffer);
+  return gzipSync(Buffer.concat(chunks));
+}
 
 describe('targz', () => {
   it('produces a valid gzip stream', async () => {
@@ -109,5 +124,23 @@ describe('targz', () => {
     const archive = await createTarGz([{ fileName: 'bomb.xml', content: Buffer.alloc(100_000, 'a') }]);
     const files = await extractTarGz(archive, { maxCompressionRatio: null });
     expect(files.get('bomb.xml')?.length).toBe(100_000);
+  });
+
+  it('skips non-file entries (e.g. directories) and extracts only files', async () => {
+    const archive = await packTarGz([
+      { header: { name: 'dir/', type: 'directory' } },
+      { header: { name: 'dir/a.xml', size: 4 }, content: Buffer.from('<a/>') },
+    ]);
+    const files = await extractTarGz(archive);
+    expect(files.has('dir/')).toBe(false);
+    expect(files.get('dir/a.xml')?.toString()).toBe('<a/>');
+  });
+
+  it('rejects when an entry cannot be packed', async () => {
+    // Buffer.from(undefined) throws synchronously inside the pack loop, so the
+    // promise must reject rather than hang.
+    await expect(
+      createTarGz([{ fileName: 'x', content: undefined as never }]),
+    ).rejects.toThrow();
   });
 });

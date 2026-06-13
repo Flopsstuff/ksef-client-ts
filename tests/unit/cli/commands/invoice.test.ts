@@ -5,7 +5,8 @@ import * as configStore from '../../../../src/cli/config-store.js';
 import * as output from '../../../../src/cli/output.js';
 import * as fs from 'node:fs';
 import { consola } from 'consola';
-import { validate as validateInvoice } from '../../../../src/validation/invoice-validator.js';
+import { validate as validateInvoice, validateBatch } from '../../../../src/validation/invoice-validator.js';
+import { uploadBatchStream } from '../../../../src/workflows/batch-session-workflow.js';
 import { createMockClient, defaultConfig, validSession } from './_helpers.js';
 
 vi.mock('consola', () => ({
@@ -44,6 +45,12 @@ vi.mock('../../../../src/cli/output.js', () => ({
 
 vi.mock('../../../../src/validation/invoice-validator.js', () => ({
   validate: vi.fn(),
+  validateBatch: vi.fn(),
+  batchValidationDetails: vi.fn(() => []),
+}));
+
+vi.mock('../../../../src/workflows/batch-session-workflow.js', () => ({
+  uploadBatchStream: vi.fn(),
 }));
 
 vi.mock('node:fs', () => ({
@@ -420,6 +427,137 @@ describe('invoice', () => {
       mockLoadConfig.mockReturnValue({ ...defaultConfig, nip: undefined });
 
       await expect(runSend({ path: '/dir' })).rejects.toThrow('NIP is required');
+    });
+  });
+
+  describe('send — parallelism validation', () => {
+    it.each(['abc', '0', '-1', '1.5'])('rejects invalid --parallelism: %s', async (parallelism) => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as any);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('<xml/>'));
+
+      await expect(runSend({ path: '/test.xml', parallelism })).rejects.toThrow(
+        '--parallelism must be a positive integer',
+      );
+    });
+  });
+
+  describe('send — stream mode', () => {
+    const mockUploadBatchStream = vi.mocked(uploadBatchStream);
+
+    it('warns about --validate and rejects a non-zip path', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as any);
+
+      await expect(runSend({ path: '/data.txt', stream: true, validate: true })).rejects.toThrow(
+        '--stream requires a .zip file',
+      );
+      expect(consola.warn).toHaveBeenCalledWith(expect.stringContaining('--validate is not supported in stream mode'));
+    });
+
+    it('rejects when a .zip path is actually a directory', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as any);
+
+      await expect(runSend({ path: '/archive.zip', stream: true })).rejects.toThrow(
+        '--stream requires a .zip file',
+      );
+    });
+
+    it('throws when NIP is missing in stream mode', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false, size: 100 } as any);
+      mockLoadConfig.mockReturnValue({ ...defaultConfig, nip: undefined });
+
+      await expect(runSend({ path: '/archive.zip', stream: true })).rejects.toThrow('NIP is required');
+    });
+
+    it('rejects PEF form codes in stream (batch) mode', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false, size: 100 } as any);
+      mockLoadConfig.mockReturnValue({ ...defaultConfig, nip: '1234567890' });
+
+      await expect(runSend({ path: '/archive.zip', stream: true, formCode: 'PEF3' })).rejects.toThrow(
+        'not supported in batch sessions',
+      );
+    });
+
+    it('uploads via stream and reports the session ref', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false, size: 2_000_000 } as any);
+      mockLoadConfig.mockReturnValue({ ...defaultConfig, nip: '1234567890' });
+      mockUploadBatchStream.mockResolvedValue({
+        sessionRef: 'stream-ref-1',
+        upo: { pages: [], invoiceCount: 7, successfulInvoiceCount: 7, failedInvoiceCount: 0 },
+      } as any);
+
+      await runSend({ path: '/archive.zip', stream: true });
+
+      expect(mockUploadBatchStream).toHaveBeenCalled();
+      expect(output.outputSuccess).toHaveBeenCalledWith(expect.stringContaining('stream-ref-1'));
+    });
+
+    it('outputs JSON in stream mode when --json is set', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false, size: 500_000 } as any);
+      mockLoadConfig.mockReturnValue({ ...defaultConfig, nip: '1234567890' });
+      const streamResult = {
+        sessionRef: 'stream-ref-2',
+        upo: { pages: [], invoiceCount: 1, successfulInvoiceCount: 1, failedInvoiceCount: 0 },
+      };
+      mockUploadBatchStream.mockResolvedValue(streamResult as any);
+
+      await runSend({ path: '/archive.zip', stream: true, json: true });
+
+      expect(output.outputResult).toHaveBeenCalledWith(streamResult, { json: true });
+    });
+  });
+
+  describe('send — batch directory validation', () => {
+    const mockValidateBatch = vi.mocked(validateBatch);
+
+    function stubBatchDir() {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as any);
+      vi.mocked(fs.readdirSync).mockReturnValue(['a.xml', 'b.xml'] as any);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('<Faktura/>'));
+      mockLoadConfig.mockReturnValue({ ...defaultConfig, nip: '1234567890' });
+      mockClient.batchSession.openSession.mockResolvedValue({ referenceNumber: 'batch-ref-v' });
+      mockClient.batchSession.sendParts.mockResolvedValue(undefined);
+      mockClient.batchSession.closeSession.mockResolvedValue(undefined);
+    }
+
+    it('validates all invoices and proceeds to send when valid', async () => {
+      stubBatchDir();
+      mockValidateBatch.mockResolvedValue({
+        valid: true,
+        results: [
+          { fileName: 'a.xml', result: { valid: true, errors: [] } },
+          { fileName: 'b.xml', result: { valid: true, errors: [] } },
+        ],
+      } as any);
+
+      await runSend({ path: '/dir', validate: true });
+
+      expect(mockValidateBatch).toHaveBeenCalled();
+      expect(consola.success).toHaveBeenCalledWith(expect.stringContaining('2 invoices valid'));
+      expect(mockClient.batchSession.openSession).toHaveBeenCalled();
+    });
+
+    it('throws and does not send when a batch invoice is invalid', async () => {
+      stubBatchDir();
+      mockValidateBatch.mockResolvedValue({
+        valid: false,
+        results: [
+          { fileName: 'a.xml', result: { valid: true, errors: [] } },
+          { fileName: 'b.xml', result: { valid: false, errors: [{ message: 'bad' }] } },
+        ],
+      } as any);
+
+      await expect(runSend({ path: '/dir', validate: true })).rejects.toThrow(
+        'Validation failed: 1 of 2 invoices invalid',
+      );
+      expect(mockClient.batchSession.openSession).not.toHaveBeenCalled();
     });
   });
 

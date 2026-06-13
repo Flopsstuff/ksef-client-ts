@@ -21,6 +21,7 @@ export { KSeFBadRequestError } from './ksef-bad-request-error.js';
 export { KSeFAuthStatusError } from './ksef-auth-status-error.js';
 export { KSeFSessionExpiredError } from './ksef-session-expired-error.js';
 export { KSeFValidationError } from './ksef-validation-error.js';
+export { KSeFMetadataPaginationError } from './ksef-metadata-pagination-error.js';
 export { KSeFBatchTimeoutError } from './ksef-batch-timeout-error.js';
 export { KSeFUnknownPublicKeyError } from './ksef-unknown-public-key-error.js';
 export { KSeFCircuitOpenError } from './ksef-circuit-open-error.js';

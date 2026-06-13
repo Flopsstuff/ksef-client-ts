@@ -7,6 +7,7 @@ import {
   isSessionExpired,
   saveOnlineSessionRef,
   clearOnlineSessionRef,
+  loadEncryptionData,
 } from '../../../src/cli/session-store.js';
 import type { SessionData } from '../../../src/cli/types.js';
 
@@ -105,6 +106,46 @@ describe('saveOnlineSessionRef', () => {
     mockedFs.readFileSync.mockImplementation(() => { throw new Error('ENOENT'); });
 
     expect(() => saveOnlineSessionRef('ref')).toThrow('No active session');
+  });
+
+  it('persists cipher key/iv when encryption data is supplied', () => {
+    mockedFs.readFileSync.mockReturnValue(JSON.stringify(validSession));
+
+    saveOnlineSessionRef('online-ref-2', { cipherKey: 'a2V5', cipherIv: 'aXY=' });
+
+    const written = mockedFs.writeFileSync.mock.calls[0]![1] as string;
+    const saved = JSON.parse(written);
+    expect(saved.onlineSessionRef).toBe('online-ref-2');
+    expect(saved.cipherKey).toBe('a2V5');
+    expect(saved.cipherIv).toBe('aXY=');
+  });
+});
+
+describe('loadEncryptionData', () => {
+  it('returns null when no session exists', () => {
+    mockedFs.readFileSync.mockImplementation(() => { throw new Error('ENOENT'); });
+
+    expect(loadEncryptionData()).toBeNull();
+  });
+
+  it('returns null when the session has no cipher material', () => {
+    mockedFs.readFileSync.mockReturnValue(JSON.stringify(validSession));
+
+    expect(loadEncryptionData()).toBeNull();
+  });
+
+  it('decodes base64 cipher key/iv into byte arrays', () => {
+    const cipherKey = Buffer.from('0123456789abcdef0123456789abcdef').toString('base64');
+    const cipherIv = Buffer.from('0123456789abcdef').toString('base64');
+    mockedFs.readFileSync.mockReturnValue(JSON.stringify({ ...validSession, cipherKey, cipherIv }));
+
+    const result = loadEncryptionData();
+
+    expect(result).not.toBeNull();
+    expect(result!.cipherKey).toBeInstanceOf(Uint8Array);
+    expect(result!.cipherKey).toHaveLength(32);
+    expect(result!.cipherIv).toHaveLength(16);
+    expect(Buffer.from(result!.cipherKey).toString()).toBe('0123456789abcdef0123456789abcdef');
   });
 });
 

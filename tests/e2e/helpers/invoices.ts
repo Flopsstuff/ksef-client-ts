@@ -2,7 +2,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { FIXTURE_DIR } from './env.js';
+import { KSeFApiError } from '../../../src/errors/ksef-api-error.js';
 import type { KSeFClient } from '../../../src/client.js';
+import type { InvoiceResult } from '../../../src/models/invoices/types.js';
 import type { SendInvoiceRequest } from '../../../src/models/sessions/online-types.js';
 import type { FormCode } from '../../../src/models/common.js';
 
@@ -84,4 +86,36 @@ export function prepareAndEncryptInvoice(
       encryptedInvoiceContent: Buffer.from(encryptedBytes).toString('base64'),
     },
   };
+}
+
+/**
+ * Fetch a freshly-sent invoice by KSeF number, retrying on the transient 400
+ * the repository returns while the document is still propagating.
+ *
+ * `GET /invoices/ksef/{ksefNumber}` has no 404 in its contract, so a not-yet-
+ * indexed document surfaces as a generic 400 right after the session closes.
+ * The number itself is valid (it came from KSeF), so a 400 here is transient —
+ * retry a few times with a short delay rather than failing the test on a race.
+ */
+export async function getInvoiceWithRetry(
+  client: KSeFClient,
+  ksefNumber: string,
+  attempts = 3,
+  delayMs = 2000,
+): Promise<InvoiceResult> {
+  if (attempts < 1) {
+    throw new RangeError('attempts must be at least 1');
+  }
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await client.invoices.getInvoice(ksefNumber);
+    } catch (err) {
+      lastError = err;
+      const isTransient = err instanceof KSeFApiError && err.statusCode === 400;
+      if (!isTransient || attempt === attempts) throw err;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
 }

@@ -14,6 +14,7 @@ export const KsefNumberV36 = /^([1-9]((\d[1-9])|([1-9]\d))\d{7}|M\d{9}|[A-Z]{3}\
 export const CertificateName = /^[a-zA-Z0-9_\- ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]+$/;
 export const Pesel = /^\d{2}(?:0[1-9]|1[0-2]|2[1-9]|3[0-2]|4[1-9]|5[0-2]|6[1-9]|7[0-2]|8[1-9]|9[0-2])\d{7}$/;
 export const CertificateFingerprint = /^[0-9A-F]{64}$/;
+export const CertificateSerialNumber = /^[0-9A-F]{16}$/;
 export const Base64String = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 export const Ip4Address = /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/;
 export const Ip4Range = /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}-((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$/;
@@ -93,6 +94,7 @@ export function isValidPesel(value: string): boolean {
 }
 export function isValidCertificateName(value: string): boolean { return CertificateName.test(value); }
 export function isValidCertificateFingerprint(value: string): boolean { return CertificateFingerprint.test(value); }
+export function isValidCertificateSerialNumber(value: string): boolean { return CertificateSerialNumber.test(value); }
 export function isValidBase64(value: string): boolean { return Base64String.test(value); }
 export function isValidIp4Address(value: string): boolean { return Ip4Address.test(value); }
 export function isValidSha256Base64(value: string): boolean { return Sha256Base64.test(value); }
