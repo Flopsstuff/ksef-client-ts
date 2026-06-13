@@ -152,4 +152,15 @@ describe('queryAllInvoiceMetadata', () => {
       collectAllInvoiceMetadata(client, filters({ from: '2026-02-01' })),
     ).rejects.toMatchObject({ boundaryValue: '2026-02-01' });
   });
+
+  it('throws when truncation boundaries exceed maxBoundaryCrossings', async () => {
+    const client = mockClient([
+      resp([inv('A', '2026-01-02')], { isTruncated: true }),
+      resp([inv('B', '2026-01-03')], { isTruncated: true }),
+    ]);
+
+    await expect(
+      collectAllInvoiceMetadata(client, filters(), { maxBoundaryCrossings: 1 }),
+    ).rejects.toBeInstanceOf(KSeFMetadataPaginationError);
+  });
 });
