@@ -3,6 +3,9 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
+
+# This project uses yarn 4.x only — never npm
+package-lock.json
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
