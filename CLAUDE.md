@@ -25,13 +25,15 @@ yarn sync-schemas     # Download XSD schemas from CIRFMF/ksef-docs
 
 Run a single test file: `yarn workspace ksef-client-ts vitest run tests/unit/foo.test.ts`
 
-Tests live in `packages/ksef-client-ts/tests/**/*.test.ts` (vitest, globals enabled). Unit tests in `tests/unit/`, E2E tests in `tests/e2e/`.
+Tests live in `packages/ksef-client-ts/tests/**/*.test.ts` (vitest, globals enabled). Unit tests in `tests/unit/`, E2E tests in `tests/e2e/` (relative to the package).
 
 **Package manager is yarn 4.x** (Corepack). Do not use npm. The `.yarnrc.yml` sets `nodeLinker: node-modules`.
 
 ## Architecture
 
 ### Layered design
+
+Source paths below are relative to the library package, `packages/ksef-client-ts/`.
 
 ```text
 KSeFClient (src/client.ts)
@@ -149,10 +151,13 @@ Invoice number (`P_2` in XML) must be unique — resubmitting gives error 440 (D
 
 ### CI/CD
 
-3 GitHub Actions workflows in `.github/workflows/`:
-- `ci.yml` — unit + E2E tests on Node 18/20/22 matrix, coverage badge via gist
-- `release.yml` — on tag `v*`: create GitHub Release (from CHANGELOG), then publish to npm + GitHub Packages in parallel
-- `deploy-docs.yml` — VitePress → GitHub Pages
+GitHub Actions workflows in `.github/workflows/` (the `.github/` dir stays at the repo root; build/test steps run root-level `yarn` scripts that delegate to the `ksef-client-ts` workspace):
+- `ci.yml` — markdown lint + unit + E2E tests on Node 18/20/22 matrix, coverage badge via gist (coverage JSON read from `packages/ksef-client-ts/coverage/`)
+- `release.yml` — on tag `v*`: create GitHub Release (from `packages/ksef-client-ts/CHANGELOG.md`), then publish to npm + GitHub Packages in parallel
+- `deploy-docs.yml` — VitePress → GitHub Pages (artifact from `packages/ksef-client-ts/docs/.vitepress/dist`)
+- `deno-smoke.yml` — Deno runtime smoke test (`deno task smoke`, run in the package dir)
+- `codex-pr-review.yml` — automatic Codex PR review on open/sync (prompt: `.github/codex/prompts/review.md`)
+- `claude-review.yml` — on-demand Claude review when a maintainer comments `@claude-review` (checklist: `.github/claude/prompts/review.md`)
 
 ### Documentation
 
