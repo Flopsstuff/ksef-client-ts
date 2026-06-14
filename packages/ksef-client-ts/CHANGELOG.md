@@ -2,11 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.10.0] - 2026-06-14
+## [0.10.0] - 2026-06-15
 
 ### Changed (breaking)
 
-- **Node.js-specific features moved to a separate entry point** — filesystem-dependent and other Node-only features are no longer exported from the main `ksef-client-ts` entry point, to improve portability and reduce bundle size for web/edge environments. They are now available via `ksef-client-ts/node`; see the [v0.10 migration guide](docs/migration-v0.10.md) for the affected exports and how to update imports.
+- **Node.js-specific features moved to a separate entry point** — filesystem-dependent and other Node-only features are no longer exported from the main `ksef-client-ts` entry point, to improve portability and reduce bundle size for web/edge environments. They are now available via `ksef-client-ts/node`; see the [v0.10 migration guide](https://flopsstuff.github.io/ksef-client-ts/migration-v0.10) for the affected exports and how to update imports.
 
 ### Changed
 

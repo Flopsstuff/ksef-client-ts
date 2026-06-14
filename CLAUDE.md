@@ -162,7 +162,7 @@ GitHub Actions workflows in `.github/workflows/` (the `.github/` dir stays at th
 ### Documentation
 
 VitePress site in `packages/ksef-client-ts/docs/` with Scalar API reference. Config: `packages/ksef-client-ts/docs/.vitepress/config.ts`.
-Feature descriptions live in two places that must be kept in sync: `packages/ksef-client-ts/README.md` (bullet list) and `packages/ksef-client-ts/docs/index.md` (VitePress homepage cards).
+Feature descriptions live in two places that must be kept in sync: the root `README.md` (bullet list — the canonical repo landing page on GitHub) and `packages/ksef-client-ts/docs/index.md` (VitePress homepage cards). The package `packages/ksef-client-ts/README.md` is intentionally a thin npm-only intro (install + quick start + links) and is NOT a mirror of the feature list — do not duplicate the full feature bullets there.
 
 ### Plans
 
