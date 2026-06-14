@@ -6,10 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed (breaking)
 
-- **Node.js-specific features moved to a separate entry point** — to improve portability and reduce bundle size for web/edge environments, filesystem-dependent and other Node-only features are no longer exported from the main `ksef-client-ts` entry point. They are now available via the `ksef-client-ts/node` entry point. This affects the following symbols:
-  - `FileOfflineInvoiceStorage` — use `import { FileOfflineInvoiceStorage } from 'ksef-client-ts/node';`
-  - `validateAgainstXsd` and other XSD validation helpers (`FA_XSD_PATHS`, `PEF_XSD_PATHS`, `libxmljsAvailable`, `resolveXsdFor`, `isMissingLibxmljsError`) — use `import { ... } from 'ksef-client-ts/node';`
-  - `FileHwmStore` — use `import { FileHwmStore } from 'ksef-client-ts/node';`
+- **Node.js-specific features moved to a separate entry point** — filesystem-dependent and other Node-only features are no longer exported from the main `ksef-client-ts` entry point, to improve portability and reduce bundle size for web/edge environments. They are now available via `ksef-client-ts/node`; see the [v0.10 migration guide](docs/migration-v0.10.md) for the affected exports and how to update imports.
 
 ### Changed
 
