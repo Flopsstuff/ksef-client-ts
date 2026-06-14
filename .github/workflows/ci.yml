@@ -60,6 +60,9 @@ jobs:
       - name: Build
         run: yarn build
 
+      - name: Check fs-free core bundles
+        run: node packages/ksef-client-ts/scripts/check-fs-free-core.mjs
+
       - name: Run tests with coverage
         run: yarn test --coverage
 
