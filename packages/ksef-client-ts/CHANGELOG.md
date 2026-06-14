@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.0] - 2026-06-14
+
+### Changed (breaking)
+
+- **Node.js-specific features moved to a separate entry point** — to improve portability and reduce bundle size for web/edge environments, filesystem-dependent and other Node-only features are no longer exported from the main `ksef-client-ts` entry point. They are now available via the `ksef-client-ts/node` entry point. This affects the following symbols:
+  - `FileOfflineInvoiceStorage` — use `import { FileOfflineInvoiceStorage } from 'ksef-client-ts/node';`
+  - `validateAgainstXsd` and other XSD validation helpers (`FA_XSD_PATHS`, `PEF_XSD_PATHS`, `libxmljsAvailable`, `resolveXsdFor`, `isMissingLibxmljsError`) — use `import { ... } from 'ksef-client-ts/node';`
+  - `FileHwmStore` — use `import { FileHwmStore } from 'ksef-client-ts/node';`
+
+### Changed
+
+- **Asynchronous crypto modules** — the `loginWithCertificate` and `loginWithPkcs12` methods now dynamically import the necessary crypto modules for signing. This reduces the main bundle size. For most users this change is transparent as the public API remains the same.
+
 ## [0.9.1] - 2026-06-13
 
 ### Changed

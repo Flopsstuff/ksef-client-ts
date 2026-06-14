@@ -51,6 +51,7 @@ export default defineConfig({
         items: [
           { text: 'Home', link: '/' },
           { text: 'Quick Start', link: '/quick-start' },
+          { text: 'Migration Guide (v0.10)', link: '/migration-v0.10' },
           { text: 'Architecture', link: '/architecture' },
           { text: 'Authentication', link: '/authentication' },
         ],

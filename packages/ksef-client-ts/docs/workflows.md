@@ -487,8 +487,8 @@ The KSeF export API has a limit on how many invoices it returns per export. If t
 ```typescript
 import {
   incrementalExportAndDownload,
-  FileHwmStore,
 } from 'ksef-client-ts';
+import { FileHwmStore } from 'ksef-client-ts/node';
 
 const result = await incrementalExportAndDownload(client, {
   subjectType: 'Subject1',
@@ -570,8 +570,8 @@ Two built-in implementations:
 
 | Class | Storage | Use case |
 |-------|---------|----------|
-| `InMemoryHwmStore` | In-process memory | Tests, one-off exports |
-| `FileHwmStore` | JSON file on disk | Persistent synchronization, cron jobs |
+| `InMemoryHwmStore` | In-process memory | Tests, one-off exports, non-Node environments |
+| `FileHwmStore` | JSON file on disk | Persistent synchronization, cron jobs (Node.js only) |
 
 `FileHwmStore` gracefully handles missing files (returns `{}` on `ENOENT`).
 
