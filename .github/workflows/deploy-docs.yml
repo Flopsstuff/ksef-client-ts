@@ -4,9 +4,10 @@ on:
   push:
     branches: [main]
     paths:
-      - "docs/**"
-      - "CHANGELOG.md"
-      - "README.md"
+      - "packages/ksef-client-ts/docs/**"
+      - "packages/ksef-client-ts/CHANGELOG.md"
+      - "packages/ksef-client-ts/README.md"
+      - ".github/workflows/deploy-docs.yml"
   workflow_dispatch:
 
 permissions:
@@ -41,7 +42,7 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/.vitepress/dist
+          path: packages/ksef-client-ts/docs/.vitepress/dist
 
   deploy:
     environment:

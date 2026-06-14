@@ -37,11 +37,16 @@ jobs:
       # library on Deno won't install it, so drop it here to faithfully
       # simulate that scenario.
       - name: Remove libxmljs2 (Deno-incompatible native binding)
-        run: rm -rf node_modules/libxmljs2
+        # Hoisted to the workspace root node_modules; also clear any nested
+        # copy in case hoisting changes.
+        run: rm -rf node_modules/libxmljs2 packages/ksef-client-ts/node_modules/libxmljs2
 
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
 
       - name: Run Deno smoke test
+        # deno.json (with the `smoke` task) lives in the package, not the
+        # workspace root.
+        working-directory: packages/ksef-client-ts
         run: deno task smoke
