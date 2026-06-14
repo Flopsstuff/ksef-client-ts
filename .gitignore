@@ -31,7 +31,7 @@ packages/ksef-client-ts/scripts/.crypto-fixtures/
 plans/
 
 # Invoices
-packages/ksef-client-ts/invoices/
+/invoices/
 
 # OpenSpec archive
 openspec/changes/archive/

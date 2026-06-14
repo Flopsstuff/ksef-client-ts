@@ -17,8 +17,12 @@ yarn build          # Build ESM + CJS + DTS
 yarn test           # Unit tests
 yarn test:e2e       # End-to-end tests
 yarn lint           # Type-check
+yarn lint:md        # Lint Markdown docs
 yarn docs:dev       # VitePress dev server
 yarn check-api      # OpenAPI coverage check
+yarn split-openapi  # Split open-api.json into per-domain chunks
+yarn sync-schemas   # Download XSD schemas from CIRFMF/ksef-docs
+yarn generate-schemas # Generate Zod schemas from XSD
 ```
 
 See [`packages/ksef-client-ts/README.md`](./packages/ksef-client-ts/README.md) for full documentation.
