@@ -8,7 +8,7 @@ const packageRoot = path.resolve(
 );
 
 export const coreBundlePaths = ["dist/index.js", "dist/index.cjs"];
-export const nodeBundlePath = "dist/node.js";
+export const nodeBundlePaths = ["dist/node.js", "dist/node.cjs"];
 
 export const fsLeakPatterns = [
   { label: "node:fs/promises", pattern: /node:fs\/promises/ },
@@ -69,10 +69,12 @@ export async function checkFsFreeCore() {
     }
   }
 
-  const nodeBundleMarkers = findFsMarkers(await readBundle(nodeBundlePath));
+  for (const relativePath of nodeBundlePaths) {
+    const nodeBundleMarkers = findFsMarkers(await readBundle(relativePath));
 
-  if (nodeBundleMarkers.length === 0) {
-    failures.push(`${nodeBundlePath}: expected fs marker for node-only entry`);
+    if (nodeBundleMarkers.length === 0) {
+      failures.push(`${relativePath}: expected fs marker for node-only entry`);
+    }
   }
 
   if (failures.length > 0) {
