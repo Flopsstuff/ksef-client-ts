@@ -20,7 +20,7 @@ package-lock.json
 .certs/
 
 # Generated test fixtures from scripts/crypto-compare.mjs
-scripts/.crypto-fixtures/
+packages/ksef-client-ts/scripts/.crypto-fixtures/
 
 # Claude local settings
 .claude/projects/
@@ -37,9 +37,9 @@ plans/
 openspec/changes/archive/
 
 # VitePress
-docs/.vitepress/cache
-docs/.vitepress/dist
-docs/public/open-api.json
+packages/ksef-client-ts/docs/.vitepress/cache
+packages/ksef-client-ts/docs/.vitepress/dist
+packages/ksef-client-ts/docs/public/open-api.json
 
 # markdown-vault MCP cache
-docs/.markdown_vault_mcp/
+packages/ksef-client-ts/docs/.markdown_vault_mcp/

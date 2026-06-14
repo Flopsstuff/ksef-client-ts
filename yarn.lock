@@ -4620,9 +4620,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ksef-client-ts@workspace:.":
+"ksef-client-ts@workspace:packages/ksef-client-ts":
   version: 0.0.0-use.local
-  resolution: "ksef-client-ts@workspace:."
+  resolution: "ksef-client-ts@workspace:packages/ksef-client-ts"
   dependencies:
     "@peculiar/x509": "npm:^1.12.3"
     "@scalar/api-reference": "npm:^1.49.3"
@@ -6477,6 +6477,12 @@ __metadata:
   checksum: 10c0/0baa149f615152c0f86c44b237674cbac31d945ab721c257f73a844cc43d04a0f8613edbda4eaa2a376285286eac12e4f27060fc88a8f504f4ed235f6fc9b10f
   languageName: node
   linkType: hard
+
+"root-workspace-0b6124@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "root-workspace-0b6124@workspace:."
+  languageName: unknown
+  linkType: soft
 
 "run-parallel@npm:^1.1.9":
   version: 1.2.0

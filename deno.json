@@ -1,6 +1,4 @@
 {
   "nodeModulesDir": "manual",
-  "tasks": {
-    "smoke": "deno run -A tests/deno/smoke.ts"
-  }
+  "workspace": ["./packages/ksef-client-ts"]
 }

@@ -17,10 +17,13 @@
 //
 import { spawn, execFileSync } from 'node:child_process';
 import { createWriteStream, mkdirSync, readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+// Resolve the actual repo root (git toplevel) so paths like
+// `.github/codex/prompts/review.md` and the `plans/reviews/` output dir
+// resolve correctly regardless of where this script lives in the monorepo.
+const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
+  encoding: 'utf8',
+}).trim();
 process.chdir(repoRoot);
 
 const die = (msg) => {

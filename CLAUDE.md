@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-TypeScript client library for the Polish National e-Invoice System (KSeF) API v2. Targets Node.js 18+ with dual ESM/CJS output. Current version and release history are in `CHANGELOG.md`.
+Yarn 4.x workspace monorepo. The library (`ksef-client-ts`) lives in `packages/ksef-client-ts/`. TypeScript client for the Polish National e-Invoice System (KSeF) API v2. Targets Node.js 18+ with dual ESM/CJS output. Current version and release history are in `packages/ksef-client-ts/CHANGELOG.md`.
 
 ## Commands
+
+Run from the **repo root** — all commands delegate to the `ksef-client-ts` workspace:
 
 ```bash
 yarn build            # Build ESM + CJS + DTS via tsup
@@ -21,15 +23,17 @@ yarn split-openapi    # Split open-api.json into per-domain chunks
 yarn sync-schemas     # Download XSD schemas from CIRFMF/ksef-docs
 ```
 
-Run a single test file: `yarn vitest run tests/unit/foo.test.ts`
+Run a single test file: `yarn workspace ksef-client-ts vitest run tests/unit/foo.test.ts`
 
-Tests live in `tests/**/*.test.ts` (vitest, globals enabled). Unit tests in `tests/unit/`, E2E tests in `tests/e2e/`.
+Tests live in `packages/ksef-client-ts/tests/**/*.test.ts` (vitest, globals enabled). Unit tests in `tests/unit/`, E2E tests in `tests/e2e/` (relative to the package).
 
 **Package manager is yarn 4.x** (Corepack). Do not use npm. The `.yarnrc.yml` sets `nodeLinker: node-modules`.
 
 ## Architecture
 
 ### Layered design
+
+Source paths below are relative to the library package, `packages/ksef-client-ts/`.
 
 ```text
 KSeFClient (src/client.ts)
@@ -133,11 +137,11 @@ Invoice number (`P_2` in XML) must be unique — resubmitting gives error 440 (D
 
 ### OpenAPI spec
 
-`docs/open-api.json` is the KSeF API OpenAPI specification (source of truth, KSeF API v2.6.1, build `2.6.1-te`; synced from the live TEST endpoint `https://api-test.ksef.mf.gov.pl/docs/v2/openapi.json`). Note: TEST/DEMO run 2.6.1 while PROD trails (2.6.0 as of 2026-06); content is identical across the 2.6.1 builds. Per-domain chunks in `docs/openapi-chunks/` (9 chunks + manifest; descriptions stripped to save tokens). Regenerate with `yarn split-openapi`. Validate coverage with `yarn check-api`.
+`packages/ksef-client-ts/docs/open-api.json` is the KSeF API OpenAPI specification (source of truth, KSeF API v2.6.1, build `2.6.1-te`; synced from the live TEST endpoint `https://api-test.ksef.mf.gov.pl/docs/v2/openapi.json`). Note: TEST/DEMO run 2.6.1 while PROD trails (2.6.0 as of 2026-06); content is identical across the 2.6.1 builds. Per-domain chunks in `packages/ksef-client-ts/docs/openapi-chunks/` (9 chunks + manifest; descriptions stripped to save tokens). Regenerate with `yarn split-openapi`. Validate coverage with `yarn check-api`.
 
 ### XSD schemas
 
-`docs/schemas/` contains official KSeF invoice XSD schemas from [CIRFMF/ksef-docs](https://github.com/CIRFMF/ksef-docs). Organized by type: `FA/` (standard invoices), `PEF/` (Peppol), `RR/` (farmer invoices), each with `bazowe/` base types. Update with `yarn sync-schemas`.
+`packages/ksef-client-ts/docs/schemas/` contains official KSeF invoice XSD schemas from [CIRFMF/ksef-docs](https://github.com/CIRFMF/ksef-docs). Organized by type: `FA/` (standard invoices), `PEF/` (Peppol), `RR/` (farmer invoices), each with `bazowe/` base types. Update with `yarn sync-schemas`.
 
 ### Error hierarchy
 
@@ -147,15 +151,18 @@ Invoice number (`P_2` in XML) must be unique — resubmitting gives error 440 (D
 
 ### CI/CD
 
-3 GitHub Actions workflows in `.github/workflows/`:
-- `ci.yml` — unit + E2E tests on Node 18/20/22 matrix, coverage badge via gist
-- `release.yml` — on tag `v*`: create GitHub Release (from CHANGELOG), then publish to npm + GitHub Packages in parallel
-- `deploy-docs.yml` — VitePress → GitHub Pages
+GitHub Actions workflows in `.github/workflows/` (the `.github/` dir stays at the repo root; build/test steps run root-level `yarn` scripts that delegate to the `ksef-client-ts` workspace):
+- `ci.yml` — markdown lint + unit + E2E tests on Node 18/20/22 matrix, coverage badge via gist (coverage JSON read from `packages/ksef-client-ts/coverage/`)
+- `release.yml` — on tag `v*`: create GitHub Release (from `packages/ksef-client-ts/CHANGELOG.md`), then publish to npm + GitHub Packages in parallel
+- `deploy-docs.yml` — VitePress → GitHub Pages (artifact from `packages/ksef-client-ts/docs/.vitepress/dist`)
+- `deno-smoke.yml` — Deno runtime smoke test (`deno task smoke`, run in the package dir)
+- `codex-pr-review.yml` — automatic Codex PR review on open/sync (prompt: `.github/codex/prompts/review.md`)
+- `claude-review.yml` — on-demand Claude review when a maintainer comments `@claude-review` (checklist: `.github/claude/prompts/review.md`)
 
 ### Documentation
 
-VitePress site in `docs/` with Scalar API reference. Config: `docs/.vitepress/config.ts`.
-Feature descriptions live in two places that must be kept in sync: `README.md` (bullet list) and `docs/index.md` (VitePress homepage cards).
+VitePress site in `packages/ksef-client-ts/docs/` with Scalar API reference. Config: `packages/ksef-client-ts/docs/.vitepress/config.ts`.
+Feature descriptions live in two places that must be kept in sync: `packages/ksef-client-ts/README.md` (bullet list) and `packages/ksef-client-ts/docs/index.md` (VitePress homepage cards).
 
 ### Plans
 
