@@ -1,0 +1,4 @@
+{
+  "nodeModulesDir": "manual",
+  "workspace": ["./packages/ksef-client-ts"]
+}

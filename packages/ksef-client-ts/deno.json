@@ -1,5 +1,4 @@
 {
-  "nodeModulesDir": "manual",
   "tasks": {
     "smoke": "deno run -A tests/deno/smoke.ts"
   }
