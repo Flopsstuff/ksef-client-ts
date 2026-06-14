@@ -54,11 +54,13 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
-      - name: Type check
-        run: yarn lint
-
+      # Build before type check: the /node subpath type fixture resolves
+      # `ksef-client-ts/node` against the built dist (dist/node.d.ts / .d.cts).
       - name: Build
         run: yarn build
+
+      - name: Type check
+        run: yarn lint
 
       - name: Check fs-free core bundles
         run: node packages/ksef-client-ts/scripts/check-fs-free-core.mjs
