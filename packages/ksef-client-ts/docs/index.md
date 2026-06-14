@@ -52,4 +52,6 @@ features:
     details: Get started in one command — ksef setup walks you through environment selection, NIP configuration, external signature authentication, and API token generation. Credentials are securely stored in ~/.ksef/credentials.json.
   - title: Zero HTTP Dependencies
     details: Uses native fetch (Node 18+) with no external HTTP libraries. Dual ESM/CJS output via tsup. Resilient transport with exponential backoff retry, token bucket rate limiting, opt-in circuit breaker, and presigned URL validation.
+  - title: fs-free Core
+    details: The main entry point is free of filesystem access and runs on Node, Deno, and edge runtimes. Node.js-only features (filesystem access, XSD validation) are available via the `ksef-client-ts/node` export, keeping the core library small.
 ---

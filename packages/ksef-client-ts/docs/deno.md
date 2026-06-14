@@ -84,51 +84,28 @@ All cryptographic operations — RSA-OAEP token encryption, AES-256-CBC session 
 
 ---
 
-## What doesn't work: `validateAgainstXsd`
+## What doesn't work: Node.js-specific Features
 
-The one API that does not work on Deno is `validateAgainstXsd(xml, xsdPath)`, used for strict XSD-level invoice validation against the official KSeF schemas. It depends on `libxmljs2`, which wraps the native `libxml2` C library via N-API. Deno's Node compatibility layer cannot load that binding (any attempt to `require('libxmljs2')` or `import('libxmljs2')` will segfault the runtime — an upstream Deno limitation, not something fixable in the library).
+As of v0.10.0, features that rely on Node.js-specific APIs (like the filesystem or native C++ add-ons) are no longer part of the main library bundle. They are now available via a separate `ksef-client-ts/node` entry point.
 
-### What happens if you call it anyway
+This means these features are definitively not available on Deno, as Deno cannot consume the Node.js-specific APIs they rely on.
 
-Assuming `libxmljs2` is **not** installed (the expected state on Deno — you should not install it, see below), the call throws a clear, catchable error:
+### `validateAgainstXsd`
 
-```ts
-try {
-  validateAgainstXsd(xml, xsdPath);
-} catch (err) {
-  // Error: libxmljs2 is not installed; cannot run XSD validation.
-  // Install it as an optional peer dependency (e.g. `yarn add -O libxmljs2` or `npm i -O libxmljs2`).
-}
+The primary example is `validateAgainstXsd(xml, xsdPath)`, used for strict XSD-level invoice validation. It depends on `libxmljs2`, which wraps the native `libxml2` C library via N-API. Deno's Node compatibility layer cannot load this binding.
+
+Attempting to import it on Deno will fail:
+
+```typescript
+// This will fail on Deno
+import { validateAgainstXsd } from 'npm:ksef-client-ts/node';
 ```
 
-The library exports a helper to identify this specific failure so you can fall back gracefully:
+The Zod-based validator (`validate()`) is the recommended alternative and works perfectly on Deno.
 
-```ts
-import { validateAgainstXsd, validate, isMissingLibxmljsError } from 'npm:ksef-client-ts@0.8.0';
+### Filesystem Storage
 
-try {
-  const result = validateAgainstXsd(xml, xsdPath);
-  // ...
-} catch (err) {
-  if (isMissingLibxmljsError(err)) {
-    // Fall back to Zod-based schema validation — pure JS, works on Deno.
-    const result = await validate(xml);
-    // ...
-  } else {
-    throw err;
-  }
-}
-```
-
-### Zod validation is usually enough
-
-For the common case — "build an invoice XML, verify it's structurally correct before sending" — Zod-based validation (`validate()`, `validateSchema()`) is sufficient. It checks every required field, format (NIP, PESEL, KSeF numbers), enum values, multi-rate VAT group constraints, and business rules end-to-end. XSD validation adds pedantic structural checks against the official schema; it's useful for debugging hard-to-explain server-side rejections, not for routine validation.
-
-### Why you should not `install` libxmljs2 on Deno
-
-If `libxmljs2` somehow ends up in a `node_modules/` that Deno can see (for example, a shared folder with a Node project), the segfault happens **at library import time**, not at call time. Your whole app fails to start with a segmentation fault rather than a catchable error.
-
-The library marks `libxmljs2` as an optional peer dependency, so a plain `deno add npm:ksef-client-ts` or `npm install ksef-client-ts` will never pull it in transitively. Only an explicit direct install will. On a Deno-only setup, there is no reason to do that.
+Similarly, filesystem-based storage classes like `FileOfflineInvoiceStorage` and `FileHwmStore` are in the `ksef-client-ts/node` entry point and will not work in Deno's environment. Use `InMemoryOfflineInvoiceStorage` or implement a custom storage backend (e.g., using Deno's file APIs or a database).
 
 ---
 

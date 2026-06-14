@@ -1,8 +1,9 @@
 {
   "name": "ksef-client-ts",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "TypeScript client for the Polish National e-Invoice System (KSeF) API",
   "type": "module",
+  "sideEffects": false,
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,6 +16,16 @@
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
+      }
+    },
+    "./node": {
+      "import": {
+        "types": "./dist/node.d.ts",
+        "default": "./dist/node.js"
+      },
+      "require": {
+        "types": "./dist/node.d.cts",
+        "default": "./dist/node.cjs"
       }
     }
   },
@@ -33,6 +44,7 @@
     "test:e2e:watch": "vitest tests/e2e --reporter=verbose",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
+    "check:node-types": "tsc --project tsconfig.node-check.json",
     "lint:md": "markdownlint-cli2",
     "lint:md:fix": "markdownlint-cli2 --fix",
     "link": "npm link",

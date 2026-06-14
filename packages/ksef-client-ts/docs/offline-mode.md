@@ -183,7 +183,7 @@ const storage = new InMemoryOfflineInvoiceStorage();
 For CLI and persistent use. Stores each invoice as `{uuid}.json` in a directory. Default: `~/.ksef/offline/`.
 
 ```typescript
-import { FileOfflineInvoiceStorage } from 'ksef-client-ts';
+import { FileOfflineInvoiceStorage } from 'ksef-client-ts/node';
 
 const storage = new FileOfflineInvoiceStorage();           // ~/.ksef/offline/
 const custom = new FileOfflineInvoiceStorage('/tmp/offline'); // custom dir

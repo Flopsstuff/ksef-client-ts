@@ -23,6 +23,7 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 - **Comprehensive test coverage** — unit + E2E tests across HTTP, crypto, services, workflows; CI on every change
 - **Interactive setup wizard** — `ksef setup` guides through environment selection, authentication, and token generation in one flow
 - **Zero HTTP dependencies** — native `fetch` (Node 18+); dual ESM/CJS via tsup
+- **fs-free core** — the main entry point is free of filesystem access, so it runs on Node, Deno, and edge runtimes; Node-only features (filesystem storage, XSD validation) are available via the `ksef-client-ts/node` export
 
 Requires **Node.js 18+**.
 

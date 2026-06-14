@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.0] - 2026-06-14
+
+### Changed (breaking)
+
+- **Node.js-specific features moved to a separate entry point** — filesystem-dependent and other Node-only features are no longer exported from the main `ksef-client-ts` entry point, to improve portability and reduce bundle size for web/edge environments. They are now available via `ksef-client-ts/node`; see the [v0.10 migration guide](docs/migration-v0.10.md) for the affected exports and how to update imports.
+
+### Changed
+
+- **Smaller core bundle** — certificate-based authentication now loads its cryptographic signing modules on demand instead of bundling them upfront, reducing the core bundle size. This is transparent to callers; the public API is unchanged.
+
 ## [0.9.1] - 2026-06-13
 
 ### Changed
