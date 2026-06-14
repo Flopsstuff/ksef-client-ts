@@ -95,7 +95,9 @@ jobs:
         run: yarn install --immutable
 
       - name: Validate build
-        run: yarn lint && yarn test && yarn build
+        # Build first: the fs-free guard test and the /node type check both
+        # read the built dist, so the bundle must exist before lint/test run.
+        run: yarn build && yarn lint && yarn check:node-types && yarn test
 
       - name: Publish package
         working-directory: packages/ksef-client-ts
@@ -139,7 +141,9 @@ jobs:
         run: yarn install --immutable
 
       - name: Validate build
-        run: yarn lint && yarn test && yarn build
+        # Build first: the fs-free guard test and the /node type check both
+        # read the built dist, so the bundle must exist before lint/test run.
+        run: yarn build && yarn lint && yarn check:node-types && yarn test
 
       - name: Prepare scoped package name
         working-directory: packages/ksef-client-ts
