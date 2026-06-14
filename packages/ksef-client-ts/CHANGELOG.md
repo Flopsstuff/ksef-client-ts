@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- **Asynchronous crypto modules** — the `loginWithCertificate` and `loginWithPkcs12` methods now dynamically import the necessary crypto modules for signing. This reduces the main bundle size. For most users this change is transparent as the public API remains the same.
+- **Smaller core bundle** — certificate-based authentication now loads its cryptographic signing modules on demand instead of bundling them upfront, reducing the core bundle size. This is transparent to callers; the public API is unchanged.
 
 ## [0.9.1] - 2026-06-13
 
