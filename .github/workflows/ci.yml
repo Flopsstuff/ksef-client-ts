@@ -62,6 +62,12 @@ jobs:
       - name: Type check
         run: yarn lint
 
+      # Resolves the /node subpath types against the built dist; requires the
+      # Build step above (kept separate from `lint` so a clean `yarn lint`
+      # needs no prior build).
+      - name: Check /node entry types
+        run: yarn check:node-types
+
       - name: Check fs-free core bundles
         run: node packages/ksef-client-ts/scripts/check-fs-free-core.mjs
 

@@ -4,7 +4,7 @@ Version `0.10.0` introduces a significant refactoring to improve portability and
 
 ## Node.js-specific Features Moved to a Separate Entry Point
 
-To make the core `ksef-client-ts` library environment-agnostic (i.e., usable in browsers and edge functions without Node.js-specific dependencies), filesystem-dependent and other Node-only features have been moved to a separate entry point: `ksef-client-ts/node`.
+To keep the core `ksef-client-ts` library free of filesystem dependencies (so it runs on Deno and edge functions without Node-specific filesystem access), filesystem-dependent and other Node-only features have been moved to a separate entry point: `ksef-client-ts/node`.
 
 If your application runs on Node.js and uses any of the features listed below, you will need to update your import paths.
 

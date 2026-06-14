@@ -11,6 +11,7 @@
     "test:e2e": "yarn workspace ksef-client-ts test:e2e",
     "test:watch": "yarn workspace ksef-client-ts test:watch",
     "lint": "yarn workspace ksef-client-ts lint",
+    "check:node-types": "yarn workspace ksef-client-ts check:node-types",
     "lint:md": "yarn workspace ksef-client-ts lint:md",
     "lint:md:fix": "yarn workspace ksef-client-ts lint:md:fix",
     "docs:dev": "yarn workspace ksef-client-ts docs:dev",
