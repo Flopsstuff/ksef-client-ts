@@ -1,0 +1,81 @@
+{
+  "schema": "FA(2)",
+  "page": { "size": "A4", "margins": [40, 40, 40, 50] },
+  "styles": {
+    "title": { "fontSize": 20, "bold": true },
+    "h2": { "fontSize": 10, "bold": true, "margin": [0, 10, 0, 3], "color": "#333333" },
+    "muted": { "color": "#666666", "fontSize": 8 },
+    "offline": { "color": "#b00020", "bold": true },
+    "footerNote": { "fontSize": 7, "color": "#999999" }
+  },
+  "blocks": [
+    { "type": "header", "logo": "opts.logo", "title": { "label": "invoice" }, "number": "Fa.P_2", "date": "Fa.P_1" },
+    {
+      "type": "columns",
+      "when": "hasKsefNumber",
+      "columns": [
+        { "type": "text", "label": "ksefNumber", "style": "muted" },
+        { "type": "text", "path": "opts.ksefNumber", "style": "muted" }
+      ]
+    },
+    { "type": "text", "label": "offline", "when": "offline", "style": "offline" },
+    { "type": "divider" },
+    { "type": "spacer", "height": 6 },
+    {
+      "type": "parties",
+      "left": {
+        "label": "seller",
+        "fields": [
+          "Podmiot1.DaneIdentyfikacyjne.Nazwa",
+          "Podmiot1.DaneIdentyfikacyjne.NIP",
+          "Podmiot1.Adres.AdresL1",
+          "Podmiot1.Adres.AdresL2"
+        ]
+      },
+      "right": {
+        "label": "buyer",
+        "fields": [
+          "Podmiot2.DaneIdentyfikacyjne.Nazwa",
+          "Podmiot2.DaneIdentyfikacyjne.NIP",
+          "Podmiot2.Adres.AdresL1",
+          "Podmiot2.Adres.AdresL2"
+        ]
+      }
+    },
+    { "type": "spacer", "height": 12 },
+    {
+      "type": "lines",
+      "from": "Fa.FaWiersz",
+      "columns": [
+        { "label": "lp", "path": "NrWierszaFa" },
+        { "label": "name", "path": "P_7" },
+        { "label": "unit", "path": "P_8A" },
+        { "label": "qty", "path": "P_8B", "format": "number" },
+        { "label": "unitPrice", "path": "P_9A", "format": "money" },
+        { "label": "vatRate", "path": "P_12" },
+        { "label": "net", "path": "P_11", "format": "money" }
+      ]
+    },
+    { "type": "spacer", "height": 10 },
+    {
+      "type": "totals",
+      "rows": [
+        { "label": "totalNet", "path": "Fa.P_13_1", "format": "money" },
+        { "label": "totalVat", "path": "Fa.P_14_1", "format": "money" },
+        { "label": "totalDue", "path": "Fa.P_15", "format": "money" }
+      ]
+    },
+    { "type": "spacer", "height": 10 },
+    {
+      "type": "payment",
+      "when": "Fa.Platnosc",
+      "rows": [
+        { "label": "paid", "path": "Fa.Platnosc.Zaplacono" },
+        { "label": "paymentDate", "path": "Fa.Platnosc.DataZaplaty", "format": "date" },
+        { "label": "paymentMethod", "path": "Fa.Platnosc.FormaPlatnosci" }
+      ]
+    },
+    { "type": "qr", "when": "qr", "fit": 90 },
+    { "type": "footer", "text": "ksef-client-ts", "style": "footerNote" }
+  ]
+}

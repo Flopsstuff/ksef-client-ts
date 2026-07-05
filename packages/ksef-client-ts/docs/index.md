@@ -48,6 +48,8 @@ features:
     details: Build XSD-compliant FA2, FA3, PEF, and PEF_KOR XML from typed TypeScript objects. Correct element ordering (including the FA3 per-VAT-rate P_13/P_14/P_14W interleave), natural P_* sort, automatic namespace injection, and pass-through for pre-built XML strings and buffers. The `ksef invoice build` CLI wraps the same pipeline for JSON or YAML input with optional Zod and XSD validation.
   - title: Invoice XML Validation
     details: Three-level client-side validation against official KSeF XSD schemas — well-formedness, schema structure (via generated Zod validators), and business rules (NIP/PESEL checksums, future date rejection). Supports all 6 invoice types with auto-detection. CLI batch validation, programmatic API, and opt-in pre-send validation in workflows.
+  - title: PDF Visualization
+    details: Render FA (2)/(3) invoices and UPO (4.2)/(4.3) receipts to print-ready PDF offline from version-specific, declarative templates — Polish, English, or bilingual labels, an embedded KSeF Code I verification QR, and built-in or custom layouts. The `ksef invoice pdf` CLI brings the same rendering to shell workflows. PDF output uses the optional `pdfmake` peer (`npm i "pdfmake@^0.2.20"`), so the core install stays dependency-free.
   - title: Typed Errors with RFC 7807 Problem Details
     details: KSeFError hierarchy with dedicated classes for 400, 401, 403, 410, and 429 carrying structured diagnostic context (trace IDs, required-vs-present permissions, validation error lists). Exhaustive dispatch via the KSeFApiProblem union and assertNever helper. Fluent request builders catch mistakes at compile time before they hit the network.
   - title: Comprehensive Test Coverage
