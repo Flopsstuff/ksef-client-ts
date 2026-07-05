@@ -1,6 +1,6 @@
 {
   "name": "ksef-client-ts",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "TypeScript client for the Polish National e-Invoice System (KSeF) API",
   "type": "module",
   "sideEffects": false,
