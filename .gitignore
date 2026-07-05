@@ -43,3 +43,22 @@ packages/ksef-client-ts/docs/public/open-api.json
 
 # markdown-vault MCP cache
 packages/ksef-client-ts/docs/.markdown_vault_mcp/
+
+# macOS
+.DS_Store
+
+# Editor / OS noise
+*.swp
+*~
+Thumbs.db
+
+# Logs
+*.log
+yarn-debug.log*
+yarn-error.log*
+npm-debug.log*
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
