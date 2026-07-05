@@ -4,6 +4,7 @@ import {
   formatNumber,
   formatDate,
   formatNip,
+  formatPaymentForm,
   applyFormat,
 } from '../../../src/pdf/format.js';
 
@@ -89,6 +90,23 @@ describe('formatNip', () => {
   });
 });
 
+describe('formatPaymentForm', () => {
+  it('decodes each known FormaPlatnosci code to its Polish label', () => {
+    expect(formatPaymentForm('1')).toBe('Gotówka');
+    expect(formatPaymentForm('6')).toBe('Przelew');
+    expect(formatPaymentForm('7')).toBe('Mobilna');
+  });
+
+  it('tolerates surrounding whitespace', () => {
+    expect(formatPaymentForm(' 6 ')).toBe('Przelew');
+  });
+
+  it('passes an unknown code through unchanged', () => {
+    expect(formatPaymentForm('99')).toBe('99');
+    expect(formatPaymentForm('')).toBe('');
+  });
+});
+
 describe('applyFormat', () => {
   it('returns the value unchanged when no formatter is named', () => {
     expect(applyFormat('1234.5', undefined)).toBe('1234.5');
@@ -113,5 +131,9 @@ describe('applyFormat', () => {
 
   it('routes to the nip formatter', () => {
     expect(applyFormat('5213003700', 'nip')).toBe('521-300-37-00');
+  });
+
+  it('routes to the paymentForm formatter', () => {
+    expect(applyFormat('6', 'paymentForm')).toBe('Przelew');
   });
 });

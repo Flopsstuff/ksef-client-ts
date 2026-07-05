@@ -11,8 +11,11 @@ import { Environment } from '../../../src/config/environments.js';
 import type { RenderContext } from '../../../src/pdf/template/interpret.js';
 import type { QrBlock } from '../../../src/pdf/template/dsl.js';
 
-/** Minimal parsed body: seller NIP + issue date, same shape as ctx.root. */
-const body = { Podmiot1: { DaneIdentyfikacyjne: { NIP: '5213003700' } }, P_1: '2025-01-15' };
+/**
+ * Minimal parsed body: seller NIP at the document root, issue date under `Fa`
+ * (P_1 lives at Faktura/Fa/P_1, NOT the root) — the real parsed-Faktura shape.
+ */
+const body = { Podmiot1: { DaneIdentyfikacyjne: { NIP: '5213003700' } }, Fa: { P_1: '2025-01-15' } };
 
 // A clean UTF-8 invoice payload with LF newlines and no BOM.
 const CLEAN = '<Faktura>\n<P_2>FV/1</P_2>\n</Faktura>';
@@ -108,6 +111,17 @@ describe('deriveInvoiceQrUrl', () => {
 
   it('passes strict through to the accessor (throws on a missing binding)', () => {
     expect(() => deriveInvoiceQrUrl({ rawInput: CLEAN, body: {}, strict: true })).toThrow();
+  });
+
+  it('embeds a real DD-MM-YYYY issue date read from Fa/P_1 (regression: not NaN-NaN-NaN)', () => {
+    const url = deriveInvoiceQrUrl({ rawInput: CLEAN, body, env: 'prod' });
+    expect(url).toContain('/invoice/5213003700/15-01-2025/');
+    expect(url).not.toContain('NaN');
+  });
+
+  it('throws a clear error when the issue date is absent (never emits a NaN date)', () => {
+    const noDate = { Podmiot1: { DaneIdentyfikacyjne: { NIP: '5213003700' } } };
+    expect(() => deriveInvoiceQrUrl({ rawInput: CLEAN, body: noDate })).toThrow(/issue date/i);
   });
 });
 

@@ -1,9 +1,9 @@
 /**
  * Value formatters referenced by DSL bindings (`format: 'money' | 'date' |
- * 'number' | 'nip'`). Each is total: on unparseable input it returns the raw
- * string unchanged, so a formatter never throws mid-render.
+ * 'number' | 'nip' | 'paymentForm'`). Each is total: on unparseable input it
+ * returns the raw string unchanged, so a formatter never throws mid-render.
  */
-export type FormatterName = 'money' | 'date' | 'number' | 'nip';
+export type FormatterName = 'money' | 'date' | 'number' | 'nip' | 'paymentForm';
 
 const NBSP = ' ';
 
@@ -47,11 +47,30 @@ export function formatNip(raw: string): string {
   return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 8)}-${digits.slice(8, 10)}`;
 }
 
+/**
+ * KSeF `FormaPlatnosci` enum code → Polish label (the codes are a Polish fiscal
+ * enum, so the decoded name is Polish regardless of the render locale, matching
+ * how the official visualizations print it). An unknown code passes through.
+ */
+const PAYMENT_FORMS: Record<string, string> = {
+  '1': 'Gotówka',
+  '2': 'Karta',
+  '3': 'Bon',
+  '4': 'Czek',
+  '5': 'Kredyt',
+  '6': 'Przelew',
+  '7': 'Mobilna',
+};
+export function formatPaymentForm(raw: string): string {
+  return PAYMENT_FORMS[raw.trim()] ?? raw;
+}
+
 const FORMATTERS: Record<FormatterName, (raw: string) => string> = {
   money: formatMoney,
   date: formatDate,
   number: formatNumber,
   nip: formatNip,
+  paymentForm: formatPaymentForm,
 };
 
 /** Apply a named formatter; an unknown name returns the value unchanged. */

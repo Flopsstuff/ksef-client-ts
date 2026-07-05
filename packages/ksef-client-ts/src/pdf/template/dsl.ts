@@ -72,10 +72,23 @@ export interface TotalsBlock {
   style?: string;
 }
 
+/**
+ * A repeating group of bank-account fields under a payment block. `from` names
+ * the account collection (read as an always-array), `fields` are the per-account
+ * label:value lines, and `heading` is an optional i18n sub-heading printed once
+ * when at least one account resolves.
+ */
+export interface PaymentAccounts {
+  from: string;
+  heading?: string;
+  fields: FieldDef[];
+}
+
 export interface PaymentBlock {
   type: 'payment';
   when?: string;
   rows: FieldDef[];
+  accounts?: PaymentAccounts;
   style?: string;
 }
 
@@ -183,7 +196,7 @@ export interface InvoiceTemplate {
 
 // ── zod validation ─────────────────────────────────────────────────────────
 
-const formatEnum = z.enum(['money', 'date', 'number', 'nip']);
+const formatEnum = z.enum(['money', 'date', 'number', 'nip', 'paymentForm']);
 const styleValue = z.union([z.string(), z.number(), z.boolean(), z.array(z.number())]);
 const styleSchema = z.record(z.string(), styleValue);
 const labelRef = z.object({ label: z.string().optional(), text: z.string().optional() }).strict();
@@ -224,6 +237,14 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
       type: z.literal('payment'),
       when: z.string().optional(),
       rows: z.array(fieldDef),
+      accounts: z
+        .object({
+          from: z.string(),
+          heading: z.string().optional(),
+          fields: z.array(fieldDef),
+        })
+        .strict()
+        .optional(),
       style: z.string().optional(),
     }).strict(),
     z.object({ type: z.literal('annotations'), fields: z.array(fieldDef), style: z.string().optional() }).strict(),
