@@ -68,6 +68,24 @@ jobs:
       - name: Check /node entry types
         run: yarn check:node-types
 
+      # Proves the ./pdf public types resolve WITHOUT @types/pdfmake in scope —
+      # a consumer that has not installed pdfmake still type-checks ./pdf.
+      - name: Check /pdf entry types
+        run: yarn check:pdf-types
+
+      # Runs on every matrix Node (18/20/22): the ./pdf subpath imports/requires
+      # without eagerly loading pdfmake and never throws at module-load time.
+      - name: Check /pdf cold subpath
+        run: node packages/ksef-client-ts/scripts/check-pdf-cold.mjs
+
+      # Publish-correctness of the package exports (incl. the new ./pdf subpath).
+      # Runs once — the built dist is identical across the matrix.
+      - name: Check package exports (attw + publint)
+        if: matrix.node-version == 22
+        run: |
+          yarn check:attw
+          yarn check:publint
+
       - name: Check fs-free core bundles
         run: node packages/ksef-client-ts/scripts/check-fs-free-core.mjs
 

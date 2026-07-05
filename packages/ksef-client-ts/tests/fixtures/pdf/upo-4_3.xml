@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Synthetic, fully anonymous UPO(4.3) fixture for PDF-renderer tests. No real data. -->
+<Potwierdzenie xmlns="http://upo.schematy.mf.gov.pl/KSeF/v4-3">
+	<NazwaPodmiotuPrzyjmujacego>Ministerstwo Finansów (środowisko testowe)</NazwaPodmiotuPrzyjmujacego>
+	<NumerReferencyjnySesji>11111111-11-1111111111-1111111111-11</NumerReferencyjnySesji>
+	<Uwierzytelnienie>
+		<IdKontekstu>
+			<IdWewnetrzny>1111111111-00000</IdWewnetrzny>
+		</IdKontekstu>
+		<NumerReferencyjnyTokenaKSeF>20250115-EX-0000000000-0000000000-00</NumerReferencyjnyTokenaKSeF>
+	</Uwierzytelnienie>
+	<NazwaStrukturyLogicznej>Schemat_FA(3)_v1-0E.xsd</NazwaStrukturyLogicznej>
+	<KodFormularza>FA (3)</KodFormularza>
+	<Dokument>
+		<NipSprzedawcy>1111111111</NipSprzedawcy>
+		<NumerKSeFDokumentu>1111111111-20250115-010000000000-00</NumerKSeFDokumentu>
+		<NumerFaktury>FA/2025/01/001</NumerFaktury>
+		<DataWystawieniaFaktury>2025-01-15</DataWystawieniaFaktury>
+		<DataPrzeslaniaDokumentu>2025-01-15T10:00:00.000+01:00</DataPrzeslaniaDokumentu>
+		<DataNadaniaNumeruKSeF>2025-01-15T10:00:01.000+01:00</DataNadaniaNumeruKSeF>
+		<SkrotDokumentu>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</SkrotDokumentu>
+		<TrybWysylki>Online</TrybWysylki>
+	</Dokument>
+</Potwierdzenie>

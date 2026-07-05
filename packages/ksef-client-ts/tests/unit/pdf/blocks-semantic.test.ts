@@ -1,0 +1,383 @@
+/**
+ * Semantic (node-structure) tests for the block renderers. We assert the shape
+ * of the emitted pdfmake nodes — never bytes. Each renderer is exercised through
+ * every branch: present/absent optional style, empty vs populated collections,
+ * collapsed vs expanded repeaters, and strict vs non-strict binding resolution.
+ */
+import { describe, it, expect } from 'vitest';
+import type { RenderContext, RenderChild, PdfNode } from '../../../src/pdf/template/interpret.js';
+import { makeLabelResolver } from '../../../src/pdf/i18n/index.js';
+import { applyFormat } from '../../../src/pdf/format.js';
+import { headerRenderer } from '../../../src/pdf/template/blocks/header.js';
+import { partiesRenderer } from '../../../src/pdf/template/blocks/parties.js';
+import { linesRenderer } from '../../../src/pdf/template/blocks/lines.js';
+import { totalsRenderer } from '../../../src/pdf/template/blocks/totals.js';
+import { paymentRenderer } from '../../../src/pdf/template/blocks/payment.js';
+import { annotationsRenderer } from '../../../src/pdf/template/blocks/annotations.js';
+import { footerRenderer } from '../../../src/pdf/template/blocks/footer.js';
+
+// ── test harness ────────────────────────────────────────────────────────────
+
+/** Build a RenderContext by hand. `label` echoes the key by default. */
+function makeCtx(root: unknown, overrides: Partial<RenderContext> = {}): RenderContext {
+  return {
+    root,
+    strict: false,
+    label: (k: string) => k,
+    bindings: {},
+    flags: {},
+    ...overrides,
+  };
+}
+
+/** The child-render callback is unused by these blocks. */
+const noRender: RenderChild = () => null;
+
+/** Cast a node to an indexable bag for structural assertions. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const rec = (n: PdfNode | PdfNode[] | null): any => n as any;
+
+// ── header (existing renderer) ───────────────────────────────────────────────
+
+describe('headerRenderer', () => {
+  it('renders logo, title, number and date with an explicit style', () => {
+    const ctx = makeCtx(
+      { Fa: { P_2: 'FV/2025/01', P_1: '2025-01-15' } },
+      { bindings: { 'opts.logo': 'data:image/png;base64,AAAA' } },
+    );
+    const node = rec(
+      headerRenderer(
+        {
+          type: 'header',
+          logo: 'opts.logo',
+          title: { label: 'invoice' },
+          number: 'Fa.P_2',
+          date: 'Fa.P_1',
+          style: 'bigtitle',
+        },
+        ctx,
+        noRender,
+      ),
+    );
+
+    expect(node.columns).toHaveLength(2);
+    const [left, right] = node.columns;
+    // logo image + title
+    expect(left.stack[0].image).toBe('data:image/png;base64,AAAA');
+    expect(left.stack[1].text).toBe('invoice');
+    expect(left.stack[1].style).toBe('bigtitle');
+    // number + date, right-aligned
+    expect(right.alignment).toBe('right');
+    expect(right.stack).toHaveLength(2);
+    expect(right.stack[0].text).toBe('invoiceNumber: FV/2025/01');
+    expect(right.stack[1].text).toBe('issueDate: 15.01.2025');
+  });
+
+  it('falls back to the invoice label and default title style, omitting empty right column', () => {
+    const node = rec(headerRenderer({ type: 'header' }, makeCtx({}), noRender));
+    const [left, right] = node.columns;
+    expect(left.stack).toHaveLength(1);
+    expect(left.stack[0].text).toBe('invoice'); // label('invoice')
+    expect(left.stack[0].style).toBe('title'); // default
+    expect(right.stack).toHaveLength(0);
+  });
+
+  it('drops the logo node when its binding resolves empty', () => {
+    const node = rec(headerRenderer({ type: 'header', logo: 'missing.logo' }, makeCtx({}), noRender));
+    const [left] = node.columns;
+    // no image pushed; only the title line remains
+    expect(left.stack).toHaveLength(1);
+    expect(left.stack[0].image).toBeUndefined();
+  });
+});
+
+// ── parties ───────────────────────────────────────────────────────────────
+
+describe('partiesRenderer', () => {
+  it('emits a two-column layout with a bold label line and one line per field', () => {
+    const ctx = makeCtx({
+      Podmiot1: { Nazwa: 'ACME Sp. z o.o.', NIP: '5213003700' },
+      Podmiot2: { Nazwa: 'Buyer Co' },
+    });
+    const node = rec(
+      partiesRenderer(
+        {
+          type: 'parties',
+          left: { label: 'seller', fields: ['Podmiot1.Nazwa', 'Podmiot1.NIP'] },
+          right: { label: 'buyer', fields: ['Podmiot2.Nazwa'] },
+          style: 'pstyle',
+        },
+        ctx,
+        noRender,
+      ),
+    );
+
+    expect(node.columns).toHaveLength(2);
+    expect(node.style).toBe('pstyle');
+
+    const [left, right] = node.columns;
+    expect(left.width).toBe('*');
+    expect(left.stack).toHaveLength(3); // label + 2 fields
+    expect(left.stack[0].text).toBe('seller');
+    expect(left.stack[0].style).toBe('h2');
+    expect(left.stack[1].text).toBe('ACME Sp. z o.o.');
+    expect(left.stack[2].text).toBe('5213003700');
+
+    expect(right.stack).toHaveLength(2); // label + 1 field
+    expect(right.stack[1].text).toBe('Buyer Co');
+  });
+
+  it('handles empty field lists and omits style when absent', () => {
+    const node = rec(
+      partiesRenderer(
+        {
+          type: 'parties',
+          left: { label: 'seller', fields: [] },
+          right: { label: 'buyer', fields: [] },
+        },
+        makeCtx({}),
+        noRender,
+      ),
+    );
+    expect(node.style).toBeUndefined();
+    expect('style' in node).toBe(false);
+    expect(node.columns[0].stack).toHaveLength(1); // label only
+  });
+
+  it('resolves real localized labels via makeLabelResolver', () => {
+    const ctx = makeCtx({ Podmiot1: { Nazwa: 'X' } }, { label: makeLabelResolver('pl') });
+    const node = rec(
+      partiesRenderer(
+        {
+          type: 'parties',
+          left: { label: 'seller', fields: ['Podmiot1.Nazwa'] },
+          right: { label: 'buyer', fields: [] },
+        },
+        ctx,
+        noRender,
+      ),
+    );
+    expect(node.columns[0].stack[0].text).toBe('Sprzedawca');
+    expect(node.columns[1].stack[0].text).toBe('Nabywca');
+  });
+});
+
+// ── lines ─────────────────────────────────────────────────────────────────
+
+const lineColumns = [
+  { label: 'lp', path: 'NrWierszaFa' },
+  { label: 'name', path: 'P_7' },
+  { label: 'qty', path: 'P_8B', format: 'number' as const },
+  { label: 'net', path: 'P_9A', format: 'money' as const },
+];
+
+describe('linesRenderer', () => {
+  it('renders a header row plus one body row for a collapsed single line', () => {
+    const ctx = makeCtx({
+      Fa: { FaWiersz: { NrWierszaFa: '1', P_7: 'Widget', P_8B: '2', P_9A: '10.00' } },
+    });
+    const node = rec(
+      linesRenderer({ type: 'lines', from: 'Fa.FaWiersz', columns: lineColumns }, ctx, noRender),
+    );
+
+    expect(node.table.headerRows).toBe(1);
+    expect(node.table.widths).toHaveLength(4);
+    expect(node.layout).toBe('lightHorizontalLines');
+    expect(node.table.body).toHaveLength(2); // 1 header + 1 line
+
+    // header cells echo the column labels and are bold
+    const header = node.table.body[0];
+    expect(header.map((c: any) => c.text)).toEqual(['lp', 'name', 'qty', 'net']);
+    expect(header.every((c: any) => c.bold === true)).toBe(true);
+
+    // body cell values are formatted
+    const row = node.table.body[1];
+    expect(row[0].text).toBe('1');
+    expect(row[1].text).toBe('Widget');
+    expect(row[2].text).toBe(applyFormat('2', 'number'));
+    expect(row[3].text).toBe(applyFormat('10.00', 'money')); // '10,00'
+    expect(node.style).toBeUndefined();
+  });
+
+  it('renders one body row per element for an expanded array of lines (+ style)', () => {
+    const ctx = makeCtx({ Fa: { FaWiersz: [{ P_7: 'A' }, { P_7: 'B' }] } });
+    const node = rec(
+      linesRenderer(
+        {
+          type: 'lines',
+          from: 'Fa.FaWiersz',
+          columns: [
+            { label: 'name', path: 'P_7' },
+            { label: 'qty', path: 'P_8B' }, // missing → '' (non-strict)
+          ],
+          style: 'lstyle',
+        },
+        ctx,
+        noRender,
+      ),
+    );
+    expect(node.table.body).toHaveLength(3); // 1 header + 2 lines
+    expect(node.table.body[1][0].text).toBe('A');
+    expect(node.table.body[2][0].text).toBe('B');
+    expect(node.table.body[1][1].text).toBe(''); // missing binding, non-strict
+    expect(node.style).toBe('lstyle');
+  });
+
+  it('emits only the header row for an empty collection', () => {
+    const node = rec(
+      linesRenderer({ type: 'lines', from: 'Fa.FaWiersz', columns: lineColumns }, makeCtx({ Fa: {} }), noRender),
+    );
+    expect(node.table.body).toHaveLength(1); // header only
+  });
+
+  it('throws in strict mode on a missing cell binding', () => {
+    const ctx = makeCtx({ Fa: { FaWiersz: { P_7: 'X' } } }, { strict: true });
+    expect(() =>
+      linesRenderer(
+        { type: 'lines', from: 'Fa.FaWiersz', columns: [{ label: 'name', path: 'P_MISSING' }] },
+        ctx,
+        noRender,
+      ),
+    ).toThrow(/Missing binding/);
+  });
+});
+
+// ── totals ──────────────────────────────────────────────────────────────────
+
+describe('totalsRenderer', () => {
+  it('renders a right-aligned borderless summary table (+ style)', () => {
+    const ctx = makeCtx({ Fa: { P_13_1: '100', P_15: '123' } });
+    const node = rec(
+      totalsRenderer(
+        {
+          type: 'totals',
+          rows: [
+            { label: 'totalNet', path: 'Fa.P_13_1', format: 'money' },
+            { label: 'totalDue', path: 'Fa.P_15', format: 'money' },
+          ],
+          style: 'tstyle',
+        },
+        ctx,
+        noRender,
+      ),
+    );
+
+    expect(node.columns).toHaveLength(2);
+    expect(node.columns[0].text).toBe(''); // elastic spacer
+    expect(node.columns[0].width).toBe('*');
+    expect(node.style).toBe('tstyle');
+
+    const summary = node.columns[1];
+    expect(summary.layout).toBe('noBorders');
+    expect(summary.table.body).toHaveLength(2);
+    const [labelCell, valueCell] = summary.table.body[0];
+    expect(labelCell.text).toBe('totalNet');
+    expect(labelCell.bold).toBe(true);
+    expect(valueCell.text).toBe(applyFormat('100', 'money')); // '100,00'
+    expect(valueCell.alignment).toBe('right');
+  });
+
+  it('omits style when absent', () => {
+    const node = rec(
+      totalsRenderer({ type: 'totals', rows: [{ label: 'totalDue', path: 'Fa.P_15' }] }, makeCtx({ Fa: { P_15: '5' } }), noRender),
+    );
+    expect('style' in node).toBe(false);
+    expect(node.columns[1].table.body).toHaveLength(1);
+  });
+});
+
+// ── payment ───────────────────────────────────────────────────────────────
+
+describe('paymentRenderer', () => {
+  it('renders a heading and one label:value line per row (+ style)', () => {
+    const ctx = makeCtx({
+      Fa: { FormaPlatnosci: '6', TerminPlatnosci: { Termin: '2025-02-01' } },
+    });
+    const node = rec(
+      paymentRenderer(
+        {
+          type: 'payment',
+          rows: [
+            { label: 'paymentMethod', path: 'Fa.FormaPlatnosci' },
+            { label: 'paymentDate', path: 'Fa.TerminPlatnosci.Termin', format: 'date' },
+          ],
+          style: 'paystyle',
+        },
+        ctx,
+        noRender,
+      ),
+    );
+
+    expect(node.stack).toHaveLength(3); // heading + 2 rows
+    expect(node.stack[0].text).toBe('payment');
+    expect(node.stack[0].style).toBe('h2');
+    expect(node.stack[1].text).toBe('paymentMethod: 6');
+    expect(node.stack[2].text).toBe('paymentDate: 01.02.2025');
+    expect(node.style).toBe('paystyle');
+  });
+
+  it('renders only the heading for no rows and omits style', () => {
+    const node = rec(paymentRenderer({ type: 'payment', rows: [] }, makeCtx({}), noRender));
+    expect(node.stack).toHaveLength(1);
+    expect(node.stack[0].text).toBe('payment');
+    expect('style' in node).toBe(false);
+  });
+});
+
+// ── annotations ─────────────────────────────────────────────────────────────
+
+describe('annotationsRenderer', () => {
+  it('renders a heading and one label:value line per field (+ style)', () => {
+    const ctx = makeCtx({ Fa: { Adnotacje: { P_16: '1', P_17: '2' } } });
+    const node = rec(
+      annotationsRenderer(
+        {
+          type: 'annotations',
+          fields: [
+            { label: 'annotations', path: 'Fa.Adnotacje.P_16' },
+            { label: 'annotations', path: 'Fa.Adnotacje.P_17' },
+          ],
+          style: 'astyle',
+        },
+        ctx,
+        noRender,
+      ),
+    );
+    expect(node.stack).toHaveLength(3); // heading + 2 fields
+    expect(node.stack[0].text).toBe('annotations');
+    expect(node.stack[1].text).toBe('annotations: 1');
+    expect(node.stack[2].text).toBe('annotations: 2');
+    expect(node.style).toBe('astyle');
+  });
+
+  it('renders only the heading for no fields and omits style', () => {
+    const node = rec(annotationsRenderer({ type: 'annotations', fields: [] }, makeCtx({}), noRender));
+    expect(node.stack).toHaveLength(1);
+    expect('style' in node).toBe(false);
+  });
+});
+
+// ── footer ────────────────────────────────────────────────────────────────
+
+describe('footerRenderer', () => {
+  it('renders a centered label-resolved line', () => {
+    const node = rec(footerRenderer({ type: 'footer', label: 'page' }, makeCtx({}), noRender));
+    expect(node.text).toBe('page');
+    expect(node.alignment).toBe('center');
+    expect('style' in node).toBe(false);
+  });
+
+  it('renders literal text with a style', () => {
+    const node = rec(
+      footerRenderer({ type: 'footer', text: 'Thank you', style: 'fstyle' }, makeCtx({}), noRender),
+    );
+    expect(node.text).toBe('Thank you');
+    expect(node.style).toBe('fstyle');
+  });
+
+  it('renders an empty string when neither label nor text is set', () => {
+    const node = rec(footerRenderer({ type: 'footer' }, makeCtx({}), noRender));
+    expect(node.text).toBe('');
+    expect(node.alignment).toBe('center');
+  });
+});

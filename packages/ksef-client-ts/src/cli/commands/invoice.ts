@@ -570,7 +570,81 @@ const validateCmd = defineCommand({
   },
 });
 
+const VALID_PDF_LOCALES = ['pl', 'en', 'pl+en'] as const;
+type PdfLocale = (typeof VALID_PDF_LOCALES)[number];
+
+const pdf = defineCommand({
+  meta: { name: 'pdf', description: 'Render an invoice or UPO XML to a PDF (offline; requires the optional pdfmake peer)' },
+  args: {
+    file: { type: 'positional', description: 'Path to the invoice or UPO XML file', required: true },
+    template: { type: 'string', description: 'Built-in template name (e.g. fa3-default). Mutually exclusive with --template-file.' },
+    templateFile: { type: 'string', description: 'Path to a custom JSON template. Mutually exclusive with --template.' },
+    locale: { type: 'string', description: 'Label language: pl | en | pl+en (default: pl)' },
+    out: { type: 'string', description: 'Output PDF path (default: alongside the source, .pdf)' },
+    qr: { type: 'boolean', description: 'Embed the KSeF Code I QR derived from the XML' },
+    ksefNumber: { type: 'string', description: 'KSeF number to print (absent → marked OFFLINE)' },
+    upo: { type: 'boolean', description: 'Treat the input as a UPO document (otherwise auto-detected)' },
+    env: { type: 'string', description: 'Environment for the QR base URL (test/demo/prod)' },
+    json: { type: 'boolean', description: 'Output as JSON' },
+  },
+  run({ args }) {
+    return withErrorHandler(async () => {
+      const file = args.file;
+      if (!fs.existsSync(file)) {
+        throw new Error(`File not found: ${file}`);
+      }
+      if (args.template && args.templateFile) {
+        throw new Error('--template and --template-file are mutually exclusive; pass only one.');
+      }
+
+      const locale = (args.locale as string | undefined) ?? 'pl';
+      if (!VALID_PDF_LOCALES.includes(locale as PdfLocale)) {
+        throw new Error(`Invalid --locale "${locale}". Valid: ${VALID_PDF_LOCALES.join(', ')}`);
+      }
+
+      const env = args.env as 'prod' | 'test' | 'demo' | undefined;
+      const renderOpts = {
+        locale: locale as PdfLocale,
+        qr: Boolean(args.qr),
+        ...(args.ksefNumber ? { ksefNumber: args.ksefNumber as string } : {}),
+        ...(env ? { env } : {}),
+      };
+
+      // Exact bytes preserve the QR hash; pass the raw file as a Uint8Array.
+      const xmlBytes = new Uint8Array(fs.readFileSync(file));
+      const xmlStr = Buffer.from(xmlBytes).toString('utf-8');
+
+      // Lazy bridge into the internal PDF module; it lazily requires pdfmake and,
+      // when absent/incompatible, throws a friendly install hint we surface here.
+      const pdfModule = await import('../../pdf/index.js');
+
+      let bytes: Uint8Array;
+      const isUpo = Boolean(args.upo) || (pdfModule.detectInvoiceVersion(xmlStr) === null && pdfModule.detectUpoVersion(xmlStr) !== null);
+      if (isUpo) {
+        bytes = await pdfModule.renderUpoPdf(xmlBytes, renderOpts);
+      } else if (args.templateFile) {
+        bytes = await pdfModule.renderInvoicePdfFromFile(xmlBytes, args.templateFile as string, renderOpts);
+      } else if (args.template) {
+        bytes = await pdfModule.renderInvoicePdf(xmlBytes, args.template as string, renderOpts);
+      } else {
+        const version = pdfModule.detectInvoiceVersion(xmlStr);
+        const builtin = version === 'FA(2)' ? 'fa2-default' : 'fa3-default';
+        bytes = await pdfModule.renderInvoicePdf(xmlBytes, builtin, renderOpts);
+      }
+
+      const outPath = (args.out as string | undefined) ?? file.replace(/\.xml$/i, '') + '.pdf';
+      fs.writeFileSync(outPath, bytes);
+
+      if (args.json) {
+        outputResult({ file, out: outPath, bytes: bytes.length }, { json: true });
+      } else {
+        outputSuccess(`PDF written to ${outPath} (${bytes.length} bytes)`);
+      }
+    }, { json: Boolean(args.json) });
+  },
+});
+
 export const invoiceCommand = defineCommand({
   meta: { name: 'invoice', description: 'Invoice commands' },
-  subCommands: { send, build: invoiceBuild, get, query, validate: validateCmd, export: exportCmd, 'export-status': exportStatus, 'export-incremental': exportIncremental },
+  subCommands: { send, build: invoiceBuild, get, query, pdf, validate: validateCmd, export: exportCmd, 'export-status': exportStatus, 'export-incremental': exportIncremental },
 });

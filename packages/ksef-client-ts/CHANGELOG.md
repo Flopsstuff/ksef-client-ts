@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Invoice and receipt PDF export** — render KSeF invoices and their official UPO receipts to print-ready PDF documents offline, with Polish, English, or bilingual labels, an embedded KSeF verification code, and a choice of ready-made layouts or your own custom templates, also available from the command line.
+- **Optional PDF engine, kept out of the core install** — PDF rendering relies on an optional add-on that is not pulled in automatically, so installing the library adds no extra dependencies until you opt into PDF output.
+
 ### Fixed
 
 ## [0.10.0] - 2026-06-15
