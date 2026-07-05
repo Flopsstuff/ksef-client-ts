@@ -13,6 +13,11 @@ export class VerificationLinkService {
     invoiceHashBase64: string,
   ): string {
     const date = typeof issueDate === 'string' ? new Date(issueDate) : issueDate;
+    if (Number.isNaN(date.getTime())) {
+      throw new Error(
+        `Invalid issueDate for verification URL: ${JSON.stringify(issueDate)} (expected a parseable date, e.g. "2026-06-08").`,
+      );
+    }
     const dd = String(date.getUTCDate()).padStart(2, '0');
     const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
     const yyyy = date.getUTCFullYear();

@@ -31,6 +31,11 @@ describe('VerificationLinkService', () => {
       expect(url).toMatch(/\/05-12-2024\//);
     });
 
+    it('throws on an unparseable date instead of emitting a NaN-NaN-NaN segment', () => {
+      expect(() => service.buildInvoiceVerificationUrl(nip, '', hash)).toThrow(/Invalid issueDate/);
+      expect(() => service.buildInvoiceVerificationUrl(nip, 'not-a-date', hash)).toThrow(/Invalid issueDate/);
+    });
+
     it('should use Base64URL encoding without padding', () => {
       const url = service.buildInvoiceVerificationUrl(nip, '2024-01-01T00:00:00Z', hash);
 

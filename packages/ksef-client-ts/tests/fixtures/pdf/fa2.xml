@@ -68,8 +68,15 @@
         </FaWiersz>
         <Platnosc>
             <Zaplacono>1</Zaplacono>
-            <DataZaplaty>2025-01-15</DataZaplaty>
+            <TerminPlatnosci>
+                <Termin>2025-02-01</Termin>
+            </TerminPlatnosci>
             <FormaPlatnosci>6</FormaPlatnosci>
+            <RachunekBankowy>
+                <NrRB>11109000880000000100000001</NrRB>
+                <SWIFT>WBKPPLPP</SWIFT>
+                <NazwaBanku>Bank Przykładowy S.A.</NazwaBanku>
+            </RachunekBankowy>
         </Platnosc>
     </Fa>
 </Faktura>

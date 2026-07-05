@@ -322,6 +322,108 @@ describe('paymentRenderer', () => {
     expect(node.stack[0].text).toBe('payment');
     expect('style' in node).toBe(false);
   });
+
+  it('skips rows whose value resolves empty (absent optional field)', () => {
+    const ctx = makeCtx({ Fa: { FormaPlatnosci: '6' } });
+    const node = rec(
+      paymentRenderer(
+        {
+          type: 'payment',
+          rows: [
+            { label: 'paid', path: 'Fa.Zaplacono' }, // absent → skipped
+            { label: 'paymentMethod', path: 'Fa.FormaPlatnosci', format: 'paymentForm' },
+          ],
+        },
+        ctx,
+        noRender,
+      ),
+    );
+    expect(node.stack).toHaveLength(2); // heading + only the present row
+    expect(node.stack[1].text).toBe('paymentMethod: Przelew');
+  });
+
+  it('renders a bank-account repeater: heading + one label:value line per field, per account', () => {
+    const ctx = makeCtx({
+      Fa: {
+        Platnosc: {
+          RachunekBankowy: [
+            { NrRB: '11109000880000000100000001', SWIFT: 'WBKPPLPP', NazwaBanku: 'Bank A' },
+            { NrRB: '22109000880000000100000002', NazwaBanku: 'Bank B' }, // no SWIFT → skipped
+          ],
+        },
+      },
+    });
+    const node = rec(
+      paymentRenderer(
+        {
+          type: 'payment',
+          rows: [],
+          accounts: {
+            from: 'Fa.Platnosc.RachunekBankowy',
+            heading: 'bankAccounts',
+            fields: [
+              { label: 'bankAccount', path: 'NrRB' },
+              { label: 'swift', path: 'SWIFT' },
+              { label: 'bankName', path: 'NazwaBanku' },
+            ],
+          },
+        },
+        ctx,
+        noRender,
+      ),
+    );
+    // heading(payment) + heading(bankAccounts) + [acc1: 3 lines] + [acc2: 2 lines]
+    expect(node.stack).toHaveLength(7);
+    expect(node.stack[1].text).toBe('bankAccounts');
+    expect(node.stack[1].style).toBe('h2');
+    expect(node.stack[2].text).toBe('bankAccount: 11109000880000000100000001');
+    expect(node.stack[3].text).toBe('swift: WBKPPLPP');
+    expect(node.stack[4].text).toBe('bankName: Bank A');
+    // second account skipped its empty SWIFT
+    expect(node.stack[5].text).toBe('bankAccount: 22109000880000000100000002');
+    expect(node.stack[6].text).toBe('bankName: Bank B');
+  });
+
+  it('omits the accounts section entirely when the collection is absent', () => {
+    const node = rec(
+      paymentRenderer(
+        {
+          type: 'payment',
+          rows: [{ label: 'paymentMethod', path: 'Fa.Platnosc.FormaPlatnosci', format: 'paymentForm' }],
+          accounts: {
+            from: 'Fa.Platnosc.RachunekBankowy',
+            heading: 'bankAccounts',
+            fields: [{ label: 'bankAccount', path: 'NrRB' }],
+          },
+        },
+        makeCtx({ Fa: { Platnosc: { FormaPlatnosci: '6' } } }),
+        noRender,
+      ),
+    );
+    expect(node.stack).toHaveLength(2); // heading + the one payment row, no bank heading
+    expect(node.stack[1].text).toBe('paymentMethod: Przelew');
+  });
+
+  it('throws in strict mode on a missing bank-account field binding', () => {
+    const ctx = makeCtx(
+      { Fa: { Platnosc: { RachunekBankowy: { NrRB: '111' } } } },
+      { strict: true },
+    );
+    expect(() =>
+      paymentRenderer(
+        {
+          type: 'payment',
+          rows: [],
+          accounts: {
+            from: 'Fa.Platnosc.RachunekBankowy',
+            fields: [{ label: 'swift', path: 'SWIFT' }], // absent in the account → strict throws
+          },
+        },
+        ctx,
+        noRender,
+      ),
+    ).toThrow(/Missing binding/);
+  });
 });
 
 // ── annotations ─────────────────────────────────────────────────────────────

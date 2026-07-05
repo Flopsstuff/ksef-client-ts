@@ -71,9 +71,18 @@
       "when": "Fa.Platnosc",
       "rows": [
         { "label": "paid", "path": "Fa.Platnosc.Zaplacono" },
-        { "label": "paymentDate", "path": "Fa.Platnosc.DataZaplaty", "format": "date" },
-        { "label": "paymentMethod", "path": "Fa.Platnosc.FormaPlatnosci" }
-      ]
+        { "label": "paymentDate", "path": "Fa.Platnosc.TerminPlatnosci.Termin", "format": "date" },
+        { "label": "paymentMethod", "path": "Fa.Platnosc.FormaPlatnosci", "format": "paymentForm" }
+      ],
+      "accounts": {
+        "from": "Fa.Platnosc.RachunekBankowy",
+        "heading": "bankAccounts",
+        "fields": [
+          { "label": "bankAccount", "path": "NrRB" },
+          { "label": "swift", "path": "SWIFT" },
+          { "label": "bankName", "path": "NazwaBanku" }
+        ]
+      }
     },
     { "type": "qr", "when": "qr", "fit": 90 },
     { "type": "footer", "text": "ksef-client-ts", "style": "footerNote" }

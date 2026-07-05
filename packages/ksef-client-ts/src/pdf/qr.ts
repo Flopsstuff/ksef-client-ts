@@ -12,6 +12,7 @@ import crypto from 'node:crypto';
 import { VerificationLinkService } from '../qr/verification-link-service.js';
 import { Environment } from '../config/environments.js';
 import { get } from './accessor.js';
+import { KSeFPdfError } from './errors.js';
 
 /**
  * SHA-256 over the raw invoice bytes, returned as standard base64.
@@ -65,7 +66,15 @@ export interface DeriveInvoiceQrUrlParams {
  */
 export function deriveInvoiceQrUrl(params: DeriveInvoiceQrUrlParams): string {
   const nip = get(params.body, 'Podmiot1.DaneIdentyfikacyjne.NIP', params.strict);
-  const issueDate = get(params.body, 'P_1', params.strict);
+  // Issue date lives at Faktura/Fa/P_1 — the invoice-line group `Fa`, not the
+  // document root (where Podmiot1 sits). Reading it at the root yields '' and a
+  // NaN-NaN-NaN date segment in the URL.
+  const issueDate = get(params.body, 'Fa.P_1', params.strict);
+  if (issueDate === '') {
+    throw new KSeFPdfError(
+      'Cannot build the QR verification URL: issue date (Fa/P_1) is missing from the invoice.',
+    );
+  }
   const hash = params.invoiceHash ?? computeInvoiceHashBase64(params.rawInput);
   const base = resolveBaseQrUrl(params.env, params.baseQrUrl);
   return new VerificationLinkService(base).buildInvoiceVerificationUrl(nip, issueDate, hash);
