@@ -4,10 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [0.11.0] - Unreleased
 
+### Changed (breaking)
+
+- **Rate limits now include a collective identifier category** — KSeF made this category mandatory on rate-limit overrides, so `ApiRateLimitsOverride` and `EffectiveApiRateLimits` gained a required `collectiveIdentifier` property. Code that builds rate-limit overrides must supply it, including the JSON passed to the test-data rate-limit command; requests without it are rejected by KSeF (KSeF API v2.7.0).
+
 ### Added
 
 - **Invoice and receipt PDF export** — render KSeF invoices and their official UPO receipts to print-ready PDF documents offline, with Polish, English, or bilingual labels, an embedded KSeF verification code, and a choice of ready-made layouts or your own custom templates, also available from the command line.
 - **Optional PDF engine, kept out of the core install** — PDF rendering relies on an optional add-on that is not pulled in automatically, so installing the library adds no extra dependencies until you opt into PDF output.
+
+### Changed
+
+- **Updated to KSeF API v2.7.0** — the bundled API specification now tracks the current KSeF release.
 
 ### Fixed
 

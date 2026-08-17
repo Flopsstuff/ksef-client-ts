@@ -5,37 +5,30 @@
     "version": "v2"
   },
   "paths": {
-    "/tokens": {
+    "/collective-identifiers": {
       "post": {
         "tags": [
-          "Tokeny KSeF"
+          "Identyfikatory zbiorcze"
         ],
-        "summary": "Wygenerowanie nowego tokena",
+        "summary": "Generowanie identyfikatora zbiorczego",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "required": [
-                  "permissions",
-                  "description"
+                  "invoices"
                 ],
                 "allOf": [
                   {
-                    "$ref": "#/components/schemas/GenerateTokenRequest"
+                    "$ref": "#/components/schemas/GenerateCollectiveIdentifierRequest"
                   }
-                ]
-              },
-              "example": {
-                "permissions": [
-                  "InvoiceRead",
-                  "InvoiceWrite"
                 ]
               }
             }
           }
         },
         "responses": {
-          "202": {
+          "201": {
             "headers": {
               "X-System-Warning": {
                 "schema": {
@@ -46,11 +39,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GenerateTokenResponse"
-                },
-                "example": {
-                  "referenceNumber": "20251010-EC-1DCE3E3000-12ECB5B36E-45",
-                  "token": "20251010-EC-1DCE3E3000-12ECB5B36E-45|internalId-5265877635-12345|919f704466624ce29cd5ac7b65ded5e7cccc112eee314f2aaa76e02cd16df7b9"
+                  "$ref": "#/components/schemas/GenerateCollectiveIdentifierResponse"
                 }
               }
             }
@@ -118,62 +107,145 @@
         ],
         "x-rate-limits": {
           "perSecond": 10,
-          "perMinute": 30,
+          "perMinute": 60,
           "perHour": 120
-        }
-      },
-      "get": {
+        },
+        "x-required-permissions": [
+          "InvoiceRead",
+          "InvoiceWrite",
+          "CollectiveIdentifierManage"
+        ]
+      }
+    },
+    "/collective-identifiers/query": {
+      "post": {
         "tags": [
-          "Tokeny KSeF"
+          "Identyfikatory zbiorcze"
         ],
-        "summary": "Pobranie listy wygenerowanych tokenów",
+        "summary": "Pobranie listy identyfikatorów zbiorczych powiązanych z kontekstem",
         "parameters": [
           {
-            "name": "status",
-            "in": "query",
+            "name": "x-continuation-token",
+            "in": "header",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/AuthenticationTokenStatus"
-              }
-            }
-          },
-          {
-            "name": "description",
-            "in": "query",
-            "schema": {
-              "minLength": 3,
               "type": "string"
-            }
-          },
-          {
-            "name": "authorIdentifier",
-            "in": "query",
-            "schema": {
-              "minLength": 3,
-              "type": "string"
-            }
-          },
-          {
-            "name": "authorIdentifierType",
-            "in": "query",
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/TokenAuthorIdentifierType"
-                }
-              ]
             }
           },
           {
             "name": "pageSize",
             "in": "query",
             "schema": {
-              "maximum": 100,
+              "maximum": 200,
               "minimum": 10,
               "type": "integer",
               "format": "int32",
               "default": 10
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "dateCreatedFrom",
+                  "dateCreatedTo"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CollectiveIdentifiersQueryRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectiveIdentifiersQueryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-sort": [
+          {
+            "field": "dateCreated",
+            "direction": "Desc"
+          },
+          {
+            "field": "collectiveIdentifierNumber",
+            "direction": "Desc"
+          }
+        ],
+        "x-required-permissions": [
+          "InvoiceRead",
+          "InvoiceWrite",
+          "CollectiveIdentifierManage"
+        ]
+      }
+    },
+    "/collective-identifiers/{collectiveIdentifierNumber}/invoices": {
+      "get": {
+        "tags": [
+          "Identyfikatory zbiorcze"
+        ],
+        "summary": "Pobranie listy faktur wchodzących w skład identyfikatora zbiorczego",
+        "parameters": [
+          {
+            "name": "collectiveIdentifierNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -182,6 +254,17 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 200,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
           }
         ],
         "responses": {
@@ -196,30 +279,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/QueryTokensResponse"
-                },
-                "example": {
-                  "continuationToken": "W3sidG9rZW4iOiIrUklEOn4zeHd0QUlqZUc5VkhCQUFBQUFBQUJBPT0jUlQ6MSNUUkM6MTAjSVNWOjIjSUVPOjY1NTY3I1FDRjo4I0ZQQzpBZ2dBQUFBQUFCQUFBQUFBQUFBQUVBQUFBQUFBQUFBUUFBQUVBRWVFMllFPSIsInJhbmdlIjp7Im1pbiI6IjA1QzFERjIxOUY5OTIwIiwibWF4IjoiRkYifX1d",
-                  "tokens": [
-                    {
-                      "referenceNumber": "20251001-EC-2DD3AFF000-A6B7F19A95-11",
-                      "authorIdentifier": {
-                        "type": "Nip",
-                        "value": "5265877635"
-                      },
-                      "contextIdentifier": {
-                        "type": "Nip",
-                        "value": "5265877635"
-                      },
-                      "requestedPermissions": [
-                        "InvoiceRead",
-                        "InvoiceWrite"
-                      ],
-                      "dateCreated": "2025-10-01T13:20:52.9919681+00:00",
-                      "status": "Active",
-                      "statusDetails": []
-                    }
-                  ]
+                  "$ref": "#/components/schemas/CollectiveIdentifierInvoicesQueryResponse"
                 }
               }
             }
@@ -256,28 +316,6 @@
                 }
               }
             }
-          },
-          "429": {
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "$ref": "#/components/schemas/RetryAfter"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TooManyRequestsResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
-                }
-              }
-            },
-            "x-summary": "Too Many Requests"
           }
         },
         "security": [
@@ -285,229 +323,124 @@
             "Bearer": []
           }
         ],
-        "x-rate-limits": {
-          "perSecond": 10,
-          "perMinute": 30,
-          "perHour": 120
+        "x-sort": [
+          {
+            "field": "ksefNumber",
+            "direction": "Desc"
+          }
+        ],
+        "x-required-permissions": [
+          "InvoiceRead",
+          "InvoiceWrite",
+          "CollectiveIdentifierManage"
+        ]
+      }
+    },
+    "/collective-identifiers/ksef/{ksefNumber}": {
+      "get": {
+        "tags": [
+          "Identyfikatory zbiorcze"
+        ],
+        "summary": "Pobranie listy identyfikatorów zbiorczych po numerze KSeF",
+        "parameters": [
+          {
+            "name": "ksefNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/KsefNumber"
+            }
+          },
+          {
+            "name": "x-continuation-token",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 200,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectiveIdentifiersByKsefNumberQueryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          }
         },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
         "x-sort": [
           {
             "field": "dateCreated",
             "direction": "Desc"
+          },
+          {
+            "field": "collectiveIdentifierNumber",
+            "direction": "Desc"
           }
+        ],
+        "x-required-permissions": [
+          "InvoiceRead",
+          "InvoiceWrite",
+          "CollectiveIdentifierManage"
         ]
-      }
-    },
-    "/tokens/{referenceNumber}": {
-      "get": {
-        "tags": [
-          "Tokeny KSeF"
-        ],
-        "summary": "Pobranie statusu tokena",
-        "parameters": [
-          {
-            "name": "referenceNumber",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ReferenceNumber"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "headers": {
-              "X-System-Warning": {
-                "schema": {
-                  "$ref": "#/components/schemas/SystemWarning"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TokenStatusResponse"
-                },
-                "example": {
-                  "referenceNumber": "20251001-EC-220B0CE000-E228129563-96",
-                  "authorIdentifier": {
-                    "type": "Nip",
-                    "value": "7762811692"
-                  },
-                  "contextIdentifier": {
-                    "type": "Nip",
-                    "value": "5265877635"
-                  },
-                  "requestedPermissions": [
-                    "InvoiceWrite",
-                    "InvoiceRead"
-                  ],
-                  "dateCreated": "2025-07-11T12:23:56.0154302+00:00",
-                  "lastUseDate": "2025-07-11T12:23:56.0154302+00:00",
-                  "status": "Pending",
-                  "statusDetails": []
-                }
-              }
-            }
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExceptionResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestProblemDetails"
-                }
-              }
-            },
-            "x-summary": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
-                }
-              }
-            }
-          },
-          "429": {
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "$ref": "#/components/schemas/RetryAfter"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TooManyRequestsResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
-                }
-              }
-            },
-            "x-summary": "Too Many Requests"
-          }
-        },
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "x-rate-limits": {
-          "perSecond": 10,
-          "perMinute": 30,
-          "perHour": 120
-        }
-      },
-      "delete": {
-        "tags": [
-          "Tokeny KSeF"
-        ],
-        "summary": "Unieważnienie tokena",
-        "parameters": [
-          {
-            "name": "referenceNumber",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ReferenceNumber"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "headers": {
-              "X-System-Warning": {
-                "schema": {
-                  "$ref": "#/components/schemas/SystemWarning"
-                }
-              }
-            }
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExceptionResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequestProblemDetails"
-                }
-              }
-            },
-            "x-summary": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
-                }
-              }
-            }
-          },
-          "429": {
-            "headers": {
-              "Retry-After": {
-                "schema": {
-                  "$ref": "#/components/schemas/RetryAfter"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TooManyRequestsResponse"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
-                }
-              }
-            },
-            "x-summary": "Too Many Requests"
-          }
-        },
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "x-rate-limits": {
-          "perSecond": 10,
-          "perMinute": 30,
-          "perHour": 120
-        }
       }
     }
   },
@@ -532,16 +465,6 @@
             "nullable": true
           }
         }
-      },
-      "AuthenticationTokenStatus": {
-        "enum": [
-          "Pending",
-          "Active",
-          "Revoking",
-          "Revoked",
-          "Failed"
-        ],
-        "type": "string"
       },
       "BadRequestProblemDetails": {
         "required": [
@@ -604,6 +527,429 @@
           "timestamp": "2025-07-11T12:23:56.0154302+00:00",
           "traceId": "673843e023c432286660bc0501a3af44"
         }
+      },
+      "CollectiveIdentifierInvoice": {
+        "required": [
+          "ksefNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "ksefNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/KsefNumber"
+              }
+            ]
+          },
+          "payment": {
+            "required": [
+              "amount",
+              "currency"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CollectiveIdentifierInvoicePayment"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "CollectiveIdentifierInvoicePayment": {
+        "required": [
+          "amount",
+          "currency"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "currency": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CurrencyCode"
+              }
+            ]
+          }
+        }
+      },
+      "CollectiveIdentifierInvoicesQueryResponse": {
+        "required": [
+          "invoices"
+        ],
+        "type": "object",
+        "properties": {
+          "continuationToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "invoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CollectiveIdentifierInvoicesQueryResponseItem"
+            }
+          }
+        }
+      },
+      "CollectiveIdentifierInvoicesQueryResponseItem": {
+        "required": [
+          "detailsHidden",
+          "ksefNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "ksefNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/KsefNumber"
+              }
+            ]
+          },
+          "payment": {
+            "required": [
+              "amount",
+              "currency"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CollectiveIdentifierInvoicesQueryResponseItemPayment"
+              }
+            ],
+            "nullable": true
+          },
+          "detailsHidden": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CollectiveIdentifierInvoicesQueryResponseItemPayment": {
+        "required": [
+          "amount",
+          "currency"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "currency": {
+            "maxLength": 3,
+            "minLength": 3,
+            "type": "string"
+          }
+        }
+      },
+      "CollectiveIdentifiersByKsefNumberQueryResponse": {
+        "required": [
+          "collectiveIdentifiers"
+        ],
+        "type": "object",
+        "properties": {
+          "continuationToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "collectiveIdentifiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CollectiveIdentifiersByKsefNumberQueryResponseItem"
+            }
+          }
+        }
+      },
+      "CollectiveIdentifiersByKsefNumberQueryResponseItem": {
+        "required": [
+          "collectiveIdentifierNumber",
+          "createdInCurrentContext",
+          "dateCreated"
+        ],
+        "type": "object",
+        "properties": {
+          "collectiveIdentifierNumber": {
+            "maxLength": 35,
+            "minLength": 35,
+            "type": "string"
+          },
+          "createdInCurrentContext": {
+            "type": "boolean"
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CollectiveIdentifiersQueryRequest": {
+        "required": [
+          "dateCreatedFrom",
+          "dateCreatedTo"
+        ],
+        "type": "object",
+        "properties": {
+          "collectiveIdentifierNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "dateCreatedFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateCreatedTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "invoiceCountFrom": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "invoiceCountTo": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "createdInCurrentContext": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "CollectiveIdentifiersQueryResponse": {
+        "required": [
+          "collectiveIdentifiers"
+        ],
+        "type": "object",
+        "properties": {
+          "continuationToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "collectiveIdentifiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CollectiveIdentifiersQueryResponseItem"
+            }
+          }
+        }
+      },
+      "CollectiveIdentifiersQueryResponseItem": {
+        "required": [
+          "collectiveIdentifierNumber",
+          "createdInCurrentContext",
+          "dateCreated",
+          "invoiceCount"
+        ],
+        "type": "object",
+        "properties": {
+          "collectiveIdentifierNumber": {
+            "maxLength": 35,
+            "minLength": 35,
+            "type": "string"
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "invoiceCount": {
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdInCurrentContext": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CurrencyCode": {
+        "enum": [
+          "AED",
+          "AFN",
+          "ALL",
+          "AMD",
+          "ANG",
+          "AOA",
+          "ARS",
+          "AUD",
+          "AWG",
+          "AZN",
+          "BAM",
+          "BBD",
+          "BDT",
+          "BGN",
+          "BHD",
+          "BIF",
+          "BMD",
+          "BND",
+          "BOB",
+          "BOV",
+          "BRL",
+          "BSD",
+          "BTN",
+          "BWP",
+          "BYN",
+          "BZD",
+          "CAD",
+          "CDF",
+          "CHE",
+          "CHF",
+          "CHW",
+          "CLF",
+          "CLP",
+          "CNY",
+          "COP",
+          "COU",
+          "CRC",
+          "CUC",
+          "CUP",
+          "CVE",
+          "CZK",
+          "DJF",
+          "DKK",
+          "DOP",
+          "DZD",
+          "EGP",
+          "ERN",
+          "ETB",
+          "EUR",
+          "FJD",
+          "FKP",
+          "GBP",
+          "GEL",
+          "GGP",
+          "GHS",
+          "GIP",
+          "GMD",
+          "GNF",
+          "GTQ",
+          "GYD",
+          "HKD",
+          "HNL",
+          "HRK",
+          "HTG",
+          "HUF",
+          "IDR",
+          "ILS",
+          "IMP",
+          "INR",
+          "IQD",
+          "IRR",
+          "ISK",
+          "JEP",
+          "JMD",
+          "JOD",
+          "JPY",
+          "KES",
+          "KGS",
+          "KHR",
+          "KMF",
+          "KPW",
+          "KRW",
+          "KWD",
+          "KYD",
+          "KZT",
+          "LAK",
+          "LBP",
+          "LKR",
+          "LRD",
+          "LSL",
+          "LYD",
+          "MAD",
+          "MDL",
+          "MGA",
+          "MKD",
+          "MMK",
+          "MNT",
+          "MOP",
+          "MRU",
+          "MUR",
+          "MVR",
+          "MWK",
+          "MXN",
+          "MXV",
+          "MYR",
+          "MZN",
+          "NAD",
+          "NGN",
+          "NIO",
+          "NOK",
+          "NPR",
+          "NZD",
+          "OMR",
+          "PAB",
+          "PEN",
+          "PGK",
+          "PHP",
+          "PKR",
+          "PLN",
+          "PYG",
+          "QAR",
+          "RON",
+          "RSD",
+          "RUB",
+          "RWF",
+          "SAR",
+          "SBD",
+          "SCR",
+          "SDG",
+          "SEK",
+          "SGD",
+          "SHP",
+          "SLL",
+          "SOS",
+          "SRD",
+          "SSP",
+          "STN",
+          "SVC",
+          "SYP",
+          "SZL",
+          "THB",
+          "TJS",
+          "TMT",
+          "TND",
+          "TOP",
+          "TRY",
+          "TTD",
+          "TWD",
+          "TZS",
+          "UAH",
+          "UGX",
+          "USD",
+          "USN",
+          "UYI",
+          "UYU",
+          "UYW",
+          "UZS",
+          "VES",
+          "VND",
+          "VUV",
+          "WST",
+          "XAF",
+          "XAG",
+          "XAU",
+          "XBA",
+          "XBB",
+          "XBC",
+          "XBD",
+          "XCD",
+          "XCG",
+          "XDR",
+          "XOF",
+          "XPD",
+          "XPF",
+          "XPT",
+          "XSU",
+          "XUA",
+          "XXX",
+          "YER",
+          "ZAR",
+          "ZMW",
+          "ZWL"
+        ],
+        "type": "string"
       },
       "ExceptionDetails": {
         "type": "object",
@@ -755,130 +1101,38 @@
           "timestamp": "2025-07-11T12:23:56.0154302+00:00"
         }
       },
-      "GenerateTokenRequest": {
+      "GenerateCollectiveIdentifierRequest": {
         "required": [
-          "description",
-          "permissions"
+          "invoices"
         ],
         "type": "object",
         "properties": {
-          "permissions": {
+          "invoices": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TokenPermissionType"
+              "$ref": "#/components/schemas/CollectiveIdentifierInvoice"
             }
           }
         }
       },
-      "GenerateTokenResponse": {
+      "GenerateCollectiveIdentifierResponse": {
         "required": [
-          "referenceNumber",
-          "token"
+          "collectiveIdentifierNumber"
         ],
         "type": "object",
         "properties": {
-          "referenceNumber": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ReferenceNumber"
-              }
-            ]
-          },
-          "token": {
-            "maxLength": 160,
+          "collectiveIdentifierNumber": {
+            "maxLength": 35,
+            "minLength": 35,
             "type": "string"
           }
         }
       },
-      "QueryTokensResponse": {
-        "required": [
-          "tokens"
-        ],
-        "type": "object",
-        "properties": {
-          "continuationToken": {
-            "type": "string",
-            "nullable": true
-          },
-          "tokens": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/QueryTokensResponseItem"
-            }
-          }
-        }
-      },
-      "QueryTokensResponseItem": {
-        "required": [
-          "authorIdentifier",
-          "contextIdentifier",
-          "dateCreated",
-          "description",
-          "referenceNumber",
-          "requestedPermissions",
-          "status"
-        ],
-        "type": "object",
-        "properties": {
-          "referenceNumber": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ReferenceNumber"
-              }
-            ]
-          },
-          "authorIdentifier": {
-            "required": [
-              "type",
-              "value"
-            ],
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TokenAuthorIdentifierTypeIdentifier"
-              }
-            ]
-          },
-          "contextIdentifier": {
-            "required": [
-              "type",
-              "value"
-            ],
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TokenContextIdentifierTypeIdentifier"
-              }
-            ]
-          },
-          "requestedPermissions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TokenPermissionType"
-            }
-          },
-          "dateCreated": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "lastUseDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/AuthenticationTokenStatus"
-              }
-            ]
-          },
-          "statusDetails": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          }
-        }
+      "KsefNumber": {
+        "maxLength": 36,
+        "minLength": 35,
+        "pattern": "^([1-9](\\d[1-9]|[1-9]\\d)\\d{7})-(20[2-9][0-9]|2[1-9]\\d{2}|[3-9]\\d{3})(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])-([0-9A-F]{6})-?([0-9A-F]{6})-([0-9A-F]{2})$",
+        "type": "string"
       },
       "ReferenceNumber": {
         "maxLength": 36,
@@ -892,146 +1146,6 @@
       },
       "SystemWarning": {
         "type": "string"
-      },
-      "TokenAuthorIdentifierType": {
-        "enum": [
-          "Nip",
-          "Pesel",
-          "Fingerprint"
-        ],
-        "type": "string"
-      },
-      "TokenAuthorIdentifierTypeIdentifier": {
-        "required": [
-          "type",
-          "value"
-        ],
-        "type": "object",
-        "properties": {
-          "type": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TokenAuthorIdentifierType"
-              }
-            ]
-          },
-          "value": {
-            "type": "string"
-          }
-        }
-      },
-      "TokenContextIdentifierType": {
-        "enum": [
-          "Nip",
-          "InternalId",
-          "NipVatUe",
-          "PeppolId"
-        ],
-        "type": "string"
-      },
-      "TokenContextIdentifierTypeIdentifier": {
-        "required": [
-          "type",
-          "value"
-        ],
-        "type": "object",
-        "properties": {
-          "type": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TokenContextIdentifierType"
-              }
-            ]
-          },
-          "value": {
-            "type": "string"
-          }
-        }
-      },
-      "TokenPermissionType": {
-        "enum": [
-          "InvoiceRead",
-          "InvoiceWrite",
-          "CredentialsRead",
-          "CredentialsManage",
-          "SubunitManage",
-          "EnforcementOperations",
-          "Introspection",
-          "CollectiveIdentifierManage"
-        ],
-        "type": "string"
-      },
-      "TokenStatusResponse": {
-        "required": [
-          "authorIdentifier",
-          "contextIdentifier",
-          "dateCreated",
-          "description",
-          "referenceNumber",
-          "requestedPermissions",
-          "status"
-        ],
-        "type": "object",
-        "properties": {
-          "referenceNumber": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ReferenceNumber"
-              }
-            ]
-          },
-          "authorIdentifier": {
-            "required": [
-              "type",
-              "value"
-            ],
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TokenAuthorIdentifierTypeIdentifier"
-              }
-            ]
-          },
-          "contextIdentifier": {
-            "required": [
-              "type",
-              "value"
-            ],
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TokenContextIdentifierTypeIdentifier"
-              }
-            ]
-          },
-          "requestedPermissions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TokenPermissionType"
-            }
-          },
-          "dateCreated": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "lastUseDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/AuthenticationTokenStatus"
-              }
-            ]
-          },
-          "statusDetails": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          }
-        }
       },
       "TooManyRequestsProblemDetails": {
         "required": [
