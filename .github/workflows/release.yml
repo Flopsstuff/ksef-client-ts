@@ -95,9 +95,18 @@ jobs:
         run: yarn install --immutable
 
       - name: Validate build
-        # Build first: the fs-free guard test and the /node type check both
-        # read the built dist, so the bundle must exist before lint/test run.
-        run: yarn build && yarn lint && yarn check:node-types && yarn test
+        # Build first: every guard below reads the built dist. Keep this list in
+        # sync with the guards in ci.yml: a tag can point at a commit that never
+        # went through PR CI, so this is the only gate the published artifact hits.
+        run: |
+          yarn build
+          yarn lint
+          yarn check:node-types
+          yarn check:pdf-types
+          node packages/ksef-client-ts/scripts/check-pdf-cold.mjs
+          yarn check:attw
+          yarn check:publint
+          yarn test
 
       - name: Publish package
         working-directory: packages/ksef-client-ts
@@ -141,9 +150,18 @@ jobs:
         run: yarn install --immutable
 
       - name: Validate build
-        # Build first: the fs-free guard test and the /node type check both
-        # read the built dist, so the bundle must exist before lint/test run.
-        run: yarn build && yarn lint && yarn check:node-types && yarn test
+        # Build first: every guard below reads the built dist. Keep this list in
+        # sync with the guards in ci.yml: a tag can point at a commit that never
+        # went through PR CI, so this is the only gate the published artifact hits.
+        run: |
+          yarn build
+          yarn lint
+          yarn check:node-types
+          yarn check:pdf-types
+          node packages/ksef-client-ts/scripts/check-pdf-cold.mjs
+          yarn check:attw
+          yarn check:publint
+          yarn test
 
       - name: Prepare scoped package name
         working-directory: packages/ksef-client-ts
