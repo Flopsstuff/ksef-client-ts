@@ -137,7 +137,7 @@ Invoice number (`P_2` in XML) must be unique — resubmitting gives error 440 (D
 
 ### OpenAPI spec
 
-`packages/ksef-client-ts/docs/open-api.json` is the KSeF API OpenAPI specification (source of truth, KSeF API v2.6.1, build `2.6.1-te`; synced from the live TEST endpoint `https://api-test.ksef.mf.gov.pl/docs/v2/openapi.json`). Note: TEST/DEMO run 2.6.1 while PROD trails (2.6.0 as of 2026-06); content is identical across the 2.6.1 builds. Per-domain chunks in `packages/ksef-client-ts/docs/openapi-chunks/` (9 chunks + manifest; descriptions stripped to save tokens). Regenerate with `yarn split-openapi`. Validate coverage with `yarn check-api`.
+`packages/ksef-client-ts/docs/open-api.json` is the KSeF API OpenAPI specification (source of truth, KSeF API v2.7.0, build `2.7.0-te`; synced from the live TEST endpoint `https://api-test.ksef.mf.gov.pl/docs/v2/openapi.json`). Note: TEST/DEMO lead while PROD trails, so the vendored spec can be ahead of what PROD serves. Per-domain chunks in `packages/ksef-client-ts/docs/openapi-chunks/` (10 chunks + manifest; descriptions stripped to save tokens). Regenerate with `yarn split-openapi`. Validate coverage with `yarn check-api`.
 
 ### XSD schemas
 

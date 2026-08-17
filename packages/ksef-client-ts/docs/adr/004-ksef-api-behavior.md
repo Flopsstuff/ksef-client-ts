@@ -23,6 +23,10 @@ KSeF has multi-tier rate limits (per-second, per-minute, per-hour). The per-seco
 
 KSeF does not publish official per-second limit values. Default 10 RPS is conservative.
 
+## Rate Limit Overrides Are Range-Checked Per Category
+
+`POST /testdata/rate-limits` validates each category against its own accepted range, and those ranges are not in the OpenAPI spec — the schema types every value as a plain integer. The `collectiveIdentifier` category is capped far lower than the rest (per-second 1–10, per-minute 1–60, per-hour 1–120), so an override that is fine for every other category is rejected with a `400` for that one. Test code setting overrides must respect the per-category ceiling rather than reuse a single value object across all categories.
+
 ## Batch Sessions Do Not Support PEF/PEF_KOR
 
 Batch session opening with `PEF (3)` or `PEF_KOR (3)` form codes is rejected by the API. Only FA, FA (3), and FA_RR variants are supported in batch mode. Online sessions support all document types.

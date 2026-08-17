@@ -6,10 +6,17 @@ import type { ApiRateLimitsOverride, ApiRateLimitValuesOverride } from '../../sr
 
 function buildRateLimits(perSecond: number, perMinute: number, perHour: number): ApiRateLimitsOverride {
   const v: ApiRateLimitValuesOverride = { perSecond, perMinute, perHour };
+  // KSeF caps this category at 10/60/120 and rejects anything higher, though the spec types it like the rest.
+  const collectiveIdentifier: ApiRateLimitValuesOverride = {
+    perSecond: Math.min(perSecond, 10),
+    perMinute: Math.min(perMinute, 60),
+    perHour: Math.min(perHour, 120),
+  };
   return {
     onlineSession: v, batchSession: v, invoiceSend: v, invoiceStatus: v,
     sessionList: v, sessionInvoiceList: v, sessionMisc: v, invoiceMetadata: v,
-    invoiceExport: v, invoiceExportStatus: v, invoiceDownload: v, other: v,
+    invoiceExport: v, invoiceExportStatus: v, invoiceDownload: v,
+    collectiveIdentifier, other: v,
   };
 }
 

@@ -4,9 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [0.11.0] - Unreleased
 
-### Added
+### Changed (breaking)
 
-### Fixed
+- **Rate limits now include a collective identifier category** — KSeF made this category mandatory on rate-limit overrides, so `ApiRateLimitsOverride` and `EffectiveApiRateLimits` gained a required `collectiveIdentifier` property. Code that builds rate-limit overrides must supply it, including the JSON passed to the test-data rate-limit command; requests without it are rejected by KSeF (KSeF API v2.7.0).
+
+### Changed
+
+- **Updated to KSeF API v2.7.0** — the bundled API specification now tracks the current KSeF release.
 
 ## [0.10.0] - 2026-06-15
 
