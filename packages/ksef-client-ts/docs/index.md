@@ -20,8 +20,8 @@ hero:
       link: https://github.com/Flopsstuff/ksef-client-ts
 
 features:
-  - title: Complete API Coverage
-    details: KSeF API v2.7.0 — auth, sessions, invoices, permissions, tokens, certificates, QR codes, and more. All types aligned with the official OpenAPI spec.
+  - title: Broad API Coverage
+    details: KSeF API v2.7.0 — auth, sessions, invoices, permissions, tokens, certificates, QR codes, and more. All types aligned with the official OpenAPI spec. The collective-identifier endpoints are not implemented yet.
   - title: Offline Invoice Mode
     details: Full lifecycle for all 4 KSeF offline modes (offline24, offline, awaryjny, awaria_calkowita). Generate invoices locally with QR KOD I + KOD II signing, store in ~/.ksef/offline/, track deadlines with business day calculation, submit when available, and handle technical corrections.
   - title: Full-Featured CLI
