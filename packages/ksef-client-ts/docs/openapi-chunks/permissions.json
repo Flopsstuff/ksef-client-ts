@@ -4652,7 +4652,8 @@
           "InvoiceRead",
           "Introspection",
           "SubunitManage",
-          "EnforcementOperations"
+          "EnforcementOperations",
+          "CollectiveIdentifierManage"
         ],
         "type": "string"
       },
@@ -4726,7 +4727,8 @@
           "InvoiceRead",
           "Introspection",
           "SubunitManage",
-          "EnforcementOperations"
+          "EnforcementOperations",
+          "CollectiveIdentifierManage"
         ],
         "type": "string"
       },
@@ -5121,7 +5123,8 @@
           "Introspection",
           "SubunitManage",
           "EnforcementOperations",
-          "VatUeManage"
+          "VatUeManage",
+          "CollectiveIdentifierManage"
         ],
         "type": "string"
       },
@@ -5134,7 +5137,8 @@
           "Introspection",
           "SubunitManage",
           "EnforcementOperations",
-          "VatUeManage"
+          "VatUeManage",
+          "CollectiveIdentifierManage"
         ],
         "type": "string"
       },

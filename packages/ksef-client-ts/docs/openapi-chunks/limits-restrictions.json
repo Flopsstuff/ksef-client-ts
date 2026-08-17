@@ -283,6 +283,11 @@
                     "perMinute": 16,
                     "perHour": 64
                   },
+                  "collectiveIdentifier": {
+                    "perSecond": 10,
+                    "perMinute": 60,
+                    "perHour": 120
+                  },
                   "other": {
                     "perSecond": 10,
                     "perMinute": 30,
@@ -1036,6 +1041,7 @@
       "ApiRateLimitsOverride": {
         "required": [
           "batchSession",
+          "collectiveIdentifier",
           "invoiceDownload",
           "invoiceExport",
           "invoiceExportStatus",
@@ -1171,6 +1177,18 @@
             ]
           },
           "invoiceDownload": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApiRateLimitValuesOverride"
+              }
+            ]
+          },
+          "collectiveIdentifier": {
             "required": [
               "perSecond",
               "perMinute",
@@ -1356,6 +1374,7 @@
       "EffectiveApiRateLimits": {
         "required": [
           "batchSession",
+          "collectiveIdentifier",
           "invoiceDownload",
           "invoiceExport",
           "invoiceExportStatus",
@@ -1491,6 +1510,18 @@
             ]
           },
           "invoiceDownload": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
+          "collectiveIdentifier": {
             "required": [
               "perSecond",
               "perMinute",
@@ -1822,6 +1853,7 @@
               "invoiceExport",
               "invoiceExportStatus",
               "invoiceDownload",
+              "collectiveIdentifier",
               "other"
             ],
             "allOf": [
