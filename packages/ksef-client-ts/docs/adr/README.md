@@ -11,3 +11,4 @@ ADRs capture key design decisions, the alternatives considered, and — most imp
 | [005](005-xml-parsing.md) | XML Parsing Conventions | 2026-03-26 | Accepted |
 | [006](006-external-signing.md) | External Signing Architecture | 2026-03-28 | Accepted |
 | [007](007-incremental-export.md) | Incremental Export with HWM | 2026-03-28 | Accepted |
+| [008](008-openapi-required-field-mirroring.md) | Mirroring Newly Required OpenAPI Fields | 2026-08-17 | Accepted |

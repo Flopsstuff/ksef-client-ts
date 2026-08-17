@@ -16,6 +16,7 @@ export interface EffectiveApiRateLimits {
   invoiceExport: EffectiveApiRateLimitValues;
   invoiceExportStatus: EffectiveApiRateLimitValues;
   invoiceDownload: EffectiveApiRateLimitValues;
+  collectiveIdentifier: EffectiveApiRateLimitValues;
   other: EffectiveApiRateLimitValues;
 }
 
@@ -71,6 +72,7 @@ export interface ApiRateLimitsOverride {
   invoiceExport: ApiRateLimitValuesOverride;
   invoiceExportStatus: ApiRateLimitValuesOverride;
   invoiceDownload: ApiRateLimitValuesOverride;
+  collectiveIdentifier: ApiRateLimitValuesOverride;
   other: ApiRateLimitValuesOverride;
 }
 

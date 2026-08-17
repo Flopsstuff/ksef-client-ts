@@ -827,6 +827,119 @@
           }
         ]
       }
+    },
+    "/testdata/certificates/{serialNumber}": {
+      "put": {
+        "tags": [
+          "Certyfikaty"
+        ],
+        "summary": "Aktualizacja certyfikatu",
+        "parameters": [
+          {
+            "name": "serialNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "maxLength": 16,
+              "minLength": 16,
+              "pattern": "^[0-9A-F]{16}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "validTo"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/TestDataUpdateCertificateRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
+        }
+      }
     }
   },
   "components": {
@@ -1555,6 +1668,18 @@
       },
       "SystemWarning": {
         "type": "string"
+      },
+      "TestDataUpdateCertificateRequest": {
+        "required": [
+          "validTo"
+        ],
+        "type": "object",
+        "properties": {
+          "validTo": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "TooManyRequestsProblemDetails": {
         "required": [

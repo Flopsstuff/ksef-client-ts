@@ -445,8 +445,24 @@ ksef test-data restore-cert-limits
 
 ### Rate limits (requires session)
 
+Every category is required, and each takes `perSecond`, `perMinute`, and `perHour`. KSeF rejects the request if any category is missing. It also range-checks each category separately: `collectiveIdentifier` is capped at 10 per second, 60 per minute, and 120 per hour, well below the other categories.
+
 ```bash
-ksef test-data set-rate-limits --limits '{"category":"InvoiceSend","perSecond":10,"perMinute":100,"perHour":1000}'
+ksef test-data set-rate-limits --limits '{
+  "onlineSession": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "batchSession": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "invoiceSend": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "invoiceStatus": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "sessionList": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "sessionInvoiceList": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "sessionMisc": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "invoiceMetadata": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "invoiceExport": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "invoiceExportStatus": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "invoiceDownload": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "collectiveIdentifier": {"perSecond": 10, "perMinute": 60, "perHour": 120},
+  "other": {"perSecond": 10, "perMinute": 60, "perHour": 200}
+}'
 ksef test-data restore-rate-limits
 ksef test-data set-production-rate-limits
 ```
