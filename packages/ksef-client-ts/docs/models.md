@@ -604,7 +604,7 @@ Each permission grant target has its own set of allowed permission types:
 
 | Enum | Values | Used by |
 |---|---|---|
-| `PersonPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CredentialsRead`, `CredentialsManage`, `EnforcementOperations`, `SubunitManage`, `Introspection` | `GrantPermissionsPersonRequest` |
+| `PersonPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CredentialsRead`, `CredentialsManage`, `EnforcementOperations`, `SubunitManage`, `Introspection`, `CollectiveIdentifierManage` | `GrantPermissionsPersonRequest` |
 | `EntityPermissionItemType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsEntityRequest` |
 | `EuEntityPermissionType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsEuEntityRepresentativeRequest` |
 | `IndirectPermissionType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsIndirectRequest` |
