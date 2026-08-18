@@ -5,7 +5,8 @@ export type KsefTokenPermissionType =
   | 'CredentialsManage'
   | 'EnforcementOperations'
   | 'SubunitManage'
-  | 'Introspection';
+  | 'Introspection'
+  | 'CollectiveIdentifierManage';
 
 export type KsefTokenStatus = 'Pending' | 'Active' | 'Revoking' | 'Revoked' | 'Failed';
 

@@ -8,7 +8,8 @@ export type PersonPermissionType =
   | 'CredentialsManage'
   | 'EnforcementOperations'
   | 'SubunitManage'
-  | 'Introspection';
+  | 'Introspection'
+  | 'CollectiveIdentifierManage';
 
 export type SubunitPermissionScope = 'CredentialsManage';
 
@@ -32,7 +33,8 @@ export type PersonalPermissionScopeType =
   | 'Introspection'
   | 'SubunitManage'
   | 'EnforcementOperations'
-  | 'VatUeManage';
+  | 'VatUeManage'
+  | 'CollectiveIdentifierManage';
 
 export type EuEntityPermissionsQueryPermissionType =
   | 'VatUeManage'

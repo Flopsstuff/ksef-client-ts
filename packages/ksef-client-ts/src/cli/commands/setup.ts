@@ -23,15 +23,22 @@ const AUTH_XML_FILE = path.join(KSEF_DIR, 'auth.xml');
 
 const SIGNING_URL = 'https://podpis.gov.pl/podpisz-dokument-elektronicznie/';
 
-const ALL_PERMISSIONS: { value: KsefTokenPermissionType; label: string }[] = [
-  { value: 'InvoiceRead', label: 'InvoiceRead — Read invoices' },
-  { value: 'InvoiceWrite', label: 'InvoiceWrite — Send invoices' },
-  { value: 'CredentialsRead', label: 'CredentialsRead — View permissions' },
-  { value: 'CredentialsManage', label: 'CredentialsManage — Manage permissions' },
-  { value: 'EnforcementOperations', label: 'EnforcementOperations — Enforcement actions' },
-  { value: 'SubunitManage', label: 'SubunitManage — Manage subunits' },
-  { value: 'Introspection', label: 'Introspection — Self-invoicing introspection' },
-];
+// Record, not an array: a new KsefTokenPermissionType value then fails tsc here
+// instead of silently dropping out of the picker.
+const PERMISSION_DESCRIPTIONS: Record<KsefTokenPermissionType, string> = {
+  InvoiceRead: 'Read invoices',
+  InvoiceWrite: 'Send invoices',
+  CredentialsRead: 'View permissions',
+  CredentialsManage: 'Manage permissions',
+  EnforcementOperations: 'Enforcement actions',
+  SubunitManage: 'Manage subunits',
+  Introspection: 'Self-invoicing introspection',
+  CollectiveIdentifierManage: 'Manage collective identifiers',
+};
+
+export const ALL_PERMISSIONS: { value: KsefTokenPermissionType; label: string }[] = (
+  Object.keys(PERMISSION_DESCRIPTIONS) as KsefTokenPermissionType[]
+).map((value) => ({ value, label: `${value} — ${PERMISSION_DESCRIPTIONS[value]}` }));
 
 function expandTilde(p: string): string {
   if (p.startsWith('~')) {
