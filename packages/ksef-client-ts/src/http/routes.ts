@@ -22,6 +22,8 @@ export const Routes = {
     productionRateLimits: 'testdata/rate-limits/production',
     blockContext: 'testdata/context/block',
     unblockContext: 'testdata/context/unblock',
+    updateCertificate: (serialNumber: string) =>
+      `testdata/certificates/${serialNumber}` as const,
   },
 
   Limits: {
