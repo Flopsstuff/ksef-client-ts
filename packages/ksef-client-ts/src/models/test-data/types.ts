@@ -21,7 +21,8 @@ export type TestDataPermissionType =
   | 'CredentialsManage'
   | 'EnforcementOperations'
   | 'SubunitManage'
-  | 'Introspection';
+  | 'Introspection'
+  | 'CollectiveIdentifierManage';
 
 export interface TestDataPermission {
   permissionType: TestDataPermissionType;

@@ -103,6 +103,7 @@ If you accept:
    - `EnforcementOperations` — Enforcement actions
    - `SubunitManage` — Manage subunits
    - `Introspection` — Self-invoicing introspection
+   - `CollectiveIdentifierManage` — Manage collective identifiers
 
 2. **Enter a description** — free-text label for the token (default: "CLI setup token")
 
