@@ -43,7 +43,7 @@ export function createMockClient() {
       'changeSessionLimits', 'restoreDefaultSessionLimits', 'changeCertificatesLimit',
       'restoreDefaultCertificatesLimit', 'setRateLimits', 'restoreDefaultRateLimits',
       'setProductionRateLimits',
-      'blockContext', 'unblockContext',
+      'blockContext', 'unblockContext', 'updateCertificate',
     ]),
     peppol: mockService(['queryProviders']),
     qr: mockService(['buildInvoiceVerificationUrl', 'buildCertificateVerificationUrl']),

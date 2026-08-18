@@ -15,6 +15,7 @@ const COMMAND_TREE: Record<string, string[]> = {
     'grant-permissions', 'revoke-permissions', 'enable-attachment', 'disable-attachment',
     'change-session-limits', 'restore-session-limits', 'change-cert-limits', 'restore-cert-limits',
     'set-rate-limits', 'restore-rate-limits', 'set-production-rate-limits', 'restore-production-rate-limits',
+    'update-certificate',
     'block-context', 'unblock-context',
   ],
   doctor: [],

@@ -441,6 +441,9 @@ ksef test-data restore-session-limits
 ksef test-data change-cert-limits --max-enrollments 10 --max-certificates 20
 ksef test-data change-cert-limits --identifier-type Pesel --max-enrollments 5
 ksef test-data restore-cert-limits
+
+# Update certificate expiry (requires session)
+ksef test-data update-certificate --serial 0123456789ABCDEF --valid-to 2026-12-31T23:59:59Z
 ```
 
 ### Rate limits (requires session)

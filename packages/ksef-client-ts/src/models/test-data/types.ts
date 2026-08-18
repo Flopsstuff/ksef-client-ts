@@ -93,3 +93,7 @@ export interface UnblockContextAuthenticationRequest {
   contextIdentifier?: TestDataAuthenticationContextIdentifier | null;
 }
 
+export interface TestDataUpdateCertificateRequest {
+  validTo: string;
+}
+

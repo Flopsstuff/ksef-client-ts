@@ -639,6 +639,14 @@ restoreDefaultCertificatesLimit(): Promise<void>
 
 Restore default certificate limits.
 
+### Certificate Update
+
+```ts
+updateCertificate(serialNumber: string, request: TestDataUpdateCertificateRequest): Promise<void>
+```
+
+Update an existing KSeF certificate expiry for the authenticated subject. TEST environment only; `validTo` must not be later than the current expiry.
+
 ### Rate Limits
 
 ```ts
