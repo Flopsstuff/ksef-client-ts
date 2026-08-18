@@ -63,19 +63,35 @@ describe('TestDataService', () => {
     expect(req.getBody()).toBeUndefined();
   });
 
+  it('updateCertificate sends PUT with serial number path and body', async () => {
+    const serialNumber = '0123456789ABCDEF';
+    const body = { validTo: '2026-12-31T23:59:59Z' };
+
+    await service.updateCertificate(serialNumber, body);
+
+    const req = getRequest(restClient.executeVoid as any);
+    expect(req.method).toBe('PUT');
+    expect(req.path).toBe(Routes.TestData.updateCertificate(serialNumber));
+    expect(req.getBody()).toEqual(body);
+  });
+
   describe('environment guard', () => {
     const allMethods = [
       ...postMethods.map(([name]) => name),
       'setProductionRateLimits',
       ...deleteMethods.map(([name]) => name),
+      'updateCertificate',
     ];
 
     it.each(['PROD', 'DEMO'] as const)('throws KSeFError on %s environment', async (env) => {
       const svc = new TestDataService(restClient as any, env);
 
       for (const method of allMethods) {
-        await expect((svc as any)[method]({ nip: '1234567890' })).rejects.toThrow(KSeFError);
-        await expect((svc as any)[method]({ nip: '1234567890' })).rejects.toThrow(
+        const args = method === 'updateCertificate'
+          ? ['0123456789ABCDEF', { validTo: '2026-12-31T23:59:59Z' }]
+          : [{ nip: '1234567890' }];
+        await expect((svc as any)[method](...args)).rejects.toThrow(KSeFError);
+        await expect((svc as any)[method](...args)).rejects.toThrow(
           `Test data APIs are only available on the TEST environment (current: ${env})`,
         );
       }

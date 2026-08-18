@@ -788,6 +788,7 @@ Key types:
 - `SubjectCreateRequest` -- create test subjects (with optional subunits)
 - `PersonCreateRequest` -- create test persons (NIP, PESEL, bailiff flag)
 - `TestDataPermissionsGrantRequest` -- grant test permissions
+- `TestDataUpdateCertificateRequest` -- update certificate expiry (TEST only)
 - `AttachmentPermissionGrantRequest` / `AttachmentPermissionRevokeRequest` -- attachment permissions
 - `BlockContextAuthenticationRequest` / `UnblockContextAuthenticationRequest` -- block/unblock auth for a context
 

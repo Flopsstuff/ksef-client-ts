@@ -19,6 +19,7 @@ import type {
   AttachmentPermissionRevokeRequest,
   BlockContextAuthenticationRequest,
   UnblockContextAuthenticationRequest,
+  TestDataUpdateCertificateRequest,
 } from '../../models/test-data/types.js';
 import type {
   SetSessionLimitsRequest,
@@ -462,6 +463,34 @@ const setProductionRateLimits = defineCommand({
 });
 
 
+const updateCertificate = defineCommand({
+  meta: { name: 'update-certificate', description: 'Update certificate expiry in test environment' },
+  args: {
+    serial: { type: 'string', description: 'Certificate serial number (16 hex chars)', required: true },
+    'valid-to': { type: 'string', description: 'New expiry date (ISO 8601 date-time)', required: true },
+    env: { type: 'string', description: 'Environment (test/demo/prod)' },
+    json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
+    timeout: { type: 'string', description: 'Request timeout (ms)' },
+    nip: { type: 'string', description: 'NIP number' },
+  },
+  run({ args }) {
+    return withErrorHandler(async () => {
+      const globalOpts = getGlobalOpts(args);
+      requireNonProd(globalOpts);
+
+      const { client } = await requireSession(globalOpts);
+
+      const request: TestDataUpdateCertificateRequest = {
+        validTo: args['valid-to'] as string,
+      };
+
+      await client.testData.updateCertificate(args.serial as string, request);
+      outputDone(args.json);
+    }, { json: Boolean(args.json) });
+  },
+});
+
 const blockContext = defineCommand({
   meta: { name: 'block-context', description: 'Block a context' },
   args: {
@@ -542,6 +571,7 @@ export const testDataCommand = defineCommand({
     'set-rate-limits': setRateLimits,
     'restore-rate-limits': restoreRateLimits,
     'set-production-rate-limits': setProductionRateLimits,
+    'update-certificate': updateCertificate,
     'block-context': blockContext,
     'unblock-context': unblockContext,
   },
