@@ -14,6 +14,7 @@ import type {
   AttachmentPermissionRevokeRequest,
   BlockContextAuthenticationRequest,
   UnblockContextAuthenticationRequest,
+  TestDataUpdateCertificateRequest,
 } from '../models/test-data/types.js';
 import type {
   SetSessionLimitsRequest,
@@ -157,6 +158,16 @@ export class TestDataService {
   async unblockContext(request: UnblockContextAuthenticationRequest): Promise<void> {
     this.ensureTestEnvironment();
     const req = RestRequest.post(Routes.TestData.unblockContext)
+      .body(request);
+    await this.restClient.executeVoid(req);
+  }
+
+  async updateCertificate(
+    serialNumber: string,
+    request: TestDataUpdateCertificateRequest,
+  ): Promise<void> {
+    this.ensureTestEnvironment();
+    const req = RestRequest.put(Routes.TestData.updateCertificate(serialNumber))
       .body(request);
     await this.restClient.executeVoid(req);
   }

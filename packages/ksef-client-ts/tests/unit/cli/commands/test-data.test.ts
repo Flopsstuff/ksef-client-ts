@@ -88,6 +88,19 @@ describe('test-data', () => {
     );
   });
 
+  describe('update-certificate', () => {
+    it('calls testData.updateCertificate with serial and validTo', async () => {
+      mockClient.testData.updateCertificate.mockResolvedValue(undefined);
+      await (testDataCommand.subCommands!['update-certificate'] as any).run!({
+        args: { serial: '0123456789ABCDEF', 'valid-to': '2026-12-31T23:59:59Z' },
+      });
+      expect(mockClient.testData.updateCertificate).toHaveBeenCalledWith(
+        '0123456789ABCDEF',
+        { validTo: '2026-12-31T23:59:59Z' },
+      );
+    });
+  });
+
   describe('block-context', () => {
     it('calls testData.blockContext with correct request', async () => {
       mockClient.testData.blockContext.mockResolvedValue(undefined);

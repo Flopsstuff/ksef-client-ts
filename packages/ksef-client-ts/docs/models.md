@@ -604,7 +604,7 @@ Each permission grant target has its own set of allowed permission types:
 
 | Enum | Values | Used by |
 |---|---|---|
-| `PersonPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CredentialsRead`, `CredentialsManage`, `EnforcementOperations`, `SubunitManage`, `Introspection` | `GrantPermissionsPersonRequest` |
+| `PersonPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CredentialsRead`, `CredentialsManage`, `EnforcementOperations`, `SubunitManage`, `Introspection`, `CollectiveIdentifierManage` | `GrantPermissionsPersonRequest` |
 | `EntityPermissionItemType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsEntityRequest` |
 | `EuEntityPermissionType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsEuEntityRepresentativeRequest` |
 | `IndirectPermissionType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsIndirectRequest` |
@@ -788,6 +788,7 @@ Key types:
 - `SubjectCreateRequest` -- create test subjects (with optional subunits)
 - `PersonCreateRequest` -- create test persons (NIP, PESEL, bailiff flag)
 - `TestDataPermissionsGrantRequest` -- grant test permissions
+- `TestDataUpdateCertificateRequest` -- update certificate expiry (TEST only)
 - `AttachmentPermissionGrantRequest` / `AttachmentPermissionRevokeRequest` -- attachment permissions
 - `BlockContextAuthenticationRequest` / `UnblockContextAuthenticationRequest` -- block/unblock auth for a context
 
