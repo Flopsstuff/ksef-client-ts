@@ -32,7 +32,7 @@ import type { InvoiceQueryFilters } from 'ksef-client-ts/models/invoices/types.j
 
 ## Domain Map
 
-The model layer has 13 domain folders plus one shared module:
+The model layer has 14 domain folders plus one shared module:
 
 | Domain folder | KSeF business context | Key types | Service |
 |---|---|---|---|
