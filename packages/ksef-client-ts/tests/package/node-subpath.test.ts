@@ -1,5 +1,5 @@
 /**
- * /node subpath resolution tests (FLO-246).
+ * /node subpath resolution tests.
  *
  * Verifies that:
  *  1. All moved symbols export correctly from `ksef-client-ts/node` (ESM + CJS).

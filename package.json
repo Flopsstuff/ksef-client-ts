@@ -8,6 +8,7 @@
     "build": "yarn workspace ksef-client-ts build",
     "dev": "yarn workspace ksef-client-ts dev",
     "test": "yarn workspace ksef-client-ts test",
+    "test:package": "yarn workspace ksef-client-ts test:package",
     "test:e2e": "yarn workspace ksef-client-ts test:e2e",
     "test:watch": "yarn workspace ksef-client-ts test:watch",
     "lint": "yarn workspace ksef-client-ts lint",
