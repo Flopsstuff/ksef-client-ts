@@ -83,8 +83,8 @@ XML layer (src/xml/)
   └── invoice-serializer — polymorphic serializeInvoiceXml(input, options) → Buffer
       dispatching on FakturaInput / PefUblDocumentInput / string / Buffer / XmlDocument
 
-CLI (src/cli/) — 16 command groups via citty
-  ├── auth, session, invoice, permission, token, cert, lighthouse, limits,
+CLI (src/cli/) — 17 command groups via citty
+  ├── setup, auth, session, invoice, permission, token, cert, lighthouse, limits,
   │   collective-identifier, peppol, test-data, qr, config, doctor, completion,
   │   offline
   ├── requireSession() — auto-recovers via refresh or re-login from stored credentials
