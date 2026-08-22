@@ -335,6 +335,18 @@ ksef limits subject                              # Subject limits (max enrollmen
 ksef limits rate                                 # API rate limits (per-category table)
 ```
 
+## Collective Identifiers
+
+Group invoices issued by one seller under a single settlement reference. Requires an active session and one of the `InvoiceRead`, `InvoiceWrite`, or `CollectiveIdentifierManage` permissions. See [Collective Identifiers](/collective-identifiers).
+
+```bash
+ksef collective-identifier generate --ksef "<num1>,<num2>"      # Generate from KSeF numbers (max 500)
+ksef collective-identifier generate --file invoices.json        # Generate with per-invoice payment/description
+ksef collective-identifier list --from 2026-07-01 [--to ...]    # List identifiers in the context
+ksef collective-identifier by-ksef <ksefNumber>                 # Identifiers a given invoice belongs to
+ksef collective-identifier invoices <collectiveIdentifierNumber> # Invoices inside an identifier
+```
+
 ## Peppol
 
 Query Peppol integration data.
