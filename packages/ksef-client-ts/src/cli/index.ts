@@ -17,6 +17,7 @@ import { qrCommand } from './commands/qr.js';
 import { lighthouseCommand } from './commands/lighthouse.js';
 import { testDataCommand } from './commands/test-data.js';
 import { limitsCommand } from './commands/limits.js';
+import { collectiveIdentifierCommand } from './commands/collective-identifier.js';
 import { peppolCommand } from './commands/peppol.js';
 import { doctorCommand } from './commands/doctor.js';
 import { completionCommand } from './commands/completion.js';
@@ -41,6 +42,7 @@ const main = defineCommand({
     qr: qrCommand,
     lighthouse: lighthouseCommand,
     limits: limitsCommand,
+    'collective-identifier': collectiveIdentifierCommand,
     peppol: peppolCommand,
     'test-data': testDataCommand,
     offline: offlineCommand,

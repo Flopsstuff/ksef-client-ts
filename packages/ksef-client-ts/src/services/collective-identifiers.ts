@@ -66,9 +66,7 @@ export class CollectiveIdentifiersService {
     pageSize?: number,
     continuationToken?: string,
   ): Promise<CollectiveIdentifierInvoicesQueryResponse> {
-    const req = RestRequest.get(
-      Routes.CollectiveIdentifiers.invoices(collectiveIdentifierNumber),
-    );
+    const req = RestRequest.get(Routes.CollectiveIdentifiers.invoices(collectiveIdentifierNumber));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
     if (continuationToken !== undefined) req.header('x-continuation-token', continuationToken);
     const response = await this.restClient.execute<CollectiveIdentifierInvoicesQueryResponse>(req);
