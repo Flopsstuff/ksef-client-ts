@@ -20,12 +20,14 @@ hero:
       link: https://github.com/Flopsstuff/ksef-client-ts
 
 features:
-  - title: Broad API Coverage
-    details: KSeF API v2.7.0 — auth, sessions, invoices, permissions, tokens, certificates, QR codes, and more. All types aligned with the official OpenAPI spec. The collective-identifier endpoints are not implemented yet.
+  - title: Full API Coverage
+    details: Every KSeF API v2.7.0 endpoint — auth, sessions, invoices, permissions, tokens, certificates, collective identifiers, QR codes, and more. All types aligned with the official OpenAPI spec.
+  - title: Collective Identifiers
+    details: Group up to 500 invoices issued by one seller under a single settlement reference, so a buyer can settle the whole batch against one payment reference instead of paying invoice by invoice. Look identifiers up by KSeF number, list their member invoices, and handle withheld payment details explicitly.
   - title: Offline Invoice Mode
     details: Full lifecycle for all 4 KSeF offline modes (offline24, offline, awaryjny, awaria_calkowita). Generate invoices locally with QR KOD I + KOD II signing, store in ~/.ksef/offline/, track deadlines with business day calculation, submit when available, and handle technical corrections.
   - title: Full-Featured CLI
-    details: 15 command groups, 60+ subcommands. Auth, sessions, invoices, offline, batch upload, incremental export, permissions, tokens, certificates, QR codes, health checks, and shell completion.
+    details: 16 command groups, 60+ subcommands. Auth, sessions, invoices, offline, batch upload, incremental export, permissions, tokens, certificates, QR codes, health checks, and shell completion.
   - title: High-Level Workflows
     details: Orchestration functions for auth, online/batch sessions, and invoice export. Handle the full lifecycle — polling, encryption, UPO retrieval — in a single call.
   - title: Built-in Cryptography

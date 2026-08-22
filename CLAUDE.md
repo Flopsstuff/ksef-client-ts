@@ -37,12 +37,12 @@ Source paths below are relative to the library package, `packages/ksef-client-ts
 
 ```text
 KSeFClient (src/client.ts)
-  ├── 13 API services + crypto + qr + offline (16 properties total)
+  ├── 14 API services + crypto + qr + offline (17 properties total)
   ├── each service wraps RestClient for its API domain
   ├── crypto is lazy-initialized (user calls client.crypto.init())
   └── offline is lazy-initialized (accessed via client.offline)
 
-Services (src/services/*.ts) — 13 services
+Services (src/services/*.ts) — 14 services
   └── use RestClient.execute<T>() with RestRequest builders + Routes constants
 
 HTTP layer (src/http/)
@@ -83,9 +83,10 @@ XML layer (src/xml/)
   └── invoice-serializer — polymorphic serializeInvoiceXml(input, options) → Buffer
       dispatching on FakturaInput / PefUblDocumentInput / string / Buffer / XmlDocument
 
-CLI (src/cli/) — 15 command groups via citty
+CLI (src/cli/) — 16 command groups via citty
   ├── auth, session, invoice, permission, token, cert, lighthouse, limits,
-  │   peppol, test-data, qr, config, doctor, completion, offline
+  │   collective-identifier, peppol, test-data, qr, config, doctor, completion,
+  │   offline
   ├── requireSession() — auto-recovers via refresh or re-login from stored credentials
   └── session-recovery — cascade: refresh token → loginWithToken from credentials → error
 ```

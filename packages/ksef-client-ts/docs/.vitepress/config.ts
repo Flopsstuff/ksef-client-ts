@@ -65,6 +65,7 @@ export default defineConfig({
           { text: 'Deno & Edge Runtimes', link: '/deno' },
           { text: 'Workflows', link: '/workflows' },
           { text: 'Batch Processing', link: '/batch-processing' },
+          { text: 'Collective Identifiers', link: '/collective-identifiers' },
           { text: 'HTTP Resilience', link: '/http-resilience' },
           { text: 'Cryptography', link: '/cryptography' },
           { text: 'QR Codes', link: '/qr-codes' },

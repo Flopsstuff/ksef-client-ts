@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - **Rate limits now include a collective identifier category** — KSeF made this category mandatory on rate-limit overrides, so `ApiRateLimitsOverride` and `EffectiveApiRateLimits` gained a required `collectiveIdentifier` property. Code that builds rate-limit overrides must supply it, including the JSON passed to the test-data rate-limit command; requests without it are rejected by KSeF (KSeF API v2.7.0).
 
+### Added
+
+- **Collective identifiers** — group invoices issued by one seller under a single collective identifier so a buyer can settle the whole batch against one payment reference. Generate identifiers, list them for the current context, look up which identifiers an invoice belongs to, and list the invoices inside one, from both the library and the CLI (KSeF API v2.7.0).
+
 ### Changed
 
 - **Updated to KSeF API v2.7.0** — the bundled API specification now tracks the current KSeF release.
