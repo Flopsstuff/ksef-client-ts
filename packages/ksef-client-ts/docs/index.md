@@ -27,7 +27,7 @@ features:
   - title: Offline Invoice Mode
     details: Full lifecycle for all 4 KSeF offline modes (offline24, offline, awaryjny, awaria_calkowita). Generate invoices locally with QR KOD I + KOD II signing, store in ~/.ksef/offline/, track deadlines with business day calculation, submit when available, and handle technical corrections.
   - title: Full-Featured CLI
-    details: 16 command groups, 60+ subcommands. Auth, sessions, invoices, offline, batch upload, incremental export, permissions, tokens, certificates, QR codes, health checks, and shell completion.
+    details: 17 command groups, 60+ subcommands. Auth, sessions, invoices, offline, batch upload, incremental export, permissions, tokens, certificates, QR codes, health checks, and shell completion.
   - title: High-Level Workflows
     details: Orchestration functions for auth, online/batch sessions, and invoice export. Handle the full lifecycle — polling, encryption, UPO retrieval — in a single call.
   - title: Built-in Cryptography

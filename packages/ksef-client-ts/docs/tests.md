@@ -22,22 +22,26 @@ yarn vitest run tests/unit/services/auth.test.ts   # Single file
 
 ## Unit Tests
 
-68 test files, 961 tests. Located in `tests/unit/`. All service/HTTP calls are mocked — no network access, fast execution.
+126 test files, 2165 passed / 9 skipped (2174 total). Located in `tests/unit/`. All service/HTTP calls are mocked — no network access, fast execution.
 
 ### Coverage by Area
 
 | Area | Files | What is tested |
 |------|-------|----------------|
-| **cli** | 20 | All 14 command groups, client factory, config/session store, error handler, output formatting |
-| **services** | 13 | All 13 API services — request construction, response parsing, error propagation |
-| **http** | 8 | RestClient, RetryPolicy (backoff, jitter), RateLimitPolicy (token bucket), PresignedUrlPolicy, AuthManager (401 refresh), transport, RestRequest builder, KSeF feature constants |
-| **workflows** | 5 | Auth workflow, online/batch session, invoice export, polling utility |
-| **errors** | 5 | Full error hierarchy — KSeFError, ApiError, RateLimitError, UnauthorizedError (ProblemDetails), ForbiddenError (reasonCode) |
-| **crypto** | 5 | CryptographyService (AES, RSA, ECDH, CSR), SignatureService (XAdES), CertificateService (self-signed), CertificateFetcher, PKCS#12 loader |
-| **builders** | 4 | AuthTokenRequest, AuthKsefTokenRequest, InvoiceQueryFilter, Permissions (person/entity/authorization) |
+| **cli** | 32 | All 17 command groups, client factory, config/session store, error handler, output formatting |
+| **services** | 14 | All 14 API services — request construction, response parsing, error propagation |
+| **http** | 10 | RestClient, RetryPolicy (backoff, jitter), RateLimitPolicy (token bucket), PresignedUrlPolicy, AuthManager (401 refresh), transport, RestRequest builder, KSeF feature constants, circuit breaker |
+| **workflows** | 10 | Auth workflow, online/batch session, invoice export, incremental export, HWM coordinator, polling utility |
+| **errors** | 9 | Full error hierarchy — KSeFError, ApiError, RateLimitError, UnauthorizedError (ProblemDetails), ForbiddenError (reasonCode), batch timeout |
+| **crypto** | 8 | CryptographyService (AES, RSA, ECDH, CSR), SignatureService (XAdES), CertificateService (self-signed), CertificateFetcher, PKCS#12 loader, auth XML builder |
+| **validation** | 10 | Regex patterns + checksum validators (NIP, PESEL, KSeF number CRC-8), constraints, char validity, XSD validation helpers |
+| **xml** | 9 | FA2/FA3/PEF builders, invoice serializer, XSD validation, property ordering |
+| **utils** | 7 | Concurrency helpers, filesystem utilities, hashing, date/time helpers |
+| **builders** | 5 | AuthTokenRequest, AuthKsefTokenRequest, InvoiceQueryFilter, Permissions (person/entity/authorization), batch file |
+| **offline** | 4 | Offline invoice deadlines, file storage, holiday calendar, workflow orchestration |
 | **qr** | 3 | QrCodeService (PNG/SVG), VerificationLinkService (Code I/II URLs), environment QR URLs |
-| **validation** | 2 | Regex patterns + checksum validators (NIP, PESEL, KSeF number CRC-8), constraints |
 | **config** | 2 | Environment resolution, options defaults |
+| **models** | 2 | Document structure types, token permission models |
 | **client** | 1 | KSeFClient initialization, service wiring, login/logout orchestration |
 
 ### Conventions
@@ -51,7 +55,7 @@ yarn vitest run tests/unit/services/auth.test.ts   # Single file
 
 ## E2E Tests
 
-18 test files running against the live **KSeF TEST** environment. No API tokens or env vars needed.
+36 test files running against the live **KSeF TEST** environment. No API tokens or env vars needed.
 
 ### Zero Secrets
 
@@ -81,8 +85,29 @@ This means tests can run on any machine, any CI, without configuring credentials
 | 11 | `11-active-sessions.test.ts` | List active sessions, revoke current session | Cert | 120s |
 | 12 | `12-test-data.test.ts` | TestData API: create/remove subjects and persons, grant/revoke permissions | Cert | 120s |
 | 13 | `13-peppol.test.ts` | Query Peppol providers | Cert | 60s |
-
-Plus 5 permission test suites (`07a-07e`) that test entity, authorization, and subunit permission flows.
+| 14 | `14-permissions-entity.test.ts` | Entity permission grants | Cert | 120s |
+| 15 | `15-permissions-authorization.test.ts` | Authorization permission grants | Cert | 120s |
+| 16 | `16-permissions-eu-entity.test.ts` | EU entity permission grants | Cert | 120s |
+| 17 | `17-permissions-subunit.test.ts` | Subunit permission grants | Cert | 120s |
+| 18 | `18-permissions-indirect.test.ts` | Indirect permission grants | Cert | 120s |
+| 19 | `19-test-data-limits.test.ts` | TestData API limits | Cert | 120s |
+| 20 | `20-workflow-auth.test.ts` | High-level auth workflow | Cert | 120s |
+| 21 | `21-workflow-online-session.test.ts` | High-level online session workflow | Cert + Crypto | 300s |
+| 22 | `22-workflow-invoice-export.test.ts` | High-level invoice export workflow | Cert + Crypto | 300s |
+| 23 | `23-workflow-incremental-export.test.ts` | Incremental export workflow | Cert + Crypto | 300s |
+| 24 | `24-workflow-external-signing.test.ts` | External XAdES signing workflow | Cert | 120s |
+| 25 | `25-error-handling.test.ts` | API error handling paths | Cert | 120s |
+| 26 | `26-duplicate-invoice.test.ts` | Duplicate invoice rejection | Cert + Crypto | 180s |
+| 27 | `27-enforcement.test.ts` | Permission enforcement | Cert | 120s |
+| 28 | `28-upo-parsing.test.ts` | UPO XML parsing | Cert + Crypto | 180s |
+| 29 | `29-technical-correction.test.ts` | Technical correction invoices | Cert + Crypto | 180s |
+| 30 | `30-rr-invoicing.test.ts` | FA_RR invoicing | Cert + Crypto | 180s |
+| 31 | `31-invoice-build-cli-smoke.test.ts` | `ksef invoice build` CLI smoke | Cert | 60s |
+| 31 | `31-self-invoicing.test.ts` | Self-invoicing flow | Cert + Crypto | 180s |
+| 32 | `32-invoice-build-send.test.ts` | Build and send invoice via CLI | Cert + Crypto | 180s |
+| 32 | `32-offline-invoice.test.ts` | Offline invoice lifecycle | Cert + Crypto | 300s |
+| 33 | `33-xml-serialization.test.ts` | Invoice XML serialization round-trip | None | 60s |
+| 34 | `34-collective-identifiers.test.ts` | Collective identifier lifecycle | Cert + Crypto | 180s |
 
 ### Auth Helpers
 
