@@ -18,20 +18,21 @@ Complete API reference for the `ksef-client-ts` library — a TypeScript client 
 10. [CertificateApiService](#certificateapiservice)
 11. [LighthouseService](#lighthouseservice)
 12. [LimitsService](#limitsservice)
-13. [PeppolService](#peppolservice)
-14. [TestDataService](#testdataservice)
-15. [CryptographyService](#cryptographyservice)
-16. [VerificationLinkService](#verificationlinkservice)
-17. [SignatureService (static)](#signatureservice-static)
-18. [CertificateService (static)](#certificateservice-static)
-19. [QrCodeService (static)](#qrcodeservice-static)
-20. [Builders](#builders)
-21. [XML Serialization](#xml-serialization)
-22. [Error Types](#error-types)
-23. [Validation](#validation)
-24. [Workflows](#workflows)
-25. [KSeF Feature Constants](#ksef-feature-constants)
-26. [Configuration](#configuration)
+13. [CollectiveIdentifiersService](#collectiveidentifiersservice)
+14. [PeppolService](#peppolservice)
+15. [TestDataService](#testdataservice)
+16. [CryptographyService](#cryptographyservice)
+17. [VerificationLinkService](#verificationlinkservice)
+18. [SignatureService (static)](#signatureservice-static)
+19. [CertificateService (static)](#certificateservice-static)
+20. [QrCodeService (static)](#qrcodeservice-static)
+21. [Builders](#builders)
+22. [XML Serialization](#xml-serialization)
+23. [Error Types](#error-types)
+24. [Validation](#validation)
+25. [Workflows](#workflows)
+26. [KSeF Feature Constants](#ksef-feature-constants)
+27. [Configuration](#configuration)
 
 ---
 
@@ -56,6 +57,7 @@ constructor(options?: KSeFClientOptions)
 | `permissions`    | `PermissionsService`      | Grant, revoke, and query permissions     |
 | `tokens`         | `TokenService`            | Generate, query, and revoke KSeF tokens  |
 | `certificates`   | `CertificateApiService`   | Certificate enrollment and management    |
+| `collectiveIdentifiers` | `CollectiveIdentifiersService` | Group invoices under a collective identifier |
 | `lighthouse`     | `LighthouseService`       | KSeF system status and messages          |
 | `limits`         | `LimitsService`           | Session, subject, and rate limits        |
 | `peppol`         | `PeppolService`           | Query PEPPOL providers                   |
@@ -536,6 +538,36 @@ getRateLimits(): Promise<EffectiveApiRateLimits>
 ```
 
 Get the effective API rate limits.
+
+---
+
+## CollectiveIdentifiersService
+
+Accessed via `client.collectiveIdentifiers`. Requires one of the `InvoiceRead`, `InvoiceWrite`, or `CollectiveIdentifierManage` permissions. See [Collective Identifiers](/collective-identifiers) for the identifier format and disclosure rules.
+
+```ts
+generate(request: GenerateCollectiveIdentifierRequest): Promise<GenerateCollectiveIdentifierResponse>
+```
+
+Generate a collective identifier for up to 500 invoices issued by the same seller. Throws `KSeFValidationError` if the list is larger.
+
+```ts
+query(request: CollectiveIdentifiersQueryRequest, pageSize?: number, continuationToken?: string): Promise<CollectiveIdentifiersQueryResponse>
+```
+
+List collective identifiers in the current context. The date range spans at most 100 days.
+
+```ts
+getByKsefNumber(ksefNumber: string, pageSize?: number, continuationToken?: string): Promise<CollectiveIdentifiersByKsefNumberQueryResponse>
+```
+
+List the collective identifiers a given KSeF invoice belongs to.
+
+```ts
+getInvoices(collectiveIdentifierNumber: string, pageSize?: number, continuationToken?: string): Promise<CollectiveIdentifierInvoicesQueryResponse>
+```
+
+List the invoices inside one collective identifier. Payment fields are omitted and `detailsHidden` is `true` when the caller may not see them.
 
 ---
 

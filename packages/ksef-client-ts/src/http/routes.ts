@@ -86,6 +86,15 @@ export const Routes = {
       `invoices/exports/${ref}` as const,
   },
 
+  CollectiveIdentifiers: {
+    root: 'collective-identifiers',
+    query: 'collective-identifiers/query',
+    byKsefNumber: (ksefNumber: string) =>
+      `collective-identifiers/ksef/${ksefNumber}` as const,
+    invoices: (collectiveIdentifierNumber: string) =>
+      `collective-identifiers/${collectiveIdentifierNumber}/invoices` as const,
+  },
+
   Permissions: {
     Grants: {
       persons: 'permissions/persons/grants',

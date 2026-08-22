@@ -5,6 +5,7 @@ export * from './invoices/index.js';
 export * from './permissions/index.js';
 export * from './tokens/index.js';
 export * from './certificates/index.js';
+export * from './collective-identifiers/index.js';
 export * from './lighthouse/index.js';
 export * from './limits/index.js';
 export * from './peppol/index.js';
