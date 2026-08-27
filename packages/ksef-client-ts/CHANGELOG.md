@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed (breaking)
 
-- **Rate limits now include a collective identifier category** — KSeF made this category mandatory on rate-limit overrides, so `ApiRateLimitsOverride` and `EffectiveApiRateLimits` gained a required `collectiveIdentifier` property. Code that builds rate-limit overrides must supply it, including the JSON passed to the test-data rate-limit command; requests without it are rejected by KSeF (KSeF API v2.7.0).
+- **Rate-limit overrides now require a collective identifier category** — KSeF made this category mandatory, so requests that configure test-environment rate limits must supply it or be rejected (KSeF API v2.7.0).
 - **Session limits now include a collective identifier section** — KSeF made this section mandatory when overriding session limits, so callers must now supply a maximum invoice count for collective identifiers alongside the online and batch session limits; requests without it are rejected by KSeF (KSeF API v2.7.1).
 
 ### Added
