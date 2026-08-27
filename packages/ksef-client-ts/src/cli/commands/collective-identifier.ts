@@ -219,7 +219,7 @@ const invoices = defineCommand({
       description: 'Collective identifier number, or several separated by commas (max 10)',
       required: true,
     },
-    pageSize: { type: 'string', description: 'Number of results per page (10-200)' },
+    pageSize: { type: 'string', description: 'Number of results per page (10-500)' },
     continue: { type: 'string', description: 'Continuation token from a previous page' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },

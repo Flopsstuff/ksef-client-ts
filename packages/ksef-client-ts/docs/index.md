@@ -21,7 +21,7 @@ hero:
 
 features:
   - title: Full API Coverage
-    details: Every KSeF API v2.7.0 endpoint — auth, sessions, invoices, permissions, tokens, certificates, collective identifiers, QR codes, and more. All types aligned with the official OpenAPI spec.
+    details: Every KSeF API v2.7.1 endpoint — auth, sessions, invoices, permissions, tokens, certificates, collective identifiers, QR codes, and more. All types aligned with the official OpenAPI spec.
   - title: Collective Identifiers
     details: Group up to 500 invoices issued by one seller under a single settlement reference, so a buyer can settle the whole batch against one payment reference instead of paying invoice by invoice. Look identifiers up by KSeF number, list their member invoices, and handle withheld payment details explicitly.
   - title: Offline Invoice Mode
