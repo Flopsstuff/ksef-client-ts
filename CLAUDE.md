@@ -157,7 +157,6 @@ GitHub Actions workflows in `.github/workflows/` (the `.github/` dir stays at th
 - `deploy-docs.yml` — VitePress → GitHub Pages (artifact from `packages/ksef-client-ts/docs/.vitepress/dist`)
 - `deno-smoke.yml` — Deno runtime smoke test (`deno task smoke`, run in the package dir)
 - `codex-pr-review.yml` — automatic Codex PR review on open/sync (prompt: `.github/codex/prompts/review.md`)
-- `claude-review.yml` — on-demand Claude review when a maintainer comments `@claude-review` (checklist: `.github/claude/prompts/review.md`)
 
 ### Documentation
 
@@ -191,4 +190,3 @@ Feature descriptions live in two places that must be kept in sync: the root `REA
 - When squash-merging, edit the combined commit message to remove duplicate `Co-Authored-By` lines from individual commits — keep only a single `Co-Authored-By` at the very end.
 - Name version branches with `version/` prefix (e.g. `version/v0.6.1`) to avoid conflicts with release tags.
 - When writing documentation (README, docs/**, plans/**, CHANGELOG, etc.), always tag fenced code blocks containing ASCII tables, tree diagrams, or other non-code content with ` ```text ` instead of a bare ` ``` `. Reserve language-less fences only for genuinely untyped snippets.
-- When responding to a `@claude-review` comment on a pull request, read `.github/claude/prompts/review.md` from the repo root and follow its checklist and output format as the review instructions.
