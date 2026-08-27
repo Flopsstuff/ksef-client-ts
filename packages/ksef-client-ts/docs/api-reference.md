@@ -564,10 +564,10 @@ getByKsefNumber(ksefNumber: string, pageSize?: number, continuationToken?: strin
 List the collective identifiers a given KSeF invoice belongs to.
 
 ```ts
-getInvoices(collectiveIdentifierNumber: string, pageSize?: number, continuationToken?: string): Promise<CollectiveIdentifierInvoicesQueryResponse>
+queryInvoices(request: CollectiveIdentifierInvoicesQueryRequest, pageSize?: number, continuationToken?: string): Promise<CollectiveIdentifierInvoicesQueryResponse>
 ```
 
-List the invoices inside one collective identifier. Payment fields are omitted and `detailsHidden` is `true` when the caller may not see them.
+List the invoices inside up to 10 collective identifiers at once. Each returned invoice carries the identifier it belongs to. Payment fields are omitted and `detailsHidden` is `true` when the caller may not see them.
 
 ---
 

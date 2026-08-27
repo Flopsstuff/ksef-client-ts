@@ -212,9 +212,13 @@ const byKsef = defineCommand({
 });
 
 const invoices = defineCommand({
-  meta: { name: 'invoices', description: 'List invoices inside a collective identifier' },
+  meta: { name: 'invoices', description: 'List invoices inside collective identifiers' },
   args: {
-    number: { type: 'positional', description: 'Collective identifier number', required: true },
+    number: {
+      type: 'positional',
+      description: 'Collective identifier number, or several separated by commas (max 10)',
+      required: true,
+    },
     pageSize: { type: 'string', description: 'Number of results per page (10-200)' },
     continue: { type: 'string', description: 'Continuation token from a previous page' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
@@ -229,8 +233,13 @@ const invoices = defineCommand({
       const { client } = await requireSession(globalOpts);
       const pageSize = args.pageSize ? parseInt(args.pageSize, 10) : undefined;
 
-      const result = await client.collectiveIdentifiers.getInvoices(
-        args.number,
+      const collectiveIdentifierNumbers = String(args.number)
+        .split(',')
+        .map((n) => n.trim())
+        .filter((n) => n.length > 0);
+
+      const result = await client.collectiveIdentifiers.queryInvoices(
+        { collectiveIdentifierNumbers },
         pageSize,
         args.continue as string | undefined,
       );
@@ -247,12 +256,17 @@ const invoices = defineCommand({
 
       outputTable(
         result.invoices.map((i) => ({
+          collectiveIdentifierNumber: i.collectiveIdentifierNumber,
           ksefNumber: i.ksefNumber,
           amount: i.payment ? i.payment.amount : (i.detailsHidden ? 'hidden' : '—'),
           currency: i.payment ? i.payment.currency : (i.detailsHidden ? 'hidden' : '—'),
           description: i.description ?? '',
         })),
         [
+          // Only worth a column when the query spanned more than one identifier.
+          ...(collectiveIdentifierNumbers.length > 1
+            ? [{ key: 'collectiveIdentifierNumber', label: 'Collective Identifier' }]
+            : []),
           { key: 'ksefNumber', label: 'KSeF Number' },
           { key: 'amount', label: 'Amount' },
           { key: 'currency', label: 'Currency' },

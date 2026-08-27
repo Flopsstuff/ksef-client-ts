@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- **Collective identifiers** — group invoices issued by one seller under a single collective identifier so a buyer can settle the whole batch against one payment reference. Generate identifiers, list them for the current context, look up which identifiers an invoice belongs to, and list the invoices inside one, from both the library and the CLI (KSeF API v2.7.0).
+- **Collective identifiers** — group invoices issued by one seller under a single collective identifier so a buyer can settle the whole batch against one payment reference. Generate identifiers, list them for the current context, look up which identifiers an invoice belongs to, and list the invoices inside up to ten identifiers at once, from both the library and the CLI (KSeF API v2.7.1).
 
 ### Changed
 

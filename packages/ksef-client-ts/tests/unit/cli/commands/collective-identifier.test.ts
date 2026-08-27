@@ -207,20 +207,34 @@ describe('collective-identifier', () => {
 
   describe('invoices', () => {
     it('passes the identifier, pageSize and continuation token through', async () => {
-      mockClient.collectiveIdentifiers.getInvoices.mockResolvedValue({ invoices: [] });
+      mockClient.collectiveIdentifiers.queryInvoices.mockResolvedValue({ invoices: [] });
 
       await sub('invoices').run!({
         args: { number: COLLECTIVE_NUMBER, pageSize: '200', continue: 'token-123' },
       });
 
-      expect(mockClient.collectiveIdentifiers.getInvoices)
-        .toHaveBeenCalledWith(COLLECTIVE_NUMBER, 200, 'token-123');
+      expect(mockClient.collectiveIdentifiers.queryInvoices)
+        .toHaveBeenCalledWith({ collectiveIdentifierNumbers: [COLLECTIVE_NUMBER] }, 200, 'token-123');
+    });
+
+    it('splits a comma-separated positional into several identifiers', async () => {
+      mockClient.collectiveIdentifiers.queryInvoices.mockResolvedValue({ invoices: [] });
+
+      await sub('invoices').run!({
+        args: { number: `${COLLECTIVE_NUMBER}, ${COLLECTIVE_NUMBER}-2 ,` },
+      });
+
+      expect(mockClient.collectiveIdentifiers.queryInvoices).toHaveBeenCalledWith(
+        { collectiveIdentifierNumbers: [COLLECTIVE_NUMBER, `${COLLECTIVE_NUMBER}-2`] },
+        undefined,
+        undefined,
+      );
     });
 
     it('notes hidden payment details when an item has detailsHidden set', async () => {
       const { consola } = await import('consola');
-      mockClient.collectiveIdentifiers.getInvoices.mockResolvedValue({
-        invoices: [{ ksefNumber: KSEF_A, detailsHidden: true }],
+      mockClient.collectiveIdentifiers.queryInvoices.mockResolvedValue({
+        invoices: [{ ksefNumber: KSEF_A, collectiveIdentifierNumber: COLLECTIVE_NUMBER, detailsHidden: true }],
       });
 
       await sub('invoices').run!({ args: { number: COLLECTIVE_NUMBER } });
@@ -231,9 +245,10 @@ describe('collective-identifier', () => {
 
     it('does not note hidden details when every item is disclosed', async () => {
       const { consola } = await import('consola');
-      mockClient.collectiveIdentifiers.getInvoices.mockResolvedValue({
+      mockClient.collectiveIdentifiers.queryInvoices.mockResolvedValue({
         invoices: [{
           ksefNumber: KSEF_A,
+          collectiveIdentifierNumber: COLLECTIVE_NUMBER,
           payment: { amount: 100.5, currency: 'PLN' },
           detailsHidden: false,
         }],

@@ -91,8 +91,7 @@ export const Routes = {
     query: 'collective-identifiers/query',
     byKsefNumber: (ksefNumber: string) =>
       `collective-identifiers/ksef/${ksefNumber}` as const,
-    invoices: (collectiveIdentifierNumber: string) =>
-      `collective-identifiers/${collectiveIdentifierNumber}/invoices` as const,
+    invoices: 'collective-identifiers/invoices',
   },
 
   Permissions: {

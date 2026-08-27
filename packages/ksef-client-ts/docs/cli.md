@@ -344,7 +344,7 @@ ksef collective-identifier generate --ksef "<num1>,<num2>"      # Generate from 
 ksef collective-identifier generate --file invoices.json        # Generate with per-invoice payment/description
 ksef collective-identifier list --from 2026-07-01 [--to ...]    # List identifiers in the context
 ksef collective-identifier by-ksef <ksefNumber>                 # Identifiers a given invoice belongs to
-ksef collective-identifier invoices <collectiveIdentifierNumber> # Invoices inside an identifier
+ksef collective-identifier invoices <numbers>                   # Invoices inside identifiers (comma-separated, max 10)
 ```
 
 ## Peppol

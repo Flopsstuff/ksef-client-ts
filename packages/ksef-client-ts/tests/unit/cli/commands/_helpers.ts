@@ -37,7 +37,7 @@ export function createMockClient() {
     tokens: mockService(['generateToken', 'queryTokens', 'getToken', 'revokeToken', 'revokeSelf', 'findSelfReferenceNumber']),
     certificates: mockService(['enroll', 'getEnrollmentStatus', 'query', 'revoke', 'getLimits', 'getEnrollmentData', 'retrieve']),
     limits: mockService(['getContextLimits', 'getSubjectLimits', 'getRateLimits']),
-    collectiveIdentifiers: mockService(['generate', 'query', 'getByKsefNumber', 'getInvoices']),
+    collectiveIdentifiers: mockService(['generate', 'query', 'getByKsefNumber', 'queryInvoices']),
     testData: mockService([
       'createSubject', 'removeSubject', 'createPerson', 'removePerson',
       'grantPermissions', 'revokePermissions', 'enableAttachment', 'disableAttachment',

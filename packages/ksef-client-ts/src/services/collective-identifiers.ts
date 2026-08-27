@@ -8,10 +8,13 @@ import type {
   CollectiveIdentifiersQueryRequest,
   CollectiveIdentifiersQueryResponse,
   CollectiveIdentifiersByKsefNumberQueryResponse,
+  CollectiveIdentifierInvoicesQueryRequest,
   CollectiveIdentifierInvoicesQueryResponse,
 } from '../models/collective-identifiers/types.js';
 
 export const MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER = 500;
+
+export const MAX_COLLECTIVE_IDENTIFIERS_PER_INVOICES_QUERY = 10;
 
 export class CollectiveIdentifiersService {
   private readonly restClient: RestClient;
@@ -61,12 +64,20 @@ export class CollectiveIdentifiersService {
     return response.body;
   }
 
-  async getInvoices(
-    collectiveIdentifierNumber: string,
+  async queryInvoices(
+    request: CollectiveIdentifierInvoicesQueryRequest,
     pageSize?: number,
     continuationToken?: string,
   ): Promise<CollectiveIdentifierInvoicesQueryResponse> {
-    const req = RestRequest.get(Routes.CollectiveIdentifiers.invoices(collectiveIdentifierNumber));
+    const count = request.collectiveIdentifierNumbers?.length ?? 0;
+    if (count > MAX_COLLECTIVE_IDENTIFIERS_PER_INVOICES_QUERY) {
+      throw KSeFValidationError.fromField(
+        'collectiveIdentifierNumbers',
+        `An invoice query accepts at most ${MAX_COLLECTIVE_IDENTIFIERS_PER_INVOICES_QUERY} collective identifiers, got ${count}`,
+      );
+    }
+    const req = RestRequest.post(Routes.CollectiveIdentifiers.invoices)
+      .body(request);
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
     if (continuationToken !== undefined) req.header('x-continuation-token', continuationToken);
     const response = await this.restClient.execute<CollectiveIdentifierInvoicesQueryResponse>(req);

@@ -87,7 +87,9 @@ describe('34 - Collective Identifiers', { timeout: 300_000 }, () => {
   });
 
   it('should list the invoices inside the identifier with payment details disclosed to the creator', async () => {
-    const result = await client.collectiveIdentifiers.getInvoices(collectiveIdentifierNumber);
+    const result = await client.collectiveIdentifiers.queryInvoices({
+      collectiveIdentifierNumbers: [collectiveIdentifierNumber],
+    });
 
     const returned = result.invoices.map((i) => i.ksefNumber);
     expect(returned).toContain(ksefNumbers[0]);
@@ -96,6 +98,7 @@ describe('34 - Collective Identifiers', { timeout: 300_000 }, () => {
     // The caller created this identifier, so nothing may be withheld.
     for (const invoice of result.invoices) {
       expect(invoice.detailsHidden).toBe(false);
+      expect(invoice.collectiveIdentifierNumber).toBe(collectiveIdentifierNumber);
     }
 
     const withPayment = result.invoices.find((i) => i.ksefNumber === ksefNumbers[0]);

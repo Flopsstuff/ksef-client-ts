@@ -82,8 +82,16 @@ const result = await client.collectiveIdentifiers.getByKsefNumber(
 
 ## List the invoices inside an identifier
 
+A single query covers up to 10 identifiers, and every returned invoice names the one it belongs to:
+
 ```ts
-const result = await client.collectiveIdentifiers.getInvoices(collectiveIdentifierNumber);
+const result = await client.collectiveIdentifiers.queryInvoices({
+  collectiveIdentifierNumbers: [collectiveIdentifierNumber],
+});
+
+for (const invoice of result.invoices) {
+  console.log(invoice.collectiveIdentifierNumber, invoice.ksefNumber);
+}
 ```
 
 ### Payment disclosure and `detailsHidden`

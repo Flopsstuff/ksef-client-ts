@@ -50,6 +50,11 @@ export interface CollectiveIdentifiersByKsefNumberQueryResponse {
   collectiveIdentifiers: CollectiveIdentifiersByKsefNumberQueryResponseItem[];
 }
 
+export interface CollectiveIdentifierInvoicesQueryRequest {
+  /** Up to 10 identifiers per request. */
+  collectiveIdentifierNumbers: string[];
+}
+
 export interface CollectiveIdentifierInvoicesQueryResponseItemPayment {
   amount: number;
   currency: string;
@@ -57,6 +62,8 @@ export interface CollectiveIdentifierInvoicesQueryResponseItemPayment {
 
 export interface CollectiveIdentifierInvoicesQueryResponseItem {
   ksefNumber: string;
+  /** The identifier this invoice belongs to — a single query may span several. */
+  collectiveIdentifierNumber: string;
   /** Omitted when the caller may not see the payment details — see `detailsHidden`. */
   payment?: CollectiveIdentifierInvoicesQueryResponseItemPayment | null;
   description?: string | null;

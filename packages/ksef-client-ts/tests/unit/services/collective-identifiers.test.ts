@@ -157,23 +157,32 @@ describe('CollectiveIdentifiersService', () => {
     });
   });
 
-  describe('getInvoices', () => {
-    it('sends GET to collective-identifiers/{number}/invoices', async () => {
-      await service.getInvoices(COLLECTIVE_NUMBER);
+  describe('queryInvoices', () => {
+    it('sends POST to collective-identifiers/invoices with the identifiers in the body', async () => {
+      await service.queryInvoices({ collectiveIdentifierNumbers: [COLLECTIVE_NUMBER] });
 
       const req = getRequest(vi.mocked(restClient.execute));
-      expect(req.method).toBe('GET');
-      expect(req.path).toBe(`collective-identifiers/${COLLECTIVE_NUMBER}/invoices`);
+      expect(req.method).toBe('POST');
+      expect(req.path).toBe('collective-identifiers/invoices');
+      expect(req.getBody()).toEqual({ collectiveIdentifierNumbers: [COLLECTIVE_NUMBER] });
       expect(req.getQuery()).toEqual([]);
       expect(req.getHeaders()).toEqual({});
     });
 
     it('passes pageSize as a query param and the continuation token as a header', async () => {
-      await service.getInvoices(COLLECTIVE_NUMBER, 200, 'token-123');
+      await service.queryInvoices({ collectiveIdentifierNumbers: [COLLECTIVE_NUMBER] }, 200, 'token-123');
 
       const req = getRequest(vi.mocked(restClient.execute));
       expect(req.getQuery()).toEqual([['pageSize', '200']]);
       expect(req.getHeaders()).toEqual({ 'x-continuation-token': 'token-123' });
+    });
+
+    it('rejects more than 10 identifiers before reaching the API', async () => {
+      const numbers = Array.from({ length: 11 }, (_, i) => `${COLLECTIVE_NUMBER}-${i}`);
+
+      await expect(service.queryInvoices({ collectiveIdentifierNumbers: numbers }))
+        .rejects.toThrow(/at most 10 collective identifiers, got 11/);
+      expect(restClient.execute).not.toHaveBeenCalled();
     });
 
     it('maps disclosed payment details', async () => {
@@ -182,6 +191,7 @@ describe('CollectiveIdentifiersService', () => {
         invoices: [
           {
             ksefNumber: KSEF_NUMBER,
+            collectiveIdentifierNumber: COLLECTIVE_NUMBER,
             payment: { amount: 1230.45, currency: 'PLN' },
             description: 'Q3 settlement',
             detailsHidden: false,
@@ -190,7 +200,7 @@ describe('CollectiveIdentifiersService', () => {
       };
       vi.mocked(restClient.execute).mockResolvedValueOnce(mockResponse(body));
 
-      const result = await service.getInvoices(COLLECTIVE_NUMBER);
+      const result = await service.queryInvoices({ collectiveIdentifierNumbers: [COLLECTIVE_NUMBER] });
 
       expect(result.invoices[0].payment).toEqual({ amount: 1230.45, currency: 'PLN' });
       expect(result.invoices[0].detailsHidden).toBe(false);
@@ -199,11 +209,11 @@ describe('CollectiveIdentifiersService', () => {
     it('maps a withheld item where detailsHidden is true and the amount fields are absent', async () => {
       vi.mocked(restClient.execute).mockResolvedValueOnce(
         mockResponse({
-          invoices: [{ ksefNumber: KSEF_NUMBER, detailsHidden: true }],
+          invoices: [{ ksefNumber: KSEF_NUMBER, collectiveIdentifierNumber: COLLECTIVE_NUMBER, detailsHidden: true }],
         } satisfies CollectiveIdentifierInvoicesQueryResponse),
       );
 
-      const result = await service.getInvoices(COLLECTIVE_NUMBER);
+      const result = await service.queryInvoices({ collectiveIdentifierNumbers: [COLLECTIVE_NUMBER] });
 
       expect(result.invoices[0].detailsHidden).toBe(true);
       expect(result.invoices[0].payment).toBeUndefined();
