@@ -36,7 +36,9 @@ describe('02 - Token Authentication', { timeout: 60_000 }, () => {
     );
 
     generatedToken = resp.token;
-  }, 30_000);
+    // Matches the suite timeout: the activation poll can sleep for most of a
+    // 30s budget on its own, before cert auth and token generation are counted.
+  }, 60_000);
 
   it('should get auth challenge', async () => {
     const client = createTestClient();
