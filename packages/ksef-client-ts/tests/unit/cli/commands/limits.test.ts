@@ -29,14 +29,24 @@ beforeEach(() => {
 });
 
 describe('limits', () => {
-  it('context — calls getContextLimits', async () => {
+  it('context — calls getContextLimits and prints every section it returns', async () => {
     mockClient.limits.getContextLimits.mockResolvedValue({
       onlineSession: { maxInvoiceSizeInMB: 10, maxInvoiceWithAttachmentSizeInMB: 50, maxInvoices: 100 },
       batchSession: { maxInvoiceSizeInMB: 10, maxInvoiceWithAttachmentSizeInMB: 50, maxInvoices: 1000 },
+      collectiveIdentifier: { maxInvoices: 500 },
     });
     await (limitsCommand.subCommands!.context as any).run!({ args: {} });
     expect(mockClient.limits.getContextLimits).toHaveBeenCalled();
-    expect(output.outputKeyValue).toHaveBeenCalled();
+    // Asserted by value, not just "was called": the printed list is hand-written,
+    // so only a value check catches a section the response carries and it omits.
+    expect(output.outputKeyValue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        'Online — Max Invoices': 100,
+        'Batch — Max Invoices': 1000,
+        'Collective Identifier — Max Invoices': 500,
+      }),
+      { json: false },
+    );
   });
 
   it('subject — calls getSubjectLimits', async () => {

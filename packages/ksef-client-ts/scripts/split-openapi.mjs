@@ -81,6 +81,7 @@ const GROUP_EN = {
   "Tokeny KSeF": "KSeF Tokens",
   "Usługi Peppol": "Peppol Services",
   "Dane testowe": "Test Data",
+  "Identyfikatory zbiorcze": "Collective Identifiers",
 };
 
 // --- main ---

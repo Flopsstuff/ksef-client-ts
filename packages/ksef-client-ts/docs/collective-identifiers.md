@@ -167,4 +167,4 @@ When `--to` is omitted from `list`, the current time is used.
 | `71002` | The invoice already belongs to the maximum number of collective identifiers (132). |
 | `21405` | Input validation failed. |
 
-Rate limits for this domain are 10 requests/second, 60/minute, 120/hour (`collectiveIdentifier` category — see `ksef limits rate`).
+Rate limits for this domain are 20 requests/second, 120/minute, 240/hour (`collectiveIdentifier` category — see `ksef limits rate`). Not to be confused with the much lower ceiling the same category has on test-data rate-limit *overrides* (10/60/120), which bounds what you may set, not what KSeF enforces.
