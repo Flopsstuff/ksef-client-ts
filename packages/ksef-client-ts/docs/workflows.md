@@ -401,6 +401,7 @@ interface ExportResult {
   isTruncated: boolean;            // true if more invoices exist beyond this export
   permanentStorageHwmDate?: string; // used by incremental export
   lastPermanentStorageDate?: string;
+  compressionType: CompressionType; // 'Zip' | 'TarGz' — how to unpack the parts
 }
 ```
 

@@ -77,6 +77,7 @@ export async function doExport(
       isTruncated: result.package.isTruncated,
       permanentStorageHwmDate: result.package.permanentStorageHwmDate,
       lastPermanentStorageDate: result.package.lastPermanentStorageDate,
+      compressionType: result.package.compressionType,
     },
   };
 }

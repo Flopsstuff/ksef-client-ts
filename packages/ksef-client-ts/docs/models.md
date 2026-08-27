@@ -586,6 +586,7 @@ interface InvoiceExportPackage {
   lastInvoicingDate?: string;
   lastPermanentStorageDate?: string;
   permanentStorageHwmDate?: string;
+  compressionType: CompressionType;
 }
 ```
 

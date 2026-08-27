@@ -22,6 +22,7 @@ function createMockClient() {
           invoiceCount: 10,
           size: 5000,
           isTruncated: false,
+          compressionType: 'Zip',
           permanentStorageHwmDate: '2025-01-01',
           parts: [
             {
@@ -80,6 +81,20 @@ describe('exportInvoices', () => {
     expect(result.isTruncated).toBe(false);
     expect(result.permanentStorageHwmDate).toBe('2025-01-01');
   });
+
+  it.each(['Zip', 'TarGz'] as const)(
+    'surfaces the %s archive format the package reports',
+    async (compressionType) => {
+      client.invoices.getInvoiceExportStatus.mockResolvedValue({
+        status: { code: 200, description: 'OK' },
+        package: { invoiceCount: 1, size: 100, isTruncated: false, parts: [], compressionType },
+      });
+
+      const result = await exportInvoices(client, filters, { pollOptions: { intervalMs: 1 } });
+
+      expect(result.compressionType).toBe(compressionType);
+    },
+  );
 
   it('passes onlyMetadata option', async () => {
     await exportInvoices(client, filters, { onlyMetadata: true, pollOptions: { intervalMs: 1 } });
