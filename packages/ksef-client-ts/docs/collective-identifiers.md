@@ -26,7 +26,7 @@ The checksum uses CRC-8 with polynomial `0x07` and initial value `0x00`. The who
 
 ## Rules and limits
 
-- **At most 500 invoices** per collective identifier. The client rejects a larger list with a `KSeFValidationError` before sending the request.
+- **Between 2 and 500 invoices** per collective identifier. Two is a hard minimum — an identifier that groups nothing is rejected by the API schema — while 500 is the default ceiling, which the session limits for a context can raise as far as 5000. The client rejects a list below the minimum or above 5000 with a `KSeFValidationError` before sending; between the two it defers to whatever limit the context actually has in force.
 - **At most 132 collective identifiers** per invoice within one context.
 - **Same seller only** — every invoice in one collective identifier must have been issued by the same seller.
 - The query date range (`dateCreatedFrom` to `dateCreatedTo`) spans **at most 100 days**.

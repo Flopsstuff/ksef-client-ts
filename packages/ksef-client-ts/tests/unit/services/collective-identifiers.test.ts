@@ -1,5 +1,6 @@
 import {
   CollectiveIdentifiersService,
+  MIN_INVOICES_PER_COLLECTIVE_IDENTIFIER,
   MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER,
 } from '../../../src/services/collective-identifiers.js';
 import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
@@ -13,6 +14,7 @@ import type {
 } from '../../../src/models/collective-identifiers/types.js';
 
 const KSEF_NUMBER = '1111111111-20260701-0189AB-CD1234-EF';
+const KSEF_NUMBER_2 = '1111111111-20260701-0189AB-CD1235-F0';
 const COLLECTIVE_NUMBER = '1111111111-IZ202607-65ED02180000-E7';
 
 describe('CollectiveIdentifiersService', () => {
@@ -29,6 +31,7 @@ describe('CollectiveIdentifiersService', () => {
       const request = {
         invoices: [
           { ksefNumber: KSEF_NUMBER, payment: { amount: 1230.45, currency: 'PLN' }, description: 'Q3' },
+          { ksefNumber: KSEF_NUMBER_2 },
         ],
       };
 
@@ -45,9 +48,40 @@ describe('CollectiveIdentifiersService', () => {
         mockResponse({ collectiveIdentifierNumber: COLLECTIVE_NUMBER }),
       );
 
-      const result = await service.generate({ invoices: [{ ksefNumber: KSEF_NUMBER }] });
+      const result = await service.generate({
+        invoices: [{ ksefNumber: KSEF_NUMBER }, { ksefNumber: KSEF_NUMBER_2 }],
+      });
 
       expect(result).toEqual({ collectiveIdentifierNumber: COLLECTIVE_NUMBER });
+    });
+
+    it.each([0, 1])(
+      `rejects %i invoices, below the minimum of ${MIN_INVOICES_PER_COLLECTIVE_IDENTIFIER}, without calling the API`,
+      async (length) => {
+        const invoices = Array.from({ length }, () => ({ ksefNumber: KSEF_NUMBER }));
+
+        await expect(service.generate({ invoices })).rejects.toBeInstanceOf(KSeFValidationError);
+        expect(restClient.execute).not.toHaveBeenCalled();
+      },
+    );
+
+    it(`accepts exactly ${MIN_INVOICES_PER_COLLECTIVE_IDENTIFIER} invoices`, async () => {
+      const invoices = Array.from(
+        { length: MIN_INVOICES_PER_COLLECTIVE_IDENTIFIER },
+        () => ({ ksefNumber: KSEF_NUMBER }),
+      );
+
+      await service.generate({ invoices });
+
+      expect(restClient.execute).toHaveBeenCalled();
+    });
+
+    it('sends a list longer than the default limit, which a context may have raised', async () => {
+      const invoices = Array.from({ length: 501 }, () => ({ ksefNumber: KSEF_NUMBER }));
+
+      await service.generate({ invoices });
+
+      expect(restClient.execute).toHaveBeenCalled();
     });
 
     it(`rejects more than ${MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER} invoices without calling the API`, async () => {

@@ -12,7 +12,21 @@ import type {
   CollectiveIdentifierInvoicesQueryResponse,
 } from '../models/collective-identifiers/types.js';
 
-export const MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER = 500;
+/** An identifier groups invoices, so a list of one is rejected by the request schema. */
+export const MIN_INVOICES_PER_COLLECTIVE_IDENTIFIER = 2;
+
+/**
+ * The invoice count a context starts with. It is a default rather than a ceiling:
+ * the session limits for a context can raise it, so the client does not reject on it.
+ */
+export const DEFAULT_MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER = 500;
+
+/**
+ * The highest the limit above can ever be raised to, since the context limit that
+ * governs it is itself capped at this value. A list longer than this cannot be
+ * accepted by any context, so it is worth rejecting before the request leaves.
+ */
+export const MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER = 5000;
 
 export const MAX_COLLECTIVE_IDENTIFIERS_PER_INVOICES_QUERY = 10;
 
@@ -27,6 +41,12 @@ export class CollectiveIdentifiersService {
     request: GenerateCollectiveIdentifierRequest,
   ): Promise<GenerateCollectiveIdentifierResponse> {
     const count = request.invoices?.length ?? 0;
+    if (count < MIN_INVOICES_PER_COLLECTIVE_IDENTIFIER) {
+      throw KSeFValidationError.fromField(
+        'invoices',
+        `A collective identifier groups at least ${MIN_INVOICES_PER_COLLECTIVE_IDENTIFIER} invoices, got ${count}`,
+      );
+    }
     if (count > MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER) {
       throw KSeFValidationError.fromField(
         'invoices',
