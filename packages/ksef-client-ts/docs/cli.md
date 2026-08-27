@@ -446,7 +446,8 @@ ksef test-data disable-attachment --nip 1234567890 --end-date 2025-12-31
 # Session limits (online and batch)
 ksef test-data change-session-limits \
   --online-max-size 5 --online-max-attach-size 10 --online-max-invoices 100000 \
-  --batch-max-size 5 --batch-max-attach-size 10 --batch-max-invoices 100000
+  --batch-max-size 5 --batch-max-attach-size 10 --batch-max-invoices 100000 \
+  --collective-max-invoices 5000
 ksef test-data restore-session-limits
 
 # Certificate/enrollment limits

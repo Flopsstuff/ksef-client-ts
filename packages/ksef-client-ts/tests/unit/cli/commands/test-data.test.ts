@@ -239,6 +239,7 @@ describe('test-data', () => {
           'batch-max-size': '4',
           'batch-max-attach-size': '8',
           'batch-max-invoices': '10000',
+          'collective-max-invoices': '750',
         },
       });
       expect(mockClient.testData.changeSessionLimits).toHaveBeenCalledWith({
@@ -251,6 +252,9 @@ describe('test-data', () => {
           maxInvoiceSizeInMB: 4,
           maxInvoiceWithAttachmentSizeInMB: 8,
           maxInvoices: 10000,
+        },
+        collectiveIdentifier: {
+          maxInvoices: 750,
         },
       });
     });

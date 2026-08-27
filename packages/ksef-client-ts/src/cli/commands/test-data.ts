@@ -283,6 +283,7 @@ const changeSessionLimits = defineCommand({
     'batch-max-size': { type: 'string', description: 'Batch session: max invoice size in MB (0-5)', required: true },
     'batch-max-attach-size': { type: 'string', description: 'Batch session: max invoice with attachment size in MB (0-10)', required: true },
     'batch-max-invoices': { type: 'string', description: 'Batch session: max invoices (0-100000)', required: true },
+    'collective-max-invoices': { type: 'string', description: 'Collective identifiers: max invoices (2-5000)', required: true },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -306,6 +307,9 @@ const changeSessionLimits = defineCommand({
           maxInvoiceSizeInMB: parseInt(args['batch-max-size'] as string, 10),
           maxInvoiceWithAttachmentSizeInMB: parseInt(args['batch-max-attach-size'] as string, 10),
           maxInvoices: parseInt(args['batch-max-invoices'] as string, 10),
+        },
+        collectiveIdentifier: {
+          maxInvoices: parseInt(args['collective-max-invoices'] as string, 10),
         },
       };
 

@@ -755,7 +755,7 @@ Effective rate limits and session context limits, plus override types for the te
 Key types:
 
 - `EffectiveApiRateLimits` -- per-second/minute/hour limits for 13 endpoint categories
-- `EffectiveContextLimits` -- max invoice size and count for online/batch sessions
+- `EffectiveContextLimits` -- max invoice size and count for online/batch sessions, and max invoices per collective identifier
 - `EffectiveSubjectLimits` -- enrollment and certificate limits per subject
 - `SetRateLimitsRequest`, `SetSessionLimitsRequest`, `SetSubjectLimitsRequest` -- override requests (test environment only)
 

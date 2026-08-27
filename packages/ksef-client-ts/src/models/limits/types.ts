@@ -32,9 +32,14 @@ export interface BatchSessionEffectiveContextLimits {
   maxInvoices: number;
 }
 
+export interface CollectiveIdentifierEffectiveContextLimits {
+  maxInvoices: number;
+}
+
 export interface EffectiveContextLimits {
   onlineSession: OnlineSessionEffectiveContextLimits;
   batchSession: BatchSessionEffectiveContextLimits;
+  collectiveIdentifier: CollectiveIdentifierEffectiveContextLimits;
 }
 
 export interface EnrollmentEffectiveSubjectLimits {
@@ -88,9 +93,14 @@ export interface BatchSessionContextLimitsOverride {
   maxInvoices: number;
 }
 
+export interface CollectiveIdentifierContextLimitsOverride {
+  maxInvoices: number;
+}
+
 export interface SetSessionLimitsRequest {
   onlineSession: OnlineSessionContextLimitsOverride;
   batchSession: BatchSessionContextLimitsOverride;
+  collectiveIdentifier: CollectiveIdentifierContextLimitsOverride;
 }
 
 export interface EnrollmentSubjectLimitsOverride {

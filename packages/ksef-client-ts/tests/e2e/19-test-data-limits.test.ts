@@ -31,6 +31,7 @@ describe('19 - TestData Limits & Attachments', { timeout: 120_000 }, () => {
     await client.testData.changeSessionLimits({
       onlineSession: { maxInvoiceSizeInMB: 2, maxInvoiceWithAttachmentSizeInMB: 5, maxInvoices: 500 },
       batchSession: { maxInvoiceSizeInMB: 2, maxInvoiceWithAttachmentSizeInMB: 5, maxInvoices: 5000 },
+      collectiveIdentifier: { maxInvoices: 500 },
     });
     await client.testData.restoreDefaultSessionLimits();
   });
