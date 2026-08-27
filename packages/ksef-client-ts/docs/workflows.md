@@ -431,6 +431,10 @@ The function has two overloads:
 - `extract: true` → returns `ExportExtractedResult` with `files: Map<string, Buffer>`
 - Default (no extract / `extract: false`) → returns `ExportDownloadResult` with `decryptedParts: Uint8Array[]`
 
+#### Which extractor runs
+
+`extract: true` unpacks the archive using the format the export package reports, so it always matches what the server actually produced — a TarGz package is untarred even when the request asked for nothing. `compressionType` in the options only *requests* a format for the export itself; it is consulted for extraction solely as a fallback, for responses from a KSeF build predating the reported field (KSeF API v2.7.1). Callers therefore no longer have to pass back the same `compressionType` they exported with.
+
 ### ZIP bomb protection
 
 When `extract: true`, the decrypted ZIP is passed to `unzip()` (`src/utils/zip.ts`) which enforces safety limits:
