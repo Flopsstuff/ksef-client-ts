@@ -53,6 +53,9 @@ const { collectiveIdentifierNumber } = await client.collectiveIdentifiers.genera
 Returns identifiers generated in the current context. For a NIP-type context it also returns identifiers where the subject appears as *Podmiot 1* on the invoice. Results are sorted by `dateCreated` descending, then `collectiveIdentifierNumber` descending.
 
 ```ts
+// undefined on the first request, then page.continuationToken from the previous one
+let previousContinuationToken: string | undefined;
+
 const page = await client.collectiveIdentifiers.query(
   {
     dateCreatedFrom: '2026-07-01T00:00:00+00:00',
