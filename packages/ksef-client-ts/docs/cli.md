@@ -335,6 +335,18 @@ ksef limits subject                              # Subject limits (max enrollmen
 ksef limits rate                                 # API rate limits (per-category table)
 ```
 
+## Collective Identifiers
+
+Group invoices issued by one seller under a single settlement reference. Requires an active session and one of the `InvoiceRead`, `InvoiceWrite`, or `CollectiveIdentifierManage` permissions. See [Collective Identifiers](/collective-identifiers).
+
+```bash
+ksef collective-identifier generate --ksef "<num1>,<num2>"      # Generate from KSeF numbers (2-500 by default)
+ksef collective-identifier generate --file invoices.json        # Generate with per-invoice payment/description
+ksef collective-identifier list --from 2026-07-01 [--to ...]    # List identifiers in the context
+ksef collective-identifier by-ksef <ksefNumber>                 # Identifiers a given invoice belongs to
+ksef collective-identifier invoices <numbers>                   # Invoices inside identifiers (comma-separated, max 10)
+```
+
 ## Peppol
 
 Query Peppol integration data.
@@ -434,19 +446,39 @@ ksef test-data disable-attachment --nip 1234567890 --end-date 2025-12-31
 # Session limits (online and batch)
 ksef test-data change-session-limits \
   --online-max-size 5 --online-max-attach-size 10 --online-max-invoices 100000 \
-  --batch-max-size 5 --batch-max-attach-size 10 --batch-max-invoices 100000
+  --batch-max-size 5 --batch-max-attach-size 10 --batch-max-invoices 100000 \
+  --collective-max-invoices 5000
 ksef test-data restore-session-limits
 
 # Certificate/enrollment limits
 ksef test-data change-cert-limits --max-enrollments 10 --max-certificates 20
 ksef test-data change-cert-limits --identifier-type Pesel --max-enrollments 5
 ksef test-data restore-cert-limits
+
+# Update certificate expiry (requires session)
+ksef test-data update-certificate --serial 0123456789ABCDEF --valid-to 2026-12-31T23:59:59Z
 ```
 
 ### Rate limits (requires session)
 
+Every category is required, and each takes `perSecond`, `perMinute`, and `perHour`. KSeF rejects the request if any category is missing. It also range-checks each category separately: `collectiveIdentifier` is capped at 10 per second, 60 per minute, and 120 per hour, well below the other categories.
+
 ```bash
-ksef test-data set-rate-limits --limits '{"category":"InvoiceSend","perSecond":10,"perMinute":100,"perHour":1000}'
+ksef test-data set-rate-limits --limits '{
+  "onlineSession": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "batchSession": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "invoiceSend": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "invoiceStatus": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "sessionList": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "sessionInvoiceList": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "sessionMisc": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "invoiceMetadata": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "invoiceExport": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "invoiceExportStatus": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "invoiceDownload": {"perSecond": 10, "perMinute": 60, "perHour": 200},
+  "collectiveIdentifier": {"perSecond": 10, "perMinute": 60, "perHour": 120},
+  "other": {"perSecond": 10, "perMinute": 60, "perHour": 200}
+}'
 ksef test-data restore-rate-limits
 ksef test-data set-production-rate-limits
 ```

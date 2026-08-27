@@ -7,6 +7,7 @@ export { InvoiceDownloadService } from './invoice-download.js';
 export { PermissionsService } from './permissions.js';
 export { TokenService } from './tokens.js';
 export { CertificateApiService } from './certificates.js';
+export { CollectiveIdentifiersService } from './collective-identifiers.js';
 export { LighthouseService } from './lighthouse.js';
 export { LimitsService } from './limits.js';
 export { PeppolService } from './peppol.js';

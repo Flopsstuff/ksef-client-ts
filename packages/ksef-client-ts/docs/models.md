@@ -1,6 +1,6 @@
 # Models & Type System
 
-Complete reference for the model layer that defines every request, response, enum, and identifier type used by the KSeF client. All types are derived from the KSeF OpenAPI spec (API v2.6.1, build 2.6.1-te) and organized by API domain.
+Complete reference for the model layer that defines every request, response, enum, and identifier type used by the KSeF client. All types are derived from the KSeF OpenAPI spec (API v2.7.1, build 2.7.1-te) and organized by API domain.
 
 ---
 
@@ -32,7 +32,7 @@ import type { InvoiceQueryFilters } from 'ksef-client-ts/models/invoices/types.j
 
 ## Domain Map
 
-The model layer has 13 domain folders plus one shared module:
+The model layer has 14 domain folders plus one shared module:
 
 | Domain folder | KSeF business context | Key types | Service |
 |---|---|---|---|
@@ -45,6 +45,7 @@ The model layer has 13 domain folders plus one shared module:
 | `certificates/` | Certificate enrollment & management | `EnrollCertificateRequest`, `CertificateListItem`, `CertificateLimitsResponse`, `CertificateStatus` | `CertificatesService` |
 | `lighthouse/` | System status & messages | `KsefStatusResponse`, `LighthouseMessage`, `KsefSystemStatus` | `LighthouseService` |
 | `limits/` | Rate limits & session context limits | `EffectiveApiRateLimits`, `EffectiveContextLimits`, `SetRateLimitsRequest`, `EffectiveSubjectLimits` | `LimitsService` |
+| `collective-identifiers/` | Collective identifiers over invoice batches | `GenerateCollectiveIdentifierRequest`, `CollectiveIdentifiersQueryRequest`, `CollectiveIdentifierInvoicesQueryResponseItem` | `CollectiveIdentifiersService` |
 | `peppol/` | Peppol provider registry | `PeppolProvider`, `QueryPeppolProvidersResponse` | `PeppolService` |
 | `test-data/` | Test environment data seeding | `SubjectCreateRequest`, `PersonCreateRequest`, `TestDataPermissionsGrantRequest` | `TestDataService` |
 | `crypto/` | Cryptographic operations (client-side) | `PublicKeyCertificate`, `EncryptionData`, `CsrResult`, `SelfSignedCertificateResult` | `CryptographyService` |
@@ -585,6 +586,7 @@ interface InvoiceExportPackage {
   lastInvoicingDate?: string;
   lastPermanentStorageDate?: string;
   permanentStorageHwmDate?: string;
+  compressionType: CompressionType;
 }
 ```
 
@@ -604,7 +606,7 @@ Each permission grant target has its own set of allowed permission types:
 
 | Enum | Values | Used by |
 |---|---|---|
-| `PersonPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CredentialsRead`, `CredentialsManage`, `EnforcementOperations`, `SubunitManage`, `Introspection` | `GrantPermissionsPersonRequest` |
+| `PersonPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CredentialsRead`, `CredentialsManage`, `EnforcementOperations`, `SubunitManage`, `Introspection`, `CollectiveIdentifierManage` | `GrantPermissionsPersonRequest` |
 | `EntityPermissionItemType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsEntityRequest` |
 | `EuEntityPermissionType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsEuEntityRepresentativeRequest` |
 | `IndirectPermissionType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsIndirectRequest` |
@@ -753,10 +755,26 @@ Effective rate limits and session context limits, plus override types for the te
 
 Key types:
 
-- `EffectiveApiRateLimits` -- per-second/minute/hour limits for 12 endpoint categories
-- `EffectiveContextLimits` -- max invoice size and count for online/batch sessions
+- `EffectiveApiRateLimits` -- per-second/minute/hour limits for 13 endpoint categories
+- `EffectiveContextLimits` -- max invoice size and count for online/batch sessions, and max invoices per collective identifier
 - `EffectiveSubjectLimits` -- enrollment and certificate limits per subject
 - `SetRateLimitsRequest`, `SetSessionLimitsRequest`, `SetSubjectLimitsRequest` -- override requests (test environment only)
+
+### Collective Identifiers
+
+**File:** `src/models/collective-identifiers/types.ts`
+
+Types for grouping invoices from one seller under a single settlement reference. See [Collective Identifiers](/collective-identifiers).
+
+Key types:
+
+- `GenerateCollectiveIdentifierRequest` / `GenerateCollectiveIdentifierResponse` -- create an identifier for up to 500 invoices
+- `CollectiveIdentifierInvoice` -- one member invoice, with optional `payment` and `description`
+- `CollectiveIdentifiersQueryRequest` / `CollectiveIdentifiersQueryResponse` -- list identifiers in the context (100-day range, continuation-token paging)
+- `CollectiveIdentifiersByKsefNumberQueryResponse` -- identifiers a given KSeF invoice belongs to
+- `CollectiveIdentifierInvoicesQueryResponse` -- invoices inside one identifier
+
+`CollectiveIdentifierInvoicesQueryResponseItem.payment` is optional: the amount and currency are omitted and `detailsHidden` is `true` when the caller neither created the identifier nor appears on the invoice.
 
 ### Peppol
 
@@ -788,6 +806,7 @@ Key types:
 - `SubjectCreateRequest` -- create test subjects (with optional subunits)
 - `PersonCreateRequest` -- create test persons (NIP, PESEL, bailiff flag)
 - `TestDataPermissionsGrantRequest` -- grant test permissions
+- `TestDataUpdateCertificateRequest` -- update certificate expiry (TEST only)
 - `AttachmentPermissionGrantRequest` / `AttachmentPermissionRevokeRequest` -- attachment permissions
 - `BlockContextAuthenticationRequest` / `UnblockContextAuthenticationRequest` -- block/unblock auth for a context
 
@@ -917,7 +936,7 @@ The `Permission` prefix prevents collision with the auth-domain identifier type 
 
 ## OpenAPI Alignment
 
-All types are aligned with the KSeF OpenAPI spec (API v2.6.1, build 2.6.1-te, `docs/open-api.json`). Key alignment decisions:
+All types are aligned with the KSeF OpenAPI spec (API v2.7.1, build 2.7.1-te, `docs/open-api.json`). Key alignment decisions:
 
 | OpenAPI spec | TypeScript type | Note |
 |---|---|---|

@@ -19,6 +19,7 @@ import type {
   AttachmentPermissionRevokeRequest,
   BlockContextAuthenticationRequest,
   UnblockContextAuthenticationRequest,
+  TestDataUpdateCertificateRequest,
 } from '../../models/test-data/types.js';
 import type {
   SetSessionLimitsRequest,
@@ -282,6 +283,7 @@ const changeSessionLimits = defineCommand({
     'batch-max-size': { type: 'string', description: 'Batch session: max invoice size in MB (0-5)', required: true },
     'batch-max-attach-size': { type: 'string', description: 'Batch session: max invoice with attachment size in MB (0-10)', required: true },
     'batch-max-invoices': { type: 'string', description: 'Batch session: max invoices (0-100000)', required: true },
+    'collective-max-invoices': { type: 'string', description: 'Collective identifiers: max invoices (2-5000)', required: true },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -305,6 +307,9 @@ const changeSessionLimits = defineCommand({
           maxInvoiceSizeInMB: parseInt(args['batch-max-size'] as string, 10),
           maxInvoiceWithAttachmentSizeInMB: parseInt(args['batch-max-attach-size'] as string, 10),
           maxInvoices: parseInt(args['batch-max-invoices'] as string, 10),
+        },
+        collectiveIdentifier: {
+          maxInvoices: parseInt(args['collective-max-invoices'] as string, 10),
         },
       };
 
@@ -462,6 +467,34 @@ const setProductionRateLimits = defineCommand({
 });
 
 
+const updateCertificate = defineCommand({
+  meta: { name: 'update-certificate', description: 'Update certificate expiry in test environment' },
+  args: {
+    serial: { type: 'string', description: 'Certificate serial number (16 hex chars)', required: true },
+    'valid-to': { type: 'string', description: 'New expiry date (ISO 8601 date-time)', required: true },
+    env: { type: 'string', description: 'Environment (test/demo/prod)' },
+    json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
+    timeout: { type: 'string', description: 'Request timeout (ms)' },
+    nip: { type: 'string', description: 'NIP number' },
+  },
+  run({ args }) {
+    return withErrorHandler(async () => {
+      const globalOpts = getGlobalOpts(args);
+      requireNonProd(globalOpts);
+
+      const { client } = await requireSession(globalOpts);
+
+      const request: TestDataUpdateCertificateRequest = {
+        validTo: args['valid-to'] as string,
+      };
+
+      await client.testData.updateCertificate(args.serial as string, request);
+      outputDone(args.json);
+    }, { json: Boolean(args.json) });
+  },
+});
+
 const blockContext = defineCommand({
   meta: { name: 'block-context', description: 'Block a context' },
   args: {
@@ -542,6 +575,7 @@ export const testDataCommand = defineCommand({
     'set-rate-limits': setRateLimits,
     'restore-rate-limits': restoreRateLimits,
     'set-production-rate-limits': setProductionRateLimits,
+    'update-certificate': updateCertificate,
     'block-context': blockContext,
     'unblock-context': unblockContext,
   },

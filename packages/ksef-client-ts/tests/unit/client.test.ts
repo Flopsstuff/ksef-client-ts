@@ -109,6 +109,7 @@ describe('KSeFClient', () => {
     expect(client.permissions).toBeDefined();
     expect(client.tokens).toBeDefined();
     expect(client.certificates).toBeDefined();
+    expect(client.collectiveIdentifiers).toBeDefined();
     expect(client.lighthouse).toBeDefined();
     expect(client.limits).toBeDefined();
     expect(client.peppol).toBeDefined();

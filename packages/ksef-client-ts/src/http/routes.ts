@@ -22,6 +22,8 @@ export const Routes = {
     productionRateLimits: 'testdata/rate-limits/production',
     blockContext: 'testdata/context/block',
     unblockContext: 'testdata/context/unblock',
+    updateCertificate: (serialNumber: string) =>
+      `testdata/certificates/${serialNumber}` as const,
   },
 
   Limits: {
@@ -82,6 +84,14 @@ export const Routes = {
     exports: 'invoices/exports',
     exportByReference: (ref: string) =>
       `invoices/exports/${ref}` as const,
+  },
+
+  CollectiveIdentifiers: {
+    root: 'collective-identifiers',
+    query: 'collective-identifiers/query',
+    byKsefNumber: (ksefNumber: string) =>
+      `collective-identifiers/ksef/${ksefNumber}` as const,
+    invoices: 'collective-identifiers/invoices',
   },
 
   Permissions: {

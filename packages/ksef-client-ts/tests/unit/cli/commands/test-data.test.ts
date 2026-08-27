@@ -88,6 +88,19 @@ describe('test-data', () => {
     );
   });
 
+  describe('update-certificate', () => {
+    it('calls testData.updateCertificate with serial and validTo', async () => {
+      mockClient.testData.updateCertificate.mockResolvedValue(undefined);
+      await (testDataCommand.subCommands!['update-certificate'] as any).run!({
+        args: { serial: '0123456789ABCDEF', 'valid-to': '2026-12-31T23:59:59Z' },
+      });
+      expect(mockClient.testData.updateCertificate).toHaveBeenCalledWith(
+        '0123456789ABCDEF',
+        { validTo: '2026-12-31T23:59:59Z' },
+      );
+    });
+  });
+
   describe('block-context', () => {
     it('calls testData.blockContext with correct request', async () => {
       mockClient.testData.blockContext.mockResolvedValue(undefined);
@@ -226,6 +239,7 @@ describe('test-data', () => {
           'batch-max-size': '4',
           'batch-max-attach-size': '8',
           'batch-max-invoices': '10000',
+          'collective-max-invoices': '750',
         },
       });
       expect(mockClient.testData.changeSessionLimits).toHaveBeenCalledWith({
@@ -238,6 +252,9 @@ describe('test-data', () => {
           maxInvoiceSizeInMB: 4,
           maxInvoiceWithAttachmentSizeInMB: 8,
           maxInvoices: 10000,
+        },
+        collectiveIdentifier: {
+          maxInvoices: 750,
         },
       });
     });

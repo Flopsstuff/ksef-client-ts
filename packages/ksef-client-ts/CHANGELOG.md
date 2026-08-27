@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.11.0] - 2026-08-27
+
+### Changed (breaking)
+
+- **Rate-limit overrides now require a collective identifier category** — KSeF made this category mandatory, so requests that configure test-environment rate limits must supply it or be rejected (KSeF API v2.7.0).
+- **Session limits now include a collective identifier section** — KSeF made this section mandatory when overriding session limits, so callers must now supply a maximum invoice count for collective identifiers alongside the online and batch session limits; requests without it are rejected by KSeF (KSeF API v2.7.1).
+
+### Added
+
+- **Export packages report their archive format** — an export result now states whether the package came back as a Zip or a TarGz archive, so callers no longer have to assume which format to unpack (KSeF API v2.7.1).
+- **Collective identifiers** — group invoices issued by one seller under a single collective identifier so a buyer can settle the whole batch against one payment reference. Generate identifiers, list them for the current context, look up which identifiers an invoice belongs to, and list the invoices inside up to ten identifiers at once, from both the library and the CLI (KSeF API v2.7.1).
+
+### Changed
+
+- **Updated to KSeF API v2.7.1** — the bundled API specification now tracks the current KSeF release.
+
 ## [0.10.0] - 2026-06-15
 
 ### Changed (breaking)

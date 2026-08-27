@@ -186,6 +186,8 @@ export interface InvoiceExportPackage {
   lastInvoicingDate?: string;
   lastPermanentStorageDate?: string;
   permanentStorageHwmDate?: string;
+  /** Archive format of the package — mirrors what the export request asked for (KSeF API v2.7.1). */
+  compressionType: CompressionType;
 }
 
 export interface InvoiceExportStatusResponse {

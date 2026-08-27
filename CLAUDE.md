@@ -19,6 +19,7 @@ yarn test:watch       # Watch mode (all tests)
 yarn docs:dev         # VitePress dev server
 yarn docs:build       # Build docs site
 yarn check-api        # Check OpenAPI coverage
+yarn sync-openapi     # Download the OpenAPI spec from the live KSeF API
 yarn split-openapi    # Split open-api.json into per-domain chunks
 yarn sync-schemas     # Download XSD schemas from CIRFMF/ksef-docs
 ```
@@ -37,12 +38,12 @@ Source paths below are relative to the library package, `packages/ksef-client-ts
 
 ```text
 KSeFClient (src/client.ts)
-  ├── 13 API services + crypto + qr + offline (16 properties total)
+  ├── 14 API services + crypto + qr + offline (17 properties total)
   ├── each service wraps RestClient for its API domain
   ├── crypto is lazy-initialized (user calls client.crypto.init())
   └── offline is lazy-initialized (accessed via client.offline)
 
-Services (src/services/*.ts) — 13 services
+Services (src/services/*.ts) — 14 services
   └── use RestClient.execute<T>() with RestRequest builders + Routes constants
 
 HTTP layer (src/http/)
@@ -83,9 +84,10 @@ XML layer (src/xml/)
   └── invoice-serializer — polymorphic serializeInvoiceXml(input, options) → Buffer
       dispatching on FakturaInput / PefUblDocumentInput / string / Buffer / XmlDocument
 
-CLI (src/cli/) — 15 command groups via citty
-  ├── auth, session, invoice, permission, token, cert, lighthouse, limits,
-  │   peppol, test-data, qr, config, doctor, completion, offline
+CLI (src/cli/) — 17 command groups via citty
+  ├── setup, auth, session, invoice, permission, token, cert, lighthouse, limits,
+  │   collective-identifier, peppol, test-data, qr, config, doctor, completion,
+  │   offline
   ├── requireSession() — auto-recovers via refresh or re-login from stored credentials
   └── session-recovery — cascade: refresh token → loginWithToken from credentials → error
 ```
@@ -137,7 +139,7 @@ Invoice number (`P_2` in XML) must be unique — resubmitting gives error 440 (D
 
 ### OpenAPI spec
 
-`packages/ksef-client-ts/docs/open-api.json` is the KSeF API OpenAPI specification (source of truth, KSeF API v2.6.1, build `2.6.1-te`; synced from the live TEST endpoint `https://api-test.ksef.mf.gov.pl/docs/v2/openapi.json`). Note: TEST/DEMO run 2.6.1 while PROD trails (2.6.0 as of 2026-06); content is identical across the 2.6.1 builds. Per-domain chunks in `packages/ksef-client-ts/docs/openapi-chunks/` (9 chunks + manifest; descriptions stripped to save tokens). Regenerate with `yarn split-openapi`. Validate coverage with `yarn check-api`.
+`packages/ksef-client-ts/docs/open-api.json` is the KSeF API OpenAPI specification (source of truth, KSeF API v2.7.1, build `2.7.1-te`; synced from the live TEST endpoint `https://api-test.ksef.mf.gov.pl/docs/v2/openapi.json`). Note: TEST/DEMO lead while PROD trails, so the vendored spec can be ahead of what PROD serves. Update it with `yarn sync-openapi` (`--env demo|prod` to pull from another environment, `--dry-run` to preview the delta), which writes the served document verbatim. Per-domain chunks in `packages/ksef-client-ts/docs/openapi-chunks/` (10 chunks + manifest; descriptions stripped to save tokens). Regenerate with `yarn split-openapi` after every sync. Validate coverage with `yarn check-api`.
 
 ### XSD schemas
 

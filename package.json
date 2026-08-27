@@ -8,6 +8,7 @@
     "build": "yarn workspace ksef-client-ts build",
     "dev": "yarn workspace ksef-client-ts dev",
     "test": "yarn workspace ksef-client-ts test",
+    "test:package": "yarn workspace ksef-client-ts test:package",
     "test:e2e": "yarn workspace ksef-client-ts test:e2e",
     "test:watch": "yarn workspace ksef-client-ts test:watch",
     "lint": "yarn workspace ksef-client-ts lint",
@@ -18,6 +19,7 @@
     "docs:build": "yarn workspace ksef-client-ts docs:build",
     "docs:preview": "yarn workspace ksef-client-ts docs:preview",
     "check-api": "yarn workspace ksef-client-ts check-api",
+    "sync-openapi": "yarn workspace ksef-client-ts sync-openapi",
     "split-openapi": "yarn workspace ksef-client-ts split-openapi",
     "sync-schemas": "yarn workspace ksef-client-ts sync-schemas",
     "generate-schemas": "yarn workspace ksef-client-ts generate-schemas"

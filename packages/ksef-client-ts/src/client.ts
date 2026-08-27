@@ -14,6 +14,7 @@ import { InvoiceDownloadService } from './services/invoice-download.js';
 import { PermissionsService } from './services/permissions.js';
 import { TokenService } from './services/tokens.js';
 import { CertificateApiService } from './services/certificates.js';
+import { CollectiveIdentifiersService } from './services/collective-identifiers.js';
 import { LighthouseService } from './services/lighthouse.js';
 import { LimitsService } from './services/limits.js';
 import { PeppolService } from './services/peppol.js';
@@ -36,6 +37,7 @@ export class KSeFClient {
   readonly permissions: PermissionsService;
   readonly tokens: TokenService;
   readonly certificates: CertificateApiService;
+  readonly collectiveIdentifiers: CollectiveIdentifiersService;
   readonly lighthouse: LighthouseService;
   readonly limits: LimitsService;
   readonly peppol: PeppolService;
@@ -74,6 +76,7 @@ export class KSeFClient {
     this.permissions = new PermissionsService(restClient);
     this.tokens = new TokenService(restClient);
     this.certificates = new CertificateApiService(restClient);
+    this.collectiveIdentifiers = new CollectiveIdentifiersService(restClient);
     this.lighthouse = new LighthouseService(this.options);
     this.limits = new LimitsService(restClient);
     this.peppol = new PeppolService(restClient);

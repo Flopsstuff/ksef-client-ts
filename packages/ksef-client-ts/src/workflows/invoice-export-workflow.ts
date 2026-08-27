@@ -77,6 +77,7 @@ export async function doExport(
       isTruncated: result.package.isTruncated,
       permanentStorageHwmDate: result.package.permanentStorageHwmDate,
       lastPermanentStorageDate: result.package.lastPermanentStorageDate,
+      compressionType: result.package.compressionType,
     },
   };
 }
@@ -125,13 +126,13 @@ export async function exportAndDownload(
 
   if (options?.extract) {
     const archiveBuffer = Buffer.concat(decryptedParts);
-    // The extractor is chosen by the caller-requested compression type, not by the
-    // actual format of the returned package: the KSeF export status response
-    // (InvoiceExportStatusResponse / InvoicePackage) carries no compression-type field,
-    // so the server does not report which format it actually produced. The caller MUST
-    // pass the same `compressionType` here that was used to request the export
-    // (defaults to Zip). If a mismatch occurs, extraction will fail.
-    const files = options.compressionType === 'TarGz'
+    // Follow the format the package reports: since KSeF API v2.7.1 the export status
+    // response states which archive it actually produced, so the extractor no longer
+    // has to trust what the caller asked for. The requested type stays as a fallback
+    // for responses that omit it — PROD trails TEST, so it may still serve a build
+    // from before the field existed.
+    const format = exportResult.compressionType ?? options.compressionType;
+    const files = format === 'TarGz'
       ? await extractTarGz(archiveBuffer, options.unzipOptions)
       : await unzip(archiveBuffer, options.unzipOptions);
     return { ...exportResult, files };

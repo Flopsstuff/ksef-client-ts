@@ -1,5 +1,6 @@
 import type { UpoPotwierdzenie } from '../xml/index.js';
 import type { OnlineSessionState } from '../models/sessions/session-state.js';
+import type { CompressionType } from '../models/common.js';
 
 export interface PollOptions {
   intervalMs?: number;
@@ -54,6 +55,8 @@ export interface ExportResult {
   isTruncated: boolean;
   permanentStorageHwmDate?: string;
   lastPermanentStorageDate?: string;
+  /** Archive format of the downloaded package, so callers know how to unpack it. */
+  compressionType: CompressionType;
 }
 
 export interface ExportDownloadResult extends ExportResult {

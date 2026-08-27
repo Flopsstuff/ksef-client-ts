@@ -1262,7 +1262,8 @@
           "CredentialsRead",
           "CredentialsManage",
           "EnforcementOperations",
-          "SubunitManage"
+          "SubunitManage",
+          "CollectiveIdentifierManage"
         ],
         "type": "string"
       },

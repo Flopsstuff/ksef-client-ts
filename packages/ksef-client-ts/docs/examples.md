@@ -298,7 +298,7 @@ async function managePermissions() {
 **Notes:**
 
 - `PersonPermissionGrantBuilder.withSubjectIdentifier()` accepts a `PermissionSubjectIdentifierType` (`'Nip'`, `'Pesel'`, or `'Fingerprint'`) and a value.
-- Available `PersonPermissionType` values: `'InvoiceRead'`, `'InvoiceWrite'`, `'CredentialsRead'`, `'CredentialsManage'`, `'EnforcementOperations'`, `'SubunitManage'`, `'Introspection'`.
+- Available `PersonPermissionType` values: `'InvoiceRead'`, `'InvoiceWrite'`, `'CredentialsRead'`, `'CredentialsManage'`, `'EnforcementOperations'`, `'SubunitManage'`, `'Introspection'`, `'CollectiveIdentifierManage'`.
 - Use `revokeCommonGrant()` for person/entity/subunit grants, and `revokeAuthorizationGrant()` for authorization grants.
 - The `EntityPermissionGrantBuilder` and `AuthorizationPermissionGrantBuilder` follow the same pattern for entity and authorization permissions respectively.
 

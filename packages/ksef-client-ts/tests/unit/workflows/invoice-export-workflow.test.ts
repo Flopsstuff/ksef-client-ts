@@ -2,6 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { exportInvoices, exportAndDownload } from '../../../src/workflows/invoice-export-workflow.js';
 import type { InvoiceQueryFilters } from '../../../src/models/invoices/types.js';
 import { sha256Base64 } from '../../../src/utils/hash.js';
+import { unzip } from '../../../src/utils/zip.js';
+import { extractTarGz } from '../../../src/utils/targz.js';
+
+vi.mock('../../../src/utils/zip.js', () => ({
+  unzip: vi.fn(async () => new Map<string, Buffer>()),
+}));
+vi.mock('../../../src/utils/targz.js', () => ({
+  extractTarGz: vi.fn(async () => new Map<string, Buffer>()),
+}));
 
 function createMockClient() {
   return {
@@ -22,6 +31,7 @@ function createMockClient() {
           invoiceCount: 10,
           size: 5000,
           isTruncated: false,
+          compressionType: 'Zip',
           permanentStorageHwmDate: '2025-01-01',
           parts: [
             {
@@ -80,6 +90,20 @@ describe('exportInvoices', () => {
     expect(result.isTruncated).toBe(false);
     expect(result.permanentStorageHwmDate).toBe('2025-01-01');
   });
+
+  it.each(['Zip', 'TarGz'] as const)(
+    'surfaces the %s archive format the package reports',
+    async (compressionType) => {
+      client.invoices.getInvoiceExportStatus.mockResolvedValue({
+        status: { code: 200, description: 'OK' },
+        package: { invoiceCount: 1, size: 100, isTruncated: false, parts: [], compressionType },
+      });
+
+      const result = await exportInvoices(client, filters, { pollOptions: { intervalMs: 1 } });
+
+      expect(result.compressionType).toBe(compressionType);
+    },
+  );
 
   it('passes onlyMetadata option', async () => {
     await exportInvoices(client, filters, { onlyMetadata: true, pollOptions: { intervalMs: 1 } });
@@ -240,5 +264,42 @@ describe('exportAndDownload', () => {
     });
 
     expect(result.decryptedParts).toHaveLength(1);
+  });
+
+  it('extracts with the format the package reports, not the one requested', async () => {
+    const encryptedBytes = new Uint8Array([99, 99, 99]);
+
+    client.invoices.getInvoiceExportStatus.mockResolvedValue({
+      status: { code: 200, description: 'OK' },
+      package: {
+        invoiceCount: 1,
+        size: 100,
+        isTruncated: false,
+        // The server produced a TarGz even though the call below requests nothing.
+        compressionType: 'TarGz',
+        parts: [{
+          ordinalNumber: 1,
+          partName: 'part-1',
+          method: 'GET',
+          url: 'https://download.example.com/1',
+          partSize: 3,
+          partHash: 'ph',
+          encryptedPartSize: 3,
+          encryptedPartHash: sha256Base64(encryptedBytes),
+          expirationDate: '2025-12-31',
+        }],
+      },
+    });
+
+    await exportAndDownload(client, filters, {
+      extract: true,
+      pollOptions: { intervalMs: 1 },
+      transport: vi.fn().mockImplementation(async () =>
+        new Response(encryptedBytes.slice().buffer, { status: 200 }),
+      ),
+    });
+
+    expect(extractTarGz).toHaveBeenCalledOnce();
+    expect(unzip).not.toHaveBeenCalled();
   });
 });

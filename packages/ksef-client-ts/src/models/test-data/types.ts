@@ -21,7 +21,8 @@ export type TestDataPermissionType =
   | 'CredentialsManage'
   | 'EnforcementOperations'
   | 'SubunitManage'
-  | 'Introspection';
+  | 'Introspection'
+  | 'CollectiveIdentifierManage';
 
 export interface TestDataPermission {
   permissionType: TestDataPermissionType;
@@ -91,5 +92,9 @@ export interface BlockContextAuthenticationRequest {
 
 export interface UnblockContextAuthenticationRequest {
   contextIdentifier?: TestDataAuthenticationContextIdentifier | null;
+}
+
+export interface TestDataUpdateCertificateRequest {
+  validTo: string;
 }
 
