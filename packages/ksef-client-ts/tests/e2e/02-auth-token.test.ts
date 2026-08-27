@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { authenticateWithCert, createTestClient } from './helpers/auth.js';
 import { generateRandomNip } from './helpers/identifiers.js';
+import { pollUntil } from './helpers/polling.js';
 import type { KSeFClient } from '../../src/client.js';
 
 describe('02 - Token Authentication', { timeout: 60_000 }, () => {
@@ -15,6 +16,25 @@ describe('02 - Token Authentication', { timeout: 60_000 }, () => {
       description: `E2E bootstrap token ${Date.now()}`,
       permissions: ['InvoiceRead', 'InvoiceWrite'],
     });
+
+    // A freshly minted token starts out Pending, and authenticating with it
+    // before KSeF activates it fails with 450 "błędny token". Wait for Active
+    // rather than letting whichever test runs first lose that race.
+    await pollUntil(
+      async () => {
+        const status = await client.tokens.getToken(resp.referenceNumber);
+        if (status.status === 'Failed' || status.status === 'Revoked') {
+          throw new Error(
+            `Bootstrap token ${resp.referenceNumber} ended as ${status.status}: ` +
+            `${status.statusDetails?.join('; ') ?? 'no details'}`,
+          );
+        }
+        return status;
+      },
+      (status) => status.status === 'Active',
+      { intervalMs: 1000, maxAttempts: 20, description: 'bootstrap token activation' },
+    );
+
     generatedToken = resp.token;
   }, 30_000);
 
