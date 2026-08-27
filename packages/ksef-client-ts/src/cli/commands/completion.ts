@@ -1,23 +1,30 @@
 import { defineCommand } from 'citty';
 
-const COMMAND_TREE: Record<string, string[]> = {
+// Mirrors the subCommands of src/cli/index.ts, in the same order — completion-tree.test.ts
+// fails if the two drift apart.
+export const COMMAND_TREE: Record<string, string[]> = {
+  setup: [],
   config: ['set', 'show', 'reset'],
-  auth: ['challenge', 'login', 'status', 'logout', 'refresh', 'whoami'],
-  session: ['open', 'close', 'status', 'list', 'invoices', 'failed', 'upo'],
-  invoice: ['send', 'get', 'query', 'export', 'export-status'],
-  permission: ['grant', 'revoke', 'search', 'status'],
+  auth: ['challenge', 'login', 'login-external', 'status', 'logout', 'refresh', 'whoami', 'revoke-self-token'],
+  session: ['open', 'close', 'status', 'active', 'revoke', 'list', 'invoices', 'invoice', 'failed', 'upo'],
+  invoice: ['send', 'get', 'query', 'build', 'validate', 'export', 'export-status', 'export-incremental'],
+  permission: ['grant', 'revoke', 'search', 'status', 'attachment-status'],
   token: ['generate', 'list', 'get', 'revoke'],
-  cert: ['generate', 'enroll', 'status', 'list', 'revoke', 'limits'],
+  cert: ['generate', 'enrollment-data', 'enroll', 'status', 'retrieve', 'list', 'revoke', 'limits'],
   qr: ['invoice', 'certificate', 'url'],
   lighthouse: ['status', 'messages'],
+  limits: ['context', 'subject', 'rate'],
+  'collective-identifier': ['generate', 'list', 'by-ksef', 'invoices'],
+  peppol: ['providers'],
   'test-data': [
     'create-subject', 'remove-subject', 'create-person', 'remove-person',
     'grant-permissions', 'revoke-permissions', 'enable-attachment', 'disable-attachment',
     'change-session-limits', 'restore-session-limits', 'change-cert-limits', 'restore-cert-limits',
-    'set-rate-limits', 'restore-rate-limits', 'set-production-rate-limits', 'restore-production-rate-limits',
+    'set-rate-limits', 'restore-rate-limits', 'set-production-rate-limits',
     'update-certificate',
     'block-context', 'unblock-context',
   ],
+  offline: ['generate', 'list', 'status', 'submit', 'correct', 'delete'],
   doctor: [],
   completion: ['bash', 'zsh', 'fish'],
 };
