@@ -23,6 +23,24 @@
                     "$ref": "#/components/schemas/GenerateCollectiveIdentifierRequest"
                   }
                 ]
+              },
+              "example": {
+                "invoices": [
+                  {
+                    "ksefNumber": "1111111111-20260612-6310EC800000-DA",
+                    "payment": {
+                      "amount": 100,
+                      "currency": "PLN"
+                    }
+                  },
+                  {
+                    "ksefNumber": "1111111111-20260612-62EAFD400000-B3",
+                    "payment": {
+                      "amount": 45,
+                      "currency": "PLN"
+                    }
+                  }
+                ]
               }
             }
           }
@@ -40,6 +58,9 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GenerateCollectiveIdentifierResponse"
+                },
+                "example": {
+                  "collectiveIdentifierNumber": "1111111111-IZ202607-65ED02180000-E7"
                 }
               }
             }
@@ -106,9 +127,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 10,
-          "perMinute": 60,
-          "perHour": 120
+          "perSecond": 20,
+          "perMinute": 120,
+          "perHour": 240
         },
         "x-required-permissions": [
           "InvoiceRead",
@@ -156,6 +177,13 @@
                     "$ref": "#/components/schemas/CollectiveIdentifiersQueryRequest"
                   }
                 ]
+              },
+              "example": {
+                "collectiveIdentifierNumber": "1111111111-IZ202607-65ED02180000-E7",
+                "dateCreatedFrom": "2026-07-10T12:00:00+02:00",
+                "dateCreatedTo": "2026-08-10T12:00:00+02:00",
+                "invoiceCountFrom": 10,
+                "invoiceCountTo": 100
               }
             }
           }
@@ -173,6 +201,17 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CollectiveIdentifiersQueryResponse"
+                },
+                "example": {
+                  "continuationToken": "eyJEYXRlQ3JlYXRlZCI6IjIwMjYtMDctMjBUMDE6MTM6MTMuMTYzOTQ3KzAwOjAwIiwiQ29sbGVjdGl2ZUlkZW50aWZpZXJOdW1iZXIiOiI4NjMxOTQxNTc4LUlaMjAyNjA3LTMyM0I1MjE4NDAwMC1DRCJ9",
+                  "collectiveIdentifiers": [
+                    {
+                      "collectiveIdentifierNumber": "1111111111-IZ202607-65ED02180000-E7",
+                      "dateCreated": "2026-07-10T12:00:00+02:00",
+                      "invoiceCount": 16,
+                      "createdInCurrentContext": true
+                    }
+                  ]
                 }
               }
             }
@@ -209,6 +248,28 @@
                 }
               }
             }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
           }
         },
         "security": [
@@ -216,6 +277,11 @@
             "Bearer": []
           }
         ],
+        "x-rate-limits": {
+          "perSecond": 20,
+          "perMinute": 120,
+          "perHour": 240
+        },
         "x-sort": [
           {
             "field": "dateCreated",
@@ -233,21 +299,13 @@
         ]
       }
     },
-    "/collective-identifiers/{collectiveIdentifierNumber}/invoices": {
-      "get": {
+    "/collective-identifiers/invoices": {
+      "post": {
         "tags": [
           "Identyfikatory zbiorcze"
         ],
         "summary": "Pobranie listy faktur wchodzących w skład identyfikatora zbiorczego",
         "parameters": [
-          {
-            "name": "collectiveIdentifierNumber",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
           {
             "name": "x-continuation-token",
             "in": "header",
@@ -259,7 +317,7 @@
             "name": "pageSize",
             "in": "query",
             "schema": {
-              "maximum": 200,
+              "maximum": 500,
               "minimum": 10,
               "type": "integer",
               "format": "int32",
@@ -267,6 +325,22 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "collectiveIdentifierNumbers"
+                ],
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CollectiveIdentifierInvoicesQueryRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "headers": {
@@ -280,6 +354,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CollectiveIdentifierInvoicesQueryResponse"
+                },
+                "example": {
+                  "continuationToken": "eyJEYXRlQ3JlYXRlZCI6IjIwMjYtMDctMjBUMDE6MTM6MTMuMTYzOTQ3KzAwOjAwIiwiQ29sbGVjdGl2ZUlkZW50aWZpZXJOdW1iZXIiOiI4NjMxOTQxNTc4LUlaMjAyNjA3LTMyM0I1MjE4NDAwMC1DRCJ9",
+                  "invoices": [
+                    {
+                      "ksefNumber": "1111111111-20260612-6310EC800000-DA",
+                      "payment": {
+                        "amount": 100,
+                        "currency": "PLN"
+                      },
+                      "detailsHidden": false
+                    },
+                    {
+                      "ksefNumber": "1111111111-20260612-62EAFD400000-B3",
+                      "payment": {
+                        "amount": 45,
+                        "currency": "PLN"
+                      },
+                      "detailsHidden": false
+                    }
+                  ]
                 }
               }
             }
@@ -316,6 +411,28 @@
                 }
               }
             }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
           }
         },
         "security": [
@@ -323,6 +440,11 @@
             "Bearer": []
           }
         ],
+        "x-rate-limits": {
+          "perSecond": 20,
+          "perMinute": 120,
+          "perHour": 240
+        },
         "x-sort": [
           {
             "field": "ksefNumber",
@@ -383,6 +505,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CollectiveIdentifiersByKsefNumberQueryResponse"
+                },
+                "example": {
+                  "continuationToken": "eyJEYXRlQ3JlYXRlZCI6IjIwMjYtMDctMjBUMDE6MTM6MTMuMTYzOTQ3KzAwOjAwIiwiQ29sbGVjdGl2ZUlkZW50aWZpZXJOdW1iZXIiOiI4NjMxOTQxNTc4LUlaMjAyNjA3LTMyM0I1MjE4NDAwMC1DRCJ9",
+                  "collectiveIdentifiers": [
+                    {
+                      "collectiveIdentifierNumber": "1111111111-IZ202607-65ED02180000-E7",
+                      "createdInCurrentContext": false,
+                      "dateCreated": "2026-07-10T12:00:00+02:00"
+                    }
+                  ]
                 }
               }
             }
@@ -419,6 +551,28 @@
                 }
               }
             }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
           }
         },
         "security": [
@@ -426,6 +580,11 @@
             "Bearer": []
           }
         ],
+        "x-rate-limits": {
+          "perSecond": 20,
+          "perMinute": 120,
+          "perHour": 240
+        },
         "x-sort": [
           {
             "field": "dateCreated",
@@ -575,6 +734,20 @@
           }
         }
       },
+      "CollectiveIdentifierInvoicesQueryRequest": {
+        "required": [
+          "collectiveIdentifierNumbers"
+        ],
+        "type": "object",
+        "properties": {
+          "collectiveIdentifierNumbers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "CollectiveIdentifierInvoicesQueryResponse": {
         "required": [
           "invoices"
@@ -595,6 +768,7 @@
       },
       "CollectiveIdentifierInvoicesQueryResponseItem": {
         "required": [
+          "collectiveIdentifierNumber",
           "detailsHidden",
           "ksefNumber"
         ],
@@ -606,6 +780,9 @@
                 "$ref": "#/components/schemas/KsefNumber"
               }
             ]
+          },
+          "collectiveIdentifierNumber": {
+            "type": "string"
           },
           "payment": {
             "required": [
@@ -1108,6 +1285,7 @@
         "type": "object",
         "properties": {
           "invoices": {
+            "minItems": 2,
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CollectiveIdentifierInvoice"

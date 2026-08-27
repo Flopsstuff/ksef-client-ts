@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- **Updated to KSeF API v2.7.0** — the bundled API specification now tracks the current KSeF release.
+- **Updated to KSeF API v2.7.1** — the bundled API specification now tracks the current KSeF release.
 
 ## [0.10.0] - 2026-06-15
 

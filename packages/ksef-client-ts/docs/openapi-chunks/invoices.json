@@ -574,7 +574,8 @@
                     ],
                     "isTruncated": true,
                     "lastPermanentStorageDate": "2025-09-11T11:40:40.266578+00:00",
-                    "permanentStorageHwmDate": "2025-09-11T12:00:40.266578+00:00"
+                    "permanentStorageHwmDate": "2025-09-11T12:00:40.266578+00:00",
+                    "compressionType": "Zip"
                   }
                 }
               }
@@ -3126,7 +3127,8 @@
               "invoiceCount",
               "size",
               "parts",
-              "isTruncated"
+              "isTruncated",
+              "compressionType"
             ],
             "allOf": [
               {
@@ -3427,6 +3429,7 @@
       },
       "InvoicePackage": {
         "required": [
+          "compressionType",
           "invoiceCount",
           "isTruncated",
           "parts",
@@ -3473,6 +3476,13 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "compressionType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompressionType"
+              }
+            ]
           }
         }
       },

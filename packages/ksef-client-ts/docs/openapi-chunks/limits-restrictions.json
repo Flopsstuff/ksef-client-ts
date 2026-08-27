@@ -35,6 +35,9 @@
                     "maxInvoiceSizeInMB": 1,
                     "maxInvoiceWithAttachmentSizeInMB": 3,
                     "maxInvoices": 10000
+                  },
+                  "collectiveIdentifier": {
+                    "maxInvoices": 500
                   }
                 }
               }
@@ -284,9 +287,9 @@
                     "perHour": 64
                   },
                   "collectiveIdentifier": {
-                    "perSecond": 10,
-                    "perMinute": 60,
-                    "perHour": 120
+                    "perSecond": 20,
+                    "perMinute": 120,
+                    "perHour": 240
                   },
                   "other": {
                     "perSecond": 10,
@@ -377,7 +380,8 @@
               "schema": {
                 "required": [
                   "onlineSession",
-                  "batchSession"
+                  "batchSession",
+                  "collectiveIdentifier"
                 ],
                 "allOf": [
                   {
@@ -1349,6 +1353,33 @@
           }
         }
       },
+      "CollectiveIdentifierContextLimitsOverride": {
+        "required": [
+          "maxInvoices"
+        ],
+        "type": "object",
+        "properties": {
+          "maxInvoices": {
+            "maximum": 5000,
+            "minimum": 2,
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CollectiveIdentifierEffectiveContextLimits": {
+        "required": [
+          "maxInvoices"
+        ],
+        "type": "object",
+        "properties": {
+          "maxInvoices": {
+            "minimum": 2,
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "EffectiveApiRateLimitValues": {
         "required": [
           "perHour",
@@ -1550,6 +1581,7 @@
       "EffectiveContextLimits": {
         "required": [
           "batchSession",
+          "collectiveIdentifier",
           "onlineSession"
         ],
         "type": "object",
@@ -1575,6 +1607,16 @@
             "allOf": [
               {
                 "$ref": "#/components/schemas/BatchSessionEffectiveContextLimits"
+              }
+            ]
+          },
+          "collectiveIdentifier": {
+            "required": [
+              "maxInvoices"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CollectiveIdentifierEffectiveContextLimits"
               }
             ]
           }
@@ -1867,6 +1909,7 @@
       "SetSessionLimitsRequest": {
         "required": [
           "batchSession",
+          "collectiveIdentifier",
           "onlineSession"
         ],
         "type": "object",
@@ -1892,6 +1935,16 @@
             "allOf": [
               {
                 "$ref": "#/components/schemas/BatchSessionContextLimitsOverride"
+              }
+            ]
+          },
+          "collectiveIdentifier": {
+            "required": [
+              "maxInvoices"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CollectiveIdentifierContextLimitsOverride"
               }
             ]
           }
