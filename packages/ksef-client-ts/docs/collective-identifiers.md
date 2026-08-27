@@ -146,6 +146,9 @@ ksef collective-identifier invoices <collectiveIdentifierNumber>
       "ksefNumber": "1111111111-20260701-0189AB-CD1234-EF",
       "payment": { "amount": 1230.45, "currency": "PLN" },
       "description": "Q3 delivery"
+    },
+    {
+      "ksefNumber": "1111111111-20260702-0189AB-CD5678-AB"
     }
   ]
 }

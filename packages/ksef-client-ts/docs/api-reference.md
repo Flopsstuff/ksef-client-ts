@@ -549,7 +549,7 @@ Accessed via `client.collectiveIdentifiers`. Requires one of the `InvoiceRead`, 
 generate(request: GenerateCollectiveIdentifierRequest): Promise<GenerateCollectiveIdentifierResponse>
 ```
 
-Generate a collective identifier for up to 500 invoices issued by the same seller. Throws `KSeFValidationError` if the list is larger.
+Generate a collective identifier for invoices issued by the same seller. The list must hold at least 2 invoices and at most 5000 — the highest any context can allow — and `KSeFValidationError` is thrown outside those bounds. The limit actually in force defaults to 500 and is raised through the session limits for the context, so KSeF may still reject a list this method accepts.
 
 ```ts
 query(request: CollectiveIdentifiersQueryRequest, pageSize?: number, continuationToken?: string): Promise<CollectiveIdentifiersQueryResponse>
