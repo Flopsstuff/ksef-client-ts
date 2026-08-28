@@ -1184,6 +1184,7 @@ try {
 | `KSeFBadRequestError` | 400 | RFC 7807 `BadRequestProblemDetails` | `errors[]`, `detail`, `traceId`, `instance`, `timestamp` | None (fix the request) |
 | `KSeFRateLimitError` | 429 | RFC 7807 `TooManyRequestsProblemDetails` or legacy `TooManyRequestsResponse` | `retryAfterSeconds`, `recommendedDelay`, `problem?` | Retry with `Retry-After` |
 | `KSeFBatchTimeoutError` | any non-2xx (KSeF code 21208) | `ApiErrorResponse` | `errorCode` (21208), `statusCode`, `errorResponse` | None (retry with smaller batch) |
+| `KSeFUnknownPublicKeyError` | 400 (KSeF code 21470) | RFC 7807 `BadRequestProblemDetails` or `ApiErrorResponse` | `errorCode` (21470), `statusCode`, `errorResponse` | Certificate cache refresh, then retry once |
 | `KSeFUnauthorizedError` | 401 | RFC 7807 `UnauthorizedProblemDetails` | `detail`, `traceId`, `instance`, `timestamp` | Token refresh, then retry once |
 | `KSeFForbiddenError` | 403 | RFC 7807 `ForbiddenProblemDetails` | `reasonCode`, `detail`, `traceId`, `security`, `timestamp` | None (not retryable) |
 | `KSeFGoneError` | 410 | RFC 7807 `GoneProblemDetails` | `detail`, `traceId`, `instance`, `timestamp` | None (re-issue the underlying action) |
@@ -1191,6 +1192,8 @@ try {
 | `KSeFSessionExpiredError` | -- | -- | `message` | None |
 | `KSeFCircuitOpenError` | -- | -- | `endpoint`, `openedAt`, `retryAfterMs` | None (wait out `retryAfterMs` before retrying) |
 | `KSeFValidationError` | -- | -- | `details[]` with `field` and `message` | None (client-side) |
+| `KSeFXsdValidationError` | -- | -- | `schemaFile`, `errors[]` | None (client-side) |
+| `KSeFMetadataPaginationError` | -- | -- | `boundaryValue` | None (narrow the query or raise the crossing cap) |
 
 ---
 
@@ -1201,8 +1204,10 @@ try {
 | `src/errors/types.ts` | `ApiErrorResponse`, `ExceptionDetails`, `TooManyRequestsResponse`, `UnauthorizedProblemDetails`, `ForbiddenProblemDetails`, `ForbiddenReasonCode`, `GoneProblemDetails` |
 | `src/errors/ksef-error.ts` | `KSeFError` base class |
 | `src/errors/ksef-api-error.ts` | `KSeFApiError` with `fromResponse()` factory |
+| `src/errors/ksef-bad-request-error.ts` | `KSeFBadRequestError` (HTTP 400, RFC 7807) |
 | `src/errors/ksef-rate-limit-error.ts` | `KSeFRateLimitError` with `fromRetryAfterHeader()` factory |
 | `src/errors/ksef-batch-timeout-error.ts` | `KSeFBatchTimeoutError` with `fromResponse()` factory (KSeF code 21208) |
+| `src/errors/ksef-unknown-public-key-error.ts` | `KSeFUnknownPublicKeyError` with `fromProblem()` / `fromLegacy()` factories (KSeF code 21470) |
 | `src/errors/error-codes.ts` | `KSeFErrorCode` numeric code registry + `hasErrorCode()` helper |
 | `src/errors/ksef-unauthorized-error.ts` | `KSeFUnauthorizedError` |
 | `src/errors/ksef-forbidden-error.ts` | `KSeFForbiddenError` |
@@ -1211,9 +1216,12 @@ try {
 | `src/errors/ksef-session-expired-error.ts` | `KSeFSessionExpiredError` |
 | `src/errors/ksef-circuit-open-error.ts` | `KSeFCircuitOpenError` (opt-in circuit breaker) |
 | `src/errors/ksef-validation-error.ts` | `KSeFValidationError`, `ValidationDetail` |
+| `src/errors/ksef-xsd-validation-error.ts` | `KSeFXsdValidationError` (XSD schema validation) |
+| `src/errors/ksef-metadata-pagination-error.ts` | `KSeFMetadataPaginationError` (paging cannot advance) |
 | `src/errors/index.ts` | Barrel re-exports for all error types |
 | `src/http/rest-client.ts` | `ensureSuccess()` dispatch, `sendRequest()` retry + auth refresh |
 | `src/http/retry-policy.ts` | `RetryPolicy`, `parseRetryAfter()`, `calculateBackoff()` |
 | `src/http/auth-manager.ts` | `AuthManager` interface, dedup refresh logic |
+| `src/workflows/metadata-query-paging.ts` | Metadata paging helper; raises `KSeFMetadataPaginationError` |
 | `src/workflows/polling.ts` | `pollUntil()` with timeout |
 | `src/workflows/invoice-export-workflow.ts` | Export workflow error propagation |
