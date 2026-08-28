@@ -33,7 +33,7 @@ Continue working on a change by creating the next artifact.
 
    Mark the most recently modified change as "(Recommended)" since it's likely what the user wants to continue.
 
-   Always announce: "Using change: <name>" and how to override (e.g., `/opsx:continue <other>`).
+   Always announce: "Using change: <name>" and how to override (e.g., `$openspec-continue-change (Codex) or /openspec-continue-change (other agents) <other>`).
 
 2. **Check current status**
    ```bash
