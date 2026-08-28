@@ -149,7 +149,7 @@ Invoice number (`P_2` in XML) must be unique — resubmitting gives error 440 (D
 
 `KSeFError` (base) → `KSeFApiError` (generic HTTP), `KSeFBadRequestError` (400), `KSeFUnauthorizedError` (401), `KSeFForbiddenError` (403), `KSeFGoneError` (410, retention expired), `KSeFRateLimitError` (429), `KSeFBatchTimeoutError` (KSeF code 21208), `KSeFUnknownPublicKeyError` (KSeF code 21470, pre-empts `KSeFBadRequestError`), `KSeFAuthStatusError`, `KSeFSessionExpiredError`, `KSeFValidationError` (builder validation), `KSeFXsdValidationError` (XSD schema validation), `KSeFMetadataPaginationError` (paging cannot advance), `KSeFCircuitOpenError` (circuit breaker fail-fast).
 
-`RestClient.ensureSuccess` reads body text once, then parses per status code (429→401→403→generic).
+`RestClient.ensureSuccess` reads body text once, then parses per status code (400→429→401→403→410), falling back to a KSeF-error-code check and then generic `KSeFApiError`.
 
 ### CI/CD
 
