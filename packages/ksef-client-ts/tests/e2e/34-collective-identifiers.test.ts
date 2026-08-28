@@ -20,21 +20,23 @@ const INVOICE_NOT_ASSIGNABLE = 71001;
  */
 async function generateWhenAssignable(
   attempt: () => Promise<GenerateCollectiveIdentifierResponse>,
-  { intervalMs = 5000, maxAttempts = 12 } = {},
+  { intervalMs = 5000, deadlineMs = 60_000 } = {},
 ): Promise<GenerateCollectiveIdentifierResponse> {
-  for (let i = 1; i <= maxAttempts; i += 1) {
+  // Bound the wall clock rather than the attempt count: the time spent inside a
+  // slow call counts too, so a fixed number of attempts could outlast the spec's
+  // own timeout and report a timeout instead of the real rejection.
+  const giveUpAt = Date.now() + deadlineMs;
+  for (;;) {
     try {
       return await attempt();
     } catch (err) {
       const notAssignable =
         err instanceof KSeFBadRequestError &&
         err.errors.some((e) => e.code === INVOICE_NOT_ASSIGNABLE);
-      if (!notAssignable || i === maxAttempts) throw err;
+      if (!notAssignable || Date.now() + intervalMs >= giveUpAt) throw err;
       await new Promise((r) => setTimeout(r, intervalMs));
     }
   }
-  /* c8 ignore next */
-  throw new Error('unreachable');
 }
 
 describe('34 - Collective Identifiers', { timeout: 300_000 }, () => {
