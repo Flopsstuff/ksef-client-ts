@@ -36,6 +36,8 @@ features:
     details: Authenticate with externally-signed XAdES XML for HSM, EPUAP, and smart card integration. Callback-based API lets you plug in any signing backend without exposing private keys to the library.
   - title: Automatic Token Management
     details: AuthManager handles access/refresh token injection, automatic 401 refresh with request deduplication, and high-level loginWithToken() / loginWithCertificate() API.
+  - title: Opt-in Circuit Breaker
+    details: Fail-fast layer above retry. Opens after consecutive network or 5xx failures, pauses outgoing requests for a cooldown window, then probes for recovery. 429 and 401 responses never count as failures.
   - title: Streaming Batch Uploads
     details: Stream-based batch upload with constant memory usage via Web Streams API. Built-in ZIP bomb protection with configurable limits on file count, total size, and compression ratio.
   - title: Incremental Export

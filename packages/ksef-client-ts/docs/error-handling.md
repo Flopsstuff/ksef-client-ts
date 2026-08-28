@@ -31,14 +31,20 @@ Error (built-in)
         │     ├── KSeFForbiddenError     src/errors/ksef-forbidden-error.ts   (403 + RFC 7807)
         │     ├── KSeFGoneError          src/errors/ksef-gone-error.ts        (410 + RFC 7807, retention expired)
         │     ├── KSeFRateLimitError     src/errors/ksef-rate-limit-error.ts  (429 + RFC 7807)
-        │     └── KSeFBatchTimeoutError  src/errors/ksef-batch-timeout-error.ts (KSeF code 21208)
+        │     ├── KSeFBatchTimeoutError  src/errors/ksef-batch-timeout-error.ts (KSeF code 21208)
+        │     └── KSeFUnknownPublicKeyError
+        │                                src/errors/ksef-unknown-public-key-error.ts (400, KSeF code 21470)
         ├── KSeFAuthStatusError          src/errors/ksef-auth-status-error.ts (auth ceremony failed)
         ├── KSeFSessionExpiredError      src/errors/ksef-session-expired-error.ts (stored session expired)
         ├── KSeFCircuitOpenError         src/errors/ksef-circuit-open-error.ts (circuit breaker is open)
-        └── KSeFValidationError          src/errors/ksef-validation-error.ts  (client-side validation)
+        ├── KSeFValidationError          src/errors/ksef-validation-error.ts  (client-side validation)
+        ├── KSeFXsdValidationError       src/errors/ksef-xsd-validation-error.ts (XSD schema validation)
+        └── KSeFMetadataPaginationError  src/errors/ksef-metadata-pagination-error.ts (paging cannot advance)
 ```
 
 All server-returned HTTP errors extend `KSeFApiError`, so a single `instanceof KSeFApiError` catch handles every response-side failure. The `KSeFApiProblem` union type (see [Exhaustive dispatch](#exhaustive-dispatch-with-ksefapiproblem)) narrows through the five RFC 7807 subclasses for exhaustive `switch` / `assertNever` patterns.
+
+Two `KSeFApiError` subclasses sit outside that union, because they are selected by KSeF error code rather than by status code: `KSeFBatchTimeoutError` (code 21208) and `KSeFUnknownPublicKeyError` (code 21470). Note that `KSeFUnknownPublicKeyError` is thrown *instead of* `KSeFBadRequestError` on a 400 carrying code 21470 -- catching `KSeFBadRequestError` alone will not see it. Catch `KSeFApiError` if you want both.
 
 **All exports:** `src/errors/index.ts` re-exports every error class, type, and interface. Import from the package root:
 
@@ -56,6 +62,9 @@ import {
   KSeFValidationError,
   KSeFBatchTimeoutError,
   KSeFCircuitOpenError,
+  KSeFUnknownPublicKeyError,
+  KSeFXsdValidationError,
+  KSeFMetadataPaginationError,
   KSeFErrorCode,
   type KSeFApiProblem,
   assertNever,
@@ -471,6 +480,70 @@ Pair with a retry-with-smaller-batch strategy rather than a tight loop — the t
 
 ---
 
+### `KSeFUnknownPublicKeyError`
+
+**File:** `src/errors/ksef-unknown-public-key-error.ts`
+
+Thrown when KSeF rejects an encryption request because the supplied `publicKeyId` is unknown or points to a revoked key — HTTP 400 with error code `21470` (KSeF API v2.5.0). Extends `KSeFApiError`, so it also carries `statusCode` and `errorResponse`.
+
+```typescript
+class KSeFUnknownPublicKeyError extends KSeFApiError {
+  readonly statusCode: 400;
+  readonly errorCode: 21470;
+
+  static fromProblem(problem: BadRequestProblemDetails): KSeFUnknownPublicKeyError;
+  static fromLegacy(body?: ApiErrorResponse): KSeFUnknownPublicKeyError;
+}
+```
+
+Two factories cover both response shapes KSeF may return: `fromProblem` reads the RFC 7807 `errors[]` array, `fromLegacy` reads the older `exception.exceptionDetailList` array. Both fall back to a fixed message when the server sends no description.
+
+::: warning
+On a 400 carrying code `21470` this class is thrown **instead of** `KSeFBadRequestError`, and it is not part of the `KSeFApiProblem` union. A handler that only catches `KSeFBadRequestError` will miss it — catch `KSeFApiError` to cover both.
+:::
+
+The library already recovers from this on its own: encryption-bearing operations wrapped in the key-rotation helper (`src/crypto/with-key-rotation-retry.ts`) refresh the cached KSeF public certificates and retry once with a freshly selected key. You normally see this error only when the retry also fails.
+
+---
+
+### `KSeFBadRequestError`
+
+**File:** `src/errors/ksef-bad-request-error.ts`
+
+<!-- markdownlint-disable-next-line MD051 -- VitePress slugs a digit-leading heading as "_400-...", markdownlint expects "400-..."; the link resolves in the built site. -->
+Thrown when KSeF returns HTTP 400 with an RFC 7807 body — the request was rejected before processing. Extends `KSeFApiError`. See [400 Bad Request](#_400-bad-request-badrequestproblemdetails) for the wire format this class is built from.
+
+```typescript
+class KSeFBadRequestError extends KSeFApiError {
+  override readonly statusCode: 400 = 400;
+  readonly detail?: string;
+  readonly instance?: string;
+  readonly errors: BadRequestErrorDetail[];
+  readonly traceId?: string;
+  readonly timestamp?: string;
+
+  constructor(problemDetails: BadRequestProblemDetails);
+  override toProblemFields(): ProblemFields;
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `statusCode` | `400` | Always 400 |
+| `detail` | `string?` | Server's explanation of what failed |
+| `instance` | `string?` | The endpoint path |
+| `errors` | `BadRequestErrorDetail[]` | Individual validation failures; defaults to `[]` when the server sends none |
+| `traceId` | `string?` | Server-side trace ID |
+| `timestamp` | `string?` | UTC timestamp recorded by the server |
+
+The top-level message falls back through `detail` → `title` → `"Bad Request"`, so it is never empty. Each `errors` entry carries `code: number`, `description: string`, and `details: string[]` — route on `code` for programmatic handling.
+
+::: warning
+Not every 400 arrives as this class. A 400 carrying KSeF code `21470` throws [`KSeFUnknownPublicKeyError`](#ksefunknownpublickeyerror) instead, code `21208` throws [`KSeFBatchTimeoutError`](#ksefbatchtimeouterror), and a legacy (non-RFC 7807) 400 body falls back to a generic `KSeFApiError`. Catch `KSeFApiError` to cover all four.
+:::
+
+---
+
 ### `KSeFUnauthorizedError`
 
 **File:** `src/errors/ksef-unauthorized-error.ts`
@@ -677,6 +750,54 @@ Factory methods:
 
 - `fromField(field, message)` -- creates an error with a single field-level validation detail.
 - `fromMessages(messages)` -- creates an error from multiple message strings, joining them with `"; "` for the top-level message.
+
+---
+
+### `KSeFXsdValidationError`
+
+**File:** `src/errors/ksef-xsd-validation-error.ts`
+
+Thrown when an invoice document fails validation against an official KSeF XSD schema. Extends `KSeFError` directly — this is a local check, raised before any network request is made.
+
+```typescript
+class KSeFXsdValidationError extends KSeFError {
+  readonly schemaFile: string;
+  readonly errors: string[];
+
+  constructor(schemaFile: string, errors: string[]);
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `schemaFile` | `string` | Path of the XSD the document was validated against |
+| `errors` | `string[]` | Every schema violation reported by the validator |
+
+The top-level message previews only the first three entries and appends `(+N more)`; read `errors` for the complete list.
+
+Raised by `ksef invoice build --validate-xsd`, which maps it to **exit code 4** so scripts can branch on schema failures specifically. A missing optional `libxmljs2` peer dependency is deliberately mapped to the same exit code, so a wrapper script only has to handle one "XSD did not pass" case.
+
+---
+
+### `KSeFMetadataPaginationError`
+
+**File:** `src/errors/ksef-metadata-pagination-error.ts`
+
+Thrown when the metadata-query paging helper cannot make forward progress across an `isTruncated` boundary — for example, a capped result window whose every row shares the same boundary date, so re-narrowing the date range never advances. Extends `KSeFError`. Raised deliberately instead of looping forever.
+
+```typescript
+class KSeFMetadataPaginationError extends KSeFError {
+  readonly boundaryValue: string;
+
+  constructor(message: string, boundaryValue: string);
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `boundaryValue` | `string` | The boundary date value that failed to advance |
+
+Seeing this means the query cannot be paged as written, not that the request was rejected — the fix is to narrow the query by a dimension other than the date, or to widen the page window. Thrown from `src/workflows/metadata-query-paging.ts`.
 
 ---
 
