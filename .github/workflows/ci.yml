@@ -7,6 +7,14 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Supersede an in-flight run when a branch is pushed again: the E2E job drives
+# the shared live KSeF TEST sandbox, so stacked runs of the same ref compete for
+# it and waste a slow suite on a commit nobody is waiting for. Runs on main are
+# never cancelled — every commit that lands keeps its own verdict.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 permissions:
   contents: read
 
