@@ -2,9 +2,42 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { authenticateWithCertAndCrypto } from './helpers/auth.js';
 import { getFormCode, prepareAndEncryptInvoice } from './helpers/invoices.js';
 import { pollUntil } from './helpers/polling.js';
+import { KSeFBadRequestError } from '../../src/errors/ksef-bad-request-error.js';
 import type { KSeFClient } from '../../src/client.js';
+import type { GenerateCollectiveIdentifierResponse } from '../../src/models/collective-identifiers/types.js';
 
 const COLLECTIVE_IDENTIFIER_FORMAT = /^\d{10}-IZ\d{6}-[0-9A-F]{12}-[0-9A-F]{2}$/;
+
+/** KSeF: "Faktura nie moze zostac przypisana do Identyfikatora Zbiorczego." */
+const INVOICE_NOT_ASSIGNABLE = 71001;
+
+/**
+ * A freshly issued invoice is not immediately eligible for a collective
+ * identifier: the session reporting it as processed and the invoice becoming
+ * assignable are separate server-side states, with no status field exposing the
+ * second one. KSeF rejects the early call with error 71001, so retry on exactly
+ * that code and let every other failure surface untouched.
+ */
+async function generateWhenAssignable(
+  attempt: () => Promise<GenerateCollectiveIdentifierResponse>,
+  { intervalMs = 5000, deadlineMs = 60_000 } = {},
+): Promise<GenerateCollectiveIdentifierResponse> {
+  // Bound the wall clock rather than the attempt count: the time spent inside a
+  // slow call counts too, so a fixed number of attempts could outlast the spec's
+  // own timeout and report a timeout instead of the real rejection.
+  const giveUpAt = Date.now() + deadlineMs;
+  for (;;) {
+    try {
+      return await attempt();
+    } catch (err) {
+      const notAssignable =
+        err instanceof KSeFBadRequestError &&
+        err.errors.some((e) => e.code === INVOICE_NOT_ASSIGNABLE);
+      if (!notAssignable || Date.now() + intervalMs >= giveUpAt) throw err;
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+  }
+}
 
 describe('34 - Collective Identifiers', { timeout: 300_000 }, () => {
   let client: KSeFClient;
@@ -49,12 +82,14 @@ describe('34 - Collective Identifiers', { timeout: 300_000 }, () => {
   }, 180_000);
 
   it('should generate a collective identifier for invoices from the same seller', async () => {
-    const result = await client.collectiveIdentifiers.generate({
-      invoices: [
-        { ksefNumber: ksefNumbers[0]!, payment: { amount: 123.45, currency: 'PLN' }, description: 'E2E first' },
-        { ksefNumber: ksefNumbers[1]! },
-      ],
-    });
+    const result = await generateWhenAssignable(() =>
+      client.collectiveIdentifiers.generate({
+        invoices: [
+          { ksefNumber: ksefNumbers[0]!, payment: { amount: 123.45, currency: 'PLN' }, description: 'E2E first' },
+          { ksefNumber: ksefNumbers[1]! },
+        ],
+      }),
+    );
 
     expect(result.collectiveIdentifierNumber).toMatch(COLLECTIVE_IDENTIFIER_FORMAT);
     expect(result.collectiveIdentifierNumber.startsWith(`${nip}-IZ`)).toBe(true);
