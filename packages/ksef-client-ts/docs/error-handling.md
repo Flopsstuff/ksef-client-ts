@@ -788,7 +788,7 @@ Raised by `ksef invoice build --validate-xsd`, which maps it to **exit code 4** 
 
 **File:** `src/errors/ksef-metadata-pagination-error.ts`
 
-Thrown when the metadata-query paging helper cannot make forward progress across an `isTruncated` boundary — for example, a capped result window whose every row shares the same boundary date, so re-narrowing the date range never advances. Extends `KSeFError`. Raised deliberately instead of looping forever.
+Thrown by the metadata-query paging helper in two distinct situations, both of which end an otherwise unbounded loop. Extends `KSeFError`.
 
 ```typescript
 class KSeFMetadataPaginationError extends KSeFError {
@@ -800,9 +800,14 @@ class KSeFMetadataPaginationError extends KSeFError {
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `boundaryValue` | `string` | The boundary date value that failed to advance |
+| `boundaryValue` | `string` | The boundary value the helper stopped at |
 
-Seeing this means the query cannot be paged as written, not that the request was rejected — the fix is to narrow the query by a dimension other than the date, or to widen the page window. Thrown from `src/workflows/metadata-query-paging.ts`.
+| Cause | What happened | Remedy |
+|-------|---------------|--------|
+| Stalled boundary | A truncated window did not advance past its boundary value — every row in the capped window shares the same date, so re-narrowing the range achieves nothing | Narrow the query by a dimension other than the date |
+| Crossing limit reached | Every boundary advanced normally, but the query crossed more truncation boundaries than `maxBoundaryCrossings` allows (default 1000) | Raise `maxBoundaryCrossings`, or split the query into smaller date ranges |
+
+Read the message to tell them apart: the first names the boundary it stalled on, the second names the limit it exceeded. Neither means the request was rejected — the server answered fine, the result set just cannot be walked under the current settings. Thrown from `src/workflows/metadata-query-paging.ts`.
 
 ---
 
