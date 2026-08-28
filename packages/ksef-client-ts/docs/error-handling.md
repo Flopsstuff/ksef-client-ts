@@ -539,7 +539,12 @@ class KSeFBadRequestError extends KSeFApiError {
 The top-level message falls back through `detail` → `title` → `"Bad Request"`, so it is never empty. Each `errors` entry carries `code: number`, `description: string`, and `details: string[]` — route on `code` for programmatic handling.
 
 ::: warning
-Not every 400 arrives as this class. A 400 carrying KSeF code `21470` throws [`KSeFUnknownPublicKeyError`](#ksefunknownpublickeyerror) instead, code `21208` throws [`KSeFBatchTimeoutError`](#ksefbatchtimeouterror), and a legacy (non-RFC 7807) 400 body falls back to a generic `KSeFApiError`. Catch `KSeFApiError` to cover all four.
+Not every 400 arrives as this class, and which class you get depends on the body format:
+
+- **RFC 7807 body** (the default) — only KSeF code `21470` is singled out, as [`KSeFUnknownPublicKeyError`](#ksefunknownpublickeyerror). Every other code, `21208` included, arrives as `KSeFBadRequestError` with the code in `errors[]`.
+- **Legacy body** — code `21470` throws [`KSeFUnknownPublicKeyError`](#ksefunknownpublickeyerror), code `21208` throws [`KSeFBatchTimeoutError`](#ksefbatchtimeouterror), and anything else falls back to a generic `KSeFApiError`.
+
+Catch `KSeFApiError` to cover every 400 regardless of format, and route on `errors[].code` rather than on the class when you care about a specific KSeF code.
 :::
 
 ---
