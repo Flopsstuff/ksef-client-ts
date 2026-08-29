@@ -278,6 +278,27 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     expect(existsSync(out)).toBe(false);
   });
 
+  // pdfmake silently ignores a colour it cannot parse, so an unrecognized accent
+  // renders a document identical to an unthemed one. A misspelled colour name
+  // has to fail at the flag, or it becomes a PDF that is quietly wrong.
+  it('refuses an accent colour that is not hex', () => {
+    const out = join(outDir, 'should-not-exist-4.pdf');
+    const res = run(['invoice', 'pdf', fx('fa3.xml'), '--accent', 'crimsonn', '--out', out]);
+    expect(res.status).not.toBe(0);
+    expect(`${res.stdout}${res.stderr}`).toMatch(/Invalid --accent/);
+    expect(existsSync(out)).toBe(false);
+  });
+
+  it('accepts both hex forms of an accent colour', () => {
+    for (const accent of ['#B00043', '#b04']) {
+      // Prefixed so this spec's own cleanup owns the file, as the header requires.
+      const out = join(outDir, `${PREFIX}-accent-${accent.slice(1)}.pdf`);
+      const res = run(['invoice', 'pdf', fx('fa3.xml'), '--accent', accent, '--out', out]);
+      expect(res.status, `exit ${res.status}\n${res.stderr}`).toBe(0);
+      expect(isCompletePdf(out), `${out} is not a complete PDF`).toBe(true);
+    }
+  });
+
   // pdfmake draws PNG and JPEG and nothing else, so a vector or animated logo
   // has to be refused at the flag — accepting it only moves the failure into
   // the middle of the render, where the message names no file the caller passed.

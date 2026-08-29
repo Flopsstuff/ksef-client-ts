@@ -387,6 +387,9 @@ ksef invoice pdf upo.xml --upo
 
 # UPO receipt with a custom layout
 ksef invoice pdf upo.xml --template-file ./templates/my-upo.json
+
+# Your own logo and accent colour
+ksef invoice pdf invoice.xml --logo ./brand/logo.png --accent '#B00043'
 ```
 
 | Flag | Description |
@@ -401,9 +404,13 @@ ksef invoice pdf upo.xml --template-file ./templates/my-upo.json
 | `--ksef-number <number>` | KSeF number to print (absent → marked OFFLINE) |
 | `--totals <none\|buckets\|summary\|both>` | Tax breakdown above the amount due (default `buckets`) |
 | `--notes <path>` | JSON file of extra sections: `[{ "head": …, "body": … }]` |
+| `--logo <path>` | Logo image printed in the header — PNG or JPEG |
+| `--accent <hex>` | Accent colour for the title and headings, e.g. `#B00043` |
 | `--upo` | Treat the input as a UPO document (otherwise auto-detected); ignored when a template is named explicitly |
 | `--env <prod\|test\|demo>` | Environment for the QR base URL |
 | `--out <path>` | Output PDF path (default: alongside the source) |
+
+`--accent` takes a hex colour only. pdfmake silently ignores a value it does not recognize — the document then renders exactly as if no accent had been given — so a misspelled colour name is rejected here rather than turning into a PDF that is quietly unthemed. Named CSS colours still work through the `theme` option in code.
 
 `--template` and `--template-file` are mutually exclusive — pass at most one. An explicit template takes precedence over document auto-detection, so a custom UPO layout is selected the same way an invoice one is; the renderer still rejects a template whose `schema` does not match the document. If `pdfmake` is not installed, the command exits with the same friendly install hint shown above.
 

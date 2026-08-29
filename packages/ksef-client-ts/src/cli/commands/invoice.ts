@@ -577,6 +577,15 @@ const VALID_PDF_TOTALS = ['none', 'buckets', 'summary', 'both'] as const;
 type PdfTotals = (typeof VALID_PDF_TOTALS)[number];
 
 /**
+ * A CSS hex colour, the one unambiguous way to name a brand colour. pdfmake
+ * silently ignores a value it does not recognize — the document comes out
+ * exactly as if no accent had been given — so a typo has to be caught at the
+ * flag or it becomes a PDF that is quietly wrong. Named colours still work
+ * through the library option, where the caller can see what they passed.
+ */
+const HEX_COLOUR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+/**
  * The formats pdfmake's `image` node can actually draw. GIF, WebP and SVG were
  * accepted here once, but pdfmake 0.2.x rejects every one of them with
  * "Unknown image format" partway through rendering — so the PDF never
@@ -650,6 +659,7 @@ const pdf = defineCommand({
     ksefNumber: { type: 'string', description: 'KSeF number to print (absent → marked OFFLINE)' },
     upo: { type: 'boolean', description: 'Treat the input as a UPO document (otherwise auto-detected)' },
     logo: { type: 'string', description: 'Path to a logo image (PNG/JPEG) to print in the header' },
+    accent: { type: 'string', description: 'Accent colour for the title and headings, as hex (e.g. #B00043)' },
     totals: { type: 'string', description: 'Tax breakdown above the amount due: none | buckets (as recorded) | summary (computed) | both (default: buckets)' },
     notes: { type: 'string', description: 'Path to a JSON file with extra sections: [{ "head": "…", "body": "…" }, …]' },
     env: { type: 'string', description: 'Environment for the QR base URL (test/demo/prod)' },
@@ -675,6 +685,11 @@ const pdf = defineCommand({
         throw new Error(`Invalid --totals "${totals}". Valid: ${VALID_PDF_TOTALS.join(', ')}`);
       }
 
+      const accent = args.accent as string | undefined;
+      if (accent !== undefined && !HEX_COLOUR.test(accent)) {
+        throw new Error(`Invalid --accent "${accent}". Expected a hex colour such as #B00043 or #b04.`);
+      }
+
       const env = args.env as 'prod' | 'test' | 'demo' | undefined;
       const logo = args.logo ? readImageAsDataUri(args.logo as string) : undefined;
       const notes = args.notes ? readNotesFile(args.notes as string) : undefined;
@@ -688,6 +703,7 @@ const pdf = defineCommand({
         ...(args.ksefNumber ? { ksefNumber: args.ksefNumber as string } : {}),
         ...(env ? { env } : {}),
         ...(logo ? { logo } : {}),
+        ...(accent ? { theme: { accent } } : {}),
         ...(notes ? { notes } : {}),
       };
 
