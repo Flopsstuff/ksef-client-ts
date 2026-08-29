@@ -57,3 +57,27 @@ describe('QR embedding', () => {
     expect(isPdf(bytes)).toBe(true);
   });
 });
+
+describe('a template rejects a document it does not target', () => {
+  it('rejects a UPO fed to an invoice template', async () => {
+    await expect(renderInvoicePdf(upo43, 'fa3-default')).rejects.toThrow(/not recognized as a FA\(3\)/);
+  });
+
+  it('rejects an invoice fed to a UPO template', async () => {
+    await expect(renderInvoicePdf(fa3, 'upo-4_3')).rejects.toThrow(/not recognized as a UPO\(4\.3\)/);
+  });
+
+  it('rejects arbitrary XML', async () => {
+    await expect(renderInvoicePdf('<Whatever><x>1</x></Whatever>', 'fa3-default')).rejects.toThrow(
+      /not recognized as a FA\(3\)/,
+    );
+  });
+
+  it('still reports a concrete mismatch when the version is detectable', async () => {
+    await expect(renderInvoicePdf(fa2, 'fa3-default')).rejects.toThrow(/detected as FA\(2\)/);
+  });
+
+  it('rejects a UPO(4.2) document fed to the UPO(4.3) template', async () => {
+    await expect(renderInvoicePdf(upo42, 'upo-4_3')).rejects.toThrow(/detected as UPO\(4\.2\)/);
+  });
+});

@@ -97,16 +97,29 @@ function buildContext(
   return { root, strict: opts.strict ?? false, label, bindings, flags };
 }
 
+/**
+ * A template renders one document kind, so the input must be recognized *as*
+ * that kind. `null` is a rejection, not a pass: the detectors read the root
+ * element plus a version marker that KSeF's schemas make mandatory, so a `null`
+ * means the input is not the FA/UPO version this template targets — a UPO fed
+ * to an invoice template, an FA(1), or arbitrary XML. Letting it through would
+ * bind every path against the wrong root and yield a plausible but blank PDF.
+ */
 function assertVersionMatch(xml: string, schema: TemplateSchemaId): void {
   const detected: InvoiceVersion | UpoVersion | null = schema.startsWith('UPO')
     ? detectUpoVersion(xml)
     : detectInvoiceVersion(xml);
-  if (detected !== null && detected !== schema) {
+  if (detected === schema) return;
+  if (detected === null) {
     throw new KSeFPdfError(
-      `Template targets ${schema}, but the document was detected as ${detected}. ` +
-        `Use a ${detected} template (or the matching built-in).`,
+      `Template targets ${schema}, but the document was not recognized as a ${schema} document. ` +
+        `Check that the input is the right kind of XML and carries its version marker.`,
     );
   }
+  throw new KSeFPdfError(
+    `Template targets ${schema}, but the document was detected as ${detected}. ` +
+      `Use a ${detected} template (or the matching built-in).`,
+  );
 }
 
 async function renderWithTemplate(
