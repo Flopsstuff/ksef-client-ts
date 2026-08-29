@@ -9,6 +9,8 @@ import {
   renderInvoicePdfFromFile,
   renderInvoicePdfFromTemplate,
   renderUpoPdf,
+  getBuiltinTemplate,
+  builtinTemplateNames,
   detectInvoiceVersion,
   detectUpoVersion,
   type InvoiceTemplate,
@@ -18,9 +20,17 @@ import { VerificationLinkService } from 'ksef-client-ts';
 // Companion to spec 35, which drives the same renderer through the CLI. The CLI
 // is a strict subset of the library: it wires most of RenderOptions but cannot
 // pass a template as an object at all. This spec covers what the command line
-// cannot reach — baseQrUrl, theme, bilingualSeparator, strict, invoiceHash, and
+// cannot reach — baseQrUrl, bilingualSeparator, strict, invoiceHash, and
 // renderInvoicePdfFromTemplate — so a regression there is not invisible just
-// because no flag exposes it.
+// because no flag exposes it. Options the CLI does expose still appear here
+// where they ride along; `theme` is one, since `--accent` landed.
+//
+// Each render carries several of those at once rather than one apiece: they are
+// orthogonal, so isolating them costs a PDF each and proves nothing extra. What
+// has to hold is that none is left unexercised, which the check at the end of
+// the block asserts by reading the option list off the published types.
+// `renderInvoicePdfFromFile` is not among them — the CLI's `--template-file`
+// drives that path end to end in spec 35.
 //
 // It imports by package specifier on purpose: that resolves through the exports
 // map to dist/, so the published artifact is what gets exercised, not src.
@@ -86,74 +96,70 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
     );
   });
 
-  /**
-   * Each render below carries several library-only options at once, rather than
-   * one option per PDF. The options are orthogonal — a separator does not
-   * interact with a hash — so isolating them costs a PDF each and proves nothing
-   * extra; what has to hold is that every one of them is exercised, which the
-   * grid check at the end of this block asserts by reading the calls back.
-   */
   describe('surface the CLI has no flag for', () => {
-    it('takes a template object, and hands it theme.accent as a binding', async () => {
-      // No built-in template consumes the accent — styles in the DSL are static,
-      // so it cannot colour anything today and reaches a template only as a
-      // string binding. Rendering through a template that reads that binding
-      // keeps the option exercised instead of silently ignored.
-      const template: InvoiceTemplate = {
-        schema: 'FA(3)',
-        page: { size: 'A4', margins: [40, 40, 40, 40] },
-        styles: { title: { fontSize: 18, bold: true } },
-        blocks: [
-          { type: 'header', title: { label: 'invoice' }, number: 'Fa.P_2', date: 'Fa.P_1' },
-          { type: 'divider' },
-          {
-            type: 'parties',
-            left: { label: 'seller', fields: ['Podmiot1.DaneIdentyfikacyjne.Nazwa'] },
-            right: { label: 'buyer', fields: ['Podmiot2.DaneIdentyfikacyjne.Nazwa'] },
-          },
-          { type: 'text', path: 'opts.accent' },
-          { type: 'totals', rows: [{ label: 'totalDue', path: 'Fa.P_15', format: 'money' }] },
-        ],
+    it('takes a template as an object — a built-in, rebranded', async () => {
+      // Neither a built-in name nor a file: the caller hands over the template
+      // itself, which is how a layout assembled at runtime — from settings, a
+      // database, a tenant's branding — reaches the renderer. The CLI has no way
+      // to express this.
+      //
+      // Starting from a built-in rather than from nothing is the realistic
+      // shape of it, and the reason `getBuiltinTemplate` is public: writing a
+      // full FA(3) layout by hand to change two colours is not a thing anyone
+      // should have to do.
+      const template = getBuiltinTemplate('fa3-default')!;
+      template.styles = {
+        ...template.styles,
+        title: { ...template.styles?.title, fontSize: 30, color: '#1B4965' },
+        h1: { ...template.styles?.h1, color: '#5FA8D3', characterSpacing: 2 },
+        partyIdentity: { ...template.styles?.partyIdentity, bold: true },
       };
+      template.labels = { ...template.labels, seller: 'Wystawca', buyer: 'Odbiorca' };
+
       await save(
-        `${PREFIX}-01-template-object-accent`,
+        `${PREFIX}-01-template-object`,
         renderInvoicePdfFromTemplate(bytes('e2e-vat-multi.xml'), template, {
-          theme: { accent: '#B0004E' },
           logo: LOGO,
           ksefNumber: KSEF_NUMBER,
+          qr: true,
+          env: 'demo',
         }),
       );
     });
 
-    it('loads a custom template from a JSON file, and renders it strict', async () => {
-      // fa3.xml populates every path the template names, so strict has nothing
-      // to complain about — and would throw on a dot-path typo in the file.
-      const path = join(inputsDir, 'lib-minimal-template.json');
-      writeFileSync(
-        path,
-        JSON.stringify({
-          schema: 'FA(3)',
-          blocks: [
-            { type: 'header', title: { label: 'invoice' }, number: 'Fa.P_2', date: 'Fa.P_1' },
-            { type: 'lines', from: 'Fa.FaWiersz', columns: [
-              { label: 'name', path: 'P_7', width: '*' },
-              { label: 'net', path: 'P_11', format: 'money', width: 70 },
-            ] },
-          ],
-        }),
-      );
-      await save(
-        `${PREFIX}-02-template-file-strict`,
-        renderInvoicePdfFromFile(bytes('fa3.xml'), path, { strict: true }),
-      );
+    it('hands out a copy, so editing one does not repaint the built-in', async () => {
+      // The built-ins are validated once at import and held for the life of the
+      // process. Handing out the stored object would let the edit above leak
+      // into every later render by that name — including one in another part of
+      // the caller's program.
+      const edited = getBuiltinTemplate('fa3-default')!;
+      edited.styles = { ...edited.styles, title: { fontSize: 99, color: '#FF00FF' } };
+
+      const fresh = getBuiltinTemplate('fa3-default')!;
+      expect(fresh.styles?.title).not.toEqual(edited.styles?.title);
+      expect(fresh.styles?.title).toMatchObject({ bold: true });
+
+      // …and a render by name is unaffected too.
+      await expect(renderInvoicePdf(bytes('fa3.xml'), 'fa3-default')).resolves.toBeInstanceOf(Uint8Array);
     });
 
-    it('accepts the XML as a string, with a custom separator and QR host', async () => {
+    it('lists the built-ins it can hand over', () => {
+      expect(builtinTemplateNames()).toEqual(
+        expect.arrayContaining(['fa2-default', 'fa3-default', 'fa3-showcase', 'upo-4_2', 'upo-4_3']),
+      );
+      expect(getBuiltinTemplate('no-such-template')).toBeUndefined();
+    });
+
+    it('accepts the XML as a string, with a custom separator, QR host and accent', async () => {
+      // The accent repaints `title`, `h1` and `h2`, so it only shows on a
+      // template that uses those names — a built-in does, which is why it rides
+      // here rather than on the hand-built template above.
       await save(
-        `${PREFIX}-03-string-input-newline-separator-custom-qr-host`,
+        `${PREFIX}-02-string-input-newline-separator-custom-qr-host-accent`,
         renderInvoicePdf(text('e2e-vat-multi.xml'), 'fa3-default', {
           locale: 'en+pl',
           bilingualSeparator: '\n',
+          theme: { accent: '#B0004E' },
           qr: true,
           baseQrUrl: 'https://verify.example/ksef',
           qrLinks: true,
@@ -163,7 +169,12 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
       );
     });
 
-    it('takes a precomputed hash for Code I and a ready-made Code II', async () => {
+    it('takes a precomputed hash for Code I and a ready-made Code II, strictly', async () => {
+      // `strict` has no flag, so this is the only place it is exercised on a
+      // real page. It turns a dot-path typo into a thrown error instead of a
+      // blank line, which only works because every binding the FA schema lets a
+      // document omit is marked optional in the template.
+
       // Code II cannot be derived here — it is signed with the issuer's offline
       // certificate key — so the library takes it as a URL. Built with a
       // throwaway key so the code has a realistic density.
@@ -184,9 +195,10 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
         key,
       );
       await save(
-        `${PREFIX}-04-precomputed-hash-both-codes-links`,
+        `${PREFIX}-03-precomputed-hash-both-codes-links-strict`,
         renderInvoicePdf(raw, 'fa3-default', {
           qr: true,
+          strict: true,
           env: 'demo',
           invoiceHash,
           certificateQrUrl,
@@ -198,7 +210,7 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
 
     it('takes a Code I URL verbatim, skipping derivation entirely', async () => {
       await save(
-        `${PREFIX}-05-supplied-code-i-url`,
+        `${PREFIX}-04-supplied-code-i-url`,
         renderInvoicePdf(bytes('e2e-vat-multi.xml'), 'fa3-default', {
           qrUrl: `${DEMO_QR_HOST}/invoice/1111111111/15-01-2026/SUPPLIED-VERBATIM`,
           qrLinks: true,
@@ -211,7 +223,7 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
 
     // Receipt last, as in spec 35.
     it('renders a UPO through the library entry point', async () => {
-      await save(`${PREFIX}-06-upo`, renderUpoPdf(bytes('upo-4_3.xml'), { locale: 'uk' }));
+      await save(`${PREFIX}-05-upo`, renderUpoPdf(bytes('upo-4_3.xml'), { locale: 'uk' }));
     });
 
     it('leaves no render option unexercised', () => {

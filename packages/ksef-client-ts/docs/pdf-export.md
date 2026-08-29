@@ -106,6 +106,23 @@ const pdf = await renderUpoPdf(await readFile('upo.xml'));
 
 ### Version detection helpers
 
+### `getBuiltinTemplate(name)` / `builtinTemplateNames()` — start from a built-in
+
+Writing a full FA(3) layout by hand to change two colours is not a reasonable way to get a custom template. `getBuiltinTemplate` returns one as a plain object to adapt and pass to `renderInvoicePdfFromTemplate`; `builtinTemplateNames` lists what is available.
+
+```ts
+import { getBuiltinTemplate, renderInvoicePdfFromTemplate } from 'ksef-client-ts/pdf';
+
+const template = getBuiltinTemplate('fa3-default')!;
+template.styles = {
+  ...template.styles,
+  title: { ...template.styles?.title, color: '#1B4965' },
+};
+const pdf = await renderInvoicePdfFromTemplate(xml, template);
+```
+
+What comes back is a **copy**. The built-ins are validated once at import and held for the life of the process, so editing the returned object cannot repaint a later render by that name.
+
 `detectInvoiceVersion` and `detectUpoVersion` inspect the XML and return the detected version or `null`.
 
 ```ts

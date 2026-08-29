@@ -22,7 +22,7 @@ import type { Locale } from './i18n/types.js';
 import { validateTemplate, type InvoiceTemplate, type TemplateSchemaId } from './template/dsl.js';
 import { interpretTemplate, type RenderContext, type RenderNote } from './template/interpret.js';
 import { blockRegistry } from './template/blocks/index.js';
-import { getBuiltinTemplate, builtinTemplateNames } from './template/builtin/index.js';
+import { getBuiltinTemplate as loadBuiltinTemplate, builtinTemplateNames } from './template/builtin/index.js';
 import { loadPdfMake, createPdfBuffer } from './fonts.js';
 import { deriveInvoiceQrUrl } from './qr.js';
 
@@ -30,6 +30,26 @@ export type { Locale } from './i18n/types.js';
 export type { InvoiceTemplate } from './template/dsl.js';
 export type { RenderNote } from './template/interpret.js';
 export { detectInvoiceVersion, detectUpoVersion } from './parse.js';
+export { builtinTemplateNames } from './template/builtin/index.js';
+
+/**
+ * A built-in template as a plain object, for callers who want to start from one
+ * and adapt it rather than write a layout from nothing — a different palette,
+ * a company's own wording — then render it with
+ * {@link renderInvoicePdfFromTemplate}.
+ *
+ * The result is a **copy**. The built-ins are validated once at import and held
+ * for the life of the process, so handing out the stored object would let one
+ * caller's edit silently repaint every later render by that name. Editing what
+ * comes back here affects nothing else.
+ *
+ * `undefined` for a name that is not built in; {@link builtinTemplateNames}
+ * lists the ones that are.
+ */
+export function getBuiltinTemplate(name: string): InvoiceTemplate | undefined {
+  const template = loadBuiltinTemplate(name);
+  return template && structuredClone(template);
+}
 
 /**
  * Which parts of the totals block a reader gets. `Do zapłaty` is always shown —
@@ -247,7 +267,7 @@ export async function renderInvoicePdf(
   name: string,
   opts: RenderOptions = {},
 ): Promise<Uint8Array> {
-  const template = getBuiltinTemplate(name);
+  const template = loadBuiltinTemplate(name);
   if (!template) {
     throw new KSeFPdfError(
       `Unknown built-in template "${name}". Available: ${builtinTemplateNames().join(', ')}`,

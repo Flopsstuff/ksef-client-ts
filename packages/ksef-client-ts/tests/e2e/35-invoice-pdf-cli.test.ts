@@ -247,6 +247,9 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     expect(covered('--template-file'), 'a custom template file is never used').toBe(true);
     expect(covered('--template '), 'a built-in is never selected by name').toBe(true);
     expect(covered('--notes'), 'caller-supplied notes are never printed').toBe(true);
+    // The accent repaints the title and both heading levels, so a themed render
+    // differs from an unthemed one on every page — worth its own cover.
+    expect(covered('--accent'), 'the accent colour is never applied').toBe(true);
     expect(covered('--logo'), 'the logo is never printed').toBe(true);
     for (const accent of ['#5AB595', '#b04']) {
       expect(covered(`--accent ${accent}`), `no variant renders with accent ${accent}`).toBe(true);
