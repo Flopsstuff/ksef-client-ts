@@ -67,6 +67,26 @@ describe('tableRenderer', () => {
     expect(node.style).toBeUndefined();
   });
 
+  // pdfmake reads body[0].length while measuring, so an empty body takes the
+  // render down instead of drawing nothing. Headers off plus a repeater that
+  // matched nothing is the reachable way to get there.
+  it('returns null when headers are off and the repeater matched no rows', () => {
+    const block: TableBlock = {
+      type: 'table',
+      from: 'Fa.NieMaTakiej',
+      columns: COLS,
+      headers: false,
+    };
+    expect(tableRenderer(block, makeCtx(ROOT), noRender)).toBeNull();
+  });
+
+  it('still renders a header-only table when headers are on', () => {
+    const block: TableBlock = { type: 'table', from: 'Fa.NieMaTakiej', columns: COLS };
+    const node = asRecord(tableRenderer(block, makeCtx(ROOT), noRender));
+    const table = asRecord(node.table);
+    expect((table.body as unknown[]).length).toBe(1);
+  });
+
   it('renders a repeater whose single element collapsed to an object (header + 1 row)', () => {
     const block: TableBlock = { type: 'table', from: 'Fa.Solo', columns: COLS };
     const node = asRecord(tableRenderer(block, makeCtx(ROOT), noRender));

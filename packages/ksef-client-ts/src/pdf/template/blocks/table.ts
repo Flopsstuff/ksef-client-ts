@@ -37,6 +37,12 @@ export const tableRenderer: BlockRenderer<TableBlock> = (block, ctx) => {
     );
   }
 
+  // pdfmake reads `body[0].length` while measuring, so an empty body takes the
+  // render down rather than drawing nothing. A repeater with headers switched
+  // off and no rows to show reaches that state, and the honest result there is
+  // no table at all — the interpreter drops a null block.
+  if (body.length === 0) return null;
+
   const node: Record<string, unknown> = {
     table: {
       headerRows: showHeaders ? 1 : 0,

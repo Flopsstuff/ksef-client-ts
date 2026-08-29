@@ -43,6 +43,11 @@ export const totalsRenderer: BlockRenderer<TotalsBlock> = (block, ctx) => {
     ]);
   }
 
+  // Every row can be skipped — each is gated on `when` or on resolving to a
+  // value — and pdfmake reads `body[0].length`, so an empty table takes the
+  // render down instead of drawing nothing. Show no totals rather than fail.
+  if (body.length === 0) return null;
+
   return {
     columns: [
       { width: '*', text: '' },

@@ -642,6 +642,37 @@ describe('linesRenderer', () => {
 // ── totals ──────────────────────────────────────────────────────────────────
 
 describe('totalsRenderer', () => {
+  // Every row is gated — on `when`, or on resolving to a value — so all of them
+  // can be skipped. pdfmake reads body[0].length, so an empty totals table took
+  // the render down rather than printing nothing.
+  it('returns null when every row was skipped', () => {
+    const ctx = makeCtx({ Fa: {} });
+    expect(
+      totalsRenderer(
+        {
+          type: 'totals',
+          rows: [
+            { label: 'net23', path: 'Fa.P_13_1', optional: true, format: 'money' },
+            { label: 'vat23', path: 'Fa.P_14_1', optional: true, format: 'money' },
+          ],
+        },
+        ctx,
+        noRender,
+      ),
+    ).toBeNull();
+  });
+
+  it('still renders when one row survives', () => {
+    const ctx = makeCtx({ Fa: { P_15: '123' } });
+    expect(
+      totalsRenderer(
+        { type: 'totals', rows: [{ label: 'totalDue', path: 'Fa.P_15', format: 'money' }] },
+        ctx,
+        noRender,
+      ),
+    ).not.toBeNull();
+  });
+
   it('renders a right-aligned borderless summary table (+ style)', () => {
     const ctx = makeCtx({ Fa: { P_13_1: '100', P_15: '123' } });
     const node = rec(
