@@ -10,7 +10,6 @@ import { makeLabelResolver } from '../../../src/pdf/i18n/index.js';
 import { applyFormat } from '../../../src/pdf/format.js';
 import { headerRenderer } from '../../../src/pdf/template/blocks/header.js';
 import { partiesRenderer } from '../../../src/pdf/template/blocks/parties.js';
-import { partiesRenderer } from '../../../src/pdf/template/blocks/parties.js';
 import { linesRenderer } from '../../../src/pdf/template/blocks/lines.js';
 import { totalsRenderer } from '../../../src/pdf/template/blocks/totals.js';
 import { paymentRenderer } from '../../../src/pdf/template/blocks/payment.js';
@@ -110,7 +109,7 @@ describe('partiesRenderer', () => {
             label: 'buyer',
             fields: [
               'Podmiot2.DaneIdentyfikacyjne.Nazwa',
-              { label: 'address', style: 'partyAddress', fields: ['Podmiot2.Adres.AdresL1', 'Podmiot2.Adres.AdresL2'] },
+              { label: 'address', style: 'partyDetails', fields: ['Podmiot2.Adres.AdresL1', 'Podmiot2.Adres.AdresL2'] },
             ],
           },
         },
@@ -130,8 +129,8 @@ describe('partiesRenderer', () => {
     ]);
     // the sub-heading matches the panel heading; the lines carry the group style
     expect(stack[2].style).toBe(stack[0].style);
-    expect(stack[3].style).toBe('partyAddress');
-    expect(stack[4].style).toBe('partyAddress');
+    expect(stack[3].style).toBe('partyDetails');
+    expect(stack[4].style).toBe('partyDetails');
   });
 
   it('drops an address group whose lines are all absent, heading included', () => {
@@ -144,7 +143,7 @@ describe('partiesRenderer', () => {
             label: 'buyer',
             fields: [
               'Podmiot2.DaneIdentyfikacyjne.Nazwa',
-              { label: 'address', style: 'partyAddress', fields: ['Podmiot2.Adres.AdresL1', 'Podmiot2.Adres.AdresL2'] },
+              { label: 'address', style: 'partyDetails', fields: ['Podmiot2.Adres.AdresL1', 'Podmiot2.Adres.AdresL2'] },
             ],
           },
         },
@@ -167,7 +166,7 @@ describe('partiesRenderer', () => {
           right: {
             label: 'buyer',
             fields: [
-              { label: 'address', style: 'partyAddress', fields: ['Podmiot2.Adres.AdresL1', 'Podmiot2.Adres.AdresL2'] },
+              { label: 'address', style: 'partyDetails', fields: ['Podmiot2.Adres.AdresL1', 'Podmiot2.Adres.AdresL2'] },
             ],
           },
         },
@@ -187,7 +186,7 @@ describe('partiesRenderer', () => {
     const contact = {
       label: 'contact',
       from: 'Podmiot2.DaneKontaktowe',
-      style: 'partyAddress',
+      style: 'partyDetails',
       fields: ['Email', 'Telefon'],
     };
     const node = rec(
@@ -283,6 +282,65 @@ describe('partiesRenderer', () => {
     expect(stack.map((n: { text: string }) => n.text)).toContain('1111111111');
     expect(stack.map((n: { text: string }) => n.text)).not.toContain('CR-421169');
   });
+
+  // The panel style covers the identity lines — name and tax number — which sit
+  // directly under the heading and belong to no group.
+  describe('panel style', () => {
+    const styled = (group: Record<string, unknown>) =>
+      rec(
+        partiesRenderer(
+          {
+            type: 'parties',
+            left: { label: 'seller', fields: [] },
+            right: {
+              label: 'buyer',
+              style: 'partyIdentity',
+              fields: ['Podmiot2.DaneIdentyfikacyjne.Nazwa', group],
+            },
+          },
+          makeCtx({
+            Podmiot2: {
+              DaneIdentyfikacyjne: { Nazwa: 'Nabywca' },
+              Adres: { AdresL1: 'ul. Testowa 1' },
+            },
+          }),
+          noRender,
+        ),
+      ).columns[1].stack;
+
+    it('styles the identity lines but leaves the heading alone', () => {
+      const stack = styled({ label: 'address', style: 'partyDetails', fields: ['Podmiot2.Adres.AdresL1'] });
+      expect(stack[0].text).toBe('buyer');
+      expect(stack[0].style).toBe('h2'); // the heading keeps its own style
+      expect(stack[1]).toEqual({ text: 'Nabywca', style: 'partyIdentity' });
+    });
+
+    it('lets a group override it for its own lines', () => {
+      const stack = styled({ label: 'address', style: 'partyDetails', fields: ['Podmiot2.Adres.AdresL1'] });
+      expect(stack[2].style).toBe('h2'); // the sub-heading, not the group style
+      expect(stack[3]).toEqual({ text: 'ul. Testowa 1', style: 'partyDetails' });
+    });
+
+    it('passes it down to a group that declares none', () => {
+      const stack = styled({ label: 'address', fields: ['Podmiot2.Adres.AdresL1'] });
+      expect(stack[3].style).toBe('partyIdentity');
+    });
+
+    it('leaves value lines unstyled when the panel declares none', () => {
+      const stack = rec(
+        partiesRenderer(
+          {
+            type: 'parties',
+            left: { label: 'seller', fields: [] },
+            right: { label: 'buyer', fields: ['Podmiot2.DaneIdentyfikacyjne.Nazwa'] },
+          },
+          makeCtx({ Podmiot2: { DaneIdentyfikacyjne: { Nazwa: 'Nabywca' } } }),
+          noRender,
+        ),
+      ).columns[1].stack;
+      expect(stack[1]).toEqual({ text: 'Nabywca' });
+    });
+  });
 });
 
 // ── header (existing renderer) ───────────────────────────────────────────────
@@ -360,6 +418,64 @@ describe('headerRenderer', () => {
     const [, right] = node.columns;
     expect(right.stack).toHaveLength(2);
     expect(JSON.stringify(right.stack)).not.toContain('ksefNumber');
+  });
+
+  it('puts the OFFLINE marker in the KSeF number\'s slot, right-aligned with it', () => {
+    const node = rec(
+      headerRenderer(
+        {
+          type: 'header',
+          number: 'Fa.P_2',
+          date: 'Fa.P_1',
+          ksefNumber: 'opts.ksefNumber',
+          offlineStyle: 'offline',
+        },
+        makeCtx({ Fa: { P_2: 'FV/2025/01', P_1: '2025-01-15' } }),
+        noRender,
+      ),
+    );
+    const [, right] = node.columns;
+    expect(right.alignment).toBe('right'); // the marker rides the header's right stack
+    expect(right.stack).toHaveLength(3);
+    expect(right.stack[2]).toEqual({ text: 'offline', style: 'offline' }); // label('offline')
+  });
+
+  it('drops the marker once the invoice carries a KSeF number', () => {
+    const ctx = makeCtx(
+      { Fa: { P_2: 'FV/2025/01', P_1: '2025-01-15' } },
+      { bindings: { 'opts.ksefNumber': '1111111111-20250115-010000000000-00' } },
+    );
+    const node = rec(
+      headerRenderer(
+        {
+          type: 'header',
+          number: 'Fa.P_2',
+          date: 'Fa.P_1',
+          ksefNumber: 'opts.ksefNumber',
+          offlineStyle: 'offline',
+        },
+        ctx,
+        noRender,
+      ),
+    );
+    const [, right] = node.columns;
+    expect(right.stack).toHaveLength(3);
+    expect(right.stack[2].style).toBeUndefined();
+    expect(right.stack[2].text).toContain('1111111111-20250115-010000000000-00');
+  });
+
+  // The marker stands in for the KSeF number, so a header that prints no such
+  // number has no slot for it either.
+  it('leaves the marker out when the header prints no KSeF number at all', () => {
+    const node = rec(
+      headerRenderer(
+        { type: 'header', number: 'Fa.P_2', offlineStyle: 'offline' },
+        makeCtx({ Fa: { P_2: 'FV/2025/01' } }),
+        noRender,
+      ),
+    );
+    const [, right] = node.columns;
+    expect(right.stack).toHaveLength(1);
   });
 
   it('drops the logo node when its binding resolves empty', () => {

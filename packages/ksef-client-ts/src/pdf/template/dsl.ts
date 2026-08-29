@@ -90,6 +90,13 @@ export interface HeaderBlock {
    * visualization does not print a dangling label.
    */
   ksefNumber?: string;
+  /**
+   * Style for the OFFLINE marker, which takes the place of the KSeF number
+   * line when that number resolves empty — the invoice is not registered yet.
+   * Setting it is what asks for the marker at all; without it the line is
+   * simply left out. Needs `ksefNumber`, whose slot the marker occupies.
+   */
+  offlineStyle?: string;
   style?: string;
 }
 
@@ -129,6 +136,13 @@ export interface PartyGroup {
 
 export interface PartyColumn {
   label: string;
+  /**
+   * Style for the panel's own value lines — the counterparty's identity, since
+   * everything below it lives in a labelled group. A group without a `style` of
+   * its own inherits this one, so a panel styles uniformly by default and a
+   * group overrides only where it wants to differ. Headings are unaffected.
+   */
+  style?: string;
   fields: PartyField[];
 }
 
@@ -338,6 +352,9 @@ const partyField: z.ZodType<PartyField> = z.lazy(() =>
       .strict(),
   ]),
 );
+const partyColumn = z
+  .object({ label: z.string(), style: z.string().optional(), fields: z.array(partyField) })
+  .strict();
 const fieldDef = z
   .object({
     label: z.string(),
@@ -385,12 +402,13 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
       number: z.string().optional(),
       date: z.string().optional(),
       ksefNumber: z.string().optional(),
+      offlineStyle: z.string().optional(),
       style: z.string().optional(),
     }).strict(),
     z.object({
       type: z.literal('parties'),
-      left: z.object({ label: z.string(), fields: z.array(partyField) }).strict(),
-      right: z.object({ label: z.string(), fields: z.array(partyField) }).strict(),
+      left: partyColumn,
+      right: partyColumn,
       style: z.string().optional(),
     }).strict(),
     z.object({

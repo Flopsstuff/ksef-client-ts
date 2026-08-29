@@ -5,9 +5,10 @@ import { resolveBinding, resolveText, type BlockRenderer, type PdfNode } from '.
 /**
  * Invoice header: a title (defaults to the localized "Invoice" label) with the
  * optional logo beneath it, and the invoice number, issue date and KSeF number stacked on the
- * right — one `label: value` line each, in the body font. The KSeF number is
- * dropped when it resolves empty, so an offline visualization shows no dangling
- * label (the separate OFFLINE marker covers that case).
+ * right — one `label: value` line each, in the body font. When the KSeF number
+ * resolves empty the line is replaced by the OFFLINE marker rather than a
+ * dangling label, so the marker sits where the number would have been instead
+ * of drifting to the left margin under the title.
  */
 export const headerRenderer: BlockRenderer<HeaderBlock> = (block, ctx) => {
   const title = resolveText(block.title, ctx) || ctx.label('invoice');
@@ -26,7 +27,11 @@ export const headerRenderer: BlockRenderer<HeaderBlock> = (block, ctx) => {
   }
   if (block.ksefNumber) {
     const value = resolveBinding(block.ksefNumber, ctx);
-    if (value) right.push({ text: `${ctx.label('ksefNumber')}: ${value}` });
+    if (value) {
+      right.push({ text: `${ctx.label('ksefNumber')}: ${value}` });
+    } else if (block.offlineStyle) {
+      right.push({ text: ctx.label('offline'), style: block.offlineStyle });
+    }
   }
 
   return {

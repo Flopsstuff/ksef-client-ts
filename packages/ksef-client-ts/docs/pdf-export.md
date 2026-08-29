@@ -166,7 +166,7 @@ The `schema` field binds a template to a single document kind. If you render an 
 
 | Block | Renders |
 |-------|---------|
-| `header` | Title and optional logo on the left; invoice number, issue date and KSeF number stacked on the right |
+| `header` | Title and optional logo on the left; invoice number, issue date and KSeF number stacked on the right. With `offlineStyle` set, the OFFLINE marker takes the KSeF number's place when the document carries none |
 | `parties` | Seller / buyer two-column panel; a line that resolves empty is skipped |
 | `lines` | Invoice line-item table |
 | `totals` | Net / VAT / gross summary rows (a row reads one path or sums several) |
@@ -194,6 +194,7 @@ It prints the localized attribution on the left and a `Page 1 of 3` indicator on
 - **`when`** conditionally renders a block against a presence test. It accepts a binding path (e.g. `Fa.Platnosc`) or a context flag: `qr`, `offline`, `hasKsefNumber`.
 - **`format`** names a value formatter: `money`, `date`, `number`, or `nip`.
 - **`optional`** marks a binding the document may legitimately omit, exempting it from `strict`. Mark exactly what the schema declares optional — everything left unmarked is a field the document must carry.
+- **`style`** (party panels) names a style for a panel's value lines. A labelled group inherits it unless it declares its own, so the built-in templates set `partyIdentity` on the panel — the counterparty's name and tax number — and let the address and contact groups drop to the smaller `partyDetails`. Headings keep the panel's heading style either way.
 - **`firstOf`** (party fields only) prints the first of several paths that resolves. KSeF identifies a counterparty by exactly one of `NIP`, `NrVatUE` or `NrID` depending on where they are established, so the built-in templates bind the buyer's identifier this way; a panel bound to `NIP` alone has nothing to print for a foreign buyer.
 - **`width`** (table columns only) sizes a column: a number of points, `'auto'` to fit the content, or `'*'` to share out what is left (the default). Sizing is worth setting explicitly — pdfmake gives every `'*'` column the *same* width and never shrinks it below the widest minimum content width among them, so a single long unbreakable token silently widens the whole table past the page edge.
 - **`sum`** (totals rows only) adds several binding paths instead of reading one. A KSeF invoice has no single net or VAT total — the amounts are split across the `P_13_*` and `P_14_*` rate buckets, with zero-rated sales split three further ways (`P_13_6_1` domestic, `P_13_6_2` intra-EU supply, `P_13_6_3` export) — so the built-in templates aggregate them. Absent buckets are skipped, and the addition is decimal-exact. A totals row takes either `path` or `sum`, never both.

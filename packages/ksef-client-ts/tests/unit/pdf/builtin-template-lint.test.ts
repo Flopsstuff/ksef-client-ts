@@ -154,6 +154,39 @@ describe('built-in template lint', () => {
     expect(has(root, 'Fa.Platnsoc')).toBe(false); // the typo this lint exists to catch
   });
 
+  /**
+   * pdfmake silently ignores a style name it does not know, so a renamed or
+   * mistyped style reference costs nothing at render time and everything on the
+   * page. Nothing else checks this: the DSL types a style as a plain string.
+   */
+  it.each(Object.keys(FIXTURE_BY_TEMPLATE))('%s: every style it references is defined', (name) => {
+    const template = getBuiltinTemplate(name)!;
+    const defined = Object.keys(template.styles ?? {});
+    const referenced = new Set<string>();
+    const walk = (value: unknown): void => {
+      if (Array.isArray(value)) return value.forEach(walk);
+      if (value === null || typeof value !== 'object') return;
+      for (const [key, inner] of Object.entries(value)) {
+        if (key === 'style' && typeof inner === 'string') referenced.add(inner);
+        else walk(inner);
+      }
+    };
+    walk(template);
+    expect([...referenced].filter((style) => !defined.includes(style))).toEqual([]);
+  });
+
+  it.each(Object.keys(FIXTURE_BY_TEMPLATE))('%s: defines the styles the renderers reach for', (name) => {
+    // Two style names are reached for by the renderers rather than named in the
+    // template, so nothing in the JSON points at them: `title` is the header's
+    // default, and `h2` is hardcoded as the heading of the parties, payment and
+    // annotations blocks. A template that omits one loses those headings.
+    const template = getBuiltinTemplate(name)!;
+    const defined = Object.keys(template.styles ?? {});
+    const needsH2 = template.blocks.some((b) => ['parties', 'payment', 'annotations'].includes(b.type));
+    expect(defined).toContain('title');
+    if (needsH2) expect(defined).toContain('h2');
+  });
+
   it('fails a template whose repeater path is misspelled', () => {
     const root = bodyOf('fa3-default');
     expect(list(root, 'Fa.FaWiersz').length).toBeGreaterThan(0);

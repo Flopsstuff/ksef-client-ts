@@ -8,7 +8,8 @@
     "muted": { "color": "#666666", "fontSize": 8 },
     "offline": { "color": "#b00020", "bold": true },
     "footerNote": { "fontSize": 7, "color": "#999999" },
-    "partyAddress": { "fontSize": 8 }
+    "partyIdentity": { "fontSize": 9 },
+    "partyDetails": { "fontSize": 8 }
   },
   "blocks": [
     {
@@ -18,21 +19,22 @@
       "title": { "label": "invoice" },
       "number": "Fa.P_2",
       "date": "Fa.P_1",
-      "ksefNumber": "opts.ksefNumber"
+      "ksefNumber": "opts.ksefNumber",
+      "offlineStyle": "offline"
     },
-    { "type": "text", "label": "offline", "when": "offline", "style": "offline" },
     { "type": "divider" },
     { "type": "spacer", "height": 4 },
     {
       "type": "parties",
       "left": {
         "label": "seller",
+        "style": "partyIdentity",
         "fields": [
           "Podmiot1.DaneIdentyfikacyjne.Nazwa",
           "Podmiot1.DaneIdentyfikacyjne.NIP",
           {
             "label": "address",
-            "style": "partyAddress",
+            "style": "partyDetails",
             "fields": [
               "Podmiot1.Adres.AdresL1",
               { "path": "Podmiot1.Adres.AdresL2", "optional": true },
@@ -42,13 +44,14 @@
           {
             "label": "contact",
             "from": "Podmiot1.DaneKontaktowe",
-            "style": "partyAddress",
+            "style": "partyDetails",
             "fields": ["Email", "Telefon"]
           }
         ]
       },
       "right": {
         "label": "buyer",
+        "style": "partyIdentity",
         "fields": [
           "Podmiot2.DaneIdentyfikacyjne.Nazwa",
           {
@@ -60,7 +63,7 @@
           },
           {
             "label": "address",
-            "style": "partyAddress",
+            "style": "partyDetails",
             "fields": [
               "Podmiot2.Adres.AdresL1",
               { "path": "Podmiot2.Adres.AdresL2", "optional": true },
@@ -70,7 +73,7 @@
           {
             "label": "contact",
             "from": "Podmiot2.DaneKontaktowe",
-            "style": "partyAddress",
+            "style": "partyDetails",
             "fields": ["Email", "Telefon", "NrKlienta"]
           }
         ]
