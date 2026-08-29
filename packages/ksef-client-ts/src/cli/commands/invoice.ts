@@ -577,6 +577,15 @@ const VALID_PDF_TOTALS = ['none', 'buckets', 'summary', 'both'] as const;
 type PdfTotals = (typeof VALID_PDF_TOTALS)[number];
 
 /**
+ * The environments a QR verification host can be derived for. An unrecognized
+ * value falls through to production when the URL is built, so a typo would
+ * print a production host on a test invoice and the command would still report
+ * success — the flag has to be the place that catches it.
+ */
+const VALID_PDF_ENVS = ['prod', 'test', 'demo'] as const;
+type PdfEnv = (typeof VALID_PDF_ENVS)[number];
+
+/**
  * A CSS hex colour, the one unambiguous way to name a brand colour. pdfmake
  * silently ignores a value it does not recognize — the document comes out
  * exactly as if no accent had been given — so a typo has to be caught at the
@@ -703,7 +712,10 @@ const pdf = defineCommand({
         throw new Error(`Invalid --accent "${accent}". Expected a hex colour such as #5AB595 or #b04.`);
       }
 
-      const env = args.env as 'prod' | 'test' | 'demo' | undefined;
+      const env = args.env as string | undefined;
+      if (env !== undefined && !VALID_PDF_ENVS.includes(env as PdfEnv)) {
+        throw new Error(`Invalid --env "${env}". Valid: ${VALID_PDF_ENVS.join(', ')}`);
+      }
       const logo = args.logo ? readImageAsDataUri(args.logo as string) : undefined;
       const notes = args.notes ? readNotesFile(args.notes as string) : undefined;
       const renderOpts = {
@@ -714,7 +726,7 @@ const pdf = defineCommand({
         ...(args.qrUrl ? { qrUrl: args.qrUrl as string } : {}),
         ...(args.qrCertUrl ? { certificateQrUrl: args.qrCertUrl as string } : {}),
         ...(args.ksefNumber ? { ksefNumber: args.ksefNumber as string } : {}),
-        ...(env ? { env } : {}),
+        ...(env ? { env: env as PdfEnv } : {}),
         ...(logo ? { logo } : {}),
         ...(accent ? { theme: { accent } } : {}),
         ...(notes ? { notes } : {}),

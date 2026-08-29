@@ -101,6 +101,25 @@ describe('invoice pdf — CLI wiring', () => {
     await expect(runPdf({ file: 'invoice.xml', locale: 'de' })).rejects.toThrow(/Invalid --locale/);
   });
 
+  // An unrecognized environment resolves to the production QR host, so without
+  // this the command would print a production code on a test invoice and report
+  // success — the one failure mode a reader cannot see on the page.
+  it('rejects an unknown --env instead of falling back to production', async () => {
+    await expect(runPdf({ file: 'invoice.xml', qr: true, env: 'staging' })).rejects.toThrow(
+      /Invalid --env "staging"\. Valid: prod, test, demo/,
+    );
+    expect(mockedPdf.renderInvoicePdf).not.toHaveBeenCalled();
+  });
+
+  it.each(['prod', 'test', 'demo'])('accepts --env %s', async (env) => {
+    await runPdf({ file: 'invoice.xml', qr: true, env });
+    expect(mockedPdf.renderInvoicePdf).toHaveBeenCalledWith(
+      expect.any(Uint8Array),
+      'fa3-default',
+      expect.objectContaining({ env }),
+    );
+  });
+
   it('defaults to fa3-default for an FA(3) document and writes next to the source', async () => {
     await runPdf({ file: 'dir/invoice.xml' });
     expect(mockedPdf.renderInvoicePdf).toHaveBeenCalledWith(

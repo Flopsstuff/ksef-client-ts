@@ -337,6 +337,17 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
   // pdfmake silently ignores a colour it cannot parse, so an unrecognized accent
   // renders a document identical to an unthemed one. A misspelled colour name
   // has to fail at the flag, or it becomes a PDF that is quietly wrong.
+  // A typo here used to resolve to the production QR host and the command still
+  // reported success, so the invoice came out carrying a code that points at the
+  // wrong registry — nothing on the page says which one it is.
+  it('refuses an environment it cannot resolve a QR host for', () => {
+    const out = join(outDir, 'should-not-exist-5.pdf');
+    const res = run(['invoice', 'pdf', fx('fa3.xml'), '--qr', '--env', 'staging', '--out', out]);
+    expect(res.status).not.toBe(0);
+    expect(`${res.stdout}${res.stderr}`).toMatch(/Invalid --env/);
+    expect(existsSync(out)).toBe(false);
+  });
+
   it('refuses an accent colour that is not hex', () => {
     const out = join(outDir, 'should-not-exist-4.pdf');
     const res = run(['invoice', 'pdf', fx('fa3.xml'), '--accent', 'crimsonn', '--out', out]);
