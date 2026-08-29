@@ -16,6 +16,21 @@ export type TemplateSchemaId = 'FA(2)' | 'FA(3)' | 'UPO(4.2)' | 'UPO(4.3)';
 /** Loose style bag mapping to pdfmake style props (fontSize, bold, color, …). */
 export type Style = Record<string, string | number | boolean | Array<number>>;
 
+/**
+ * A running footer drawn in the bottom page margin, on every page: the tool that
+ * produced the document on the left, the page indicator on the right. Unlike the
+ * `footer` block — which is one inline node in the content flow — this repeats
+ * and can count pages, which a block cannot: only pdfmake knows the page total,
+ * and only once the content has been laid out.
+ */
+export interface PageFooterConfig {
+  /**
+   * Style for the footer line. The attribution text itself is not configurable —
+   * a template may restyle or omit the footer, but not reword the credit.
+   */
+  style?: string;
+}
+
 export interface PageConfig {
   size?: string;
   orientation?: 'portrait' | 'landscape';
@@ -294,6 +309,7 @@ export interface InvoiceTemplate {
   /** Binds this template to one XML kind; the engine rejects a version mismatch. */
   schema: TemplateSchemaId;
   page?: PageConfig;
+  pageFooter?: PageFooterConfig;
   defaultStyle?: Style;
   styles?: Record<string, Style>;
   /** Per-template label overrides (merged over the i18n bundle). */
@@ -464,6 +480,10 @@ export const invoiceTemplateSchema: z.ZodType<InvoiceTemplate> = z
         orientation: z.enum(['portrait', 'landscape']).optional(),
         margins: z.tuple([z.number(), z.number(), z.number(), z.number()]).optional(),
       })
+      .strict()
+      .optional(),
+    pageFooter: z
+      .object({ style: z.string().optional() })
       .strict()
       .optional(),
     defaultStyle: styleSchema.optional(),

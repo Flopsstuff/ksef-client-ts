@@ -58,6 +58,6 @@ export const en: LabelBundle = {
   receiptDate: 'KSeF number assignment date',
   documentHash: 'Document hash',
   documents: 'Documents',
-  page: 'Page',
-  of: 'of',
+  generatedWith: 'Generated with',
+  pageOf: 'Page {page} of {pages}',
 };

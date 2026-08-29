@@ -175,6 +175,14 @@ The `schema` field binds a template to a single document kind. If you render an 
 | `qr` | The verification QR image |
 | `footer` | Footer note |
 
+A template may also declare a running page footer, drawn in the bottom page margin on every page:
+
+```json
+"pageFooter": { "style": "footerNote" }
+```
+
+It prints the localized attribution on the left and a `Page 1 of 3` indicator on the right, aligned with `page.margins`. The page total is only known once pdfmake has laid the content out, so this cannot be a block. The attribution text is fixed by the renderer — a template may restyle the footer or omit it, but not reword the credit.
+
 **Primitive blocks** are layout building blocks: `text`, `columns`, `stack`, `each`, `table`, `image`, `divider`, `spacer`.
 
 `each` repeats a group of blocks once per entry of a collection, with the entry as the binding root, so its children use item-relative paths. Use it where a table cannot fit a record on one row — the built-in UPO templates lay out each confirmed document this way, because a 35-character KSeF number beside a 44-character hash will not share a page-wide row.

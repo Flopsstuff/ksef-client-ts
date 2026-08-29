@@ -1,6 +1,7 @@
 {
   "schema": "FA(2)",
   "page": { "size": "A4", "margins": [40, 40, 40, 50] },
+  "pageFooter": { "style": "footerNote" },
   "styles": {
     "title": { "fontSize": 20, "bold": true },
     "h2": { "fontSize": 10, "bold": true, "margin": [0, 10, 0, 3], "color": "#333333" },
@@ -165,6 +166,7 @@
       ]
     },
     { "type": "spacer", "height": 21 },
+    { "type": "divider" },
     {
       "type": "payment",
       "when": "Fa.Platnosc",
@@ -183,7 +185,7 @@
         ]
       }
     },
-    { "type": "qr", "when": "qr", "fit": 90 },
-    { "type": "footer", "text": "ksef-client-ts", "style": "footerNote" }
+    { "type": "divider" },
+    { "type": "qr", "when": "qr", "fit": 90 }
   ]
 }

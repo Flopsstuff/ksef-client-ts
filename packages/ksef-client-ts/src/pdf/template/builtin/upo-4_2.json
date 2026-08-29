@@ -1,10 +1,12 @@
 {
   "schema": "UPO(4.2)",
   "page": { "size": "A4", "margins": [40, 40, 40, 40] },
+  "pageFooter": { "style": "footerNote" },
   "styles": {
     "title": { "fontSize": 16, "bold": true },
     "fieldLabel": { "bold": true, "color": "#444444" },
-    "muted": { "color": "#666666" }
+    "muted": { "color": "#666666" },
+    "footerNote": { "fontSize": 7, "color": "#999999" }
   },
   "blocks": [
     { "type": "header", "title": { "label": "upoTitle" } },

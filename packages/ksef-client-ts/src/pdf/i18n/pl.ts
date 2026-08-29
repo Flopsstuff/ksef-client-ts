@@ -63,7 +63,7 @@ export const pl: LabelBundle = {
   receiptDate: 'Data nadania numeru KSeF',
   documentHash: 'Skrót dokumentu',
   documents: 'Dokumenty',
-  // footer
-  page: 'Strona',
-  of: 'z',
+  // page footer
+  generatedWith: 'Wygenerowano przez',
+  pageOf: 'Strona {page} z {pages}',
 };

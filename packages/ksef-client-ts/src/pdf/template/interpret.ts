@@ -19,6 +19,16 @@ import type { Block, BlockType, InvoiceTemplate, Style } from './dsl.js';
 export type PdfNode = string | Record<string, unknown>;
 export type PdfContent = PdfNode | PdfNode[];
 
+/**
+ * Attribution printed in the page footer. Deliberately not a template field: a
+ * template can style the footer or leave it out, but cannot rewrite whose
+ * renderer produced the document.
+ */
+const TOOL_NAME = 'Flopsstuff/ksef-client-ts';
+
+/** The page indicator reads as content, not as a credit. */
+const PAGE_INDICATOR_COLOR = '#333333';
+
 /** Maximum block-nesting depth before the interpreter bails out. */
 export const MAX_DEPTH = 24;
 
@@ -150,6 +160,40 @@ export function interpretBlock(
 }
 
 /**
+ * A running footer for every page: what produced the document on the left, which
+ * page this is on the right. pdfmake supplies the numbers, so the value has to
+ * be a callback rather than a content node — the page total is not known until
+ * the content has been laid out.
+ *
+ * The page indicator is one label carrying its own `{page}`/`{pages}`
+ * placeholders rather than a phrase assembled from parts, so a bilingual locale
+ * reads "Strona 1 z 3 / Page 1 of 3" instead of interleaving the two grammars.
+ */
+function buildPageFooter(template: InvoiceTemplate, ctx: RenderContext) {
+  const { style } = template.pageFooter ?? {};
+  // Align the footer with the body: pdfmake lays it out across the full page.
+  const [left = 40, , right = 40] = template.page?.margins ?? [];
+
+  return (currentPage: number, pageCount: number): PdfNode => ({
+    columns: [
+      { text: `${ctx.label('generatedWith')} ${TOOL_NAME}`, alignment: 'left' },
+      {
+        text: ctx
+          .label('pageOf')
+          .replaceAll('{page}', String(currentPage))
+          .replaceAll('{pages}', String(pageCount)),
+        alignment: 'right',
+        // The page indicator is information a reader looks for, not a credit —
+        // it stays in the body colour rather than inheriting the muted style.
+        color: PAGE_INDICATOR_COLOR,
+      },
+    ],
+    margin: [left, 0, right, 0],
+    ...(style ? { style } : {}),
+  });
+}
+
+/**
  * Interpret a whole template into a pdfmake document definition. Merges the
  * caller-provided renderers over the core primitives, wires template styles,
  * and forces the bundled Roboto font (the only font shipped in the VFS).
@@ -171,6 +215,7 @@ export function interpretTemplate(
   const defaultStyle: Style = { font: 'Roboto', fontSize: 9, ...(template.defaultStyle ?? {}) };
   const doc: Record<string, unknown> = { content, defaultStyle };
   if (template.styles) doc.styles = template.styles;
+  if (template.pageFooter) doc.footer = buildPageFooter(template, ctx);
   if (template.page) {
     if (template.page.size) doc.pageSize = template.page.size;
     if (template.page.orientation) doc.pageOrientation = template.page.orientation;
