@@ -34,6 +34,9 @@ export const uk: LabelBundle = {
   cn: 'CN',
   pkob: 'PKOB',
   gross: 'Сума брутто',
+  // advance-invoice order lines (Fa.Zamowienie)
+  orderLines: 'Позиції замовлення або договору',
+  orderValue: 'Вартість замовлення',
   // per-rate buckets (P_13_* / P_14_*)
   net23: 'Нетто 23%',
   vat23: 'ПДВ 23%',

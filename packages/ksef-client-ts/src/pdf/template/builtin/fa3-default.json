@@ -87,6 +87,7 @@
     { "type": "spacer", "height": 9 },
     {
       "type": "lines",
+      "when": "Fa.FaWiersz",
       "from": "Fa.FaWiersz",
       "columns": [
         { "label": "lp", "path": "NrWierszaFa", "width": 24 },
@@ -111,10 +112,44 @@
         { "label": "net", "path": "P_11", "format": "money", "width": 60, "optional": true }
       ]
     },
+    {
+      "type": "text",
+      "label": "orderLines",
+      "style": "h1",
+      "when": "Fa.Zamowienie"
+    },
+    {
+      "type": "lines",
+      "when": "Fa.Zamowienie",
+      "from": "Fa.Zamowienie.ZamowienieWiersz",
+      "columns": [
+        { "label": "lp", "path": "NrWierszaZam", "width": 24 },
+        {
+          "label": "name",
+          "path": "P_7Z",
+          "width": "*",
+          "optional": true,
+          "subStyle": "lineMeta",
+          "sub": [
+            { "label": "pkwiu", "path": "PKWiUZ", "optional": true },
+            { "label": "indeks", "path": "IndeksZ", "optional": true },
+            { "label": "gtin", "path": "GTINZ", "optional": true },
+            { "label": "cn", "path": "CNZ", "optional": true },
+            { "label": "pkob", "path": "PKOBZ", "optional": true }
+          ]
+        },
+        { "label": "unit", "path": "P_8AZ", "width": 24, "optional": true },
+        { "label": "qty", "path": "P_8BZ", "format": "number", "width": 24, "optional": true },
+        { "label": "unitPrice", "path": "P_9AZ", "format": "money", "width": 50, "optional": true },
+        { "label": "vatRate", "path": "P_12Z", "width": 50, "optional": true },
+        { "label": "net", "path": "P_11NettoZ", "format": "money", "width": 60, "optional": true }
+      ]
+    },
     { "type": "spacer", "height": 9 },
     {
       "type": "totals",
       "rows": [
+        { "label": "orderValue", "path": "Fa.Zamowienie.WartoscZamowienia", "when": "Fa.Zamowienie", "format": "money", "optional": true },
         { "label": "net23", "path": "Fa.P_13_1", "when": "totalsBuckets", "format": "money", "optional": true },
         { "label": "vat23", "path": "Fa.P_14_1", "when": "totalsBuckets", "format": "money", "optional": true },
         { "label": "net8", "path": "Fa.P_13_2", "when": "totalsBuckets", "format": "money", "optional": true },

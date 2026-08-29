@@ -27,6 +27,9 @@ export const pl: LabelBundle = {
   cn: 'CN',
   pkob: 'PKOB',
   gross: 'Wartość brutto',
+  // advance-invoice order lines (Fa.Zamowienie)
+  orderLines: 'Pozycje zamówienia lub umowy',
+  orderValue: 'Wartość zamówienia',
   // totals
   // per-rate buckets (P_13_* / P_14_*)
   net23: 'Netto 23%',

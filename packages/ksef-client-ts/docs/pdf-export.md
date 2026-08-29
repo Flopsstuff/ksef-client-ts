@@ -186,7 +186,7 @@ The `schema` field binds a template to a single document kind. If you render an 
 |-------|---------|
 | `header` | Title and optional logo on the left; invoice number, issue date and KSeF number stacked on the right. With `offlineStyle` set, the OFFLINE marker takes the KSeF number's place when the document carries none |
 | `parties` | Seller / buyer two-column panel; a line that resolves empty is skipped |
-| `lines` | Invoice line-item table |
+| `lines` | Invoice line-item table. Takes `when`, because an invoice does not always carry its items in the same place — see below |
 | `totals` | Net / VAT / gross summary rows (a row reads one path or sums several) |
 | `payment` | Payment details (amount paid, date, method) |
 | `annotations` | Miscellaneous labelled fields |
@@ -208,11 +208,13 @@ A `qr` block's `fit` is the printed side in points, quiet zone included, and it 
 
 `each` repeats a group of blocks once per entry of a collection, with the entry as the binding root, so its children use item-relative paths. Use it where a table cannot fit a record on one row — the built-in UPO templates lay out each confirmed document this way, because a 35-character KSeF number beside a 44-character hash will not share a page-wide row.
 
+An advance invoice (`RodzajFaktury` `ZAL` or `KOR_ZAL`) records the goods and services it covers under `Fa.Zamowienie`, and may carry no `Fa.FaWiersz` at all. A repeater with no entries still draws its header row, so a template that binds both gives each one a `when` — this is what the built-in templates do, and it is why an advance invoice shows its order rows under their own heading instead of an empty item table.
+
 ### Bindings, labels, conditions, and formats
 
 - **Binding paths** are dot-paths into the document body — e.g. `Fa.P_2` (invoice number), `Podmiot1.DaneIdentyfikacyjne.Nazwa` (seller name). Paths are relative to the body element, not the document wrapper.
 - **`label`** references an i18n label key resolved per locale; **`text`** is a literal string printed as-is.
-- **`when`** conditionally renders a block against a presence test. It accepts a binding path (e.g. `Fa.Platnosc`) or a context flag: `qr`, `offline`, `hasKsefNumber`, `notes`, `totalsBuckets`, `totalsSummary`. A `divider` takes it too, so a rule can disappear with whatever it separates — the built-in templates close their `notes` block with `{ "type": "divider", "when": "notes" }`, which leaves no stray line on an invoice that carries none.
+- **`when`** conditionally renders a block against a presence test. It accepts a binding path (e.g. `Fa.Platnosc`) or a context flag: `qr`, `offline`, `hasKsefNumber`, `notes`, `totalsBuckets`, `totalsSummary`. A `divider` and a `lines` table take it too, so a rule can disappear with whatever it separates — the built-in templates close their `notes` block with `{ "type": "divider", "when": "notes" }`, which leaves no stray line on an invoice that carries none.
 - **`format`** names a value formatter: `money`, `date`, `number`, or `nip`.
 - **`optional`** marks a binding the document may legitimately omit, exempting it from `strict`. Mark exactly what the schema declares optional — everything left unmarked is a field the document must carry.
 - **`headingStyle`** (`parties`, `payment`, `annotations`, `notes`) names the style for the heading those blocks print themselves — `Sprzedawca`, `Płatność`. It reaches that first line only: labels nested inside a block (`Adres`, `Dane kontaktowe`, `Rachunek bankowy`) are a level down and stay on `h2`, so section headings can be lifted without dragging every label along. Both default to `h2`; the built-in templates name `h1` for the block headings and leave the nested ones on `h2`. The `header` block's title works the same way through plain `style`, defaulting to `title`. A `styles` map that omits `h2` or `title` loses those headings with nothing in the JSON to point at.

@@ -20,12 +20,20 @@ import type { Block, PartyField, TotalsBlock } from '../../../src/pdf/template/d
  * templates against fixtures that populate every path they reference.
  */
 
-const FIXTURE_BY_TEMPLATE: Record<string, string> = {
-  'fa2-default': 'pdf/fa2.xml',
-  'fa3-default': 'pdf/fa3.xml',
-  'fa3-showcase': 'pdf/fa3.xml',
-  'upo-4_2': 'pdf/upo-4_2.xml',
-  'upo-4_3': 'pdf/upo-4_3.xml',
+/**
+ * A template may legitimately bind paths that no single document carries: an
+ * advance invoice records its goods under `Fa.Zamowienie` and leaves
+ * `Fa.FaWiersz` empty, an ordinary one the other way round. So a template is
+ * linted against every fixture that exercises it, and a path counts as resolved
+ * when *one* of them has it — which still catches a typo, because a misspelling
+ * resolves against none.
+ */
+const FIXTURES_BY_TEMPLATE: Record<string, string[]> = {
+  'fa2-default': ['pdf/fa2.xml', 'pdf/fa2-zal.xml'],
+  'fa3-default': ['pdf/fa3.xml', 'pdf/fa3-zal.xml'],
+  'fa3-showcase': ['pdf/fa3.xml'],
+  'upo-4_2': ['pdf/upo-4_2.xml'],
+  'upo-4_3': ['pdf/upo-4_3.xml'],
 };
 
 /** `when` values resolved from the render context, not from the XML. */
@@ -85,40 +93,47 @@ function collect(
   return acc;
 }
 
-function bodyOf(templateName: string): unknown {
+function bodiesOf(templateName: string): unknown[] {
   const template = getBuiltinTemplate(templateName)!;
-  const xml = readFileSync(new URL(`../../fixtures/${FIXTURE_BY_TEMPLATE[templateName]}`, import.meta.url), 'utf8');
-  const parsed = parseXmlForPdf(xml) as Record<string, unknown>;
-  return parsed[template.schema.startsWith('UPO') ? 'Potwierdzenie' : 'Faktura'];
+  return FIXTURES_BY_TEMPLATE[templateName]!.map((fixture) => {
+    const xml = readFileSync(new URL(`../../fixtures/${fixture}`, import.meta.url), 'utf8');
+    const parsed = parseXmlForPdf(xml) as Record<string, unknown>;
+    return parsed[template.schema.startsWith('UPO') ? 'Potwierdzenie' : 'Faktura'];
+  });
 }
+
+/** The first fixture is the template's ordinary document. */
+const bodyOf = (templateName: string): unknown => bodiesOf(templateName)[0];
 
 describe('built-in template lint', () => {
   it('covers every built-in template', () => {
-    expect(builtinTemplateNames().sort()).toEqual(Object.keys(FIXTURE_BY_TEMPLATE).sort());
+    expect(builtinTemplateNames().sort()).toEqual(Object.keys(FIXTURES_BY_TEMPLATE).sort());
   });
 
-  it.each(Object.keys(FIXTURE_BY_TEMPLATE))('%s: every `when` path resolves against its fixture', (name) => {
-    const root = bodyOf(name);
+  it.each(Object.keys(FIXTURES_BY_TEMPLATE))('%s: every `when` path resolves against its fixture', (name) => {
+    const roots = bodiesOf(name);
     const { conditions } = collect(getBuiltinTemplate(name)!.blocks);
-    const unresolved = conditions.filter((path) => !has(root, path));
+    const unresolved = conditions.filter((path) => !roots.some((root) => has(root, path)));
     expect(unresolved).toEqual([]);
   });
 
-  it.each(Object.keys(FIXTURE_BY_TEMPLATE))('%s: every repeater `from` path resolves against its fixture', (name) => {
-    const root = bodyOf(name);
+  it.each(Object.keys(FIXTURES_BY_TEMPLATE))('%s: every repeater `from` path resolves against its fixture', (name) => {
+    const roots = bodiesOf(name);
     const { repeaters } = collect(getBuiltinTemplate(name)!.blocks);
-    const empty = repeaters.filter((path) => list(root, path).length === 0);
+    const empty = repeaters.filter((path) => !roots.some((root) => list(root, path).length > 0));
     expect(empty).toEqual([]);
   });
 
-  it.each(Object.keys(FIXTURE_BY_TEMPLATE))(
+  it.each(Object.keys(FIXTURES_BY_TEMPLATE))(
     '%s: every `firstOf` set has at least one path that resolves',
     (name) => {
-      const root = bodyOf(name);
+      const roots = bodiesOf(name);
       const { alternatives } = collect(getBuiltinTemplate(name)!.blocks);
       // Individual alternatives are absent by design (a buyer carries one
       // identifier), but a set where *none* resolves means every path is wrong.
-      const dead = alternatives.filter((paths) => !paths.some((p) => has(root, p)));
+      const dead = alternatives.filter(
+        (paths) => !paths.some((p) => roots.some((root) => has(root, p))),
+      );
       expect(dead).toEqual([]);
     },
   );
@@ -141,6 +156,7 @@ describe('built-in template lint', () => {
     const fa3 = collect(getBuiltinTemplate('fa3-default')!.blocks);
     expect(fa3.conditions).toContain('Fa.Platnosc');
     expect(fa3.repeaters).toContain('Fa.FaWiersz');
+    expect(fa3.repeaters).toContain('Fa.Zamowienie.ZamowienieWiersz');
     expect(fa3.repeaters).toContain('Fa.Platnosc.RachunekBankowy');
     expect(fa3.repeaters).toContain('Podmiot2.DaneKontaktowe');
     expect(collect(getBuiltinTemplate('upo-4_3')!.blocks).repeaters).toContain('Dokument');
@@ -164,7 +180,7 @@ describe('built-in template lint', () => {
    * `headingStyle`, `linkStyle` and `offlineStyle` — so the walk takes any key
    * that ends in `Style` and a new one is covered the day it is added.
    */
-  it.each(Object.keys(FIXTURE_BY_TEMPLATE))('%s: every style it references is defined', (name) => {
+  it.each(Object.keys(FIXTURES_BY_TEMPLATE))('%s: every style it references is defined', (name) => {
     const template = getBuiltinTemplate(name)!;
     const defined = Object.keys(template.styles ?? {});
     const referenced = new Set<string>();
@@ -190,7 +206,7 @@ describe('built-in template lint', () => {
     }
   });
 
-  it.each(Object.keys(FIXTURE_BY_TEMPLATE))('%s: defines the heading styles its blocks will use', (name) => {
+  it.each(Object.keys(FIXTURES_BY_TEMPLATE))('%s: defines the heading styles its blocks will use', (name) => {
     // A heading belongs to its block, not to the template, so the block reaches
     // for a style name instead of being handed one — `h2` unless `headingStyle`
     // says otherwise, and `title` for the header. Nothing in the JSON refers to

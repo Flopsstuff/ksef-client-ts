@@ -196,6 +196,14 @@ export interface PartiesBlock {
 export interface LinesBlock {
   type: 'lines';
   from: string;
+  /**
+   * An invoice does not always carry its items under `Fa.FaWiersz`: an advance
+   * invoice (`ZAL`/`KOR_ZAL`) leaves it empty and records the goods under
+   * `Fa.Zamowienie.ZamowienieWiersz` instead. A repeater with no entries still
+   * draws its header row, so a template that binds both needs each one to
+   * disappear when the document does not use it.
+   */
+  when?: string;
   columns: ColumnDef[];
   style?: string;
 }
@@ -512,6 +520,7 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({
       type: z.literal('lines'),
       from: z.string(),
+      when: z.string().optional(),
       columns: z.array(columnDef),
       style: z.string().optional(),
     }).strict(),

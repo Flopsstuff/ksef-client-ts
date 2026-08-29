@@ -194,6 +194,17 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
       '--env', 'demo', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links', '--totals', 'both',
       '--notes', notesFile, '--template-file', oldTotalsTemplate,
     ]],
+    // Not part of the grid either, and for the opposite reason to the showcase:
+    // this is the same default template on a different *document shape*. An
+    // advance invoice (`ZAL`) carries no `Fa.FaWiersz` — the goods it covers sit
+    // under `Fa.Zamowienie` — so the page a reader should see here is the order
+    // table under its own heading, with no empty item table above it. Flags are
+    // kept to a minimum precisely so nothing else on the page competes for the
+    // eye.
+    [`${PREFIX}-06-invoice-advance-order-lines`, () => [
+      fx('fa3-zal.xml'), '--ksef-number', KSEF_NUMBER,
+      '--env', 'demo', '--qr', '--totals', 'buckets',
+    ]],
     // Not part of the grid: `fa3-showcase` is a built-in whose point is to
     // exercise the DSL — palette, letter spacing, highlighted text, colour bars
     // drawn as data-URI images. Rendered with everything switched on, so a DSL
@@ -201,14 +212,14 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     // It also carries the accent, in its short hex form: this template sets its
     // own heading colours, so it is the page that shows whether an accent wins
     // over a template's palette.
-    [`${PREFIX}-06-showcase-template-accent`, () => [
+    [`${PREFIX}-07-showcase-template-accent`, () => [
       fx('e2e-vat-multi.xml'), '--template', 'fa3-showcase', ...LOGO(),
       '--env', 'demo', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links',
       '--totals', 'summary', '--notes', notesFile, '--accent', ACCENT_SHORT,
     ]],
     // Receipts last: they are a different document and read as their own group.
-    [`${PREFIX}-07-upo-pl`, () => [fx('upo-4_3.xml')]],
-    [`${PREFIX}-08-upo-five-documents-bilingual`, () => [multiDocumentUpo, '--locale', 'en+pl']],
+    [`${PREFIX}-08-upo-pl`, () => [fx('upo-4_3.xml')]],
+    [`${PREFIX}-09-upo-five-documents-bilingual`, () => [multiDocumentUpo, '--locale', 'en+pl']],
   ];
 
   /**
@@ -220,7 +231,12 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     const args = variants.map(([, build]) => build().join(' '));
     const covered = (needle: string) => args.some((a) => a.includes(needle));
 
-    for (const doc of ['e2e-services-np.xml', 'fa3.xml', 'e2e-buyer-no-id.xml', 'e2e-vat-multi.xml', 'upo-4_3.xml']) {
+    for (const doc of [
+      'e2e-services-np.xml', 'fa3.xml', 'e2e-buyer-no-id.xml', 'e2e-vat-multi.xml',
+      // An advance invoice reaches a branch of the template no other document
+      // does, so it is pinned here rather than left to be dropped by accident.
+      'fa3-zal.xml', 'upo-4_3.xml',
+    ]) {
       expect(covered(doc), `no variant renders ${doc}`).toBe(true);
     }
     for (const locale of ['en', 'uk', 'en+pl', 'pl+uk']) {
@@ -263,7 +279,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
   it('renders every variant of the set', () => {
     // Guards against a variant being silently dropped from the table above:
     // the count is stated here so removing a row has to be deliberate.
-    expect(variants).toHaveLength(8);
+    expect(variants).toHaveLength(9);
     for (const [name] of variants) {
       expect(existsSync(join(outDir, `${name}.pdf`)), `${name}.pdf missing`).toBe(true);
     }
