@@ -294,6 +294,41 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     expect(existsSync(out)).toBe(false);
   });
 
+  // The renderer prints whichever half a note carries, and the docs say so, so
+  // the flag has to accept the same shape the library does — a CLI stricter than
+  // the API it fronts rejects input the user was told was valid.
+  it('accepts a note with only a head or only a body', () => {
+    const oneSided = join(inputsDir, `${PREFIX}-notes-one-sided.json`);
+    writeFileSync(
+      oneSided,
+      JSON.stringify([{ head: 'Tylko nagłówek' }, { body: 'Tylko treść.' }]),
+    );
+    const out = join(outDir, `${PREFIX}-notes-one-sided.pdf`);
+    const res = run(['invoice', 'pdf', fx('fa3.xml'), '--notes', oneSided, '--out', out]);
+    expect(res.status, `exit ${res.status}\n${res.stderr}`).toBe(0);
+    expect(isCompletePdf(out), `${out} is not a complete PDF`).toBe(true);
+  });
+
+  it('still refuses a note entry that carries neither half', () => {
+    const empty = join(inputsDir, `${PREFIX}-notes-empty-entry.json`);
+    writeFileSync(empty, JSON.stringify([{ note: 'wrong key' }]));
+    const out = join(outDir, 'should-not-exist-5.pdf');
+    const res = run(['invoice', 'pdf', fx('fa3.xml'), '--notes', empty, '--out', out]);
+    expect(res.status).not.toBe(0);
+    expect(`${res.stdout}${res.stderr}`).toMatch(/must have a string "head", a string "body", or both/);
+    expect(existsSync(out)).toBe(false);
+  });
+
+  it('still refuses a note half that is present but not a string', () => {
+    const wrongType = join(inputsDir, `${PREFIX}-notes-wrong-type.json`);
+    writeFileSync(wrongType, JSON.stringify([{ head: 'ok', body: 42 }]));
+    const out = join(outDir, 'should-not-exist-6.pdf');
+    const res = run(['invoice', 'pdf', fx('fa3.xml'), '--notes', wrongType, '--out', out]);
+    expect(res.status).not.toBe(0);
+    expect(`${res.stdout}${res.stderr}`).toMatch(/non-string "body"/);
+    expect(existsSync(out)).toBe(false);
+  });
+
   // pdfmake silently ignores a colour it cannot parse, so an unrecognized accent
   // renders a document identical to an unthemed one. A misspelled colour name
   // has to fail at the flag, or it becomes a PDF that is quietly wrong.

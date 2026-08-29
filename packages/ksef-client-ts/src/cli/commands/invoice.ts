@@ -621,6 +621,11 @@ function readImageAsDataUri(file: string): string {
  * Read the `--notes` file: an array of `{ head, body }`. Validated here rather
  * than left to the renderer, because a hand-written JSON file is exactly where a
  * shape mistake happens and a silent one would print nothing at all.
+ *
+ * Either half may be left out — a note that is only a heading, or only a body,
+ * prints that half, which is what the renderer does with one and what the docs
+ * promise. What is refused is an entry carrying neither, and a half that is
+ * present but not a string: both are shape mistakes rather than intent.
  */
 function readNotesFile(file: string): Array<{ head: string; body: string }> {
   if (!fs.existsSync(file)) {
@@ -637,10 +642,18 @@ function readNotesFile(file: string): Array<{ head: string; body: string }> {
   }
   return parsed.map((entry, i) => {
     const note = entry as { head?: unknown; body?: unknown };
-    if (typeof note?.head !== 'string' || typeof note?.body !== 'string') {
-      throw new Error(`Notes entry ${i} must have string "head" and "body": ${file}`);
+    for (const half of ['head', 'body'] as const) {
+      if (note?.[half] !== undefined && typeof note[half] !== 'string') {
+        throw new Error(`Notes entry ${i} has a non-string "${half}": ${file}`);
+      }
     }
-    return { head: note.head, body: note.body };
+    if (typeof note?.head !== 'string' && typeof note?.body !== 'string') {
+      throw new Error(`Notes entry ${i} must have a string "head", a string "body", or both: ${file}`);
+    }
+    return {
+      head: typeof note.head === 'string' ? note.head : '',
+      body: typeof note.body === 'string' ? note.body : '',
+    };
   });
 }
 
