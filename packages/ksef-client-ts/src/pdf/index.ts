@@ -79,7 +79,11 @@ export interface RenderOptions {
   baseQrUrl?: string;
   /** Logo as a `data:` URI. PNG or JPEG — pdfmake draws no other format. */
   logo?: string;
-  /** Theming (accent colour only; the font is the bundled Roboto). */
+  /**
+   * Theming (accent colour only; the font is the bundled Roboto). The accent
+   * repaints the document title and both heading levels; anything finer is a
+   * custom template's `styles`.
+   */
   theme?: { accent?: string };
   /** Separator for the bilingual locales (`pl+en`, `pl+uk`, …). Default `' / '`. */
   bilingualSeparator?: string;
@@ -178,6 +182,30 @@ function assertVersionMatch(xml: string, schema: TemplateSchemaId): void {
   );
 }
 
+/**
+ * The style names an accent colour repaints: the document title and both
+ * heading levels. Blocks fall back to exactly these names when a template names
+ * no style of its own, so an accent reaches a template that defines none.
+ */
+const ACCENTED_STYLES = ['title', 'h1', 'h2'] as const;
+
+/**
+ * Repaint the template's title and headings in the caller's accent colour.
+ *
+ * The colour has to reach the document as a *style*, not as a binding: bindings
+ * resolve to text, and a style is the only thing pdfmake reads a colour from.
+ * Returns the template untouched when no accent is set, so a render without one
+ * is byte-for-byte what it was.
+ */
+function applyAccent(template: InvoiceTemplate, accent: string | undefined): InvoiceTemplate {
+  if (accent === undefined || accent.trim() === '') return template;
+  const styles = { ...(template.styles ?? {}) };
+  for (const name of ACCENTED_STYLES) {
+    styles[name] = { ...(styles[name] ?? {}), color: accent };
+  }
+  return { ...template, styles };
+}
+
 async function renderWithTemplate(
   rawInput: RawXml,
   template: InvoiceTemplate,
@@ -208,7 +236,7 @@ async function renderWithTemplate(
     invoice: qrUrl,
     certificate: opts.certificateQrUrl ?? '',
   });
-  const doc = interpretTemplate(template, ctx, blockRegistry);
+  const doc = interpretTemplate(applyAccent(template, opts.theme?.accent), ctx, blockRegistry);
   const pdfMake = await loadPdfMake();
   return createPdfBuffer(pdfMake, doc);
 }
