@@ -215,7 +215,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     [`${PREFIX}-11-showcase-template-accent`, () => [
       fx('e2e-vat-multi.xml'), '--template', 'fa3-showcase', ...LOGO(),
       '--env', 'demo', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links',
-      '--totals', 'both', '--notes', notesFile, '--accent', ACCENT_SHORT,
+      '--totals', 'summary', '--notes', notesFile, '--accent', ACCENT_SHORT,
     ]],
     // Receipts last: they are a different document and read as their own group.
     [`${PREFIX}-12-upo-pl`, () => [fx('upo-4_3.xml')]],

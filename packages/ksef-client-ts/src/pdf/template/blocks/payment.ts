@@ -28,7 +28,7 @@ export const paymentRenderer: BlockRenderer<PaymentBlock> = (block, ctx) => {
   for (const row of block.rows) {
     const value = readField(row, (path, optional) => resolveBinding(path, optional ? lenientCtx : ctx));
     if (value === '') continue;
-    stack.push({ text: `${ctx.label(row.label)}: ${value}` });
+    stack.push({ text: `${ctx.label(row.label)}: ${value}`, ...(row.style ? { style: row.style } : {}) });
   }
 
   if (block.accounts) {
@@ -37,7 +37,7 @@ export const paymentRenderer: BlockRenderer<PaymentBlock> = (block, ctx) => {
       for (const field of block.accounts.fields) {
         const value = readField(field, (path, optional) => get(account, path, optional ? false : ctx.strict));
         if (value === '') continue;
-        lines.push({ text: `${ctx.label(field.label)}: ${value}` });
+        lines.push({ text: `${ctx.label(field.label)}: ${value}`, ...(field.style ? { style: field.style } : {}) });
       }
     }
     if (lines.length > 0) {

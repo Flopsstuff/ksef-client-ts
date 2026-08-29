@@ -4,7 +4,7 @@ import { evalWhen, resolveBinding, type BlockRenderer, type PdfNode } from '../i
 
 /**
  * Totals summary: a compact, right-aligned label/value table. Each row of
- * {@link TotalsBlock.rows} contributes a bold label (`ctx.label(row.label)`)
+ * {@link TotalsBlock.rows} contributes a label (`ctx.label(row.label)`)
  * and its formatted value — either one scalar binding (`path`) or the decimal
  * sum of several (`sum`), because net sales and tax are split across the
  * `P_13_*`/`P_14_*` rate buckets and no single total field exists. The
@@ -32,9 +32,14 @@ export const totalsRenderer: BlockRenderer<TotalsBlock> = (block, ctx) => {
     // template listing every rate bucket must not print a dangling label for
     // each one an invoice does not use.
     if (value === '') continue;
+    // A row's style covers both of its cells: label and figure are one line to
+    // a reader, and styling half of it reads as a mistake. Nothing here is bold
+    // by default — a column of bold labels emphasises everything and therefore
+    // nothing; a template picks the one or two rows worth picking out.
+    const rowStyle = row.style ? { style: row.style } : {};
     body.push([
-      { text: ctx.label(row.label), bold: true },
-      { text: value, alignment: 'right' },
+      { text: ctx.label(row.label), ...rowStyle },
+      { text: value, alignment: 'right', ...rowStyle },
     ]);
   }
 

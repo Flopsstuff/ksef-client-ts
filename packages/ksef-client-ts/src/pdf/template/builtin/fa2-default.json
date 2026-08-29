@@ -6,6 +6,7 @@
     "title": { "fontSize": 20, "bold": true },
     "h1": { "fontSize": 11, "bold": true, "margin": [0, 10, 0, 3], "color": "#000000" },
     "lineMeta": { "fontSize": 6.5, "color": "#7A8CA0" },
+    "strong": { "bold": true },
     "h2": { "fontSize": 10, "bold": true, "margin": [0, 10, 0, 3], "color": "#333333" },
     "muted": { "color": "#666666", "fontSize": 8 },
     "offline": { "color": "#b00020", "bold": true },
@@ -182,8 +183,8 @@
           "when": "totalsSummary",
           "format": "money"
         },
-        { "label": "totalDue", "path": "Fa.P_15", "format": "money" },
-        { "label": "currency", "path": "Fa.KodWaluty" }
+        { "label": "totalDue", "path": "Fa.P_15", "format": "money", "style": "strong" },
+        { "label": "currency", "path": "Fa.KodWaluty", "style": "strong" }
       ]
     },
     { "type": "spacer", "height": 21 },
@@ -196,7 +197,7 @@
         { "label": "paid", "path": "Fa.Platnosc.Zaplacono", "optional": true },
         { "label": "paymentDate", "path": "Fa.Platnosc.TerminPlatnosci.Termin", "format": "date", "optional": true },
         { "label": "paymentMethod", "path": "Fa.Platnosc.FormaPlatnosci", "format": "paymentForm", "optional": true },
-        { "label": "amountDueTotal", "path": "Fa.P_15", "format": "money", "suffixPath": "Fa.KodWaluty" }
+        { "label": "amountDueTotal", "path": "Fa.P_15", "format": "money", "suffixPath": "Fa.KodWaluty", "style": "strong" }
       ],
       "accounts": {
         "from": "Fa.Platnosc.RachunekBankowy",

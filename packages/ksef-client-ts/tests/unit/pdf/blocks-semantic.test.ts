@@ -669,7 +669,8 @@ describe('totalsRenderer', () => {
     expect(summary.table.body).toHaveLength(2);
     const [labelCell, valueCell] = summary.table.body[0];
     expect(labelCell.text).toBe('totalNet');
-    expect(labelCell.bold).toBe(true);
+    // Not bold: emphasis in this table is a template's choice, row by row.
+    expect(labelCell.bold).toBeUndefined();
     expect(valueCell.text).toBe(applyFormat('100', 'money')); // '100,00'
     expect(valueCell.alignment).toBe('right');
   });
@@ -1119,5 +1120,100 @@ describe('the built-in templates restate the amount due with its currency', () =
     expect(row.suffixPath).toBe('Fa.KodWaluty');
     // It restates the total, so it belongs after the terms it settles.
     expect(payment.rows.at(-1)).toBe(row);
+  });
+});
+
+// ── row styles ───────────────────────────────────────────────────────────────
+
+/**
+ * `style` on a totals row or a payment field was declared and read by nothing.
+ * It has a reader now, which is what lets a template pick out the one figure on
+ * the page a reader is looking for.
+ */
+describe('row style', () => {
+  it('covers both cells of a totals row', () => {
+    // Label and figure are one line to a reader; styling half of it reads as a
+    // mistake rather than as emphasis.
+    const node = rec(
+      totalsRenderer(
+        {
+          type: 'totals',
+          rows: [
+            { label: 'totalNet', path: 'Fa.P_13_1', format: 'money' },
+            { label: 'totalDue', path: 'Fa.P_15', format: 'money', style: 'strong' },
+          ],
+        },
+        makeCtx({ Fa: { P_13_1: '100.00', P_15: '123.00' } }),
+        noRender,
+      ),
+    );
+    const [plain, strong] = node.columns[1].table.body;
+    expect(plain.map((c: { style?: string }) => c.style)).toEqual([undefined, undefined]);
+    expect(strong.map((c: { style?: string }) => c.style)).toEqual(['strong', 'strong']);
+  });
+
+  it('reaches a payment row and a bank-account field', () => {
+    const node = rec(
+      paymentRenderer(
+        {
+          type: 'payment',
+          rows: [
+            { label: 'paymentMethod', path: 'Fa.Platnosc.FormaPlatnosci' },
+            { label: 'amountDueTotal', path: 'Fa.P_15', style: 'strong' },
+          ],
+          accounts: {
+            from: 'Fa.Platnosc.RachunekBankowy',
+            fields: [{ label: 'bankAccount', path: 'NrRB', style: 'strong' }],
+          },
+        },
+        makeCtx({ Fa: { P_15: '123.00', Platnosc: { FormaPlatnosci: '6', RachunekBankowy: { NrRB: 'PL01' } } } }),
+        noRender,
+      ),
+    );
+    const byText = Object.fromEntries(
+      node.stack.map((n: { text: string; style?: string }) => [n.text.split(':')[0], n.style]),
+    );
+    expect(byText.paymentMethod).toBeUndefined();
+    expect(byText.amountDueTotal).toBe('strong');
+    expect(byText.bankAccount).toBe('strong');
+  });
+});
+
+describe('the built-in templates pick out the amount due', () => {
+  it.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s emphasises it in both places', (name) => {
+    const template = getBuiltinTemplate(name)!;
+    const totals = template.blocks.find((b) => b.type === 'totals') as {
+      rows: Array<{ label: string; style?: string }>;
+    };
+    const payment = template.blocks.find((b) => b.type === 'payment') as {
+      rows: Array<{ label: string; style?: string }>;
+    };
+    // The figure and the currency it is denominated in, wherever they appear.
+    expect(totals.rows.find((r) => r.label === 'totalDue')!.style).toBe('strong');
+    expect(totals.rows.find((r) => r.label === 'currency')!.style).toBe('strong');
+    expect(payment.rows.find((r) => r.label === 'amountDueTotal')!.style).toBe('strong');
+    expect(Object.keys(template.styles ?? {})).toContain('strong');
+  });
+});
+
+describe('totals emphasise nothing on their own', () => {
+  it('leaves every row plain until a template says otherwise', () => {
+    const node = rec(
+      totalsRenderer(
+        {
+          type: 'totals',
+          rows: [
+            { label: 'totalNet', path: 'Fa.P_13_1', format: 'money' },
+            { label: 'totalDue', path: 'Fa.P_15', format: 'money', style: 'strong' },
+          ],
+        },
+        makeCtx({ Fa: { P_13_1: '100.00', P_15: '123.00' } }),
+        noRender,
+      ),
+    );
+    const [plain, strong] = node.columns[1].table.body;
+    // A column of bold labels emphasises everything and so emphasises nothing.
+    expect(plain.every((c: { bold?: boolean }) => c.bold === undefined)).toBe(true);
+    expect(strong.every((c: { style?: string }) => c.style === 'strong')).toBe(true);
   });
 });
