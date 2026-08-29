@@ -37,16 +37,32 @@ export function parseXmlForPdf(xml: string): Record<string, unknown> {
  * for anything that is not a recognized FA(2)/FA(3) invoice. FA(1) is not
  * supported.
  */
+function versionFromKod(kod: string): InvoiceVersion | null {
+  return kod === 'FA(3)' ? 'FA(3)' : kod === 'FA(2)' ? 'FA(2)' : null;
+}
+
+function versionFromVariant(variant: string): InvoiceVersion | null {
+  return variant === '3' ? 'FA(3)' : variant === '2' ? 'FA(2)' : null;
+}
+
 export function detectInvoiceVersion(xml: string): InvoiceVersion | null {
   const parsed = parseXmlForPdf(xml);
   if (!('Faktura' in parsed)) return null;
 
   const kod = get(parsed, 'Faktura.Naglowek.KodFormularza.@kodSystemowy').replace(/\s+/g, '');
   const variant = get(parsed, 'Faktura.Naglowek.WariantFormularza').trim();
+  const byKod = versionFromKod(kod);
+  const byVariant = versionFromVariant(variant);
 
-  if (kod === 'FA(3)' || variant === '3') return 'FA(3)';
-  if (kod === 'FA(2)' || variant === '2') return 'FA(2)';
-  return null;
+  // A document carrying both markers has to mean one version by them. Accepting
+  // either on its own let `FA (2)` paired with variant 3 render as FA(3) — every
+  // binding resolved against the wrong schema, and a plausible page to show for
+  // it. Every real KSeF invoice states both, so demanding they agree costs
+  // nothing and a disagreement is a document worth refusing.
+  if (kod !== '' && variant !== '') {
+    return byKod !== null && byKod === byVariant ? byKod : null;
+  }
+  return byKod ?? byVariant;
 }
 
 /**
@@ -60,7 +76,12 @@ export function detectUpoVersion(xml: string): UpoVersion | null {
   const parsed = parseXmlForPdf(xml);
   if (!('Potwierdzenie' in parsed)) return null;
 
-  if (/KSeF\/v4-3\b/.test(xml)) return 'UPO(4.3)';
-  if (/KSeF\/v4-2\b/.test(xml)) return 'UPO(4.2)';
+  // Read the marker from the root element's own tag. A UPO declares its version
+  // in the default xmlns on `<Potwierdzenie>`, and scanning the whole source
+  // instead let any Potwierdzenie that merely mentions the string — in a note,
+  // in an embedded document — pass as that version.
+  const rootTag = /<(?:[\w.-]+:)?Potwierdzenie\b[^>]*>/.exec(xml)?.[0] ?? '';
+  if (/KSeF\/v4-3\b/.test(rootTag)) return 'UPO(4.3)';
+  if (/KSeF\/v4-2\b/.test(rootTag)) return 'UPO(4.2)';
   return null;
 }

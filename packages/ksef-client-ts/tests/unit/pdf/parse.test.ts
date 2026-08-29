@@ -126,6 +126,35 @@ describe('detectInvoiceVersion', () => {
   it('returns null for unrecognized / non-invoice XML', () => {
     expect(detectInvoiceVersion('<Foo><Bar>baz</Bar></Foo>')).toBeNull();
   });
+
+  // A document that states both markers has to mean one version by them.
+  // Accepting either alone let a mismatched pair through, and every binding
+  // would then resolve against the wrong schema.
+  it('returns null when the two markers contradict each other', () => {
+    const kod2variant3 =
+      '<Faktura><Naglowek><KodFormularza kodSystemowy="FA (2)">FA</KodFormularza>' +
+      '<WariantFormularza>3</WariantFormularza></Naglowek></Faktura>';
+    expect(detectInvoiceVersion(kod2variant3)).toBeNull();
+
+    const kod3variant2 =
+      '<Faktura><Naglowek><KodFormularza kodSystemowy="FA (3)">FA</KodFormularza>' +
+      '<WariantFormularza>2</WariantFormularza></Naglowek></Faktura>';
+    expect(detectInvoiceVersion(kod3variant2)).toBeNull();
+  });
+
+  it('returns null when one of two present markers is unrecognized', () => {
+    const xml =
+      '<Faktura><Naglowek><KodFormularza kodSystemowy="FA (1)">FA</KodFormularza>' +
+      '<WariantFormularza>3</WariantFormularza></Naglowek></Faktura>';
+    expect(detectInvoiceVersion(xml)).toBeNull();
+  });
+
+  it('still accepts a document whose two markers agree', () => {
+    const xml =
+      '<Faktura><Naglowek><KodFormularza kodSystemowy="FA (3)">FA</KodFormularza>' +
+      '<WariantFormularza>3</WariantFormularza></Naglowek></Faktura>';
+    expect(detectInvoiceVersion(xml)).toBe('FA(3)');
+  });
 });
 
 describe('detectUpoVersion', () => {
@@ -146,6 +175,24 @@ describe('detectUpoVersion', () => {
 
   it('returns null for a non-UPO document (no Potwierdzenie root)', () => {
     expect(detectUpoVersion(fa3Xml)).toBeNull();
+  });
+
+  // The version lives in the root element's own xmlns. Scanning the whole
+  // source let any Potwierdzenie that merely mentions the string pass as that
+  // version — a quoted URL in a note is enough.
+  it('ignores the marker when it appears outside the root tag', () => {
+    const xml =
+      '<Potwierdzenie xmlns="http://example.invalid/other">' +
+      '<Uwagi>see http://upo.schematy.mf.gov.pl/KSeF/v4-3 for details</Uwagi>' +
+      '</Potwierdzenie>';
+    expect(detectUpoVersion(xml)).toBeNull();
+  });
+
+  it('reads the marker from a namespace-prefixed root tag', () => {
+    const xml =
+      '<upo:Potwierdzenie xmlns:upo="http://upo.schematy.mf.gov.pl/KSeF/v4-3">' +
+      '<upo:X>1</upo:X></upo:Potwierdzenie>';
+    expect(detectUpoVersion(xml)).toBe('UPO(4.3)');
   });
 
   it('returns null for unrecognized XML', () => {
