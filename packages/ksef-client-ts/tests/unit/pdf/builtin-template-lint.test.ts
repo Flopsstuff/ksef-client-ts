@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { has, list } from '../../../src/pdf/accessor.js';
 import { parseXmlForPdf } from '../../../src/pdf/parse.js';
 import { getBuiltinTemplate, builtinTemplateNames } from '../../../src/pdf/template/builtin/index.js';
-import type { Block } from '../../../src/pdf/template/dsl.js';
+import type { Block, PartyField } from '../../../src/pdf/template/dsl.js';
 
 /**
  * Strict mode throws on a missing *scalar* binding, which catches dot-path
@@ -33,9 +33,14 @@ const CONTEXT_CONDITIONS = new Set(['qr', 'offline', 'hasKsefNumber', 'opts.logo
 interface CollectedPaths {
   conditions: string[];
   repeaters: string[];
+  /** `firstOf` alternative sets — at least one member must resolve. */
+  alternatives: string[][];
 }
 
-function collect(blocks: Block[], acc: CollectedPaths = { conditions: [], repeaters: [] }): CollectedPaths {
+function collect(
+  blocks: Block[],
+  acc: CollectedPaths = { conditions: [], repeaters: [], alternatives: [] },
+): CollectedPaths {
   for (const block of blocks) {
     const when = (block as { when?: string }).when;
     if (when !== undefined && !CONTEXT_CONDITIONS.has(when)) acc.conditions.push(when);
@@ -44,6 +49,20 @@ function collect(blocks: Block[], acc: CollectedPaths = { conditions: [], repeat
     if (block.type === 'table' && block.from !== undefined) acc.repeaters.push(block.from);
     if (block.type === 'each') acc.repeaters.push(block.from);
     if (block.type === 'payment' && block.accounts) acc.repeaters.push(block.accounts.from);
+    if (block.type === 'parties') {
+      const walkFields = (fields: PartyField[]): void => {
+        for (const field of fields) {
+          if (typeof field === 'string') continue;
+          if ('fields' in field) {
+            if (field.from !== undefined) acc.repeaters.push(field.from);
+            walkFields(field.fields);
+          }
+          else acc.alternatives.push(field.firstOf);
+        }
+      };
+      walkFields(block.left.fields);
+      walkFields(block.right.fields);
+    }
 
     if (block.type === 'stack') collect(block.stack, acc);
     if (block.type === 'columns') collect(block.columns, acc);
@@ -80,13 +99,28 @@ describe('built-in template lint', () => {
     expect(empty).toEqual([]);
   });
 
+  it.each(Object.keys(FIXTURE_BY_TEMPLATE))(
+    '%s: every `firstOf` set has at least one path that resolves',
+    (name) => {
+      const root = bodyOf(name);
+      const { alternatives } = collect(getBuiltinTemplate(name)!.blocks);
+      // Individual alternatives are absent by design (a buyer carries one
+      // identifier), but a set where *none* resolves means every path is wrong.
+      const dead = alternatives.filter((paths) => !paths.some((p) => has(root, p)));
+      expect(dead).toEqual([]);
+    },
+  );
+
   it('actually inspects some paths (guards against a walker that finds nothing)', () => {
     const fa3 = collect(getBuiltinTemplate('fa3-default')!.blocks);
     expect(fa3.conditions).toContain('Fa.Platnosc');
     expect(fa3.repeaters).toContain('Fa.FaWiersz');
     expect(fa3.repeaters).toContain('Fa.Platnosc.RachunekBankowy');
+    expect(fa3.repeaters).toContain('Podmiot2.DaneKontaktowe');
     expect(collect(getBuiltinTemplate('upo-4_3')!.blocks).repeaters).toContain('Dokument');
     expect(collect(getBuiltinTemplate('upo-4_2')!.blocks).repeaters).toContain('Dokument');
+    expect(fa3.alternatives).toHaveLength(1);
+    expect(fa3.alternatives[0]).toContain('Podmiot2.DaneIdentyfikacyjne.NrID');
   });
 
   it('fails a template whose `when` path is misspelled', () => {

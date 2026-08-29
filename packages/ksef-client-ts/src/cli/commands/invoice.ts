@@ -570,8 +570,37 @@ const validateCmd = defineCommand({
   },
 });
 
-const VALID_PDF_LOCALES = ['pl', 'en', 'pl+en'] as const;
+const VALID_PDF_LOCALES = ['pl', 'en', 'pl+en', 'en+pl'] as const;
 type PdfLocale = (typeof VALID_PDF_LOCALES)[number];
+
+const LOGO_MIME_BY_EXT: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+};
+
+/**
+ * `RenderOptions.logo` takes a `data:` URI so the renderer never touches the
+ * filesystem; the CLI is where a path becomes one. The extension picks the MIME
+ * type — an unknown one is rejected rather than guessed, since a wrong type
+ * silently yields a blank space where the logo should be.
+ */
+function readImageAsDataUri(file: string): string {
+  if (!fs.existsSync(file)) {
+    throw new Error(`Logo file not found: ${file}`);
+  }
+  const ext = file.slice(file.lastIndexOf('.')).toLowerCase();
+  const mime = LOGO_MIME_BY_EXT[ext];
+  if (!mime) {
+    throw new Error(
+      `Unsupported logo format "${ext}". Supported: ${Object.keys(LOGO_MIME_BY_EXT).join(', ')}`,
+    );
+  }
+  return `data:${mime};base64,${fs.readFileSync(file).toString('base64')}`;
+}
 
 const pdf = defineCommand({
   meta: { name: 'pdf', description: 'Render an invoice or UPO XML to a PDF (offline; requires the optional pdfmake peer)' },
@@ -579,11 +608,12 @@ const pdf = defineCommand({
     file: { type: 'positional', description: 'Path to the invoice or UPO XML file', required: true },
     template: { type: 'string', description: 'Built-in template name (e.g. fa3-default). Mutually exclusive with --template-file.' },
     templateFile: { type: 'string', description: 'Path to a custom JSON template. Mutually exclusive with --template.' },
-    locale: { type: 'string', description: 'Label language: pl | en | pl+en (default: pl)' },
+    locale: { type: 'string', description: 'Label language: pl | en | pl+en | en+pl (default: pl)' },
     out: { type: 'string', description: 'Output PDF path (default: alongside the source, .pdf)' },
     qr: { type: 'boolean', description: 'Embed the KSeF Code I QR derived from the XML' },
     ksefNumber: { type: 'string', description: 'KSeF number to print (absent → marked OFFLINE)' },
     upo: { type: 'boolean', description: 'Treat the input as a UPO document (otherwise auto-detected)' },
+    logo: { type: 'string', description: 'Path to a logo image (PNG/JPEG/GIF/WebP/SVG) to print in the header' },
     env: { type: 'string', description: 'Environment for the QR base URL (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
   },
@@ -603,11 +633,13 @@ const pdf = defineCommand({
       }
 
       const env = args.env as 'prod' | 'test' | 'demo' | undefined;
+      const logo = args.logo ? readImageAsDataUri(args.logo as string) : undefined;
       const renderOpts = {
         locale: locale as PdfLocale,
         qr: Boolean(args.qr),
         ...(args.ksefNumber ? { ksefNumber: args.ksefNumber as string } : {}),
         ...(env ? { env } : {}),
+        ...(logo ? { logo } : {}),
       };
 
       // Exact bytes preserve the QR hash; pass the raw file as a Uint8Array.

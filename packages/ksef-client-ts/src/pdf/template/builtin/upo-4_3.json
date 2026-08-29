@@ -9,7 +9,7 @@
   "blocks": [
     { "type": "header", "title": { "label": "upoTitle" } },
     { "type": "divider" },
-    { "type": "spacer", "height": 10 },
+    { "type": "spacer", "height": 21 },
     {
       "type": "columns",
       "columns": [
@@ -17,9 +17,9 @@
         { "type": "text", "path": "NumerReferencyjnySesji" }
       ]
     },
-    { "type": "spacer", "height": 10 },
+    { "type": "spacer", "height": 21 },
     { "type": "text", "label": "documents", "style": "fieldLabel" },
-    { "type": "spacer", "height": 4 },
+    { "type": "spacer", "height": 15 },
     {
       "type": "each",
       "from": "Dokument",
@@ -60,7 +60,7 @@
             { "type": "text", "path": "SkrotDokumentu", "style": "muted" }
           ]
         },
-        { "type": "spacer", "height": 4 }
+        { "type": "spacer", "height": 15 }
       ]
     }
   ]

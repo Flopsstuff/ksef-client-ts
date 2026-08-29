@@ -10,6 +10,7 @@ import { makeLabelResolver } from '../../../src/pdf/i18n/index.js';
 import { applyFormat } from '../../../src/pdf/format.js';
 import { headerRenderer } from '../../../src/pdf/template/blocks/header.js';
 import { partiesRenderer } from '../../../src/pdf/template/blocks/parties.js';
+import { partiesRenderer } from '../../../src/pdf/template/blocks/parties.js';
 import { linesRenderer } from '../../../src/pdf/template/blocks/lines.js';
 import { totalsRenderer } from '../../../src/pdf/template/blocks/totals.js';
 import { paymentRenderer } from '../../../src/pdf/template/blocks/payment.js';
@@ -37,6 +38,253 @@ const noRender: RenderChild = () => null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const rec = (n: PdfNode | PdfNode[] | null): any => n as any;
 
+// ── parties ─────────────────────────────────────────────────────────────────
+
+describe('partiesRenderer', () => {
+  const panel = (root: unknown) =>
+    rec(
+      partiesRenderer(
+        {
+          type: 'parties',
+          left: { label: 'seller', fields: ['Podmiot1.DaneIdentyfikacyjne.Nazwa'] },
+          right: {
+            label: 'buyer',
+            fields: [
+              'Podmiot2.DaneIdentyfikacyjne.Nazwa',
+              {
+                firstOf: [
+                  'Podmiot2.DaneIdentyfikacyjne.NIP',
+                  'Podmiot2.DaneIdentyfikacyjne.NrVatUE',
+                  'Podmiot2.DaneIdentyfikacyjne.NrID',
+                ],
+              },
+              'Podmiot2.Adres.AdresL1',
+            ],
+          },
+        },
+        makeCtx(root),
+        noRender,
+      ),
+    ).columns[1].stack;
+
+  const buyer = (ident: Record<string, string>) => ({
+    Podmiot1: { DaneIdentyfikacyjne: { Nazwa: 'Sprzedawca' } },
+    Podmiot2: { DaneIdentyfikacyjne: { Nazwa: 'Nabywca', ...ident }, Adres: { AdresL1: 'ul. Testowa 1' } },
+  });
+
+  it('prints a Polish NIP', () => {
+    const stack = panel(buyer({ NIP: '1111111111' }));
+    expect(stack.map((n: { text: string }) => n.text)).toEqual(['buyer', 'Nabywca', '1111111111', 'ul. Testowa 1']);
+  });
+
+  it('falls back to an EU VAT number', () => {
+    const stack = panel(buyer({ NrVatUE: 'DE123456789' }));
+    expect(stack.map((n: { text: string }) => n.text)).toContain('DE123456789');
+  });
+
+  it('falls back to a third-country identifier', () => {
+    const stack = panel(buyer({ NrID: 'CR-421169' }));
+    expect(stack.map((n: { text: string }) => n.text)).toContain('CR-421169');
+  });
+
+  it('leaves no blank line when the counterparty carries no identifier at all', () => {
+    const stack = panel(buyer({ BrakID: '1' }));
+    expect(stack.map((n: { text: string }) => n.text)).toEqual(['buyer', 'Nabywca', 'ul. Testowa 1']);
+    expect(stack.every((n: { text: string }) => n.text !== '')).toBe(true);
+  });
+
+  it('skips a plain field that resolves empty instead of printing a gap', () => {
+    const root = buyer({ NIP: '1111111111' });
+    delete (root.Podmiot2 as { Adres?: unknown }).Adres;
+    const stack = panel(root);
+    expect(stack.map((n: { text: string }) => n.text)).toEqual(['buyer', 'Nabywca', '1111111111']);
+  });
+
+  it('prints the address under its own sub-heading, in the group style', () => {
+    const node = rec(
+      partiesRenderer(
+        {
+          type: 'parties',
+          left: { label: 'seller', fields: ['Podmiot1.DaneIdentyfikacyjne.Nazwa'] },
+          right: {
+            label: 'buyer',
+            fields: [
+              'Podmiot2.DaneIdentyfikacyjne.Nazwa',
+              { label: 'address', style: 'partyAddress', fields: ['Podmiot2.Adres.AdresL1', 'Podmiot2.Adres.AdresL2'] },
+            ],
+          },
+        },
+        makeCtx({
+          Podmiot1: { DaneIdentyfikacyjne: { Nazwa: 'Sprzedawca' } },
+          Podmiot2: {
+            DaneIdentyfikacyjne: { Nazwa: 'Nabywca' },
+            Adres: { AdresL1: 'ul. Testowa 1', AdresL2: '00-001 Warszawa' },
+          },
+        }),
+        noRender,
+      ),
+    );
+    const stack = node.columns[1].stack;
+    expect(stack.map((n: { text: string }) => n.text)).toEqual([
+      'buyer', 'Nabywca', 'address', 'ul. Testowa 1', '00-001 Warszawa',
+    ]);
+    // the sub-heading matches the panel heading; the lines carry the group style
+    expect(stack[2].style).toBe(stack[0].style);
+    expect(stack[3].style).toBe('partyAddress');
+    expect(stack[4].style).toBe('partyAddress');
+  });
+
+  it('drops an address group whose lines are all absent, heading included', () => {
+    const node = rec(
+      partiesRenderer(
+        {
+          type: 'parties',
+          left: { label: 'seller', fields: ['Podmiot1.DaneIdentyfikacyjne.Nazwa'] },
+          right: {
+            label: 'buyer',
+            fields: [
+              'Podmiot2.DaneIdentyfikacyjne.Nazwa',
+              { label: 'address', style: 'partyAddress', fields: ['Podmiot2.Adres.AdresL1', 'Podmiot2.Adres.AdresL2'] },
+            ],
+          },
+        },
+        makeCtx({
+          Podmiot1: { DaneIdentyfikacyjne: { Nazwa: 'Sprzedawca' } },
+          Podmiot2: { DaneIdentyfikacyjne: { Nazwa: 'Nabywca' } },
+        }),
+        noRender,
+      ),
+    );
+    expect(node.columns[1].stack.map((n: { text: string }) => n.text)).toEqual(['buyer', 'Nabywca']);
+  });
+
+  it('keeps the address group when only one of its lines resolves', () => {
+    const node = rec(
+      partiesRenderer(
+        {
+          type: 'parties',
+          left: { label: 'seller', fields: ['Podmiot1.DaneIdentyfikacyjne.Nazwa'] },
+          right: {
+            label: 'buyer',
+            fields: [
+              { label: 'address', style: 'partyAddress', fields: ['Podmiot2.Adres.AdresL1', 'Podmiot2.Adres.AdresL2'] },
+            ],
+          },
+        },
+        makeCtx({
+          Podmiot1: { DaneIdentyfikacyjne: { Nazwa: 'Sprzedawca' } },
+          Podmiot2: { Adres: { AdresL1: 'ul. Testowa 1' } },
+        }),
+        noRender,
+      ),
+    );
+    expect(node.columns[1].stack.map((n: { text: string }) => n.text)).toEqual([
+      'buyer', 'address', 'ul. Testowa 1',
+    ]);
+  });
+
+  it('repeats a group over its collection, so every contact block is printed', () => {
+    const contact = {
+      label: 'contact',
+      from: 'Podmiot2.DaneKontaktowe',
+      style: 'partyAddress',
+      fields: ['Email', 'Telefon'],
+    };
+    const node = rec(
+      partiesRenderer(
+        {
+          type: 'parties',
+          left: { label: 'seller', fields: [] },
+          right: { label: 'buyer', fields: [contact] },
+        },
+        makeCtx({
+          Podmiot2: {
+            DaneKontaktowe: [
+              { Email: 'a@example.test', Telefon: '+48000000001' },
+              { Email: 'b@example.test' },
+              { Telefon: '+48000000003' },
+            ],
+          },
+        }),
+        noRender,
+      ),
+    );
+    // one heading, then every line of all three blocks — not just the first
+    expect(node.columns[1].stack.map((n: { text: string }) => n.text)).toEqual([
+      'buyer', 'contact', 'a@example.test', '+48000000001', 'b@example.test', '+48000000003',
+    ]);
+  });
+
+  it('normalizes a single collapsed contact block to one entry', () => {
+    const node = rec(
+      partiesRenderer(
+        {
+          type: 'parties',
+          left: { label: 'seller', fields: [] },
+          right: {
+            label: 'buyer',
+            fields: [{ label: 'contact', from: 'Podmiot2.DaneKontaktowe', fields: ['Email', 'Telefon'] }],
+          },
+        },
+        makeCtx({ Podmiot2: { DaneKontaktowe: { Email: 'only@example.test' } } }),
+        noRender,
+      ),
+    );
+    expect(node.columns[1].stack.map((n: { text: string }) => n.text)).toEqual([
+      'buyer', 'contact', 'only@example.test',
+    ]);
+  });
+
+  it('drops the contact heading when the party carries no contact block', () => {
+    const node = rec(
+      partiesRenderer(
+        {
+          type: 'parties',
+          left: { label: 'seller', fields: [] },
+          right: {
+            label: 'buyer',
+            fields: [
+              'Podmiot2.DaneIdentyfikacyjne.Nazwa',
+              { label: 'contact', from: 'Podmiot2.DaneKontaktowe', fields: ['Email', 'Telefon'] },
+            ],
+          },
+        },
+        makeCtx({ Podmiot2: { DaneIdentyfikacyjne: { Nazwa: 'Nabywca' } } }),
+        noRender,
+      ),
+    );
+    expect(node.columns[1].stack.map((n: { text: string }) => n.text)).toEqual(['buyer', 'Nabywca']);
+  });
+
+  it('reads repeater entries leniently even in strict mode', () => {
+    // Every field of a contact block is optional; a block without a phone number
+    // must not make a strict render throw.
+    const render = () =>
+      partiesRenderer(
+        {
+          type: 'parties',
+          left: { label: 'seller', fields: [] },
+          right: {
+            label: 'buyer',
+            fields: [{ label: 'contact', from: 'Podmiot2.DaneKontaktowe', fields: ['Email', 'Telefon'] }],
+          },
+        },
+        makeCtx({ Podmiot2: { DaneKontaktowe: { Email: 'only@example.test' } } }, { strict: true }),
+        noRender,
+      );
+    expect(render).not.toThrow();
+    expect(rec(render()).columns[1].stack.map((n: { text: string }) => n.text)).toEqual([
+      'buyer', 'contact', 'only@example.test',
+    ]);
+  });
+
+  it('prefers NIP when several identifiers are somehow present', () => {
+    const stack = panel(buyer({ NIP: '1111111111', NrID: 'CR-421169' }));
+    expect(stack.map((n: { text: string }) => n.text)).toContain('1111111111');
+    expect(stack.map((n: { text: string }) => n.text)).not.toContain('CR-421169');
+  });
+});
+
 // ── header (existing renderer) ───────────────────────────────────────────────
 
 describe('headerRenderer', () => {
@@ -62,10 +310,10 @@ describe('headerRenderer', () => {
 
     expect(node.columns).toHaveLength(2);
     const [left, right] = node.columns;
-    // logo image + title
-    expect(left.stack[0].image).toBe('data:image/png;base64,AAAA');
-    expect(left.stack[1].text).toBe('invoice');
-    expect(left.stack[1].style).toBe('bigtitle');
+    // title, then the logo beneath it
+    expect(left.stack[0].text).toBe('invoice');
+    expect(left.stack[0].style).toBe('bigtitle');
+    expect(left.stack[1].image).toBe('data:image/png;base64,AAAA');
     // number + date, right-aligned
     expect(right.alignment).toBe('right');
     expect(right.stack).toHaveLength(2);

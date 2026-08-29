@@ -6,6 +6,8 @@ export const en: LabelBundle = {
   duplicate: 'Duplicate',
   seller: 'Seller',
   buyer: 'Buyer',
+  address: 'Address',
+  contact: 'Contact details',
   issueDate: 'Issue date',
   invoiceNumber: 'Invoice number',
   ksefNumber: 'KSeF number',

@@ -34,6 +34,23 @@ describe('resolveLabel', () => {
     ).toBe('X / X');
   });
 
+  it('joins en and pl in that order for en+pl', () => {
+    expect(resolveLabel('seller', 'en+pl')).toBe('Seller / Sprzedawca');
+  });
+
+  it('en+pl is exactly pl+en reversed', () => {
+    const [a, b] = resolveLabel('seller', 'pl+en').split(' / ');
+    expect(resolveLabel('seller', 'en+pl')).toBe(`${b} / ${a}`);
+  });
+
+  it('honours the separator for en+pl', () => {
+    expect(resolveLabel('seller', 'en+pl', { bilingualSeparator: ' | ' })).toBe('Seller | Sprzedawca');
+  });
+
+  it('applies overrides to both halves of en+pl too', () => {
+    expect(resolveLabel('seller', 'en+pl', { overrides: { seller: 'X' } })).toBe('X / X');
+  });
+
   it('falls back to the raw key when the key is unknown in every bundle', () => {
     expect(resolveLabel('totally-unknown-key', 'en')).toBe('totally-unknown-key');
   });

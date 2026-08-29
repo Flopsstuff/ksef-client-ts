@@ -113,9 +113,12 @@ const coreRegistry: BlockRegistry = {
     );
   },
 
+  // An empty *text* node still occupies a full line, so `{ text: '' }` with
+  // margins made a `height: 6` spacer cost 6pt plus ~11pt of phantom line. An
+  // empty canvas has no line height, so the block now adds exactly its height.
   spacer: (block) => {
     const b = block as import('./dsl.js').SpacerBlock;
-    return { text: '', margin: [0, (b.height ?? 8) / 2, 0, (b.height ?? 8) / 2] };
+    return { canvas: [], margin: [0, 0, 0, b.height ?? 8] };
   },
 };
 

@@ -1,5 +1,12 @@
-/** Label language for the rendered PDF. `pl+en` is built by concatenation. */
-export type Locale = 'pl' | 'en' | 'pl+en';
+/**
+ * Label language for the rendered PDF. The bilingual locales are built by
+ * concatenation and named for their order: `pl+en` puts Polish first, `en+pl`
+ * English first.
+ */
+export type Locale = 'pl' | 'en' | 'pl+en' | 'en+pl';
+
+/** The two single-language bundles a bilingual locale is composed from. */
+export type BaseLocale = 'pl' | 'en';
 
 /**
  * Known label keys referenced by built-in templates. Custom templates may use

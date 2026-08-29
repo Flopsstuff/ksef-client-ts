@@ -123,14 +123,14 @@ detectUpoVersion(xml);     // 'UPO(4.2)' | 'UPO(4.3)' | null
 
 | Option | Type | Purpose |
 |--------|------|---------|
-| `locale` | `'pl' \| 'en' \| 'pl+en'` | Label language. Default `'pl'`. |
+| `locale` | `'pl' \| 'en' \| 'pl+en' \| 'en+pl'` | Label language. Default `'pl'`. |
 | `qr` | `boolean` | Embed the KSeF Code I verification QR derived from the invoice XML. |
 | `ksefNumber` | `string` | KSeF number printed on the visualization; when absent the document is marked **OFFLINE**. |
 | `env` | `'prod' \| 'test' \| 'demo'` | Environment used to derive the QR base URL. Default `'prod'`. |
 | `baseQrUrl` | `string` | Override the QR base URL (offline / non-standard). |
 | `logo` | `string` | Logo image as a `data:` URI. |
 | `theme` | `{ accent?: string }` | Accent colour. |
-| `bilingualSeparator` | `string` | Separator for the `pl+en` locale. Default `' / '`. |
+| `bilingualSeparator` | `string` | Separator for the bilingual locales. Default `' / '`. |
 | `strict` | `boolean` | Throw on a missing binding instead of rendering an empty string. |
 
 `strict` covers the scalar bindings a template *prints*. It deliberately does not apply to `when` conditions or repeater `from` paths: the KSeF schemas make `Platnosc` and `RachunekBankowy` optional, so an absent node there is a cash-paid invoice rather than a template mistake, and throwing would reject valid documents. Typos in those paths are caught for the built-in templates by a lint that resolves every `when` and `from` against the reference fixtures.
@@ -164,7 +164,7 @@ The `schema` field binds a template to a single document kind. If you render an 
 | Block | Renders |
 |-------|---------|
 | `header` | Title and optional logo on the left; invoice number, issue date and KSeF number stacked on the right |
-| `parties` | Seller / buyer two-column panel |
+| `parties` | Seller / buyer two-column panel; a line that resolves empty is skipped |
 | `lines` | Invoice line-item table |
 | `totals` | Net / VAT / gross summary rows (a row reads one path or sums several) |
 | `payment` | Payment details (amount paid, date, method) |
@@ -182,6 +182,7 @@ The `schema` field binds a template to a single document kind. If you render an 
 - **`label`** references an i18n label key resolved per locale; **`text`** is a literal string printed as-is.
 - **`when`** conditionally renders a block against a presence test. It accepts a binding path (e.g. `Fa.Platnosc`) or a context flag: `qr`, `offline`, `hasKsefNumber`.
 - **`format`** names a value formatter: `money`, `date`, `number`, or `nip`.
+- **`firstOf`** (party fields only) prints the first of several paths that resolves. KSeF identifies a counterparty by exactly one of `NIP`, `NrVatUE` or `NrID` depending on where they are established, so the built-in templates bind the buyer's identifier this way; a panel bound to `NIP` alone has nothing to print for a foreign buyer.
 - **`width`** (table columns only) sizes a column: a number of points, `'auto'` to fit the content, or `'*'` to share out what is left (the default). Sizing is worth setting explicitly — pdfmake gives every `'*'` column the *same* width and never shrinks it below the widest minimum content width among them, so a single long unbreakable token silently widens the whole table past the page edge.
 - **`sum`** (totals rows only) adds several binding paths instead of reading one. A KSeF invoice has no single net or VAT total — the amounts are split across the `P_13_*` and `P_14_*` rate buckets — so the built-in templates aggregate them. Absent buckets are skipped, and the addition is decimal-exact. A totals row takes either `path` or `sum`, never both.
 
@@ -203,7 +204,10 @@ A trimmed `FA(3)` template with a header, a seller/buyer panel, a line table, a 
     {
       "type": "parties",
       "left":  { "label": "seller", "fields": ["Podmiot1.DaneIdentyfikacyjne.Nazwa", "Podmiot1.DaneIdentyfikacyjne.NIP"] },
-      "right": { "label": "buyer",  "fields": ["Podmiot2.DaneIdentyfikacyjne.Nazwa", "Podmiot2.DaneIdentyfikacyjne.NIP"] }
+      "right": { "label": "buyer",  "fields": [
+        "Podmiot2.DaneIdentyfikacyjne.Nazwa",
+        { "firstOf": ["Podmiot2.DaneIdentyfikacyjne.NIP", "Podmiot2.DaneIdentyfikacyjne.NrVatUE", "Podmiot2.DaneIdentyfikacyjne.NrID"] }
+      ] }
     },
     {
       "type": "lines",
@@ -239,9 +243,10 @@ Labels are localizable, driven by the `locale` option:
 |--------|--------|
 | `pl` (default) | Polish labels |
 | `en` | English labels |
-| `pl+en` | Both, concatenated per label |
+| `pl+en` | Both, Polish first |
+| `en+pl` | Both, English first |
 
-For `pl+en`, each label is the Polish and English text joined by `bilingualSeparator` (default `' / '`). A template can also override individual labels via its `labels` map — useful for company-specific wording.
+For a bilingual locale, each label is the Polish and English text joined by `bilingualSeparator` (default `' / '`), in the order the locale name spells out. A template can also override individual labels via its `labels` map — useful for company-specific wording.
 
 ```ts
 const pdf = await renderInvoicePdf(xml, 'fa3-default', {
@@ -296,7 +301,7 @@ ksef invoice pdf upo.xml --template-file ./templates/my-upo.json
 |------|-------------|
 | `--template <name>` | Built-in template name (mutually exclusive with `--template-file`) |
 | `--template-file <path>` | Custom JSON template path (mutually exclusive with `--template`) |
-| `--locale <pl\|en\|pl+en>` | Label language (default `pl`) |
+| `--locale <pl\|en\|pl+en\|en+pl>` | Label language (default `pl`) |
 | `--qr` | Embed the KSeF Code I QR derived from the XML |
 | `--ksef-number <number>` | KSeF number to print (absent → marked OFFLINE) |
 | `--upo` | Treat the input as a UPO document (otherwise auto-detected); ignored when a template is named explicitly |

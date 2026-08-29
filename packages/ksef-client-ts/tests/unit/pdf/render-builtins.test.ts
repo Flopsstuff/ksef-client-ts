@@ -52,8 +52,8 @@ describe('QR embedding', () => {
     expect(isPdf(bytes)).toBe(true);
   });
 
-  it('renders bilingual pl+en labels', async () => {
-    const bytes = await renderInvoicePdf(fa3, 'fa3-default', { locale: 'pl+en' });
+  it.each(['pl+en', 'en+pl'] as const)('renders bilingual %s labels', async (locale) => {
+    const bytes = await renderInvoicePdf(fa3, 'fa3-default', { locale });
     expect(isPdf(bytes)).toBe(true);
   });
 });

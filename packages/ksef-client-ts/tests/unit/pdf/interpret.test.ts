@@ -200,14 +200,21 @@ describe('interpretBlock core primitives', () => {
     expect(node.style).toBe('rule');
   });
 
+  // An empty text node still occupies a line, so the spacer is an empty canvas:
+  // the block must add exactly its height, not its height plus a phantom line.
   it('renders a spacer with the default height', () => {
     const node = asRecord(interpretBlock({ type: 'spacer' }, makeCtx(ROOT), coreRegistry, 0));
-    expect(node).toEqual({ text: '', margin: [0, 4, 0, 4] });
+    expect(node).toEqual({ canvas: [], margin: [0, 0, 0, 8] });
   });
 
   it('renders a spacer with a custom height', () => {
     const node = asRecord(interpretBlock({ type: 'spacer', height: 20 }, makeCtx(ROOT), coreRegistry, 0));
-    expect(node).toEqual({ text: '', margin: [0, 10, 0, 10] });
+    expect(node).toEqual({ canvas: [], margin: [0, 0, 0, 20] });
+  });
+
+  it('spacer carries no text node, so it adds no line of its own', () => {
+    const node = asRecord(interpretBlock({ type: 'spacer', height: 20 }, makeCtx(ROOT), coreRegistry, 0));
+    expect(node.text).toBeUndefined();
   });
 
   it('returns null for a block whose `when` is false', () => {

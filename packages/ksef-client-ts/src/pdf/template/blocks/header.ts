@@ -3,20 +3,19 @@ import type { HeaderBlock } from '../dsl.js';
 import { resolveBinding, resolveText, type BlockRenderer, type PdfNode } from '../interpret.js';
 
 /**
- * Invoice header: optional logo, a title (defaults to the localized "Invoice"
- * label), and the invoice number, issue date and KSeF number stacked on the
+ * Invoice header: a title (defaults to the localized "Invoice" label) with the
+ * optional logo beneath it, and the invoice number, issue date and KSeF number stacked on the
  * right — one `label: value` line each, in the body font. The KSeF number is
  * dropped when it resolves empty, so an offline visualization shows no dangling
  * label (the separate OFFLINE marker covers that case).
  */
 export const headerRenderer: BlockRenderer<HeaderBlock> = (block, ctx) => {
-  const left: PdfNode[] = [];
+  const title = resolveText(block.title, ctx) || ctx.label('invoice');
+  const left: PdfNode[] = [{ text: title, style: block.style ?? 'title' }];
   if (block.logo) {
     const logo = resolveBinding(block.logo, ctx);
-    if (logo) left.push({ image: logo, width: 120, margin: [0, 0, 0, 6] });
+    if (logo) left.push({ image: logo, width: block.logoWidth ?? 120, margin: [0, 6, 0, 0] });
   }
-  const title = resolveText(block.title, ctx) || ctx.label('invoice');
-  left.push({ text: title, style: block.style ?? 'title' });
 
   const right: PdfNode[] = [];
   if (block.number) {

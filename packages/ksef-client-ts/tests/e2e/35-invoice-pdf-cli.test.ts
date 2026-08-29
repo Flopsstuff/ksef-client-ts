@@ -1,0 +1,142 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Spawn-based coverage for `ksef invoice pdf` — renders the whole preview set
+// through the built CLI (dist/cli.js), no network and no authentication. It
+// mirrors invoices/temp/regen.sh so the two cannot drift: the same variants,
+// the same flags, only against anonymous fixtures instead of real invoices.
+//
+// The assertions are deliberately shallow — a file appears, and it is a
+// structurally complete PDF. Layout is judged by eye, not here; asserting on
+// glyph positions would break on every deliberate design change and tell us
+// nothing about whether the page actually reads well. What this does catch is
+// the class of failure that is invisible in unit tests: a template that no
+// longer validates at import, a bundling regression that drops the fonts, a
+// flag that stops being wired, an optional peer that fails to load.
+//
+// Output goes to a stable directory so the rendered PDFs can be opened and
+// reviewed after a run; override it with KSEF_PDF_OUT.
+
+const repoRoot = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
+const cliEntry = join(repoRoot, 'dist', 'cli.js');
+const fixtures = join(repoRoot, 'tests', 'fixtures', 'pdf');
+const outDir = process.env.KSEF_PDF_OUT ?? join(repoRoot, '.pdf-preview');
+
+const fx = (name: string) => join(fixtures, name);
+
+/** A KSeF number shaped like the real thing; this one identifies nobody. */
+const KSEF_NUMBER = '1111111111-20260115-010000000000-00';
+
+function run(args: string[]) {
+  const result = spawnSync('node', [cliEntry, ...args], { encoding: 'utf-8', cwd: repoRoot });
+  return { status: result.status ?? -1, stdout: result.stdout, stderr: result.stderr };
+}
+
+/** `%PDF-` header and an `%%EOF` trailer: a complete file, not a truncated one. */
+function isCompletePdf(file: string): boolean {
+  const bytes = readFileSync(file);
+  const head = bytes.subarray(0, 5).toString('latin1');
+  const tail = bytes.subarray(-8).toString('latin1').trim();
+  return head === '%PDF-' && tail.endsWith('%%EOF');
+}
+
+/** Derived inputs that no fixture can hold on its own. */
+let oldTotalsTemplate: string;
+let multiDocumentUpo: string;
+
+function writeDerivedInputs(): void {
+  // A copy of fa3-default whose totals read a single rate bucket — the shape the
+  // template had before net/VAT started summing every P_13_*/P_14_*. Built from
+  // the current template so it tracks unrelated layout edits.
+  const template = JSON.parse(
+    readFileSync(join(repoRoot, 'src', 'pdf', 'template', 'builtin', 'fa3-default.json'), 'utf-8'),
+  ) as { blocks: Array<{ type: string; rows?: Array<Record<string, unknown>> }> };
+  for (const block of template.blocks) {
+    if (block.type !== 'totals') continue;
+    for (const row of block.rows ?? []) {
+      if (row.label === 'totalNet') { delete row.sum; row.path = 'Fa.P_13_1'; }
+      if (row.label === 'totalVat') { delete row.sum; row.path = 'Fa.P_14_1'; }
+    }
+  }
+  oldTotalsTemplate = join(outDir, 'fa3-single-bucket-totals.json');
+  writeFileSync(oldTotalsTemplate, JSON.stringify(template, null, 2));
+
+  // A five-document session UPO, cloned from the single-document fixture.
+  const upo = readFileSync(fx('upo-4_3.xml'), 'utf-8');
+  const start = upo.indexOf('<Dokument>');
+  const end = upo.indexOf('</Dokument>') + '</Dokument>'.length;
+  const first = upo.slice(start, end);
+  const clones = [2, 3, 4, 5].map((i) =>
+    first
+      .replace('010000000000-00', `${String(i).padStart(2, '0')}0000000000-00`)
+      .replace('FA/2025/01/001', `FA/2025/01/00${i}`),
+  );
+  multiDocumentUpo = join(outDir, 'upo-4_3-five-documents.xml');
+  writeFileSync(multiDocumentUpo, upo.slice(0, end) + '\n' + clones.join('\n') + upo.slice(end));
+}
+
+describe('35 - `ksef invoice pdf` renders the preview set', () => {
+  beforeAll(() => {
+    if (!existsSync(cliEntry)) {
+      throw new Error(`Missing ${cliEntry}. Run \`yarn build\` before \`yarn test:e2e\`.`);
+    }
+    rmSync(outDir, { recursive: true, force: true });
+    mkdirSync(outDir, { recursive: true });
+    writeDerivedInputs();
+  });
+
+  afterAll(() => {
+    // eslint-disable-next-line no-console
+    console.log(`\n  rendered PDFs kept for review in ${outDir}\n`);
+  });
+
+  const variants: Array<[name: string, args: () => string[]]> = [
+    ['01-invoice-pl-qr', () => [fx('e2e-services-np.xml'), '--qr', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
+    ['02-invoice-en', () => [fx('e2e-services-np.xml'), '--locale', 'en', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
+    ['03-invoice-bilingual', () => [fx('e2e-services-np.xml'), '--locale', 'en+pl', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
+    ['04-invoice-offline', () => [fx('e2e-services-np.xml'), '--logo', fx('e2e-logo.png')]],
+    ['05-upo-pl', () => [fx('upo-4_3.xml')]],
+    ['06-upo-bilingual', () => [fx('upo-4_3.xml'), '--locale', 'en+pl']],
+    ['07-invoice-standard-rate', () => [fx('fa3.xml')]],
+    ['08-invoice-buyer-without-id', () => [fx('e2e-buyer-no-id.xml'), '--logo', fx('e2e-logo.png')]],
+    ['09-invoice-single-bucket-totals', () => [fx('e2e-vat-multi.xml'), '--template-file', oldTotalsTemplate, '--ksef-number', KSEF_NUMBER]],
+    ['10-upo-five-documents', () => [multiDocumentUpo]],
+    ['11-invoice-mixed-vat-pl', () => [fx('e2e-vat-multi.xml'), '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
+    ['12-invoice-mixed-vat-bilingual', () => [fx('e2e-vat-multi.xml'), '--locale', 'en+pl', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
+  ];
+
+  it.each(variants)('renders %s', (name, args) => {
+    const out = join(outDir, `${name}.pdf`);
+    const res = run(['invoice', 'pdf', ...args(), '--out', out]);
+
+    expect(res.status, `exit ${res.status}\n${res.stderr}`).toBe(0);
+    expect(existsSync(out), `${out} was not written`).toBe(true);
+    expect(isCompletePdf(out), `${out} is not a complete PDF`).toBe(true);
+  });
+
+  it('renders every variant of the set', () => {
+    // Guards against a variant being silently dropped from the table above:
+    // regen.sh and this spec are meant to cover the same ground.
+    expect(variants).toHaveLength(12);
+    for (const [name] of variants) {
+      expect(existsSync(join(outDir, `${name}.pdf`)), `${name}.pdf missing`).toBe(true);
+    }
+  });
+
+  it('fails loudly on an unknown template instead of writing a file', () => {
+    const out = join(outDir, 'should-not-exist.pdf');
+    const res = run(['invoice', 'pdf', fx('fa3.xml'), '--template', 'no-such-template', '--out', out]);
+    expect(res.status).not.toBe(0);
+    expect(existsSync(out)).toBe(false);
+  });
+
+  it('rejects a UPO handed to an invoice template', () => {
+    const out = join(outDir, 'should-not-exist-2.pdf');
+    const res = run(['invoice', 'pdf', fx('upo-4_3.xml'), '--template', 'fa3-default', '--out', out]);
+    expect(res.status).not.toBe(0);
+    expect(existsSync(out)).toBe(false);
+  });
+});

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Cross-border services (np I), foreign buyer identified by NrID. Synthetic and fully anonymous — no real taxpayer data. -->
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/" xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/">
+  <Naglowek>
+    <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+    <WariantFormularza>3</WariantFormularza>
+    <DataWytworzeniaFa>2026-01-15T10:00:00Z</DataWytworzeniaFa>
+    <SystemInfo>ksef-client-ts fixture</SystemInfo>
+  </Naglowek>
+  <Podmiot1>
+    <PrefiksPodatnika>PL</PrefiksPodatnika>
+    <DaneIdentyfikacyjne>
+      <NIP>1111111111</NIP>
+      <Nazwa>Przykladowy Sprzedawca Sp. z o.o.</Nazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>PL</KodKraju>
+      <AdresL1>ul. Przykladowa 1/2</AdresL1>
+      <AdresL2>00-001 Warszawa</AdresL2>
+    </Adres>
+    <DaneKontaktowe>
+      <Email>kontakt@sprzedawca.example</Email>
+      <Telefon>+48000000001</Telefon>
+    </DaneKontaktowe>
+  </Podmiot1>
+  <Podmiot2>
+    <DaneIdentyfikacyjne>
+      <NrID>REG-000123</NrID>
+      <Nazwa>Example Overseas Ltd</Nazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>KY</KodKraju>
+      <AdresL1>1 Example Bay Road, 3rd Floor - Suite 100, P.O. Box 10000</AdresL1>
+      <AdresL2>Grand Cayman, Cayman Islands</AdresL2>
+    </Adres>
+    <DaneKontaktowe>
+      <Email>ap@overseas.example</Email>
+    </DaneKontaktowe>
+    <JST>2</JST>
+    <GV>2</GV>
+  </Podmiot2>
+  <Fa>
+    <KodWaluty>EUR</KodWaluty>
+    <P_1>2026-01-15</P_1>
+    <P_1M>Warszawa</P_1M>
+    <P_2>FIX/NP/2026/001</P_2>
+    <P_6>2026-01-15</P_6>
+    <P_13_8>6966.00</P_13_8>
+    <P_15>6966.00</P_15>
+    <Adnotacje>
+      <P_16>2</P_16>
+      <P_17>2</P_17>
+      <P_18>2</P_18>
+      <P_18A>2</P_18A>
+      <Zwolnienie>
+        <P_19N>1</P_19N>
+      </Zwolnienie>
+      <NoweSrodkiTransportu>
+        <P_22N>1</P_22N>
+      </NoweSrodkiTransportu>
+      <P_23>2</P_23>
+      <PMarzy>
+        <P_PMarzyN>1</P_PMarzyN>
+      </PMarzy>
+    </Adnotacje>
+    <RodzajFaktury>VAT</RodzajFaktury>
+    <FaWiersz>
+      <NrWierszaFa>1</NrWierszaFa>
+      <P_7>Software development services according to Master Services Agreement</P_7>
+      <Indeks>PKD 62.01.Z</Indeks>
+      <PKWiU>62.01.11.0</PKWiU>
+      <P_8A>h</P_8A>
+      <P_8B>174</P_8B>
+      <P_9A>39.00</P_9A>
+      <P_11>6786.00</P_11>
+      <P_12>np I</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>2</NrWierszaFa>
+      <P_7>Tooling compensation / Kompensacja narzedzi</P_7>
+      <P_8A>szt</P_8A>
+      <P_8B>1</P_8B>
+      <P_9A>180.00</P_9A>
+      <P_11>180.00</P_11>
+      <P_12>np I</P_12>
+    </FaWiersz>
+    <Platnosc>
+      <TerminPlatnosci>
+        <Termin>2026-02-15</Termin>
+      </TerminPlatnosci>
+      <FormaPlatnosci>6</FormaPlatnosci>
+      <RachunekBankowy>
+        <NrRB>PL61109010140000071219812874</NrRB>
+        <SWIFT>BREXPLPW</SWIFT>
+        <NazwaBanku>Przykladowy Bank S.A.</NazwaBanku>
+      </RachunekBankowy>
+    </Platnosc>
+  </Fa>
+</Faktura>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Mixed VAT rates: 23% + 8% + exempt. Synthetic and fully anonymous — no real taxpayer data. -->
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/" xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/">
+  <Naglowek>
+    <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+    <WariantFormularza>3</WariantFormularza>
+    <DataWytworzeniaFa>2026-01-15T10:00:00Z</DataWytworzeniaFa>
+    <SystemInfo>ksef-client-ts fixture</SystemInfo>
+  </Naglowek>
+  <Podmiot1>
+    <PrefiksPodatnika>PL</PrefiksPodatnika>
+    <DaneIdentyfikacyjne>
+      <NIP>1111111111</NIP>
+      <Nazwa>Przykladowy Sprzedawca Sp. z o.o.</Nazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>PL</KodKraju>
+      <AdresL1>ul. Przykladowa 1/2</AdresL1>
+      <AdresL2>00-001 Warszawa</AdresL2>
+    </Adres>
+    <DaneKontaktowe>
+      <Email>kontakt@sprzedawca.example</Email>
+      <Telefon>+48000000001</Telefon>
+    </DaneKontaktowe>
+  </Podmiot1>
+  <Podmiot2>
+    <DaneIdentyfikacyjne>
+      <NIP>5270001236</NIP>
+      <Nazwa>Przykladowa Spolka z o.o.</Nazwa>
+    </DaneIdentyfikacyjne>
+    <Adres>
+      <KodKraju>PL</KodKraju>
+      <AdresL1>ul. Testowa 100/12</AdresL1>
+      <AdresL2>00-026 Warszawa</AdresL2>
+    </Adres>
+    <DaneKontaktowe>
+      <Email>ksiegowosc@spolka.example</Email>
+      <Telefon>+48000000002</Telefon>
+    </DaneKontaktowe>
+    <JST>2</JST>
+    <GV>2</GV>
+  </Podmiot2>
+  <Fa>
+    <KodWaluty>PLN</KodWaluty>
+    <P_1>2026-01-15</P_1>
+    <P_1M>Warszawa</P_1M>
+    <P_2>FIX/VAT/2026/001</P_2>
+    <P_6>2026-01-15</P_6>
+    <P_13_1>5000.00</P_13_1>
+    <P_14_1>1150.00</P_14_1>
+    <P_13_2>600.00</P_13_2>
+    <P_14_2>48.00</P_14_2>
+    <P_13_7>1200.00</P_13_7>
+    <P_15>7998.00</P_15>
+    <Adnotacje>
+      <P_16>2</P_16>
+      <P_17>2</P_17>
+      <P_18>2</P_18>
+      <P_18A>2</P_18A>
+      <Zwolnienie>
+        <P_19>1</P_19>
+        <P_19A>Art. 43 ust. 1 pkt 29 lit. a ustawy o VAT</P_19A>
+      </Zwolnienie>
+      <NoweSrodkiTransportu>
+        <P_22N>1</P_22N>
+      </NoweSrodkiTransportu>
+      <P_23>2</P_23>
+      <PMarzy>
+        <P_PMarzyN>1</P_PMarzyN>
+      </PMarzy>
+    </Adnotacje>
+    <RodzajFaktury>VAT</RodzajFaktury>
+    <FaWiersz>
+      <NrWierszaFa>1</NrWierszaFa>
+      <P_7>Uslugi programistyczne - rozwoj aplikacji webowej</P_7>
+      <PKWiU>62.01.11.0</PKWiU>
+      <P_8A>h</P_8A>
+      <P_8B>100</P_8B>
+      <P_9A>50.00</P_9A>
+      <P_11>5000.00</P_11>
+      <P_12>23</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>2</NrWierszaFa>
+      <P_7>Uslugi konserwacji sprzetu komputerowego</P_7>
+      <P_8A>h</P_8A>
+      <P_8B>10</P_8B>
+      <P_9A>60.00</P_9A>
+      <P_11>600.00</P_11>
+      <P_12>8</P_12>
+    </FaWiersz>
+    <FaWiersz>
+      <NrWierszaFa>3</NrWierszaFa>
+      <P_7>Szkolenie zawodowe - kurs programowania</P_7>
+      <P_8A>szt</P_8A>
+      <P_8B>1</P_8B>
+      <P_9A>1200.00</P_9A>
+      <P_11>1200.00</P_11>
+      <P_12>zw</P_12>
+    </FaWiersz>
+    <Platnosc>
+      <TerminPlatnosci>
+        <Termin>2026-02-15</Termin>
+      </TerminPlatnosci>
+      <FormaPlatnosci>6</FormaPlatnosci>
+      <RachunekBankowy>
+        <NrRB>PL61109010140000071219812874</NrRB>
+        <SWIFT>BREXPLPW</SWIFT>
+        <NazwaBanku>Przykladowy Bank S.A.</NazwaBanku>
+      </RachunekBankowy>
+    </Platnosc>
+  </Fa>
+</Faktura>

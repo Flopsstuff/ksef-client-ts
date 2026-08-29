@@ -53,6 +53,11 @@ export interface ColumnDef extends FieldDef {
 export interface HeaderBlock {
   type: 'header';
   logo?: string;
+  /**
+   * Logo width in points; the height follows the image's aspect ratio. Default
+   * 120, which suits a wide wordmark — a square mark needs far less.
+   */
+  logoWidth?: number;
   title?: LabelRef;
   number?: string;
   date?: string;
@@ -65,9 +70,39 @@ export interface HeaderBlock {
   style?: string;
 }
 
+/**
+ * One line of a party panel: a binding path, or a set of paths of which the
+ * first non-empty one is printed. KSeF identifies a counterparty by exactly one
+ * of `NIP` / `NrVatUE` / `NrID` / `BrakID`, depending on where they are
+ * established, so a panel bound to `NIP` alone has nothing to print for a
+ * foreign buyer. Alternatives are read leniently — the ones that do not apply
+ * are absent by design, not by mistake.
+ */
+export type PartyField = string | { firstOf: string[] } | PartyGroup;
+
+/**
+ * A labelled sub-group inside a party panel — the address, say. The label is a
+ * sub-heading in the panel's own heading style; `style` applies to the group's
+ * value lines. The whole group, heading included, is dropped when none of its
+ * fields resolve, so a counterparty without an address leaves no orphan label.
+ */
+export interface PartyGroup {
+  label: string;
+  /**
+   * Repeat the group's fields once per entry of this collection, with each entry
+   * as the binding root (so `fields` hold item-relative paths). KSeF allows up
+   * to three `DaneKontaktowe` blocks per party, and a scalar path would silently
+   * print only the first. Entries are read leniently: every field of a contact
+   * block is optional, so an absent one is by design, not a typo.
+   */
+  from?: string;
+  fields: PartyField[];
+  style?: string;
+}
+
 export interface PartyColumn {
   label: string;
-  fields: string[];
+  fields: PartyField[];
 }
 
 export interface PartiesBlock {
@@ -251,6 +286,20 @@ const formatEnum = z.enum(['money', 'date', 'number', 'nip', 'paymentForm']);
 const styleValue = z.union([z.string(), z.number(), z.boolean(), z.array(z.number())]);
 const styleSchema = z.record(z.string(), styleValue);
 const labelRef = z.object({ label: z.string().optional(), text: z.string().optional() }).strict();
+const partyField: z.ZodType<PartyField> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.object({ firstOf: z.array(z.string()).nonempty() }).strict(),
+    z
+      .object({
+        label: z.string(),
+        from: z.string().optional(),
+        fields: z.array(partyField),
+        style: z.string().optional(),
+      })
+      .strict(),
+  ]),
+);
 const fieldDef = z
   .object({
     label: z.string(),
@@ -289,6 +338,7 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({
       type: z.literal('header'),
       logo: z.string().optional(),
+      logoWidth: z.number().positive().optional(),
       title: labelRef.optional(),
       number: z.string().optional(),
       date: z.string().optional(),
@@ -297,8 +347,8 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
     }).strict(),
     z.object({
       type: z.literal('parties'),
-      left: z.object({ label: z.string(), fields: z.array(z.string()) }).strict(),
-      right: z.object({ label: z.string(), fields: z.array(z.string()) }).strict(),
+      left: z.object({ label: z.string(), fields: z.array(partyField) }).strict(),
+      right: z.object({ label: z.string(), fields: z.array(partyField) }).strict(),
       style: z.string().optional(),
     }).strict(),
     z.object({
