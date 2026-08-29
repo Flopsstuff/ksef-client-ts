@@ -1,6 +1,6 @@
 import { get, list } from '../../accessor.js';
-import { applyFormat } from '../../format.js';
 import type { PaymentBlock } from '../dsl.js';
+import { readField } from './field.js';
 import { resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.js';
 
 /**
@@ -26,7 +26,7 @@ export const paymentRenderer: BlockRenderer<PaymentBlock> = (block, ctx) => {
   const stack: PdfNode[] = [{ text: ctx.label('payment'), style: heading }];
 
   for (const row of block.rows) {
-    const value = applyFormat(resolveBinding(row.path, row.optional ? lenientCtx : ctx), row.format);
+    const value = readField(row, (path, optional) => resolveBinding(path, optional ? lenientCtx : ctx));
     if (value === '') continue;
     stack.push({ text: `${ctx.label(row.label)}: ${value}` });
   }
@@ -35,7 +35,7 @@ export const paymentRenderer: BlockRenderer<PaymentBlock> = (block, ctx) => {
     const lines: PdfNode[] = [];
     for (const account of list(ctx.root, block.accounts.from)) {
       for (const field of block.accounts.fields) {
-        const value = applyFormat(get(account, field.path, field.optional ? false : ctx.strict), field.format);
+        const value = readField(field, (path, optional) => get(account, path, optional ? false : ctx.strict));
         if (value === '') continue;
         lines.push({ text: `${ctx.label(field.label)}: ${value}` });
       }

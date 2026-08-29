@@ -1,6 +1,6 @@
-import { applyFormat } from '../../format.js';
 import type { AnnotationsBlock } from '../dsl.js';
 import { resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.js';
+import { readField } from './field.js';
 
 /**
  * Legal annotations: an `annotations` heading followed by one `label: value`
@@ -16,8 +16,8 @@ export const annotationsRenderer: BlockRenderer<AnnotationsBlock> = (block, ctx)
 
   const stack: PdfNode[] = [{ text: ctx.label('annotations'), style: block.headingStyle ?? 'h2' }];
   for (const field of block.fields) {
-    const value = resolveBinding(field.path, field.optional ? lenientCtx : ctx);
-    stack.push({ text: `${ctx.label(field.label)}: ${applyFormat(value, field.format)}` });
+    const value = readField(field, (path, optional) => resolveBinding(path, optional ? lenientCtx : ctx));
+    stack.push({ text: `${ctx.label(field.label)}: ${value}` });
   }
 
   return {

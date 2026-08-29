@@ -53,6 +53,7 @@ export const en: LabelBundle = {
   paid: 'Paid',
   paymentDate: 'Payment due',
   paymentMethod: 'Payment method',
+  amountDueTotal: 'Total amount due',
   bankAccounts: 'Bank account',
   bankAccount: 'Account number',
   swift: 'SWIFT / BIC',

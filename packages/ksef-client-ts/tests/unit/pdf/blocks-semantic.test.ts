@@ -15,6 +15,7 @@ import { totalsRenderer } from '../../../src/pdf/template/blocks/totals.js';
 import { paymentRenderer } from '../../../src/pdf/template/blocks/payment.js';
 import { annotationsRenderer } from '../../../src/pdf/template/blocks/annotations.js';
 import { footerRenderer } from '../../../src/pdf/template/blocks/footer.js';
+import { getBuiltinTemplate } from '../../../src/pdf/template/builtin/index.js';
 
 // ── test harness ────────────────────────────────────────────────────────────
 
@@ -1051,5 +1052,72 @@ describe('column sub-lines', () => {
         noRender,
       );
     expect(render).not.toThrow();
+  });
+});
+
+// ── value suffixes ───────────────────────────────────────────────────────────
+
+/**
+ * An amount and its currency are one fact. `suffixPath` appends the second
+ * binding to the first so they print as `800,00 EUR`, rather than leaving the
+ * reader to pair a number in one row with a currency code in another.
+ */
+describe('suffixPath', () => {
+  const root = { Fa: { P_15: '800.00', KodWaluty: 'EUR', Platnosc: { FormaPlatnosci: '6' } } };
+
+  const paymentRows = (rows: unknown[], over: Record<string, unknown> = {}) =>
+    rec(
+      paymentRenderer(
+        { type: 'payment', rows: rows as never, ...over },
+        makeCtx(root),
+        noRender,
+      ),
+    ).stack.map((n: { text: string }) => n.text);
+
+  it('appends the second binding after a space', () => {
+    const rows = paymentRows([{ label: 'amountDueTotal', path: 'Fa.P_15', format: 'money', suffixPath: 'Fa.KodWaluty' }]);
+    expect(rows).toContain('amountDueTotal: 800,00 EUR');
+  });
+
+  it('formats the value first, then appends', () => {
+    // The formatter belongs to the value: the suffix must not be swept into it.
+    const rows = paymentRows([{ label: 'amountDueTotal', path: 'Fa.P_15', suffixPath: 'Fa.KodWaluty' }]);
+    expect(rows).toContain('amountDueTotal: 800.00 EUR'); // unformatted value, suffix still appended
+  });
+
+  it('prints the value alone when the suffix resolves empty', () => {
+    const rows = paymentRows([{ label: 'amountDueTotal', path: 'Fa.P_15', format: 'money', suffixPath: 'Fa.Nieistnieje', optional: true }]);
+    expect(rows).toContain('amountDueTotal: 800,00');
+  });
+
+  it('prints nothing at all when the value itself is absent', () => {
+    // Never a bare currency code: an absent amount drops the whole row.
+    const rows = paymentRows([{ label: 'amountDueTotal', path: 'Fa.Brak', format: 'money', suffixPath: 'Fa.KodWaluty', optional: true }]);
+    expect(rows.some((t: string) => t.includes('EUR'))).toBe(false);
+  });
+
+  it('reads the suffix at the strictness of the value it follows', () => {
+    // A typo in a required field's suffix is a typo, and strict is what exists
+    // to catch it.
+    const render = () =>
+      paymentRenderer(
+        { type: 'payment', rows: [{ label: 'amountDueTotal', path: 'Fa.P_15', suffixPath: 'Fa.KodWalutyy' }] as never },
+        makeCtx(root, { strict: true }),
+        noRender,
+      );
+    expect(render).toThrow(/KodWalutyy/);
+  });
+});
+
+describe('the built-in templates restate the amount due with its currency', () => {
+  it.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s does it in the payment block', (name) => {
+    const payment = getBuiltinTemplate(name)!.blocks.find((b) => b.type === 'payment') as {
+      rows: Array<{ label: string; path: string; suffixPath?: string }>;
+    };
+    const row = payment.rows.find((r) => r.label === 'amountDueTotal')!;
+    expect(row.path).toBe('Fa.P_15');
+    expect(row.suffixPath).toBe('Fa.KodWaluty');
+    // It restates the total, so it belongs after the terms it settles.
+    expect(payment.rows.at(-1)).toBe(row);
   });
 });

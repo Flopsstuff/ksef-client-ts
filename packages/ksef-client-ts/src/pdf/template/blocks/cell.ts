@@ -1,6 +1,6 @@
-import { applyFormat } from '../../format.js';
 import type { ColumnDef } from '../dsl.js';
 import type { PdfNode, RenderContext } from '../interpret.js';
+import { readField } from './field.js';
 
 /** Separator between `sub` entries when the column names none. */
 const DEFAULT_SUB_SEPARATOR = ' · ';
@@ -24,11 +24,11 @@ export function buildCell(
   read: (path: string, optional: boolean) => string,
   ctx: RenderContext,
 ): PdfNode {
-  const value = applyFormat(read(column.path, column.optional === true), column.format);
+  const value = readField(column, read);
 
   const parts: string[] = [];
   for (const sub of column.sub ?? []) {
-    const text = applyFormat(read(sub.path, sub.optional === true), sub.format);
+    const text = readField(sub, read);
     if (text !== '') parts.push(`${ctx.label(sub.label)} ${text}`);
   }
 

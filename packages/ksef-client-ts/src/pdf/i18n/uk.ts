@@ -61,6 +61,7 @@ export const uk: LabelBundle = {
   paid: 'Сплачено',
   paymentDate: 'Термін оплати',
   paymentMethod: 'Спосіб оплати',
+  amountDueTotal: 'Загальна сума до сплати',
   bankAccounts: 'Банківський рахунок',
   bankAccount: 'Номер рахунку',
   swift: 'SWIFT / BIC',

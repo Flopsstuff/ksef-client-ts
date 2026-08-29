@@ -56,6 +56,7 @@ export const pl: LabelBundle = {
   paid: 'Zapłacono',
   paymentDate: 'Termin płatności',
   paymentMethod: 'Forma płatności',
+  amountDueTotal: 'Kwota należności ogółem',
   bankAccounts: 'Rachunek bankowy',
   bankAccount: 'Numer rachunku',
   swift: 'Kod SWIFT',

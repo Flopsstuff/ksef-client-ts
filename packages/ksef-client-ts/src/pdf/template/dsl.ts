@@ -57,6 +57,13 @@ export interface FieldDef {
   optional?: boolean;
   format?: FormatterName;
   style?: string;
+  /**
+   * A second binding appended after the value, separated by a space — an amount
+   * and its currency are one fact and read as one (`800,00 EUR`), not as two
+   * lines a reader has to join up. Dropped when it resolves empty, and read at
+   * the same strictness as the value it follows.
+   */
+  suffixPath?: string;
 }
 
 /**
@@ -441,6 +448,7 @@ const fieldDef = z
     optional: z.boolean().optional(),
     format: formatEnum.optional(),
     style: z.string().optional(),
+    suffixPath: z.string().optional(),
   })
   .strict();
 
@@ -451,6 +459,7 @@ const columnDef = z
     optional: z.boolean().optional(),
     format: formatEnum.optional(),
     style: z.string().optional(),
+    suffixPath: z.string().optional(),
     width: z.union([z.number().positive(), z.literal('auto'), z.literal('*')]).optional(),
     sub: z.array(fieldDef).nonempty().optional(),
     subStyle: z.string().optional(),

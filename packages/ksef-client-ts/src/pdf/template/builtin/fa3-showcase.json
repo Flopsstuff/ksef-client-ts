@@ -167,7 +167,8 @@
       "rows": [
         { "label": "paid", "path": "Fa.Platnosc.Zaplacono", "optional": true },
         { "label": "paymentDate", "path": "Fa.Platnosc.TerminPlatnosci.Termin", "format": "date", "optional": true },
-        { "label": "paymentMethod", "path": "Fa.Platnosc.FormaPlatnosci", "format": "paymentForm", "optional": true }
+        { "label": "paymentMethod", "path": "Fa.Platnosc.FormaPlatnosci", "format": "paymentForm", "optional": true },
+        { "label": "amountDueTotal", "path": "Fa.P_15", "format": "money", "suffixPath": "Fa.KodWaluty" }
       ],
       "accounts": {
         "from": "Fa.Platnosc.RachunekBankowy",
