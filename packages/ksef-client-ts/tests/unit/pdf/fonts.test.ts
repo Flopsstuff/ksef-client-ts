@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { satisfiesRequiredRange, normalizeVfs } from '../../../src/pdf/fonts.js';
+import { satisfiesRequiredRange, normalizeVfs, createPdfBuffer } from '../../../src/pdf/fonts.js';
+import type { PdfMakeLike, PdfDocStream } from '../../../src/pdf/fonts.js';
+import { KSeFPdfError } from '../../../src/pdf/errors.js';
 
 describe('satisfiesRequiredRange', () => {
   it('accepts the exact lower bound 0.2.20', () => {
@@ -61,5 +63,66 @@ describe('normalizeVfs', () => {
 
   it('returns a bare map unchanged', () => {
     expect(normalizeVfs(fontMap)).toBe(fontMap);
+  });
+});
+
+describe('createPdfBuffer', () => {
+  /**
+   * A stand-in for pdfmake's document stream. `emit` decides what the stream
+   * does once `end()` is called, which is where pdfmake reports a failure
+   * raised during asynchronous document assembly.
+   */
+  function fakePdfMake(emit: (h: Record<string, (arg?: never) => void>) => void): PdfMakeLike {
+    return {
+      createPdf(): { getStream(): PdfDocStream } {
+        const handlers: Record<string, (arg?: never) => void> = {};
+        const stream = {
+          on(event: string, cb: (arg?: never) => void) {
+            handlers[event] = cb;
+          },
+          end() {
+            emit(handlers);
+          },
+        };
+        return { getStream: () => stream as unknown as PdfDocStream };
+      },
+    };
+  }
+
+  it('concatenates the streamed chunks in order', async () => {
+    const pdfMake = fakePdfMake((h) => {
+      (h.data as unknown as (c: Uint8Array) => void)(Uint8Array.from([1, 2]));
+      (h.data as unknown as (c: Uint8Array) => void)(Uint8Array.from([3]));
+      h.end?.();
+    });
+    await expect(createPdfBuffer(pdfMake, {})).resolves.toEqual(Uint8Array.from([1, 2, 3]));
+  });
+
+  // pdfmake raises image and font failures long after createPdf() returned, so
+  // a `try` around the call cannot see them. Left unhandled they take the
+  // process down instead of rejecting the caller's promise.
+  it('rejects when the stream reports an asynchronous failure', async () => {
+    const pdfMake = fakePdfMake((h) => {
+      (h.error as unknown as (e: unknown) => void)('Invalid image: Unknown image format.');
+    });
+    await expect(createPdfBuffer(pdfMake, {})).rejects.toBeInstanceOf(KSeFPdfError);
+    await expect(createPdfBuffer(pdfMake, {})).rejects.toThrow(/Unknown image format/);
+  });
+
+  it('preserves an Error the stream reports as-is', async () => {
+    const boom = new TypeError('bad font');
+    const pdfMake = fakePdfMake((h) => {
+      (h.error as unknown as (e: unknown) => void)(boom);
+    });
+    await expect(createPdfBuffer(pdfMake, {})).rejects.toBe(boom);
+  });
+
+  it('rejects when getStream itself throws', async () => {
+    const pdfMake = {
+      createPdf(): { getStream(): PdfDocStream } {
+        throw new Error('no document');
+      },
+    };
+    await expect(createPdfBuffer(pdfMake, {})).rejects.toThrow('no document');
   });
 });

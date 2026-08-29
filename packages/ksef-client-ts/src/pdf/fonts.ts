@@ -14,10 +14,24 @@ import { KSeFPdfError } from './errors.js';
 const REQUIRED_RANGE = '^0.2.20';
 const INSTALL_HINT = `npm i "pdfmake@${REQUIRED_RANGE}"`;
 
-/** Minimal structural view of the pdfmake browser build we depend on. */
+/**
+ * Minimal structural view of the pdfmake browser build we depend on.
+ *
+ * `getStream` rather than `getBuffer`: pdfmake reports a failure raised inside
+ * document assembly (a malformed or unsupported image, say) on the stream's
+ * `error` event, whereas `getBuffer`'s callback has no error channel at all.
+ */
 export interface PdfMakeLike {
-  createPdf(docDefinition: unknown): { getBuffer(cb: (buffer: Uint8Array) => void): void };
+  createPdf(docDefinition: unknown): { getStream(): PdfDocStream };
   vfs?: unknown;
+}
+
+/** The subset of pdfmake's PDFKit document stream `createPdfBuffer` drives. */
+export interface PdfDocStream {
+  on(event: 'data', cb: (chunk: Uint8Array) => void): void;
+  on(event: 'end', cb: () => void): void;
+  on(event: 'error', cb: (err: unknown) => void): void;
+  end(): void;
 }
 
 function missingError(): KSeFPdfError {
@@ -98,13 +112,51 @@ export async function loadPdfMake(): Promise<PdfMakeLike> {
   return pdfMake;
 }
 
-/** Render a pdfmake document definition to PDF bytes. */
+/**
+ * Render a pdfmake document definition to PDF bytes.
+ *
+ * Document assembly is asynchronous, so a failure inside it lands long after
+ * this function has returned and cannot be caught by a `try` around the call.
+ * Draining the document stream gives those failures somewhere to go: the
+ * `error` event settles the promise instead of leaving it pending and letting
+ * the rejection escape to the process. pdfmake emits a plain string there, so
+ * anything that is not an `Error` is wrapped.
+ */
 export function createPdfBuffer(pdfMake: PdfMakeLike, docDefinition: unknown): Promise<Uint8Array> {
   return new Promise<Uint8Array>((resolve, reject) => {
-    try {
-      pdfMake.createPdf(docDefinition).getBuffer((buffer) => resolve(Uint8Array.from(buffer)));
-    } catch (err) {
+    const fail = (err: unknown): void => {
       reject(err instanceof Error ? err : new KSeFPdfError(String(err)));
+    };
+
+    let stream: PdfDocStream;
+    try {
+      stream = pdfMake.createPdf(docDefinition).getStream();
+    } catch (err) {
+      fail(err);
+      return;
+    }
+
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    stream.on('data', (chunk) => {
+      chunks.push(chunk);
+      size += chunk.length;
+    });
+    stream.on('end', () => {
+      const out = new Uint8Array(size);
+      let at = 0;
+      for (const chunk of chunks) {
+        out.set(chunk, at);
+        at += chunk.length;
+      }
+      resolve(out);
+    });
+    stream.on('error', fail);
+
+    try {
+      stream.end();
+    } catch (err) {
+      fail(err);
     }
   });
 }

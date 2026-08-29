@@ -67,3 +67,17 @@ describe('renderInvoicePdfFromTemplate — custom object', () => {
     await expect(renderInvoicePdfFromTemplate(fa3, bad)).rejects.toThrow();
   });
 });
+
+describe('a render failure raised inside pdfmake', () => {
+  // A valid 1x1 GIF: well-formed, and a format pdfmake cannot draw. pdfmake
+  // reports it during asynchronous document assembly, so before the renderer
+  // drained the document stream this took the process down with an unhandled
+  // rejection instead of rejecting the caller.
+  const gif = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+  it('rejects the caller instead of terminating the process', async () => {
+    await expect(renderInvoicePdf(fa3, 'fa3-default', { logo: gif })).rejects.toThrow(
+      /Unknown image format/,
+    );
+  });
+});
