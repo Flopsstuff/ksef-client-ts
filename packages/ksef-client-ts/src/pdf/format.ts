@@ -11,25 +11,59 @@ function groupThousands(intPart: string): string {
   return intPart.replace(/\B(?=(\d{3})+(?!\d))/g, NBSP);
 }
 
+/** `"007"` → `"7"`, `"000"` → `"0"`. */
+function trimLeadingZeros(digits: string): string {
+  return digits.replace(/^0+(?=\d)/, '');
+}
+
+/**
+ * The shape KSeF's decimal types take, same as {@link sumDecimal} reads.
+ *
+ * The number formatters work on this parse rather than on `Number`, because
+ * TKwotowy allows 18 digits — more than a double holds — so a round trip
+ * through binary floating point silently rewrites the value before it is ever
+ * printed: `9999999999999999.99` came out as `10 000 000 000 000 000,00`. That
+ * also threw away what the decimal-safe totals summation had just preserved.
+ */
+const DECIMAL = /^([+-]?)(\d+)(?:\.(\d+))?$/;
+
+function parseDecimal(raw: string): { negative: boolean; int: string; frac: string } | null {
+  const m = DECIMAL.exec(raw.trim());
+  if (!m) return null;
+  return { negative: m[1] === '-', int: m[2] ?? '0', frac: m[3] ?? '' };
+}
+
+/**
+ * The digits of `int.frac` restated with exactly `scale` fraction digits,
+ * rounding half away from zero. A value already within scale is only padded, so
+ * nothing that fits the schema is ever touched.
+ */
+function rescale(int: string, frac: string, scale: number): string {
+  if (frac.length <= scale) return int + frac.padEnd(scale, '0');
+  const kept = int + frac.slice(0, scale);
+  return frac.charCodeAt(scale) - 48 >= 5 ? (BigInt(kept) + 1n).toString() : kept;
+}
+
 /** `"1234.5"` → `"1 234,50"` (Polish monetary style, 2 decimals). */
 export function formatMoney(raw: string): string {
-  const n = Number(raw);
-  if (raw.trim() === '' || Number.isNaN(n)) return raw;
-  const fixed = Math.abs(n).toFixed(2);
-  const dot = fixed.indexOf('.');
-  const intPart = fixed.slice(0, dot);
-  const frac = fixed.slice(dot + 1);
-  const sign = n < 0 ? '-' : '';
+  const parsed = parseDecimal(raw);
+  if (parsed === null) return raw;
+  const digits = rescale(parsed.int, parsed.frac, 2).padStart(3, '0');
+  const intPart = trimLeadingZeros(digits.slice(0, digits.length - 2));
+  const frac = digits.slice(digits.length - 2);
+  // Nobody writes -0,00 on an invoice; a value that rounds to nothing is zero.
+  const sign = parsed.negative && /[1-9]/.test(digits) ? '-' : '';
   return `${sign}${groupThousands(intPart)},${frac}`;
 }
 
 /** `"1234.5"` → `"1 234,5"` (grouped, no forced decimals). */
 export function formatNumber(raw: string): string {
-  const n = Number(raw);
-  if (raw.trim() === '' || Number.isNaN(n)) return raw;
-  const [intPart, frac] = Math.abs(n).toString().split('.');
-  const sign = n < 0 ? '-' : '';
-  const grouped = groupThousands(intPart ?? '0');
+  const parsed = parseDecimal(raw);
+  if (parsed === null) return raw;
+  const frac = parsed.frac.replace(/0+$/, '');
+  const intPart = trimLeadingZeros(parsed.int);
+  const sign = parsed.negative && /[1-9]/.test(intPart + frac) ? '-' : '';
+  const grouped = groupThousands(intPart);
   return frac ? `${sign}${grouped},${frac}` : `${sign}${grouped}`;
 }
 

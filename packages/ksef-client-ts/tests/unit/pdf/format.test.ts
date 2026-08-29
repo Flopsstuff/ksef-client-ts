@@ -42,6 +42,35 @@ describe('formatMoney', () => {
   it('returns a whitespace-only string unchanged', () => {
     expect(formatMoney('   ')).toBe('   ');
   });
+
+  // TKwotowy is 18 digits with 2 after the point — wider than a double holds
+  // exactly, so anything routed through Number is rewritten before it prints.
+  it('prints an 18-digit amount exactly', () => {
+    expect(formatMoney('9999999999999999.99')).toBe(
+      `9${NBSP}999${NBSP}999${NBSP}999${NBSP}999${NBSP}999,99`,
+    );
+  });
+
+  it('keeps the last złoty of a large amount', () => {
+    expect(formatMoney('123456789012345.67')).toBe(
+      `123${NBSP}456${NBSP}789${NBSP}012${NBSP}345,67`,
+    );
+  });
+
+  it('rounds a third decimal half away from zero', () => {
+    expect(formatMoney('0.145')).toBe('0,15');
+    expect(formatMoney('0.144')).toBe('0,14');
+    expect(formatMoney('-0.145')).toBe('-0,15');
+  });
+
+  it('carries the rounding into the integer part', () => {
+    expect(formatMoney('9.999')).toBe('10,00');
+  });
+
+  it('does not print a negative zero', () => {
+    expect(formatMoney('-0.00')).toBe('0,00');
+    expect(formatMoney('-0.001')).toBe('0,00');
+  });
 });
 
 describe('formatNumber', () => {
@@ -63,6 +92,21 @@ describe('formatNumber', () => {
 
   it('returns an empty string unchanged', () => {
     expect(formatNumber('')).toBe('');
+  });
+
+  it('prints a quantity too wide for a double exactly', () => {
+    expect(formatNumber('12345678901234567.5')).toBe(
+      `12${NBSP}345${NBSP}678${NBSP}901${NBSP}234${NBSP}567,5`,
+    );
+  });
+
+  it('keeps every decimal the document carries', () => {
+    expect(formatNumber('1.23456789')).toBe('1,23456789');
+  });
+
+  it('drops trailing zeros rather than forcing a scale', () => {
+    expect(formatNumber('1234.500')).toBe(`1${NBSP}234,5`);
+    expect(formatNumber('1234.000')).toBe(`1${NBSP}234`);
   });
 });
 
