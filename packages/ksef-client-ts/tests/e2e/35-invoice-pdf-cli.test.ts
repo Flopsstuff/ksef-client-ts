@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -18,12 +18,16 @@ import { fileURLToPath } from 'node:url';
 // flag that stops being wired, an optional peer that fails to load.
 //
 // Output goes to a stable directory so the rendered PDFs can be opened and
-// reviewed after a run; override it with KSEF_PDF_OUT.
+// reviewed after a run; override it with KSEF_PDF_OUT. Spec 36 writes its own
+// `lib-` prefixed set into the same directory, so this one clears only what it
+// owns — wiping the directory would race the sibling spec under a parallel run.
 
 const repoRoot = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 const cliEntry = join(repoRoot, 'dist', 'cli.js');
 const fixtures = join(repoRoot, 'tests', 'fixtures', 'pdf');
 const outDir = process.env.KSEF_PDF_OUT ?? join(repoRoot, '.pdf-preview');
+const inputsDir = join(outDir, '_inputs');
+const PREFIX = 'cli';
 
 const fx = (name: string) => join(fixtures, name);
 
@@ -61,7 +65,7 @@ function writeDerivedInputs(): void {
       if (row.label === 'totalVat') { delete row.sum; row.path = 'Fa.P_14_1'; }
     }
   }
-  oldTotalsTemplate = join(outDir, 'fa3-single-bucket-totals.json');
+  oldTotalsTemplate = join(inputsDir, 'cli-fa3-single-bucket-totals.json');
   writeFileSync(oldTotalsTemplate, JSON.stringify(template, null, 2));
 
   // A five-document session UPO, cloned from the single-document fixture.
@@ -74,7 +78,7 @@ function writeDerivedInputs(): void {
       .replace('010000000000-00', `${String(i).padStart(2, '0')}0000000000-00`)
       .replace('FA/2025/01/001', `FA/2025/01/00${i}`),
   );
-  multiDocumentUpo = join(outDir, 'upo-4_3-five-documents.xml');
+  multiDocumentUpo = join(inputsDir, 'cli-upo-4_3-five-documents.xml');
   writeFileSync(multiDocumentUpo, upo.slice(0, end) + '\n' + clones.join('\n') + upo.slice(end));
 }
 
@@ -83,8 +87,10 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     if (!existsSync(cliEntry)) {
       throw new Error(`Missing ${cliEntry}. Run \`yarn build\` before \`yarn test:e2e\`.`);
     }
-    rmSync(outDir, { recursive: true, force: true });
-    mkdirSync(outDir, { recursive: true });
+    mkdirSync(inputsDir, { recursive: true });
+    for (const stale of readdirSync(outDir)) {
+      if (stale.startsWith(`${PREFIX}-`)) rmSync(join(outDir, stale), { force: true });
+    }
     writeDerivedInputs();
   });
 
@@ -94,18 +100,19 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
   });
 
   const variants: Array<[name: string, args: () => string[]]> = [
-    ['01-invoice-pl-qr', () => [fx('e2e-services-np.xml'), '--qr', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
-    ['02-invoice-en', () => [fx('e2e-services-np.xml'), '--locale', 'en', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
-    ['03-invoice-bilingual', () => [fx('e2e-services-np.xml'), '--locale', 'en+pl', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
-    ['04-invoice-offline', () => [fx('e2e-services-np.xml'), '--logo', fx('e2e-logo.png')]],
-    ['05-upo-pl', () => [fx('upo-4_3.xml')]],
-    ['06-upo-bilingual', () => [fx('upo-4_3.xml'), '--locale', 'en+pl']],
-    ['07-invoice-standard-rate', () => [fx('fa3.xml')]],
-    ['08-invoice-buyer-without-id', () => [fx('e2e-buyer-no-id.xml'), '--logo', fx('e2e-logo.png')]],
-    ['09-invoice-single-bucket-totals', () => [fx('e2e-vat-multi.xml'), '--template-file', oldTotalsTemplate, '--ksef-number', KSEF_NUMBER]],
-    ['10-upo-five-documents', () => [multiDocumentUpo]],
-    ['11-invoice-mixed-vat-pl', () => [fx('e2e-vat-multi.xml'), '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
-    ['12-invoice-mixed-vat-bilingual', () => [fx('e2e-vat-multi.xml'), '--locale', 'en+pl', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
+    [`${PREFIX}-01-invoice-pl-qr`, () => [fx('e2e-services-np.xml'), '--qr', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
+    [`${PREFIX}-02-invoice-en`, () => [fx('e2e-services-np.xml'), '--locale', 'en', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
+    [`${PREFIX}-03-invoice-bilingual`, () => [fx('e2e-services-np.xml'), '--locale', 'en+pl', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
+    [`${PREFIX}-04-invoice-offline`, () => [fx('e2e-services-np.xml'), '--logo', fx('e2e-logo.png')]],
+    [`${PREFIX}-05-invoice-standard-rate`, () => [fx('fa3.xml')]],
+    [`${PREFIX}-06-invoice-buyer-without-id`, () => [fx('e2e-buyer-no-id.xml'), '--logo', fx('e2e-logo.png')]],
+    [`${PREFIX}-07-invoice-mixed-vat-pl`, () => [fx('e2e-vat-multi.xml'), '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
+    [`${PREFIX}-08-invoice-mixed-vat-bilingual`, () => [fx('e2e-vat-multi.xml'), '--locale', 'en+pl', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
+    [`${PREFIX}-09-invoice-single-bucket-totals`, () => [fx('e2e-vat-multi.xml'), '--template-file', oldTotalsTemplate, '--ksef-number', KSEF_NUMBER]],
+    // Receipts last: they are a different document and read as their own group.
+    [`${PREFIX}-10-upo-pl`, () => [fx('upo-4_3.xml')]],
+    [`${PREFIX}-11-upo-bilingual`, () => [fx('upo-4_3.xml'), '--locale', 'en+pl']],
+    [`${PREFIX}-12-upo-five-documents`, () => [multiDocumentUpo]],
   ];
 
   it.each(variants)('renders %s', (name, args) => {

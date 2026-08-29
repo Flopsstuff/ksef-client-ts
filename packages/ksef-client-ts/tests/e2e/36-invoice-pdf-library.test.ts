@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createRequire } from 'node:module';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -26,10 +26,16 @@ import {
 //
 // Assertions stay shallow for the same reason as spec 35 — a complete PDF is
 // written, and the rendered files are kept for review. Layout is judged by eye.
+//
+// Both specs render into the same directory, distinguished by a `lib-`/`cli-`
+// prefix, so clearing is scoped to this spec's own files: wiping the directory
+// would race the sibling spec under a parallel run.
 
 const repoRoot = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 const fixtures = join(repoRoot, 'tests', 'fixtures', 'pdf');
-const outDir = join(process.env.KSEF_PDF_OUT ?? join(repoRoot, '.pdf-preview'), 'library');
+const outDir = process.env.KSEF_PDF_OUT ?? join(repoRoot, '.pdf-preview');
+const inputsDir = join(outDir, '_inputs');
+const PREFIX = 'lib';
 
 const fx = (name: string) => join(fixtures, name);
 const bytes = (name: string) => new Uint8Array(readFileSync(fx(name)));
@@ -57,8 +63,10 @@ async function save(name: string, render: Promise<Uint8Array>): Promise<string> 
 
 describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => {
   beforeAll(() => {
-    rmSync(outDir, { recursive: true, force: true });
-    mkdirSync(outDir, { recursive: true });
+    mkdirSync(inputsDir, { recursive: true });
+    for (const stale of readdirSync(outDir)) {
+      if (stale.startsWith(`${PREFIX}-`)) rmSync(join(outDir, stale), { force: true });
+    }
   });
 
   afterAll(() => {
@@ -90,7 +98,25 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
           { type: 'totals', rows: [{ label: 'totalDue', path: 'Fa.P_15', format: 'money' }] },
         ],
       };
-      await save('L1-template-object', renderInvoicePdfFromTemplate(bytes('e2e-vat-multi.xml'), template));
+      await save(`${PREFIX}-01-template-object`, renderInvoicePdfFromTemplate(bytes('e2e-vat-multi.xml'), template));
+    });
+
+    it('loads a custom template from a JSON file', async () => {
+      const path = join(inputsDir, 'lib-minimal-template.json');
+      writeFileSync(
+        path,
+        JSON.stringify({
+          schema: 'FA(3)',
+          blocks: [
+            { type: 'header', title: { label: 'invoice' }, number: 'Fa.P_2', date: 'Fa.P_1' },
+            { type: 'lines', from: 'Fa.FaWiersz', columns: [
+              { label: 'name', path: 'P_7', width: '*' },
+              { label: 'net', path: 'P_11', format: 'money', width: 70 },
+            ] },
+          ],
+        }),
+      );
+      await save(`${PREFIX}-02-template-from-file`, renderInvoicePdfFromFile(bytes('e2e-vat-multi.xml'), path));
     });
 
     it('exposes theme.accent to a template as the `opts.accent` binding', async () => {
@@ -107,7 +133,7 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
         ],
       };
       await save(
-        'L2-theme-accent-binding',
+        `${PREFIX}-03-theme-accent-binding`,
         renderInvoicePdfFromTemplate(bytes('e2e-vat-multi.xml'), template, {
           theme: { accent: '#B0004E' },
           logo: LOGO,
@@ -118,7 +144,7 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
 
     it('honours a custom bilingual separator', async () => {
       await save(
-        'L3-bilingual-newline-separator',
+        `${PREFIX}-04-bilingual-newline-separator`,
         renderInvoicePdf(bytes('e2e-vat-multi.xml'), 'fa3-default', {
           locale: 'en+pl',
           bilingualSeparator: '\n',
@@ -129,7 +155,7 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
 
     it('overrides the QR base URL for an offline/non-standard verifier', async () => {
       await save(
-        'L4-custom-qr-base-url',
+        `${PREFIX}-05-custom-qr-base-url`,
         renderInvoicePdf(bytes('e2e-vat-multi.xml'), 'fa3-default', {
           qr: true,
           baseQrUrl: 'https://verify.example/ksef',
@@ -142,7 +168,7 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
       const raw = bytes('e2e-vat-multi.xml');
       const invoiceHash = createHash('sha256').update(raw).digest('base64');
       await save(
-        'L5-precomputed-invoice-hash',
+        `${PREFIX}-06-precomputed-invoice-hash`,
         renderInvoicePdf(raw, 'fa3-default', { qr: true, invoiceHash, ksefNumber: KSEF_NUMBER }),
       );
     });
@@ -151,33 +177,16 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
       // fa3.xml exists precisely so the built-in templates can be rendered with
       // every dot-path resolved; strict turns a typo in our own preset into a
       // thrown error rather than a blank line.
-      await save('L6-strict-mode', renderInvoicePdf(bytes('fa3.xml'), 'fa3-default', { strict: true }));
+      await save(`${PREFIX}-07-strict-mode`, renderInvoicePdf(bytes('fa3.xml'), 'fa3-default', { strict: true }));
     });
 
     it('accepts the XML as a string as well as bytes', async () => {
-      await save('L7-string-input', renderInvoicePdf(text('e2e-vat-multi.xml'), 'fa3-default'));
+      await save(`${PREFIX}-08-string-input`, renderInvoicePdf(text('e2e-vat-multi.xml'), 'fa3-default'));
     });
 
-    it('loads a custom template from a JSON file', async () => {
-      const path = join(outDir, 'minimal-template.json');
-      writeFileSync(
-        path,
-        JSON.stringify({
-          schema: 'FA(3)',
-          blocks: [
-            { type: 'header', title: { label: 'invoice' }, number: 'Fa.P_2', date: 'Fa.P_1' },
-            { type: 'lines', from: 'Fa.FaWiersz', columns: [
-              { label: 'name', path: 'P_7', width: '*' },
-              { label: 'net', path: 'P_11', format: 'money', width: 70 },
-            ] },
-          ],
-        }),
-      );
-      await save('L8-template-from-file', renderInvoicePdfFromFile(bytes('e2e-vat-multi.xml'), path));
-    });
-
+    // Receipt last, as in spec 35.
     it('renders a UPO through the library entry point', async () => {
-      await save('L9-upo', renderUpoPdf(bytes('upo-4_3.xml'), { locale: 'en+pl' }));
+      await save(`${PREFIX}-09-upo`, renderUpoPdf(bytes('upo-4_3.xml'), { locale: 'en+pl' }));
     });
   });
 
@@ -202,7 +211,7 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
 
     it('rejects a template file that does not exist', async () => {
       await expect(
-        renderInvoicePdfFromFile(bytes('fa3.xml'), join(outDir, 'absent.json')),
+        renderInvoicePdfFromFile(bytes('fa3.xml'), join(inputsDir, 'absent.json')),
       ).rejects.toThrow(/Failed to read template file/);
     });
 
