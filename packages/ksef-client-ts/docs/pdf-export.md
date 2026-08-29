@@ -338,7 +338,7 @@ const pdf = await renderInvoicePdf(xml, 'fa3-default', {
 
 Both halves are plain text — no bindings, no markup, and a `\n` is a line break. A note therefore cannot reach into the document or disturb the layout around it. An entry blank on both halves is dropped, one with only a head or only a body prints that half, and a render with no notes leaves no trace of the block at all.
 
-Each note's heading takes the block's `headingStyle` — the built-in templates set `h1`, the same level as `Płatność`, since a note is a section of its own rather than a label inside one — and the bodies are body text. From the CLI the sections come from a JSON file:
+The section carries its own heading — `Pozostałe informacje` — so the notes read as part of the document rather than as text that fell off the end of it. That heading takes the block's `headingStyle`, which the built-in templates set to `h1`, the same level as `Płatność`; each note's own title sits a level below it on `h2`, as sub-headings do in every block. The bodies are body text. From the CLI the sections come from a JSON file:
 
 ```bash
 ksef invoice pdf invoice.xml --notes ./notes.json

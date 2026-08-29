@@ -30,9 +30,10 @@ describe('notesRenderer', () => {
     { head: 'Uwaga', body: 'Prosimy o podanie numeru faktury w tytule przelewu.' },
   ];
 
-  it('prints each note as a heading over its body, in order', () => {
+  it('heads the section, then prints each note over its body, in order', () => {
     const out = rec(notesRenderer({ type: 'notes' }, ctxWith(two), noRender));
     expect(out.stack.map((n) => n.text)).toEqual([
+      'notes',
       'Warunki dostawy',
       'Towar wydany w magazynie sprzedawcy.',
       'Uwaga',
@@ -40,16 +41,20 @@ describe('notesRenderer', () => {
     ]);
   });
 
-  it('puts the heading on h2 by default', () => {
+  it('puts both levels on h2 by default, as every block does', () => {
     const out = rec(notesRenderer({ type: 'notes' }, ctxWith(two), noRender));
-    expect(out.stack[0].style).toBe('h2');
-    expect(out.stack[1].style).toBeUndefined(); // the body is body text
+    expect(out.stack[0].style).toBe('h2'); // the section
+    expect(out.stack[1].style).toBe('h2'); // a note's own title
+    expect(out.stack[2].style).toBeUndefined(); // the body is body text
   });
 
-  it('takes the heading style the template names', () => {
+  it('lifts only the section heading when the template names a style', () => {
+    // The note titles stay a level below it — lifting a section heading must
+    // not drag everything under it along.
     const out = rec(notesRenderer({ type: 'notes', headingStyle: 'h1' }, ctxWith(two), noRender));
     expect(out.stack[0].style).toBe('h1');
-    expect(out.stack[2].style).toBe('h1');
+    expect(out.stack[1].style).toBe('h2');
+    expect(out.stack[3].style).toBe('h2');
   });
 
   it('renders nothing at all when no notes were supplied', () => {
@@ -65,7 +70,7 @@ describe('notesRenderer', () => {
       { head: '  ', body: '\n' },
       { head: 'Kept', body: 'Also kept' },
     ]), noRender));
-    expect(out.stack.map((n) => n.text)).toEqual(['Kept', 'Also kept']);
+    expect(out.stack.map((n) => n.text)).toEqual(['notes', 'Kept', 'Also kept']);
   });
 
   it('prints a note that has only one half', () => {
@@ -73,9 +78,9 @@ describe('notesRenderer', () => {
       { head: 'Heading alone', body: '' },
       { head: '', body: 'Body alone' },
     ]), noRender));
-    expect(out.stack.map((n) => n.text)).toEqual(['Heading alone', 'Body alone']);
-    expect(out.stack[0].style).toBe('h2');
-    expect(out.stack[1].style).toBeUndefined();
+    expect(out.stack.map((n) => n.text)).toEqual(['notes', 'Heading alone', 'Body alone']);
+    expect(out.stack[1].style).toBe('h2');
+    expect(out.stack[2].style).toBeUndefined();
   });
 
   it('carries the block style when the template names one', () => {
@@ -89,7 +94,11 @@ describe('notesRenderer', () => {
     const out = rec(notesRenderer({ type: 'notes' }, ctxWith([
       { head: 'Fa.P_15', body: '{{ not a template }} — 100% & <tags>' },
     ]), noRender));
-    expect(out.stack.map((n) => n.text)).toEqual(['Fa.P_15', '{{ not a template }} — 100% & <tags>']);
+    expect(out.stack.map((n) => n.text)).toEqual([
+      'notes',
+      'Fa.P_15',
+      '{{ not a template }} — 100% & <tags>',
+    ]);
   });
 });
 
@@ -115,7 +124,11 @@ describe('the notes option reaches the block', () => {
   it('prints the supplied notes through the built-in template', () => {
     const node = notesStack([{ head: 'Warunki dostawy', body: 'DAP Warszawa' }]);
     expect(node).toBeDefined();
-    expect((node!.stack as Array<{ text: string }>).map((n) => n.text)).toEqual(['Warunki dostawy', 'DAP Warszawa']);
+    expect((node!.stack as Array<{ text: string }>).map((n) => n.text)).toEqual([
+      'Pozostałe informacje',
+      'Warunki dostawy',
+      'DAP Warszawa',
+    ]);
   });
 
   it('leaves the page untouched when none are supplied', () => {
@@ -166,8 +179,9 @@ describe('the notes option reaches the block', () => {
     expect(getBuiltinTemplate(name)!.blocks.some((b) => b.type === 'notes')).toBe(true);
   });
 
-  it.each(['fa2-default', 'fa3-default'])('%s heads its notes at section level', (name) => {
-    // A note is a section of its own, like Płatność — not a label inside one.
+  it.each(['fa2-default', 'fa3-default'])('%s heads the section at section level', (name) => {
+    // The section reads as part of the document, like Płatność; the individual
+    // notes sit under it, like the labels inside any other block.
     const block = getBuiltinTemplate(name)!.blocks.find((b) => b.type === 'notes') as { headingStyle?: string };
     expect(block.headingStyle).toBe('h1');
   });

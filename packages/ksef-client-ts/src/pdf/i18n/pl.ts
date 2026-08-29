@@ -63,6 +63,7 @@ export const pl: LabelBundle = {
   bankName: 'Nazwa banku',
   // annotations
   annotations: 'Adnotacje',
+  notes: 'Pozostałe informacje',
   // upo
   upoTitle: 'Urzędowe Poświadczenie Odbioru (UPO)',
   ksefDocNumber: 'Numer KSeF dokumentu',

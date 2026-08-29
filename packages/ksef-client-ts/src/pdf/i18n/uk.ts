@@ -67,6 +67,7 @@ export const uk: LabelBundle = {
   swift: 'SWIFT / BIC',
   bankName: 'Назва банку',
   annotations: 'Примітки',
+  notes: 'Додаткова інформація',
   upoTitle: 'Офіційне підтвердження отримання (UPO)',
   ksefDocNumber: 'Номер документа в KSeF',
   sessionRef: 'Референсний номер сесії',

@@ -59,6 +59,7 @@ export const en: LabelBundle = {
   swift: 'SWIFT / BIC',
   bankName: 'Bank name',
   annotations: 'Annotations',
+  notes: 'Additional information',
   upoTitle: 'Official Receipt Confirmation (UPO)',
   ksefDocNumber: 'KSeF document number',
   sessionRef: 'Session reference number',
