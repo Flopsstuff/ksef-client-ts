@@ -186,11 +186,25 @@ describe('interpretBlock core primitives', () => {
     expect(node).toEqual({ columns: [{ text: 'left' }, { text: 'right' }], style: 'row' });
   });
 
-  it('renders a divider canvas line', () => {
+  // The rule is a one-cell table sized `'*'` rather than a canvas line, because
+  // a canvas needs its length in points and the page it will be drawn on is the
+  // template's choice — see the note on the renderer.
+  it('renders a divider as a rule that fills the content width', () => {
     const node = asRecord(interpretBlock({ type: 'divider' }, makeCtx(ROOT), coreRegistry, 0));
-    expect(node).toEqual({
-      canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: '#cccccc' }],
-    });
+    expect(node.table).toEqual({ widths: ['*'], body: [[{ canvas: [] }]] });
+    const layout = node.layout as {
+      hLineWidth: (i: number) => number;
+      vLineWidth: () => number;
+      hLineColor: () => string;
+      paddingTop: () => number;
+      paddingBottom: () => number;
+    };
+    // Only the cell's bottom edge is drawn, and it costs no vertical space.
+    expect([0, 1, 2].map(layout.hLineWidth)).toEqual([0, 0.5, 0]);
+    expect(layout.vLineWidth()).toBe(0);
+    expect(layout.hLineColor()).toBe('#cccccc');
+    expect(layout.paddingTop()).toBe(0);
+    expect(layout.paddingBottom()).toBe(0);
   });
 
   it('attaches a style to a divider', () => {

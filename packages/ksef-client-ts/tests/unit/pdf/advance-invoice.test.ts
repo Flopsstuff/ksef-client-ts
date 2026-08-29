@@ -28,15 +28,19 @@ function docFor(templateName: string, xml: string): Record<string, unknown> {
   return interpretTemplate(template, ctx, blockRegistry);
 }
 
-/** Every table in the document, as its body rows. */
+/**
+ * Every *column* table in the document, as its body rows. Only the blocks that
+ * print columns declare `headerRows`, which is what keeps the horizontal rules
+ * out: those are one-cell tables too, and every one of them has a single row.
+ */
 function tables(doc: Record<string, unknown>): unknown[][][] {
   const found: unknown[][][] = [];
   const walk = (value: unknown): void => {
     if (Array.isArray(value)) return value.forEach(walk);
     if (value === null || typeof value !== 'object') return;
     const node = value as Record<string, unknown>;
-    const table = node.table as { body?: unknown[][] } | undefined;
-    if (table?.body) found.push(table.body);
+    const table = node.table as { body?: unknown[][]; headerRows?: number } | undefined;
+    if (table?.body && typeof table.headerRows === 'number') found.push(table.body);
     Object.values(node).forEach(walk);
   };
   walk(doc.content);

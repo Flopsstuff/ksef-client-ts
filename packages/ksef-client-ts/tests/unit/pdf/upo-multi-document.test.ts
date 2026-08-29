@@ -74,8 +74,9 @@ describe.each([
     const group = (doc.content as Array<Record<string, unknown>>).find(
       (n) => Array.isArray(n.stack) && JSON.stringify(n).includes('KSeF document number'),
     ) as { stack: unknown[] };
-    // Count dividers by their drawn line — a spacer is an *empty* canvas.
-    expect(JSON.stringify(group).split('"type":"line"')).toHaveLength(4);
+    // Count dividers by their shape — a one-cell rule sized to the content
+    // width. A spacer is a bare empty canvas, with no table around it.
+    expect(JSON.stringify(group).split('"body":[[{"canvas":[]}]]')).toHaveLength(4);
   });
 
   it('keeps every field on the page instead of clipping wide records', () => {

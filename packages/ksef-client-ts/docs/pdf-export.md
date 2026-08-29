@@ -204,7 +204,7 @@ It prints the localized attribution on the left and a `Page 1 of 3` indicator on
 
 A `qr` block's `fit` is the printed side in points, quiet zone included, and it is exact — give two blocks the same `fit` and they come out the same size on the page, however much data each code carries. What differs instead is the module width, which is what a scanner cares about: Code I is 41 modules while Code II carries a signature and runs 57 over an EC key or 85 over RSA, so the same box makes Code II's modules roughly half as wide as Code I's. The renderer refuses a `fit` that would leave less than a point per module rather than printing a code nothing can read. The built-in templates use 104 for both.
 
-**Primitive blocks** are layout building blocks: `text`, `columns`, `stack`, `each`, `table`, `image`, `divider`, `spacer`.
+**Primitive blocks** are layout building blocks: `text`, `columns`, `stack`, `each`, `table`, `image`, `divider`, `spacer`. A `divider` draws a hairline across the content width — whatever `page.size`, `page.orientation` and `page.margins` make that — and a `spacer` adds its `height` and nothing else; neither costs a line of leading.
 
 `each` repeats a group of blocks once per entry of a collection, with the entry as the binding root, so its children use item-relative paths. Use it where a table cannot fit a record on one row — the built-in UPO templates lay out each confirmed document this way, because a 35-character KSeF number beside a 44-character hash will not share a page-wide row.
 

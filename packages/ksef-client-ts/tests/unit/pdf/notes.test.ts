@@ -157,7 +157,11 @@ describe('the notes option reaches the block', () => {
         ...(notes ? { notes } : {}),
       };
       const doc = interpretTemplate(template, ctx, blockRegistry);
-      return (doc.content as Array<Record<string, unknown>>).filter((n) => Array.isArray(n.canvas)).length;
+      // A rule is a one-cell table sized `'*'`; a spacer is an empty canvas.
+      return (doc.content as Array<Record<string, unknown>>).filter((n) => {
+        const table = n.table as { widths?: unknown[]; body?: unknown[][] } | undefined;
+        return table?.widths?.length === 1 && table.widths[0] === '*' && table.body?.length === 1;
+      }).length;
     };
     expect(render([{ head: 'Uwaga', body: 'Treść' }])).toBe(render() + 1);
   });

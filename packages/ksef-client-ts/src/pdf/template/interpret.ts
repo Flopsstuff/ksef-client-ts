@@ -133,10 +133,29 @@ const coreRegistry: BlockRegistry = {
     return withStyle({ columns }, b.style);
   },
 
+  // A canvas line has to be given its length in points, and the interpreter has
+  // no page to measure: `page.size`, `page.orientation` and `page.margins` are
+  // all the template's to choose, so any constant is right for one geometry and
+  // wrong for the rest — 515pt fits portrait A4 with 40pt margins and overhangs
+  // A5 by 176pt. A single-cell table sized `'*'` is measured by pdfmake against
+  // the page it is actually drawn on, and a bottom border on a cell holding an
+  // empty canvas costs no height, so the rule stays a hairline that spans
+  // exactly the content width.
   divider: (block) => {
     const b = block as import('./dsl.js').DividerBlock;
     return withStyle(
-      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: '#cccccc' }] },
+      {
+        table: { widths: ['*'], body: [[{ canvas: [] }]] },
+        layout: {
+          hLineWidth: (i: number) => (i === 1 ? 0.5 : 0),
+          vLineWidth: () => 0,
+          hLineColor: () => '#cccccc',
+          paddingTop: () => 0,
+          paddingBottom: () => 0,
+          paddingLeft: () => 0,
+          paddingRight: () => 0,
+        },
+      },
       b.style,
     );
   },
