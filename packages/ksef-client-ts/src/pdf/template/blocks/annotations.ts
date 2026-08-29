@@ -8,7 +8,7 @@ import { resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.j
  * scalar binding).
  */
 export const annotationsRenderer: BlockRenderer<AnnotationsBlock> = (block, ctx) => {
-  const stack: PdfNode[] = [{ text: ctx.label('annotations'), style: 'h2' }];
+  const stack: PdfNode[] = [{ text: ctx.label('annotations'), style: block.headingStyle ?? 'h2' }];
   for (const field of block.fields) {
     stack.push({
       text: `${ctx.label(field.label)}: ${applyFormat(resolveBinding(field.path, ctx), field.format)}`,

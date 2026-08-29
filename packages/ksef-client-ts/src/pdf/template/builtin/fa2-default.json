@@ -4,6 +4,7 @@
   "pageFooter": { "style": "footerNote" },
   "styles": {
     "title": { "fontSize": 20, "bold": true },
+    "h1": { "fontSize": 11, "bold": true, "margin": [0, 10, 0, 3], "color": "#000000" },
     "h2": { "fontSize": 10, "bold": true, "margin": [0, 10, 0, 3], "color": "#333333" },
     "muted": { "color": "#666666", "fontSize": 8 },
     "offline": { "color": "#b00020", "bold": true },
@@ -27,6 +28,7 @@
     { "type": "spacer", "height": 4 },
     {
       "type": "parties",
+      "headingStyle": "h1",
       "left": {
         "label": "seller",
         "style": "partyIdentity",
@@ -173,6 +175,7 @@
     { "type": "divider" },
     {
       "type": "payment",
+      "headingStyle": "h1",
       "when": "Fa.Platnosc",
       "rows": [
         { "label": "paid", "path": "Fa.Platnosc.Zaplacono", "optional": true },
@@ -194,7 +197,7 @@
       "type": "columns",
       "when": "qr",
       "columns": [
-        { "type": "text", "label": "verifyInKsef", "style": "h2" },
+        { "type": "text", "label": "verifyInKsef", "style": "h1" },
         { "type": "qr", "code": "invoice", "fit": 104, "linkStyle": "qrLink" },
         { "type": "qr", "code": "certificate", "fit": 104, "linkStyle": "qrLink" }
       ]

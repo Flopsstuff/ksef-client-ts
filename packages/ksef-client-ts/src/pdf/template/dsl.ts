@@ -71,6 +71,23 @@ export interface ColumnDef extends FieldDef {
   width?: number | 'auto' | '*';
 }
 
+/**
+ * Blocks that print a heading of their own reach for a style name rather than
+ * being given one, because the heading is theirs and not the template's.
+ * `headingStyle` overrides that name per block.
+ *
+ * It reaches only the block's *own* heading — the first line it prints, like
+ * `Sprzedawca` or `Płatność`. Labels nested inside a block (`Adres`, `Dane
+ * kontaktowe`, `Rachunek bankowy`) are one level down and stay at `h2` whatever
+ * the block heading does, so a template can lift its section headings without
+ * dragging every label in the document along. Both default to `h2`, which is
+ * what the built-in templates rely on, so leaving the option out is the normal
+ * case.
+ *
+ * @see HEADING_STYLE_DOC — referenced from each block that takes the option.
+ */
+export const HEADING_STYLE_DOC = 'h2';
+
 // ── Semantic blocks ────────────────────────────────────────────────────────
 
 export interface HeaderBlock {
@@ -150,6 +167,8 @@ export interface PartiesBlock {
   type: 'parties';
   left: PartyColumn;
   right: PartyColumn;
+  /** See {@link HEADING_STYLE_DOC}. The panel labels only, not the group labels. */
+  headingStyle?: string;
   style?: string;
 }
 
@@ -207,12 +226,16 @@ export interface PaymentBlock {
   when?: string;
   rows: FieldDef[];
   accounts?: PaymentAccounts;
+  /** See {@link HEADING_STYLE_DOC}. The block label only, not `accounts.heading`. */
+  headingStyle?: string;
   style?: string;
 }
 
 export interface AnnotationsBlock {
   type: 'annotations';
   fields: FieldDef[];
+  /** See {@link HEADING_STYLE_DOC}. */
+  headingStyle?: string;
   style?: string;
 }
 
@@ -429,6 +452,7 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
       type: z.literal('parties'),
       left: partyColumn,
       right: partyColumn,
+      headingStyle: z.string().optional(),
       style: z.string().optional(),
     }).strict(),
     z.object({
@@ -450,9 +474,15 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
         })
         .strict()
         .optional(),
+      headingStyle: z.string().optional(),
       style: z.string().optional(),
     }).strict(),
-    z.object({ type: z.literal('annotations'), fields: z.array(fieldDef), style: z.string().optional() }).strict(),
+    z.object({
+      type: z.literal('annotations'),
+      fields: z.array(fieldDef),
+      headingStyle: z.string().optional(),
+      style: z.string().optional(),
+    }).strict(),
     z.object({
       type: z.literal('qr'),
       when: z.string().optional(),

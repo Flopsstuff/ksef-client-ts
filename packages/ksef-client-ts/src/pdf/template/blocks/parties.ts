@@ -2,8 +2,17 @@ import { list } from '../../accessor.js';
 import type { PartiesBlock, PartyColumn, PartyField, PartyGroup } from '../dsl.js';
 import { resolveBinding, type BlockRenderer, type PdfNode, type RenderContext } from '../interpret.js';
 
-/** Heading style shared by the panel label and its sub-group labels. */
-const HEADING_STYLE = 'h2';
+/**
+ * The panel's own heading — `Sprzedawca` / `Nabywca` — takes the block's
+ * `headingStyle`, defaulting to this. The labels *inside* a panel (`Adres`,
+ * `Dane kontaktowe`) are a level below and always take {@link SUBHEADING_STYLE}:
+ * a template redirecting its section headings is not asking for every label in
+ * the document to move with them.
+ */
+const DEFAULT_HEADING_STYLE = 'h2';
+
+/** Sub-headings within a block. Fixed, and the same across every block. */
+const SUBHEADING_STYLE = 'h2';
 
 function isGroup(field: PartyField): field is PartyGroup {
   return typeof field !== 'string' && 'fields' in field;
@@ -30,10 +39,11 @@ function isGroup(field: PartyField): field is PartyGroup {
  * no counterparty gets a label with nothing under it.
  *
  * Value lines take {@link PartyColumn.style}; a group may override it for its
- * own lines with {@link PartyGroup.style}. Headings always keep the panel's
- * heading style.
+ * own lines with {@link PartyGroup.style}. The panel heading takes the block's
+ * `headingStyle`; a group's own label stays at {@link SUBHEADING_STYLE}.
  */
 export const partiesRenderer: BlockRenderer<PartiesBlock> = (block, ctx) => {
+  const heading = block.headingStyle ?? DEFAULT_HEADING_STYLE;
   const at = (root: unknown, strict = ctx.strict): RenderContext => ({ ...ctx, root, strict });
 
   const resolveValue = (
@@ -63,7 +73,7 @@ export const partiesRenderer: BlockRenderer<PartiesBlock> = (block, ctx) => {
           ? list(root, field.from).flatMap((item) => renderFields(field.fields, item, false, inherited))
           : renderFields(field.fields, root, strict, inherited);
         if (inner.length === 0) continue; // no heading without content
-        out.push({ text: ctx.label(field.label), style: HEADING_STYLE });
+        out.push({ text: ctx.label(field.label), style: SUBHEADING_STYLE });
         out.push(...inner);
         continue;
       }
@@ -77,7 +87,7 @@ export const partiesRenderer: BlockRenderer<PartiesBlock> = (block, ctx) => {
   const side = (col: PartyColumn): PdfNode => ({
     width: '*',
     stack: [
-      { text: ctx.label(col.label), style: HEADING_STYLE },
+      { text: ctx.label(col.label), style: heading },
       ...renderFields(col.fields, ctx.root, ctx.strict, col.style),
     ],
   });

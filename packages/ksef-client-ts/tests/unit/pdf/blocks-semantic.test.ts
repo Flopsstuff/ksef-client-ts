@@ -879,3 +879,93 @@ describe('footerRenderer', () => {
     expect(node.alignment).toBe('center');
   });
 });
+
+// ── heading styles ───────────────────────────────────────────────────────────
+
+/**
+ * A block that prints a heading of its own reaches for a style name rather than
+ * being handed one, so `headingStyle` is the only way a template can redirect
+ * it. The default has to stay `h2`, since every built-in template defines that
+ * and nothing else points at it.
+ */
+describe('headingStyle', () => {
+  const partiesBlock = (headingStyle?: string) =>
+    rec(
+      partiesRenderer(
+        {
+          type: 'parties',
+          ...(headingStyle ? { headingStyle } : {}),
+          left: { label: 'seller', fields: [] },
+          right: {
+            label: 'buyer',
+            fields: [{ label: 'address', style: 'partyDetails', fields: ['Podmiot2.Adres.AdresL1'] }],
+          },
+        },
+        makeCtx({ Podmiot2: { Adres: { AdresL1: 'ul. Testowa 1' } } }),
+        noRender,
+      ),
+    ).columns[1].stack;
+
+  const paymentBlock = (headingStyle?: string) =>
+    rec(
+      paymentRenderer(
+        {
+          type: 'payment',
+          ...(headingStyle ? { headingStyle } : {}),
+          rows: [{ label: 'paid', path: 'Fa.Platnosc.Zaplacono' }],
+          accounts: {
+            from: 'Fa.Platnosc.RachunekBankowy',
+            heading: 'bankAccounts',
+            fields: [{ label: 'bankAccount', path: 'NrRB' }],
+          },
+        },
+        makeCtx({ Fa: { Platnosc: { Zaplacono: '1', RachunekBankowy: { NrRB: 'PL01' } } } }),
+        noRender,
+      ),
+    ).stack;
+
+  const annotationsBlock = (headingStyle?: string) =>
+    rec(
+      annotationsRenderer(
+        {
+          type: 'annotations',
+          ...(headingStyle ? { headingStyle } : {}),
+          fields: [{ label: 'annotations', path: 'Fa.Adnotacje.P_16' }],
+        },
+        makeCtx({ Fa: { Adnotacje: { P_16: '2' } } }),
+        noRender,
+      ),
+    ).stack;
+
+  it('defaults to h2 in every block that prints a heading', () => {
+    expect(partiesBlock()[0].style).toBe('h2');
+    expect(paymentBlock()[0].style).toBe('h2');
+    expect(annotationsBlock()[0].style).toBe('h2');
+  });
+
+  it('redirects the heading when a template names another style', () => {
+    expect(partiesBlock('sectionHead')[0].style).toBe('sectionHead');
+    expect(paymentBlock('sectionHead')[0].style).toBe('sectionHead');
+    expect(annotationsBlock('sectionHead')[0].style).toBe('sectionHead');
+  });
+
+  it('leaves the sub-headings a block prints one level down', () => {
+    // The address group inside a party panel, and the bank-account heading
+    // inside payment: both are a level below the block's own heading, so
+    // lifting section headings must not drag every label along with them.
+    const [, groupHeading] = partiesBlock('sectionHead');
+    expect(groupHeading.style).toBe('h2');
+    expect(paymentBlock('sectionHead').find((n: { text: string }) => n.text === 'bankAccounts').style).toBe('h2');
+  });
+
+  it('still puts both levels on h2 by default, so a plain template looks flat', () => {
+    expect(partiesBlock()[1].style).toBe('h2');
+    expect(paymentBlock().find((n: { text: string }) => n.text === 'bankAccounts').style).toBe('h2');
+  });
+
+  it('leaves the value lines alone', () => {
+    // Only headings move: the group keeps its own style for its content.
+    expect(partiesBlock('sectionHead')[2].style).toBe('partyDetails');
+    expect(paymentBlock('sectionHead')[1].style).toBeUndefined();
+  });
+});

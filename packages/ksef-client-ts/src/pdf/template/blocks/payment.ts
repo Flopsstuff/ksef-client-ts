@@ -19,7 +19,11 @@ import { resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.j
 export const paymentRenderer: BlockRenderer<PaymentBlock> = (block, ctx) => {
   // Bindings the schema declares optional are read leniently even under strict.
   const lenientCtx = { ...ctx, strict: false };
-  const stack: PdfNode[] = [{ text: ctx.label('payment'), style: 'h2' }];
+  // The block's own heading follows `headingStyle`; `Rachunek bankowy` is a
+  // level below it and stays put, as sub-headings do everywhere.
+  const heading = block.headingStyle ?? 'h2';
+  const subheading = 'h2';
+  const stack: PdfNode[] = [{ text: ctx.label('payment'), style: heading }];
 
   for (const row of block.rows) {
     const value = applyFormat(resolveBinding(row.path, row.optional ? lenientCtx : ctx), row.format);
@@ -37,7 +41,7 @@ export const paymentRenderer: BlockRenderer<PaymentBlock> = (block, ctx) => {
       }
     }
     if (lines.length > 0) {
-      if (block.accounts.heading) stack.push({ text: ctx.label(block.accounts.heading), style: 'h2' });
+      if (block.accounts.heading) stack.push({ text: ctx.label(block.accounts.heading), style: subheading });
       stack.push(...lines);
     }
   }

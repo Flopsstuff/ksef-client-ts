@@ -158,16 +158,21 @@ describe('built-in template lint', () => {
    * pdfmake silently ignores a style name it does not know, so a renamed or
    * mistyped style reference costs nothing at render time and everything on the
    * page. Nothing else checks this: the DSL types a style as a plain string.
+   *
+   * Several keys name a style — `style` itself, plus the per-block overrides
+   * `headingStyle`, `linkStyle` and `offlineStyle` — so the walk takes any key
+   * that ends in `Style` and a new one is covered the day it is added.
    */
   it.each(Object.keys(FIXTURE_BY_TEMPLATE))('%s: every style it references is defined', (name) => {
     const template = getBuiltinTemplate(name)!;
     const defined = Object.keys(template.styles ?? {});
     const referenced = new Set<string>();
+    const namesAStyle = (key: string) => key === 'style' || key.endsWith('Style');
     const walk = (value: unknown): void => {
       if (Array.isArray(value)) return value.forEach(walk);
       if (value === null || typeof value !== 'object') return;
       for (const [key, inner] of Object.entries(value)) {
-        if (key === 'style' && typeof inner === 'string') referenced.add(inner);
+        if (namesAStyle(key) && typeof inner === 'string') referenced.add(inner);
         else walk(inner);
       }
     };
@@ -175,16 +180,31 @@ describe('built-in template lint', () => {
     expect([...referenced].filter((style) => !defined.includes(style))).toEqual([]);
   });
 
-  it.each(Object.keys(FIXTURE_BY_TEMPLATE))('%s: defines the styles the renderers reach for', (name) => {
-    // Two style names are reached for by the renderers rather than named in the
-    // template, so nothing in the JSON points at them: `title` is the header's
-    // default, and `h2` is hardcoded as the heading of the parties, payment and
-    // annotations blocks. A template that omits one loses those headings.
+  it('the style walk actually finds the per-block overrides', () => {
+    // Guards the `endsWith('Style')` rule above: before it, `linkStyle` and
+    // `offlineStyle` were invisible to this lint.
+    const json = JSON.stringify(getBuiltinTemplate('fa3-default'));
+    for (const key of ['"linkStyle"', '"offlineStyle"']) {
+      expect(json, `${key} is no longer in the template — retarget this guard`).toContain(key);
+    }
+  });
+
+  it.each(Object.keys(FIXTURE_BY_TEMPLATE))('%s: defines the heading styles its blocks will use', (name) => {
+    // A heading belongs to its block, not to the template, so the block reaches
+    // for a style name instead of being handed one — `h2` unless `headingStyle`
+    // says otherwise, and `title` for the header. Nothing in the JSON refers to
+    // those defaults, so a template that omits them loses its headings silently.
     const template = getBuiltinTemplate(name)!;
     const defined = Object.keys(template.styles ?? {});
-    const needsH2 = template.blocks.some((b) => ['parties', 'payment', 'annotations'].includes(b.type));
     expect(defined).toContain('title');
-    if (needsH2) expect(defined).toContain('h2');
+
+    const printsHeading = template.blocks.filter((b) => ['parties', 'payment', 'annotations'].includes(b.type));
+    const headings = printsHeading.map((b) => (b as { headingStyle?: string }).headingStyle ?? 'h2');
+    // Sub-headings inside those blocks — `Adres`, `Rachunek bankowy` — sit one
+    // level down and stay at `h2` whatever the block heading is set to, so `h2`
+    // has to exist too even when nothing names it.
+    if (printsHeading.length > 0) headings.push('h2');
+    expect(headings.filter((style) => !defined.includes(style))).toEqual([]);
   });
 
   it('fails a template whose repeater path is misspelled', () => {
