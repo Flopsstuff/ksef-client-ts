@@ -76,11 +76,20 @@ export function detectUpoVersion(xml: string): UpoVersion | null {
   const parsed = parseXmlForPdf(xml);
   if (!('Potwierdzenie' in parsed)) return null;
 
-  // Read the marker from the root element's own tag. A UPO declares its version
-  // in the default xmlns on `<Potwierdzenie>`, and scanning the whole source
-  // instead let any Potwierdzenie that merely mentions the string — in a note,
-  // in an embedded document — pass as that version.
-  const rootTag = /<(?:[\w.-]+:)?Potwierdzenie\b[^>]*>/.exec(xml)?.[0] ?? '';
+  // Read the marker from the root element's own tag, which is why this reads
+  // the source rather than `parsed`: `removeNSPrefix` drops the xmlns
+  // declarations, so the version is gone by the time the document is an object.
+  //
+  // Comments come out first and the match is anchored to the document's *first*
+  // element, not to the first thing that looks like a Potwierdzenie. Scanning by
+  // name alone let a commented-out root — or any mention of the string in a note
+  // or an embedded document — decide the version instead.
+  const withoutComments = xml.replace(/<!--[\s\S]*?-->/g, '');
+  const firstElement = /<(?![?!])([\w.:-]+)[^>]*>/.exec(withoutComments);
+  const rootTag = firstElement?.[0] ?? '';
+  const rootName = (firstElement?.[1] ?? '').replace(/^[\w.-]+:/, '');
+  if (rootName !== 'Potwierdzenie') return null;
+
   if (/KSeF\/v4-3\b/.test(rootTag)) return 'UPO(4.3)';
   if (/KSeF\/v4-2\b/.test(rootTag)) return 'UPO(4.2)';
   return null;
