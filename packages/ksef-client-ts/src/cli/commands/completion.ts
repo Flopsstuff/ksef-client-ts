@@ -7,7 +7,7 @@ export const COMMAND_TREE: Record<string, string[]> = {
   config: ['set', 'show', 'reset'],
   auth: ['challenge', 'login', 'login-external', 'status', 'logout', 'refresh', 'whoami', 'revoke-self-token'],
   session: ['open', 'close', 'status', 'active', 'revoke', 'list', 'invoices', 'invoice', 'failed', 'upo'],
-  invoice: ['send', 'get', 'query', 'build', 'validate', 'export', 'export-status', 'export-incremental'],
+  invoice: ['send', 'get', 'query', 'build', 'pdf', 'validate', 'export', 'export-status', 'export-incremental'],
   permission: ['grant', 'revoke', 'search', 'status', 'attachment-status'],
   token: ['generate', 'list', 'get', 'revoke'],
   cert: ['generate', 'enrollment-data', 'enroll', 'status', 'retrieve', 'list', 'revoke', 'limits'],
