@@ -1,24 +1,33 @@
 /**
- * Label localization. Only `pl` and `en` bundles are maintained; the bilingual
- * locales are produced on the fly by concatenation with a configurable
- * separator, so there is no third bundle to keep in sync. A missing key falls
- * back to Polish, then to the key itself.
+ * Label localization. One bundle per language; the bilingual locales are
+ * produced on the fly by concatenation with a configurable separator, so there
+ * is no combined bundle to keep in sync — adding a language adds its bundle and
+ * every pairing it can take part in. A missing key falls back to Polish, then to
+ * the key itself.
  */
 import type { Locale, BaseLocale, LabelBundle } from './types.js';
 import { pl } from './pl.js';
 import { en } from './en.js';
+import { uk } from './uk.js';
 
 export type { Locale, BaseLocale, LabelBundle } from './types.js';
 export { pl } from './pl.js';
 export { en } from './en.js';
+export { uk } from './uk.js';
 
-const BUNDLES: Record<BaseLocale, LabelBundle> = { pl, en };
+const BUNDLES: Record<BaseLocale, LabelBundle> = { pl, en, uk };
 
-/** Bilingual locales, in the order their name spells out. */
-const BILINGUAL: Record<string, readonly [BaseLocale, BaseLocale]> = {
-  'pl+en': ['pl', 'en'],
-  'en+pl': ['en', 'pl'],
-};
+/**
+ * Split a bilingual locale into its halves, in the order its name spells out.
+ * Read from the name rather than from a table of pairs, so a new language needs
+ * no second registration to be combinable with the others.
+ */
+function bilingualPair(locale: Locale): [BaseLocale, BaseLocale] | null {
+  const [first, second, ...rest] = locale.split('+');
+  if (second === undefined || rest.length > 0) return null;
+  if (!(first! in BUNDLES) || !(second in BUNDLES)) return null;
+  return [first as BaseLocale, second as BaseLocale];
+}
 
 export interface LabelOptions {
   /** Separator for the bilingual locales. Default `' / '`. */
@@ -42,7 +51,7 @@ function resolveOne(key: string, locale: BaseLocale, overrides?: LabelBundle): s
  * (default `' / '`).
  */
 export function resolveLabel(key: string, locale: Locale, opts: LabelOptions = {}): string {
-  const pair = BILINGUAL[locale];
+  const pair = bilingualPair(locale);
   if (pair) {
     const sep = opts.bilingualSeparator ?? ' / ';
     return `${resolveOne(key, pair[0], opts.overrides)}${sep}${resolveOne(key, pair[1], opts.overrides)}`;

@@ -7,6 +7,11 @@ import {
 } from '../../../src/pdf/qr.js';
 import * as QRCode from 'qrcode';
 import { qrRenderer } from '../../../src/pdf/template/blocks/qr.js';
+import { blockRegistry } from '../../../src/pdf/template/blocks/index.js';
+import { getBuiltinTemplate } from '../../../src/pdf/template/builtin/index.js';
+import { interpretTemplate } from '../../../src/pdf/template/interpret.js';
+import { makeLabelResolver } from '../../../src/pdf/i18n/index.js';
+import type { Locale } from '../../../src/pdf/i18n/types.js';
 import { VerificationLinkService } from '../../../src/qr/verification-link-service.js';
 import { Environment } from '../../../src/config/environments.js';
 import type { RenderContext } from '../../../src/pdf/template/interpret.js';
@@ -257,7 +262,29 @@ describe('qrRenderer', () => {
         stack: Array<Record<string, unknown>>;
       };
       expect(out.stack[0]).toMatchObject({ svg: svgFor(CODE_I) });
-      expect(out.stack[1]).toEqual({ text: 'openLink', link: CODE_I });
+      expect(out.stack[1]).toMatchObject({ text: 'openLink', link: CODE_I });
+    });
+
+    it('lines up with the code rather than with the box around it', () => {
+      // The code is inset by its quiet zone, so a link flush with the box edge
+      // reads as shifted left of everything above it.
+      const fit = 104;
+      const out = qrRenderer({ type: 'qr', fit }, ctxWith({ qrUrl: CODE_I }, { qrLinks: true }), noopRender) as {
+        stack: Array<{ margin?: number[] }>;
+      };
+      const span = QRCode.create(CODE_I, { errorCorrectionLevel: 'M' }).modules.size + 8;
+      expect(out.stack[1].margin).toEqual([(fit / span) * 4, 0, 0, 0]);
+    });
+
+    it('indents each code by its own quiet zone, not by a fixed amount', () => {
+      // Same box, more data: Code II's modules are narrower, so its quiet zone
+      // is narrower and its link starts further left than Code I's.
+      const at = (bindings: Record<string, string>, code: 'invoice' | 'certificate') =>
+        (qrRenderer({ type: 'qr', code, fit: 104 }, ctxWith(bindings, { qrLinks: true }), noopRender) as {
+          stack: Array<{ margin?: number[] }>;
+        }).stack[1].margin![0];
+      const denser = 'https://qr/certificate/Nip/1111111111/1111111111/SERIAL/'.padEnd(400, 'x');
+      expect(at({ qrUrl: CODE_I }, 'invoice')).toBeGreaterThan(at({ certificateQrUrl: denser }, 'certificate'));
     });
 
     it('links Code II to the certificate URL, not the invoice one', () => {
@@ -275,11 +302,59 @@ describe('qrRenderer', () => {
         ctxWith({ qrUrl: CODE_I }, { qrLinks: true }),
         noopRender,
       ) as { stack: Array<Record<string, unknown>> };
-      expect(out.stack[1]).toEqual({ text: 'openLink', link: CODE_I, style: 'qrLink' });
+      expect(out.stack[1]).toMatchObject({ text: 'openLink', link: CODE_I, style: 'qrLink' });
     });
 
     it('adds no link to a code that is not printed', () => {
       expect(qrRenderer(block, ctxWith({ qrUrl: '' }, { qrLinks: true }), noopRender)).toBeNull();
     });
+  });
+});
+
+/**
+ * The row itself, not the renderer: a heading in an elastic column with the
+ * codes beside it, so they sit against the right margin. This used to be judged
+ * by eye across a handful of preview PDFs; it is a property, so it belongs here.
+ */
+describe('the QR row keeps the codes on the right margin', () => {
+  const CODE_I = 'https://qr-demo.ksef.mf.gov.pl/invoice/1111111111/15-01-2026/HASH';
+  const CODE_II = 'https://qr-demo.ksef.mf.gov.pl/certificate/Nip/1111111111/1111111111/SERIAL/HASH/SIG';
+
+  /** Column widths of the built-in QR row, for a given pair of codes. */
+  function widths(bindings: Record<string, string>, locale: Locale = 'pl'): string[] {
+    const ctx: RenderContext = {
+      root: {},
+      strict: false,
+      label: makeLabelResolver(locale, {}),
+      bindings,
+      flags: { qr: true, qrLinks: true },
+    };
+    const doc = interpretTemplate(getBuiltinTemplate('fa3-default')!, ctx, blockRegistry);
+    const row = (doc.content as Array<Record<string, unknown>>)
+      .filter((n) => Array.isArray(n.columns))
+      .pop() as { columns: Array<{ width?: string; text?: string }> };
+    // An absent width is pdfmake's elastic default; name it so the assertions read.
+    return row.columns.map((c) => c.width ?? '*');
+  }
+
+  it('gives the heading the only elastic column when both codes are present', () => {
+    expect(widths({ qrUrl: CODE_I, certificateQrUrl: CODE_II })).toEqual(['*', 'auto', 'auto']);
+  });
+
+  it('drops the empty column when only Code I is present', () => {
+    // The regression this pins: an empty node here took an elastic column of its
+    // own and left the single code stranded mid-page instead of at the margin.
+    expect(widths({ qrUrl: CODE_I })).toEqual(['*', 'auto']);
+  });
+
+  it('drops it just the same when only Code II is present', () => {
+    expect(widths({ certificateQrUrl: CODE_II })).toEqual(['*', 'auto']);
+  });
+
+  it('holds however wide the heading runs', () => {
+    // A bilingual heading is twice the length; the codes must not move.
+    for (const locale of ['pl', 'uk', 'pl+uk'] as const) {
+      expect(widths({ qrUrl: CODE_I, certificateQrUrl: CODE_II }, locale)).toEqual(['*', 'auto', 'auto']);
+    }
   });
 });

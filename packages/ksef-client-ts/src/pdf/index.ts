@@ -80,7 +80,7 @@ export interface RenderOptions {
   logo?: string;
   /** Theming (accent colour only; the font is the bundled Roboto). */
   theme?: { accent?: string };
-  /** Separator for the bilingual locales (`pl+en`, `en+pl`). Default `' / '`. */
+  /** Separator for the bilingual locales (`pl+en`, `pl+uk`, …). Default `' / '`. */
   bilingualSeparator?: string;
   /** Throw on a missing binding instead of rendering an empty string. */
   strict?: boolean;

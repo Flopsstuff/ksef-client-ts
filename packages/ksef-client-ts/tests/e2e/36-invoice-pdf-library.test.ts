@@ -40,6 +40,8 @@ const PREFIX = 'lib';
 /** Same host as the CLI preview set: a demo link is one a reader can click. */
 const DEMO_QR_HOST = 'https://qr-demo.ksef.mf.gov.pl';
 
+const require = createRequire(import.meta.url);
+
 const fx = (name: string) => join(fixtures, name);
 const bytes = (name: string) => new Uint8Array(readFileSync(fx(name)));
 const text = (name: string) => readFileSync(fx(name), 'utf-8');
@@ -84,8 +86,19 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
     );
   });
 
+  /**
+   * Each render below carries several library-only options at once, rather than
+   * one option per PDF. The options are orthogonal — a separator does not
+   * interact with a hash — so isolating them costs a PDF each and proves nothing
+   * extra; what has to hold is that every one of them is exercised, which the
+   * grid check at the end of this block asserts by reading the calls back.
+   */
   describe('surface the CLI has no flag for', () => {
-    it('accepts a template as an object', async () => {
+    it('takes a template object, and hands it theme.accent as a binding', async () => {
+      // No built-in template consumes the accent — styles in the DSL are static,
+      // so it cannot colour anything today and reaches a template only as a
+      // string binding. Rendering through a template that reads that binding
+      // keeps the option exercised instead of silently ignored.
       const template: InvoiceTemplate = {
         schema: 'FA(3)',
         page: { size: 'A4', margins: [40, 40, 40, 40] },
@@ -98,13 +111,23 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
             left: { label: 'seller', fields: ['Podmiot1.DaneIdentyfikacyjne.Nazwa'] },
             right: { label: 'buyer', fields: ['Podmiot2.DaneIdentyfikacyjne.Nazwa'] },
           },
+          { type: 'text', path: 'opts.accent' },
           { type: 'totals', rows: [{ label: 'totalDue', path: 'Fa.P_15', format: 'money' }] },
         ],
       };
-      await save(`${PREFIX}-01-template-object`, renderInvoicePdfFromTemplate(bytes('e2e-vat-multi.xml'), template));
+      await save(
+        `${PREFIX}-01-template-object-accent`,
+        renderInvoicePdfFromTemplate(bytes('e2e-vat-multi.xml'), template, {
+          theme: { accent: '#B0004E' },
+          logo: LOGO,
+          ksefNumber: KSEF_NUMBER,
+        }),
+      );
     });
 
-    it('loads a custom template from a JSON file', async () => {
+    it('loads a custom template from a JSON file, and renders it strict', async () => {
+      // fa3.xml populates every path the template names, so strict has nothing
+      // to complain about — and would throw on a dot-path typo in the file.
       const path = join(inputsDir, 'lib-minimal-template.json');
       writeFileSync(
         path,
@@ -119,78 +142,33 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
           ],
         }),
       );
-      await save(`${PREFIX}-02-template-from-file`, renderInvoicePdfFromFile(bytes('e2e-vat-multi.xml'), path));
-    });
-
-    it('exposes theme.accent to a template as the `opts.accent` binding', async () => {
-      // No built-in template consumes it — styles in the DSL are static, so an
-      // accent cannot colour anything today; it reaches a template only as a
-      // string binding. Rendering it through a template that actually reads the
-      // binding keeps the option exercised instead of silently ignored.
-      const template: InvoiceTemplate = {
-        schema: 'FA(3)',
-        blocks: [
-          { type: 'header', title: { label: 'invoice' }, number: 'Fa.P_2', date: 'Fa.P_1' },
-          { type: 'text', path: 'opts.accent' },
-          { type: 'totals', rows: [{ label: 'totalDue', path: 'Fa.P_15', format: 'money' }] },
-        ],
-      };
       await save(
-        `${PREFIX}-03-theme-accent-binding`,
-        renderInvoicePdfFromTemplate(bytes('e2e-vat-multi.xml'), template, {
-          theme: { accent: '#B0004E' },
-          logo: LOGO,
-          ksefNumber: KSEF_NUMBER,
-        }),
+        `${PREFIX}-02-template-file-strict`,
+        renderInvoicePdfFromFile(bytes('fa3.xml'), path, { strict: true }),
       );
     });
 
-    it('honours a custom bilingual separator', async () => {
+    it('accepts the XML as a string, with a custom separator and QR host', async () => {
       await save(
-        `${PREFIX}-04-bilingual-newline-separator`,
-        renderInvoicePdf(bytes('e2e-vat-multi.xml'), 'fa3-default', {
+        `${PREFIX}-03-string-input-newline-separator-custom-qr-host`,
+        renderInvoicePdf(text('e2e-vat-multi.xml'), 'fa3-default', {
           locale: 'en+pl',
           bilingualSeparator: '\n',
-          ksefNumber: KSEF_NUMBER,
-        }),
-      );
-    });
-
-    it('overrides the QR base URL for an offline/non-standard verifier', async () => {
-      await save(
-        `${PREFIX}-05-custom-qr-base-url`,
-        renderInvoicePdf(bytes('e2e-vat-multi.xml'), 'fa3-default', {
           qr: true,
           baseQrUrl: 'https://verify.example/ksef',
+          qrLinks: true,
+          totals: 'both',
           ksefNumber: KSEF_NUMBER,
         }),
       );
     });
 
-    it('takes a precomputed invoice hash verbatim for the QR', async () => {
+    it('takes a precomputed hash for Code I and a ready-made Code II', async () => {
+      // Code II cannot be derived here — it is signed with the issuer's offline
+      // certificate key — so the library takes it as a URL. Built with a
+      // throwaway key so the code has a realistic density.
       const raw = bytes('e2e-vat-multi.xml');
       const invoiceHash = createHash('sha256').update(raw).digest('base64');
-      await save(
-        `${PREFIX}-06-precomputed-invoice-hash`,
-        renderInvoicePdf(raw, 'fa3-default', { qr: true, invoiceHash, ksefNumber: KSEF_NUMBER }),
-      );
-    });
-
-    it('renders in strict mode against a fixture that populates every binding', async () => {
-      // fa3.xml exists precisely so the built-in templates can be rendered with
-      // every dot-path resolved; strict turns a typo in our own preset into a
-      // thrown error rather than a blank line.
-      await save(`${PREFIX}-07-strict-mode`, renderInvoicePdf(bytes('fa3.xml'), 'fa3-default', { strict: true }));
-    });
-
-    it('accepts the XML as a string as well as bytes', async () => {
-      await save(`${PREFIX}-08-string-input`, renderInvoicePdf(text('e2e-vat-multi.xml'), 'fa3-default'));
-    });
-
-    it('prints both verification codes, each with a clickable link', async () => {
-      // Code II cannot be derived here — it is signed with the issuer's offline
-      // certificate key — so the library takes it as a ready-made URL. Built
-      // with a throwaway key so the code has a realistic density.
       const key = generateKeyPairSync('ec', { namedCurve: 'P-256' }).privateKey.export({
         type: 'pkcs8',
         format: 'pem',
@@ -202,27 +180,29 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
         '1111111111',
         '1111111111',
         '01F20A5D352AE590',
-        createHash('sha256').update(bytes('e2e-vat-multi.xml')).digest('base64'),
+        invoiceHash,
         key,
       );
       await save(
-        `${PREFIX}-09-both-qr-codes-with-links`,
-        renderInvoicePdf(bytes('e2e-vat-multi.xml'), 'fa3-default', {
+        `${PREFIX}-04-precomputed-hash-both-codes-links`,
+        renderInvoicePdf(raw, 'fa3-default', {
           qr: true,
           env: 'demo',
+          invoiceHash,
           certificateQrUrl,
           qrLinks: true,
-          locale: 'en+pl',
+          locale: 'en+uk',
         }),
       );
     });
 
     it('takes a Code I URL verbatim, skipping derivation entirely', async () => {
       await save(
-        `${PREFIX}-10-supplied-code-i-url`,
+        `${PREFIX}-05-supplied-code-i-url`,
         renderInvoicePdf(bytes('e2e-vat-multi.xml'), 'fa3-default', {
           qrUrl: `${DEMO_QR_HOST}/invoice/1111111111/15-01-2026/SUPPLIED-VERBATIM`,
           qrLinks: true,
+          locale: 'pl+uk',
           ksefNumber: KSEF_NUMBER,
         }),
       );
@@ -230,7 +210,25 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
 
     // Receipt last, as in spec 35.
     it('renders a UPO through the library entry point', async () => {
-      await save(`${PREFIX}-11-upo`, renderUpoPdf(bytes('upo-4_3.xml'), { locale: 'en+pl' }));
+      await save(`${PREFIX}-06-upo`, renderUpoPdf(bytes('upo-4_3.xml'), { locale: 'uk' }));
+    });
+
+    it('leaves no render option unexercised', () => {
+      // The renders above each carry several options, which is what keeps the
+      // preview set small — but it also makes it easy to drop the last use of
+      // one while editing a row for another reason. So the option list is read
+      // off the published type rather than kept by hand here: add a field to
+      // RenderOptions and this fails until some render uses it.
+      const dts = readFileSync(join(resolve(require.resolve('ksef-client-ts/pdf'), '..'), 'index.d.ts'), 'utf-8');
+      const body = /interface RenderOptions \{([\s\S]*?)\n\}/.exec(dts)?.[1];
+      expect(body, 'RenderOptions not found in the published types').toBeTruthy();
+
+      const options = [...body!.matchAll(/^\s{4}(\w+)\??:/gm)].map((m) => m[1]!);
+      expect(options.length, 'the type parse found nothing').toBeGreaterThan(10);
+
+      const spec = readFileSync(fileURLToPath(import.meta.url), 'utf-8');
+      const unused = options.filter((name) => !new RegExp(`\\b${name}[,:]`).test(spec));
+      expect(unused, 'render options no preview exercises').toEqual([]);
     });
   });
 

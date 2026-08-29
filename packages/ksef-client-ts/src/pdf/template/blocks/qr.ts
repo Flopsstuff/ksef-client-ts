@@ -92,11 +92,17 @@ export const qrRenderer: BlockRenderer<QrBlock> = (block, ctx) => {
   }
 
   const code: PdfNode = { svg, width: side, height: side };
+  // The code's visible edge is inset by the quiet zone, so a link flush with the
+  // box would sit to the left of everything above it. Indent it to line up with
+  // the first module — a different amount per code, since a denser code has
+  // narrower modules and therefore a narrower quiet zone.
+  const inset = (side / span) * QUIET_ZONE;
   const link: PdfNode[] = ctx.flags['qrLinks']
     ? [
         {
           text: ctx.label('openLink'),
           link: url,
+          margin: [inset, 0, 0, 0],
           ...(block.linkStyle ? { style: block.linkStyle } : {}),
         },
       ]

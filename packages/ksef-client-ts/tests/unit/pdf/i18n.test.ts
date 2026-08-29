@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { resolveLabel, makeLabelResolver } from '../../../src/pdf/i18n/index.js';
+import { resolveLabel, makeLabelResolver, pl, en, uk } from '../../../src/pdf/i18n/index.js';
+import type { LabelBundle } from '../../../src/pdf/i18n/types.js';
 
 describe('resolveLabel', () => {
   it('resolves a Polish label from the pl bundle', () => {
@@ -77,5 +78,63 @@ describe('makeLabelResolver', () => {
   it('captures overrides in the bound resolver', () => {
     const resolve = makeLabelResolver('pl', { overrides: { buyer: 'Klient' } });
     expect(resolve('buyer')).toBe('Klient');
+  });
+});
+
+describe('the Ukrainian bundle', () => {
+  it('resolves its own labels', () => {
+    expect(resolveLabel('seller', 'uk')).toBe('Продавець');
+    expect(resolveLabel('totalDue', 'uk')).toBe('До сплати');
+  });
+
+  it('pairs with Polish in both orders', () => {
+    expect(resolveLabel('buyer', 'pl+uk')).toBe('Nabywca / Покупець');
+    expect(resolveLabel('buyer', 'uk+pl')).toBe('Покупець / Nabywca');
+  });
+
+  it('pairs with English too, since any two base locales combine', () => {
+    expect(resolveLabel('buyer', 'en+uk')).toBe('Buyer / Покупець');
+    expect(resolveLabel('buyer', 'uk+en')).toBe('Покупець / Buyer');
+  });
+
+  it('carries the page-footer placeholders through', () => {
+    expect(resolveLabel('pageOf', 'uk')).toBe('Сторінка {page} з {pages}');
+  });
+
+  it('falls back to Polish for a key it somehow lacks', () => {
+    // Not reachable through the bundles below — they are key-complete — but the
+    // fallback is what keeps a half-translated bundle rendering a document.
+    expect(resolveLabel('unknownKey', 'uk')).toBe('unknownKey');
+  });
+});
+
+describe('the bundles stay key-complete', () => {
+  // A translation that silently misses a key does not fail a render: it falls
+  // back to Polish, and a Ukrainian invoice quietly grows Polish headings. This
+  // is the only thing that catches it.
+  const bundles: Array<[string, LabelBundle]> = [
+    ['en', en],
+    ['uk', uk],
+  ];
+
+  it.each(bundles)('%s covers every Polish key', (_name, bundle) => {
+    expect(Object.keys(pl).filter((key) => !(key in bundle))).toEqual([]);
+  });
+
+  it.each(bundles)('%s adds no key Polish does not have', (_name, bundle) => {
+    expect(Object.keys(bundle).filter((key) => !(key in pl))).toEqual([]);
+  });
+
+  it.each(bundles)('%s leaves no label blank', (_name, bundle) => {
+    expect(Object.entries(bundle).filter(([, value]) => value.trim() === '')).toEqual([]);
+  });
+
+  it('translates rather than copying Polish across', () => {
+    // A handful of labels are legitimately identical everywhere (SWIFT / BIC,
+    // OFFLINE), but a bundle that is mostly Polish is a bundle nobody filled in.
+    for (const [, bundle] of bundles) {
+      const copied = Object.keys(pl).filter((key) => pl[key] === bundle[key]);
+      expect(copied.length).toBeLessThan(Object.keys(pl).length / 4);
+    }
   });
 });

@@ -123,7 +123,7 @@ detectUpoVersion(xml);     // 'UPO(4.2)' | 'UPO(4.3)' | null
 
 | Option | Type | Purpose |
 |--------|------|---------|
-| `locale` | `'pl' \| 'en' \| 'pl+en' \| 'en+pl'` | Label language. Default `'pl'`. |
+| `locale` | `'pl' \| 'en' \| 'uk'`, or any two joined by `+` | Label language. Default `'pl'`. |
 | `totals` | `'none' \| 'buckets' \| 'summary' \| 'both'` | Which tax breakdown to print above the amount due. Default `'buckets'`. |
 | `qr` | `boolean` | Embed the KSeF Code I verification QR derived from the invoice XML. |
 | `ksefNumber` | `string` | KSeF number printed on the visualization; when absent the document is marked **OFFLINE**. |
@@ -275,10 +275,14 @@ Labels are localizable, driven by the `locale` option:
 |--------|--------|
 | `pl` (default) | Polish labels |
 | `en` | English labels |
-| `pl+en` | Both, Polish first |
-| `en+pl` | Both, English first |
+| `uk` | Ukrainian labels |
+| `pl+en`, `en+pl` | Both, in the order named |
+| `pl+uk`, `uk+pl` | Both, in the order named |
+| `en+uk`, `uk+en` | Both, in the order named |
 
-For a bilingual locale, each label is the Polish and English text joined by `bilingualSeparator` (default `' / '`), in the order the locale name spells out. A template can also override individual labels via its `labels` map — useful for company-specific wording.
+Any two of the three languages combine, in either order. For a bilingual locale each label is the two texts joined by `bilingualSeparator` (default `' / '`), in the order the locale name spells out. A template can also override individual labels via its `labels` map — useful for company-specific wording; an override replaces **both** halves of a bilingual label.
+
+One thing stays Polish in every locale: the `FormaPlatnosci` payment forms. They decode from a Polish fiscal enum, and the official visualizations print them untranslated.
 
 ```ts
 const pdf = await renderInvoicePdf(xml, 'fa3-default', {
@@ -349,7 +353,7 @@ ksef invoice pdf upo.xml --template-file ./templates/my-upo.json
 |------|-------------|
 | `--template <name>` | Built-in template name (mutually exclusive with `--template-file`) |
 | `--template-file <path>` | Custom JSON template path (mutually exclusive with `--template`) |
-| `--locale <pl\|en\|pl+en\|en+pl>` | Label language (default `pl`) |
+| `--locale <pl\|en\|uk\|pl+en\|…>` | Label language, single or any two joined by `+` (default `pl`) |
 | `--qr` | Embed the KSeF Code I QR derived from the XML |
 | `--qr-url <url>` | Code I URL used verbatim, instead of deriving one |
 | `--qr-cert-url <url>` | Code II (offline certificate) URL — build it with `ksef qr certificate` |

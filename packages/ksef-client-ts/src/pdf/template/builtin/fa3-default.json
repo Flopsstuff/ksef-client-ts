@@ -80,7 +80,7 @@
         ]
       }
     },
-    { "type": "spacer", "height": 23 },
+    { "type": "spacer", "height": 9 },
     {
       "type": "lines",
       "from": "Fa.FaWiersz",
@@ -94,7 +94,7 @@
         { "label": "net", "path": "P_11", "format": "money", "width": 60, "optional": true }
       ]
     },
-    { "type": "spacer", "height": 21 },
+    { "type": "spacer", "height": 9 },
     {
       "type": "totals",
       "rows": [
@@ -169,7 +169,6 @@
         { "label": "totalDue", "path": "Fa.P_15", "format": "money" }
       ]
     },
-    { "type": "spacer", "height": 21 },
     { "type": "divider" },
     {
       "type": "payment",

@@ -125,57 +125,104 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     console.log(`\n  rendered PDFs kept for review in ${outDir}\n`);
   });
 
-  /** The mixed-rate document with the flags every totals variant shares. */
-  const mixedVat = () => [fx('e2e-vat-multi.xml'), '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')];
-  /** The QR group: the same document before KSeF gave it a number, against DEMO. */
-  const qrGroup = () => [fx('e2e-vat-multi.xml'), '--logo', fx('e2e-logo.png'), '--env', 'demo'];
-  /** Both codes on the page; links and locale are left to the variant. */
-  const bothCodes = () => [...qrGroup(), '--qr', '--qr-cert-url', certificateQrUrl];
+  const LOGO = () => ['--logo', fx('e2e-logo.png')];
+  const SUPPLIED_CODE_I = `${DEMO_QR_HOST}/invoice/1111111111/15-01-2026/SUPPLIED-VERBATIM`;
 
+  /** The mixed-rate document with the flags every totals variant shares. */
+  const mixedVat = () => [fx('e2e-vat-multi.xml'), '--ksef-number', KSEF_NUMBER, ...LOGO()];
+
+  /**
+   * The preview set, laid out as a covering design rather than one variant per
+   * feature. Eight dimensions are in play — document, locale, which QR codes,
+   * links, logo, KSeF number, totals mode, and where Code I comes from — and a
+   * row per combination would be hundreds of PDFs nobody looks at. Instead each
+   * row varies several at once so that every value of every dimension appears,
+   * and the pairs that actually interact are covered.
+   *
+   * Rows 01–05 are that covering design. Rows 06–10 are deliberately NOT: the
+   * totals modes only mean anything compared side by side, so those five hold
+   * every other flag identical and vary one thing.
+   *
+   *   #   document      locale  QR     links  logo  KSeF nr  totals
+   *   01  services-np   pl      I      no     yes   yes      buckets
+   *   02  fa3           en      I      yes    no    yes      summary   (Code I supplied)
+   *   03  buyer-no-id   uk      II     yes    yes   no       both
+   *   04  vat-multi     en+pl   II     no     no    no       none
+   *   05  vat-multi     pl+uk   both   yes    yes   no       both
+   *
+   * What each row is there to show, beyond its share of the grid: 01 the
+   * everyday online invoice; 02 an invoice whose Code I URL was handed over
+   * ready-made; 03 a foreign buyer with no NIP, issued offline; 04 and 05 the
+   * layout cases — one code absent, then both present — where the codes must
+   * stay against the right margin.
+   */
   const variants: Array<[name: string, args: () => string[]]> = [
-    [`${PREFIX}-01-invoice-pl-qr`, () => [fx('e2e-services-np.xml'), '--qr', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
-    [`${PREFIX}-02-invoice-en`, () => [fx('e2e-services-np.xml'), '--locale', 'en', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
-    [`${PREFIX}-03-invoice-bilingual`, () => [fx('e2e-services-np.xml'), '--locale', 'en+pl', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
-    [`${PREFIX}-04-invoice-offline`, () => [fx('e2e-services-np.xml'), '--logo', fx('e2e-logo.png')]],
-    [`${PREFIX}-05-invoice-standard-rate`, () => [fx('fa3.xml')]],
-    [`${PREFIX}-06-invoice-buyer-without-id`, () => [fx('e2e-buyer-no-id.xml'), '--logo', fx('e2e-logo.png')]],
+    [`${PREFIX}-01-invoice-pl-code-i`, () => [
+      fx('e2e-services-np.xml'), '--ksef-number', KSEF_NUMBER, ...LOGO(),
+      '--env', 'demo', '--qr', '--totals', 'buckets',
+    ]],
+    [`${PREFIX}-02-invoice-en-supplied-code-i-links`, () => [
+      fx('fa3.xml'), '--ksef-number', KSEF_NUMBER, '--locale', 'en',
+      '--qr-url', SUPPLIED_CODE_I, '--qr-links', '--totals', 'summary',
+    ]],
+    [`${PREFIX}-03-invoice-uk-offline-code-ii-links`, () => [
+      fx('e2e-buyer-no-id.xml'), ...LOGO(), '--locale', 'uk',
+      '--env', 'demo', '--qr-cert-url', certificateQrUrl, '--qr-links', '--totals', 'both',
+    ]],
+    [`${PREFIX}-04-invoice-bilingual-offline-code-ii`, () => [
+      fx('e2e-vat-multi.xml'), '--locale', 'en+pl',
+      '--env', 'demo', '--qr-cert-url', certificateQrUrl, '--totals', 'none',
+    ]],
+    [`${PREFIX}-05-invoice-pl-uk-offline-both-codes-links`, () => [
+      fx('e2e-vat-multi.xml'), ...LOGO(), '--locale', 'pl+uk',
+      '--env', 'demo', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links', '--totals', 'both',
+    ]],
     // Every totals mode on one mixed-rate document (23% + 8% + exempt), so the
     // four can be compared page by page. Same flags throughout — only --totals
     // differs, and the amount due must appear in all of them.
-    [`${PREFIX}-07-invoice-mixed-vat-totals-none`, () => [...mixedVat(), '--totals', 'none']],
-    [`${PREFIX}-08-invoice-mixed-vat-totals-buckets`, () => [...mixedVat(), '--totals', 'buckets']],
-    [`${PREFIX}-09-invoice-mixed-vat-totals-summary`, () => [...mixedVat(), '--totals', 'summary']],
-    [`${PREFIX}-10-invoice-mixed-vat-totals-both`, () => [...mixedVat(), '--totals', 'both']],
-    // The A/B against 09: identical document and flags, but the totals read the
+    [`${PREFIX}-06-totals-none`, () => [...mixedVat(), '--totals', 'none']],
+    [`${PREFIX}-07-totals-buckets`, () => [...mixedVat(), '--totals', 'buckets']],
+    [`${PREFIX}-08-totals-summary`, () => [...mixedVat(), '--totals', 'summary']],
+    [`${PREFIX}-09-totals-both`, () => [...mixedVat(), '--totals', 'both']],
+    // The A/B against 08: identical document and flags, but the totals read the
     // standard-rate bucket alone instead of summing all of them. It needs
     // --totals summary, since that is the group those rows belong to.
-    [`${PREFIX}-11-invoice-mixed-vat-single-bucket-totals`, () => [...mixedVat(), '--totals', 'summary', '--template-file', oldTotalsTemplate]],
-    [`${PREFIX}-12-invoice-mixed-vat-bilingual`, () => [...mixedVat(), '--locale', 'en+pl', '--totals', 'both']],
-    // Six variants covering four dimensions — which codes, links on or off,
-    // the three locales, and a supplied versus derived Code I. Every value of
-    // every dimension appears at least twice, paired with different values of
-    // the others, so a regression in any one of them shows up somewhere. The
-    // single-code rows also carry the layout case that matters: with one code
-    // absent, the other must still sit against the right margin.
-    //
-    //   #   codes   links  locale  Code I
-    //   13  I       no     pl      derived
-    //   14  I       yes    en      supplied
-    //   15  II      yes    pl      —
-    //   16  II      no     en+pl   —
-    //   17  both    yes    en+pl   derived
-    //   18  both    no     en      derived
-    [`${PREFIX}-13-qr-code-i`, () => [...qrGroup(), '--qr']],
-    [`${PREFIX}-14-qr-code-i-links-en-supplied-url`, () => [...qrGroup(), '--qr-url', `${DEMO_QR_HOST}/invoice/1111111111/15-01-2026/SUPPLIED-VERBATIM`, '--qr-links', '--locale', 'en']],
-    [`${PREFIX}-15-qr-code-ii-links`, () => [...qrGroup(), '--qr-cert-url', certificateQrUrl, '--qr-links']],
-    [`${PREFIX}-16-qr-code-ii-bilingual`, () => [...qrGroup(), '--qr-cert-url', certificateQrUrl, '--locale', 'en+pl']],
-    [`${PREFIX}-17-qr-both-codes-links-bilingual`, () => [...bothCodes(), '--qr-links', '--locale', 'en+pl']],
-    [`${PREFIX}-18-qr-both-codes-en`, () => [...bothCodes(), '--locale', 'en']],
+    [`${PREFIX}-10-totals-summary-single-bucket-template`, () => [...mixedVat(), '--totals', 'summary', '--template-file', oldTotalsTemplate]],
     // Receipts last: they are a different document and read as their own group.
-    [`${PREFIX}-19-upo-pl`, () => [fx('upo-4_3.xml')]],
-    [`${PREFIX}-20-upo-bilingual`, () => [fx('upo-4_3.xml'), '--locale', 'en+pl']],
-    [`${PREFIX}-21-upo-five-documents`, () => [multiDocumentUpo]],
+    [`${PREFIX}-11-upo-pl`, () => [fx('upo-4_3.xml')]],
+    [`${PREFIX}-12-upo-five-documents-bilingual`, () => [multiDocumentUpo, '--locale', 'en+pl']],
   ];
+
+  /**
+   * The grid above is only worth trusting if it actually is one. This reads the
+   * rows back and checks that every value of every dimension is present, so a
+   * row edited for one reason cannot quietly drop the only coverage of another.
+   */
+  it('covers every value of every dimension', () => {
+    const args = variants.map(([, build]) => build().join(' '));
+    const covered = (needle: string) => args.some((a) => a.includes(needle));
+
+    for (const doc of ['e2e-services-np.xml', 'fa3.xml', 'e2e-buyer-no-id.xml', 'e2e-vat-multi.xml', 'upo-4_3.xml']) {
+      expect(covered(doc), `no variant renders ${doc}`).toBe(true);
+    }
+    for (const locale of ['en', 'uk', 'en+pl', 'pl+uk']) {
+      expect(covered(`--locale ${locale}`), `no variant renders in ${locale}`).toBe(true);
+    }
+    for (const totals of ['none', 'buckets', 'summary', 'both']) {
+      expect(covered(`--totals ${totals}`), `no variant renders --totals ${totals}`).toBe(true);
+    }
+    expect(covered('--qr '), 'Code I is never derived').toBe(true);
+    expect(covered('--qr-url'), 'Code I is never supplied ready-made').toBe(true);
+    expect(covered('--qr-cert-url'), 'Code II is never printed').toBe(true);
+    expect(covered('--qr-links'), 'the links are never printed').toBe(true);
+    expect(covered('--template-file'), 'a custom template file is never used').toBe(true);
+    expect(covered('--logo'), 'the logo is never printed').toBe(true);
+    // The absences matter as much: a Polish default locale, an invoice with no
+    // logo, and one still waiting for its KSeF number.
+    expect(args.some((a) => !a.includes('--locale')), 'nothing renders in the default locale').toBe(true);
+    expect(args.some((a) => !a.includes('--logo')), 'nothing renders without a logo').toBe(true);
+    expect(args.some((a) => !a.includes('--ksef-number')), 'nothing renders as OFFLINE').toBe(true);
+  });
 
   it.each(variants)('renders %s', (name, args) => {
     const out = join(outDir, `${name}.pdf`);
@@ -189,7 +236,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
   it('renders every variant of the set', () => {
     // Guards against a variant being silently dropped from the table above:
     // regen.sh and this spec are meant to cover the same ground.
-    expect(variants).toHaveLength(21);
+    expect(variants).toHaveLength(12);
     for (const [name] of variants) {
       expect(existsSync(join(outDir, `${name}.pdf`)), `${name}.pdf missing`).toBe(true);
     }

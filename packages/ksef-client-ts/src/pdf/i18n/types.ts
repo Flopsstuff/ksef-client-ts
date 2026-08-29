@@ -1,12 +1,20 @@
 /**
- * Label language for the rendered PDF. The bilingual locales are built by
- * concatenation and named for their order: `pl+en` puts Polish first, `en+pl`
- * English first.
+ * Label language for the rendered PDF. A bilingual locale is any two base
+ * locales joined by `+`, and it is named for its order: `pl+en` puts Polish
+ * first, `en+pl` English first. Every ordered pair is valid, so an invoice can
+ * be issued in Polish alongside the reader's own language.
  */
-export type Locale = 'pl' | 'en' | 'pl+en' | 'en+pl';
+export type Locale =
+  | BaseLocale
+  | 'pl+en'
+  | 'en+pl'
+  | 'pl+uk'
+  | 'uk+pl'
+  | 'en+uk'
+  | 'uk+en';
 
-/** The two single-language bundles a bilingual locale is composed from. */
-export type BaseLocale = 'pl' | 'en';
+/** The single-language bundles a bilingual locale is composed from. */
+export type BaseLocale = 'pl' | 'en' | 'uk';
 
 /**
  * Known label keys referenced by built-in templates. Custom templates may use

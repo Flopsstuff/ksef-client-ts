@@ -570,7 +570,7 @@ const validateCmd = defineCommand({
   },
 });
 
-const VALID_PDF_LOCALES = ['pl', 'en', 'pl+en', 'en+pl'] as const;
+const VALID_PDF_LOCALES = ['pl', 'en', 'uk', 'pl+en', 'en+pl', 'pl+uk', 'uk+pl', 'en+uk', 'uk+en'] as const;
 type PdfLocale = (typeof VALID_PDF_LOCALES)[number];
 
 const VALID_PDF_TOTALS = ['none', 'buckets', 'summary', 'both'] as const;
@@ -611,7 +611,7 @@ const pdf = defineCommand({
     file: { type: 'positional', description: 'Path to the invoice or UPO XML file', required: true },
     template: { type: 'string', description: 'Built-in template name (e.g. fa3-default). Mutually exclusive with --template-file.' },
     templateFile: { type: 'string', description: 'Path to a custom JSON template. Mutually exclusive with --template.' },
-    locale: { type: 'string', description: 'Label language: pl | en | pl+en | en+pl (default: pl)' },
+    locale: { type: 'string', description: 'Label language: pl | en | uk, or any two joined by + (e.g. pl+uk); default pl' },
     out: { type: 'string', description: 'Output PDF path (default: alongside the source, .pdf)' },
     qr: { type: 'boolean', description: 'Embed the KSeF Code I QR derived from the XML' },
     qrUrl: { type: 'string', description: 'Code I verification URL, used verbatim instead of deriving it' },
