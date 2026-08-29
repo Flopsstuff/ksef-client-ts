@@ -164,7 +164,7 @@ The `schema` field binds a template to a single document kind. If you render an 
 | `header` | Title, invoice number, date, optional logo |
 | `parties` | Seller / buyer two-column panel |
 | `lines` | Invoice line-item table |
-| `totals` | Net / VAT / gross summary rows |
+| `totals` | Net / VAT / gross summary rows (a row reads one path or sums several) |
 | `payment` | Payment details (amount paid, date, method) |
 | `annotations` | Miscellaneous labelled fields |
 | `qr` | The verification QR image |
@@ -178,6 +178,7 @@ The `schema` field binds a template to a single document kind. If you render an 
 - **`label`** references an i18n label key resolved per locale; **`text`** is a literal string printed as-is.
 - **`when`** conditionally renders a block against a presence test. It accepts a binding path (e.g. `Fa.Platnosc`) or a context flag: `qr`, `offline`, `hasKsefNumber`.
 - **`format`** names a value formatter: `money`, `date`, `number`, or `nip`.
+- **`sum`** (totals rows only) adds several binding paths instead of reading one. A KSeF invoice has no single net or VAT total — the amounts are split across the `P_13_*` and `P_14_*` rate buckets — so the built-in templates aggregate them. Absent buckets are skipped, and the addition is decimal-exact. A totals row takes either `path` or `sum`, never both.
 
 ### Minimal example
 
@@ -210,7 +211,10 @@ A trimmed `FA(3)` template with a header, a seller/buyer panel, a line table, a 
     },
     {
       "type": "totals",
-      "rows": [{ "label": "totalDue", "path": "Fa.P_15", "format": "money" }]
+      "rows": [
+        { "label": "totalNet", "sum": ["Fa.P_13_1", "Fa.P_13_2", "Fa.P_13_7"], "format": "money" },
+        { "label": "totalDue", "path": "Fa.P_15", "format": "money" }
+      ]
     },
     { "type": "qr", "when": "qr", "fit": 90 },
     { "type": "footer", "text": "ksef-client-ts", "style": "muted" }

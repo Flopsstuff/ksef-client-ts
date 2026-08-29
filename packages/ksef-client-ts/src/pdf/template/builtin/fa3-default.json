@@ -60,8 +60,25 @@
     {
       "type": "totals",
       "rows": [
-        { "label": "totalNet", "path": "Fa.P_13_1", "format": "money" },
-        { "label": "totalVat", "path": "Fa.P_14_1", "format": "money" },
+        { "label": "totalNet", "sum": [
+          "Fa.P_13_1",
+          "Fa.P_13_2",
+          "Fa.P_13_3",
+          "Fa.P_13_4",
+          "Fa.P_13_5",
+          "Fa.P_13_7",
+          "Fa.P_13_8",
+          "Fa.P_13_9",
+          "Fa.P_13_10",
+          "Fa.P_13_11"
+        ], "format": "money" },
+        { "label": "totalVat", "sum": [
+          "Fa.P_14_1",
+          "Fa.P_14_2",
+          "Fa.P_14_3",
+          "Fa.P_14_4",
+          "Fa.P_14_5"
+        ], "format": "money" },
         { "label": "totalDue", "path": "Fa.P_15", "format": "money" }
       ]
     },

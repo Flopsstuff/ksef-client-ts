@@ -66,9 +66,24 @@ export interface LinesBlock {
   style?: string;
 }
 
+/**
+ * One totals line. A KSeF invoice has no single "total net"/"total VAT" field —
+ * net sales are split across `P_13_*` rate buckets and the tax across `P_14_*`
+ * — so a row reads either one path or the decimal sum of several. Exactly one
+ * of `path`/`sum` must be given.
+ */
+export interface TotalsRow {
+  label: string;
+  path?: string;
+  /** Binding paths to add up; absent buckets are skipped. */
+  sum?: string[];
+  format?: FormatterName;
+  style?: string;
+}
+
 export interface TotalsBlock {
   type: 'totals';
-  rows: FieldDef[];
+  rows: TotalsRow[];
   style?: string;
 }
 
@@ -209,6 +224,19 @@ const fieldDef = z
   })
   .strict();
 
+const totalsRow = z
+  .object({
+    label: z.string(),
+    path: z.string().optional(),
+    sum: z.array(z.string()).nonempty().optional(),
+    format: formatEnum.optional(),
+    style: z.string().optional(),
+  })
+  .strict()
+  .refine((r) => (r.path === undefined) !== (r.sum === undefined), {
+    message: 'a totals row needs exactly one of "path" or "sum"',
+  });
+
 // Recursive block schema (containers embed blocks). z.lazy breaks the cycle.
 const blockSchema: z.ZodType<Block> = z.lazy(() =>
   z.discriminatedUnion('type', [
@@ -232,7 +260,7 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
       columns: z.array(fieldDef),
       style: z.string().optional(),
     }).strict(),
-    z.object({ type: z.literal('totals'), rows: z.array(fieldDef), style: z.string().optional() }).strict(),
+    z.object({ type: z.literal('totals'), rows: z.array(totalsRow), style: z.string().optional() }).strict(),
     z.object({
       type: z.literal('payment'),
       when: z.string().optional(),

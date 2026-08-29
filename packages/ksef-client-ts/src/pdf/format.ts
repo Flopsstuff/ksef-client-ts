@@ -65,6 +65,41 @@ export function formatPaymentForm(raw: string): string {
   return PAYMENT_FORMS[raw.trim()] ?? raw;
 }
 
+/**
+ * Decimal-safe sum of monetary strings, used by totals rows that aggregate
+ * several VAT buckets (a KSeF invoice has no single "total net" field).
+ *
+ * Values are summed in minor units so 0.1 + 0.2 stays 0.30, and the result keeps
+ * the widest scale seen among the inputs. Blank/whitespace entries are treated
+ * as an absent bucket and skipped; if nothing parseable remains the result is
+ * `''`, so a document that carries no totals at all renders blank rather than a
+ * fabricated `0,00`. A non-empty value that is not a decimal makes the whole sum
+ * unrepresentable and also yields `''` — a blank cell is safer than a wrong one.
+ */
+export function sumDecimal(values: string[]): string {
+  const present = values.filter((v) => v.trim() !== '');
+  if (present.length === 0) return '';
+
+  const parsed: Array<{ sign: bigint; int: string; frac: string }> = [];
+  for (const value of present) {
+    const m = /^([+-]?)(\d+)(?:\.(\d+))?$/.exec(value.trim());
+    if (!m) return '';
+    parsed.push({ sign: m[1] === '-' ? -1n : 1n, int: m[2] ?? '0', frac: m[3] ?? '' });
+  }
+
+  const scale = parsed.reduce((max, p) => Math.max(max, p.frac.length), 0);
+  const total = parsed.reduce(
+    (acc, p) => acc + p.sign * BigInt(p.int + p.frac.padEnd(scale, '0')),
+    0n,
+  );
+
+  const sign = total < 0n ? '-' : '';
+  const digits = (total < 0n ? -total : total).toString().padStart(scale + 1, '0');
+  const intPart = digits.slice(0, digits.length - scale);
+  const fracPart = digits.slice(digits.length - scale);
+  return scale === 0 ? `${sign}${intPart}` : `${sign}${intPart}.${fracPart}`;
+}
+
 const FORMATTERS: Record<FormatterName, (raw: string) => string> = {
   money: formatMoney,
   date: formatDate,
