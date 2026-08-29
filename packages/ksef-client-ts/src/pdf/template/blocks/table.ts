@@ -1,7 +1,7 @@
 import { get, list } from '../../accessor.js';
-import { applyFormat } from '../../format.js';
 import type { TableBlock } from '../dsl.js';
 import { resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.js';
+import { buildCell, buildHeaderCell } from './cell.js';
 
 /**
  * Generic pdfmake `table`. Two modes:
@@ -24,15 +24,17 @@ export const tableRenderer: BlockRenderer<TableBlock> = (block, ctx) => {
   const body: PdfNode[][] = [];
 
   if (showHeaders) {
-    body.push(columns.map((col) => ({ text: ctx.label(col.label), bold: true })));
+    body.push(columns.map((col) => buildHeaderCell(col, ctx)));
   }
 
   if (block.from !== undefined) {
     for (const row of list(ctx.root, block.from)) {
-      body.push(columns.map((col) => ({ text: applyFormat(get(row, col.path, col.optional ? false : ctx.strict), col.format) })));
+      body.push(columns.map((col) => buildCell(col, (path, optional) => get(row, path, optional ? false : ctx.strict), ctx)));
     }
   } else {
-    body.push(columns.map((col) => ({ text: applyFormat(resolveBinding(col.path, col.optional ? lenientCtx : ctx), col.format) })));
+    body.push(
+      columns.map((col) => buildCell(col, (path, optional) => resolveBinding(path, optional ? lenientCtx : ctx), ctx)),
+    );
   }
 
   const node: Record<string, unknown> = {

@@ -28,6 +28,11 @@ export const uk: LabelBundle = {
   net: 'Сума нетто',
   vatRate: 'Ставка ПДВ',
   vat: 'Сума ПДВ',
+  indeks: 'Код позиції',
+  gtin: 'GTIN',
+  pkwiu: 'PKWiU',
+  cn: 'CN',
+  pkob: 'PKOB',
   gross: 'Сума брутто',
   // per-rate buckets (P_13_* / P_14_*)
   net23: 'Нетто 23%',

@@ -21,6 +21,11 @@ export const pl: LabelBundle = {
   vatRate: 'Stawka VAT',
   net: 'Wartość netto',
   vat: 'Kwota VAT',
+  indeks: 'Indeks',
+  gtin: 'GTIN',
+  pkwiu: 'PKWiU',
+  cn: 'CN',
+  pkob: 'PKOB',
   gross: 'Wartość brutto',
   // totals
   // per-rate buckets (P_13_* / P_14_*)

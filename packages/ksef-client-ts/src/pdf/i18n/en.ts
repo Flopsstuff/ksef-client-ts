@@ -20,6 +20,11 @@ export const en: LabelBundle = {
   vatRate: 'VAT rate',
   net: 'Net amount',
   vat: 'VAT amount',
+  indeks: 'Item code',
+  gtin: 'GTIN',
+  pkwiu: 'PKWiU',
+  cn: 'CN',
+  pkob: 'PKOB',
   gross: 'Gross amount',
   // per-rate buckets (P_13_* / P_14_*)
   net23: 'Net 23%',

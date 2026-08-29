@@ -969,3 +969,87 @@ describe('headingStyle', () => {
     expect(paymentBlock('sectionHead')[1].style).toBeUndefined();
   });
 });
+
+// ── classification sub-lines ─────────────────────────────────────────────────
+
+/**
+ * A line-item column may carry a second, smaller line of classifiers. They live
+ * there rather than in columns of their own because `Indeks`, `GTIN`, `PKWiU`,
+ * `CN` and `PKOB` are all optional and a real invoice fills one or two — a
+ * column's width is fixed for the whole table and cannot shrink away per row.
+ */
+describe('column sub-lines', () => {
+  const column = (over: Record<string, unknown> = {}) => ({
+    label: 'name',
+    path: 'P_7',
+    width: '*',
+    sub: [
+      { label: 'pkwiu', path: 'PKWiU', optional: true },
+      { label: 'indeks', path: 'Indeks', optional: true },
+      { label: 'gtin', path: 'GTIN', optional: true },
+    ],
+    ...over,
+  });
+
+  const cells = (row: Record<string, string>, over?: Record<string, unknown>) =>
+    rec(
+      linesRenderer(
+        { type: 'lines', from: 'Fa.FaWiersz', columns: [column(over)] as never },
+        makeCtx({ Fa: { FaWiersz: row } }),
+        noRender,
+      ),
+    ).table.body;
+
+  it('prints the classifiers an item carries, on one line under the value', () => {
+    const [, [cell]] = cells({ P_7: 'Kalibracja', PKWiU: '71.20.19.0', Indeks: 'ABC-1' });
+    expect(cell.stack.map((n: { text: string }) => n.text)).toEqual([
+      'Kalibracja',
+      'pkwiu 71.20.19.0 · indeks ABC-1',
+    ]);
+  });
+
+  it('leaves out every classifier the item does not carry', () => {
+    const [, [cell]] = cells({ P_7: 'Kalibracja', GTIN: '5901234123457' });
+    expect(cell.stack[1].text).toBe('gtin 5901234123457');
+  });
+
+  it('emits a plain cell when the item carries none of them', () => {
+    // Not a stack with an empty second line: an item without classifiers has to
+    // look exactly as it did before the column grew them.
+    const [, [cell]] = cells({ P_7: 'Kalibracja' });
+    expect(cell).toEqual({ text: 'Kalibracja' });
+  });
+
+  it('takes the style the column names for that line', () => {
+    const [, [cell]] = cells({ P_7: 'Kalibracja', PKWiU: '71.20.19.0' }, { subStyle: 'lineMeta' });
+    expect(cell.stack[0].style).toBeUndefined(); // the value keeps the table's own
+    expect(cell.stack[1].style).toBe('lineMeta');
+  });
+
+  it('joins with " · " by default and with whatever the column asks for', () => {
+    const row = { P_7: 'Kalibracja', PKWiU: '71.20.19.0', Indeks: 'ABC-1' };
+    expect(cells(row)[1][0].stack[1].text).toContain(' · ');
+    expect(cells(row, { subSeparator: ' | ' })[1][0].stack[1].text).toBe(
+      'pkwiu 71.20.19.0 | indeks ABC-1',
+    );
+  });
+
+  it('applies the column style to the cell and to its header', () => {
+    // `style` was declared on a column and read by nothing until the sub-lines
+    // needed a home; a numeric column wanting `alignment: right` needs it on
+    // both halves.
+    const body = cells({ P_7: 'Kalibracja' }, { style: 'numeric' });
+    expect(body[0][0].style).toBe('numeric'); // header
+    expect(body[1][0].style).toBe('numeric'); // value
+  });
+
+  it('reads a sub field leniently when it is marked optional, even in strict', () => {
+    const render = () =>
+      linesRenderer(
+        { type: 'lines', from: 'Fa.FaWiersz', columns: [column()] as never },
+        makeCtx({ Fa: { FaWiersz: { P_7: 'Kalibracja' } } }, { strict: true }),
+        noRender,
+      );
+    expect(render).not.toThrow();
+  });
+});

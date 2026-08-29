@@ -69,6 +69,20 @@ export interface FieldDef {
  */
 export interface ColumnDef extends FieldDef {
   width?: number | 'auto' | '*';
+  /**
+   * Secondary fields printed as one extra line under the cell's own value —
+   * `PKWiU 71.20.19.0 · Indeks ABC-1`. Each is `label value`, and an entry that
+   * resolves empty is left out entirely, so a column may list every classifier
+   * the schema allows (`Indeks`, `GTIN`, `PKWiU`, `CN`, `PKOB`) and each line
+   * shows only the one or two a given item actually carries. A column can only
+   * be one width for the whole table, so classifiers cannot each have a column
+   * of their own without leaving most invoices with several empty ones.
+   */
+  sub?: FieldDef[];
+  /** Style for the `sub` line. Set it smaller: it is a footnote to the value. */
+  subStyle?: string;
+  /** Separator between `sub` entries. Default `' · '`. */
+  subSeparator?: string;
 }
 
 /**
@@ -438,6 +452,9 @@ const columnDef = z
     format: formatEnum.optional(),
     style: z.string().optional(),
     width: z.union([z.number().positive(), z.literal('auto'), z.literal('*')]).optional(),
+    sub: z.array(fieldDef).nonempty().optional(),
+    subStyle: z.string().optional(),
+    subSeparator: z.string().optional(),
   })
   .strict();
 

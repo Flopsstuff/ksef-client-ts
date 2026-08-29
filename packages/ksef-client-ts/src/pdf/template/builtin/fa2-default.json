@@ -5,6 +5,7 @@
   "styles": {
     "title": { "fontSize": 20, "bold": true },
     "h1": { "fontSize": 11, "bold": true, "margin": [0, 10, 0, 3], "color": "#000000" },
+    "lineMeta": { "fontSize": 6.5, "color": "#7A8CA0" },
     "h2": { "fontSize": 10, "bold": true, "margin": [0, 10, 0, 3], "color": "#333333" },
     "muted": { "color": "#666666", "fontSize": 8 },
     "offline": { "color": "#b00020", "bold": true },
@@ -88,7 +89,20 @@
       "from": "Fa.FaWiersz",
       "columns": [
         { "label": "lp", "path": "NrWierszaFa", "width": 24 },
-        { "label": "name", "path": "P_7", "width": "*", "optional": true },
+        {
+          "label": "name",
+          "path": "P_7",
+          "width": "*",
+          "optional": true,
+          "subStyle": "lineMeta",
+          "sub": [
+            { "label": "pkwiu", "path": "PKWiU", "optional": true },
+            { "label": "indeks", "path": "Indeks", "optional": true },
+            { "label": "gtin", "path": "GTIN", "optional": true },
+            { "label": "cn", "path": "CN", "optional": true },
+            { "label": "pkob", "path": "PKOB", "optional": true }
+          ]
+        },
         { "label": "unit", "path": "P_8A", "width": 36, "optional": true },
         { "label": "qty", "path": "P_8B", "format": "number", "width": 24, "optional": true },
         { "label": "unitPrice", "path": "P_9A", "format": "money", "width": 64, "optional": true },
