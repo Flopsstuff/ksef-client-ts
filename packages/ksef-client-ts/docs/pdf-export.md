@@ -172,7 +172,7 @@ The `schema` field binds a template to a single document kind. If you render an 
 | `totals` | Net / VAT / gross summary rows (a row reads one path or sums several) |
 | `payment` | Payment details (amount paid, date, method) |
 | `annotations` | Miscellaneous labelled fields |
-| `qr` | The verification QR image |
+| `qr` | One KSeF verification QR — `code: "invoice"` (Code I, the default) or `code: "certificate"` (Code II) |
 | `footer` | Footer note |
 
 A template may also declare a running page footer, drawn in the bottom page margin on every page:
@@ -182,6 +182,8 @@ A template may also declare a running page footer, drawn in the bottom page marg
 ```
 
 It prints the localized attribution on the left and a `Page 1 of 3` indicator on the right, aligned with `page.margins`. The page total is only known once pdfmake has laid the content out, so this cannot be a block. The attribution text is fixed by the renderer — a template may restyle the footer or omit it, but not reword the credit.
+
+A `qr` block's `fit` is the printed side in points, quiet zone included, and it is exact — give two blocks the same `fit` and they come out the same size on the page, however much data each code carries. What differs instead is the module width, which is what a scanner cares about: Code I is 41 modules while Code II carries a signature and runs 57 over an EC key or 85 over RSA, so the same box makes Code II's modules roughly half as wide as Code I's. The renderer refuses a `fit` that would leave less than a point per module rather than printing a code nothing can read. The built-in templates use 104 for both.
 
 **Primitive blocks** are layout building blocks: `text`, `columns`, `stack`, `each`, `table`, `image`, `divider`, `spacer`.
 
@@ -287,17 +289,33 @@ const pdf = await renderInvoicePdf(xml, 'fa3-default', {
 
 ---
 
-## Verification QR (Code I)
+## Verification QR codes
 
-Set `qr: true` to embed the KSeF **Code I** verification QR. It is derived automatically from the invoice XML — you do not supply a URL. The verification hash is computed over the original invoice bytes so it matches the value KSeF registered. Use `env` to pick the correct portal (`prod` by default), or `baseQrUrl` to override it for offline / non-standard cases.
+KSeF defines two verification codes, and the built-in templates print both when both are available.
+
+**Code I** verifies the invoice. Set `qr: true` and it is derived from the XML — you do not supply a URL. The verification hash is computed over the original invoice bytes so it matches the value KSeF registered. Use `env` to pick the correct portal (`prod` by default), or `baseQrUrl` to override it for offline / non-standard cases. Pass `qrUrl` to skip derivation and print a URL you built yourself.
+
+**Code II** verifies the *issuer* and only exists for invoices issued offline. It cannot be derived here: the link carries a signature made with the private key of a KSeF offline certificate, which a PDF renderer has no business holding. Build it with `VerificationLinkService.buildCertificateVerificationUrl` (or `ksef qr certificate`) and pass the result as `certificateQrUrl`.
 
 ```ts
+import { VerificationLinkService } from 'ksef-client-ts';
+
+const certificateQrUrl = new VerificationLinkService('https://qr.ksef.mf.gov.pl')
+  .buildCertificateVerificationUrl('Nip', nip, sellerNip, certSerial, invoiceHash, privateKeyPem);
+
 const pdf = await renderInvoicePdf(xml, 'fa3-default', {
-  qr: true,
+  qr: true,           // Code I, derived from the document
+  certificateQrUrl,   // Code II, supplied
+  qrLinks: true,      // a clickable link under each code
   env: 'test',
-  ksefNumber: '1234567890-20260705-ABCDEF012345-01',
 });
 ```
+
+`qrLinks` repeats each URL under its code as a clickable link, for readers who have the PDF on screen rather than on paper.
+
+Both codes are encoded here and handed to pdfmake as vector SVG rather than through its own QR node, which sizes a code at whole points per module and so can only produce a handful of sizes — two codes of different data lengths cannot be made to match under that rule. Drawing the modules ourselves makes the size exact and gets the standard's quiet zone, which that node omits. Error correction is 15% (`M`), the level KSeF's own reference clients use: an invoice gets folded, and the 7% default leaves no margin for a crease.
+
+At the built-in `fit` of 104 (37 mm square) the modules come out at 0.75 mm for Code I and 0.56 mm for a Code II signed with an EC key. An RSA signature is four times longer and drops that to 0.39 mm — legal (both key types are), but at the edge of what prints and scans reliably, so raise `fit` if your certificate is RSA.
 
 When no `ksefNumber` is provided the visualization is marked **OFFLINE**. UPO receipts do not carry a QR code.
 
@@ -333,6 +351,9 @@ ksef invoice pdf upo.xml --template-file ./templates/my-upo.json
 | `--template-file <path>` | Custom JSON template path (mutually exclusive with `--template`) |
 | `--locale <pl\|en\|pl+en\|en+pl>` | Label language (default `pl`) |
 | `--qr` | Embed the KSeF Code I QR derived from the XML |
+| `--qr-url <url>` | Code I URL used verbatim, instead of deriving one |
+| `--qr-cert-url <url>` | Code II (offline certificate) URL — build it with `ksef qr certificate` |
+| `--qr-links` | Print a clickable link under each QR code |
 | `--ksef-number <number>` | KSeF number to print (absent → marked OFFLINE) |
 | `--totals <none\|buckets\|summary\|both>` | Tax breakdown above the amount due (default `buckets`) |
 | `--upo` | Treat the input as a UPO document (otherwise auto-detected); ignored when a template is named explicitly |

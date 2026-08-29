@@ -5,6 +5,7 @@ import {
   resolveBaseQrUrl,
   deriveInvoiceQrUrl,
 } from '../../../src/pdf/qr.js';
+import * as QRCode from 'qrcode';
 import { qrRenderer } from '../../../src/pdf/template/blocks/qr.js';
 import { VerificationLinkService } from '../../../src/qr/verification-link-service.js';
 import { Environment } from '../../../src/config/environments.js';
@@ -126,35 +127,159 @@ describe('deriveInvoiceQrUrl', () => {
 });
 
 describe('qrRenderer', () => {
-  function ctxWith(bindings: Record<string, string>): RenderContext {
+  function ctxWith(bindings: Record<string, string>, flags: Record<string, boolean> = {}): RenderContext {
     return {
       root: body,
       strict: false,
       label: (k: string) => k,
       bindings,
-      flags: {},
+      flags,
     };
   }
   const noopRender = () => null;
   const block: QrBlock = { type: 'qr' };
+  const CODE_I = 'https://qr/invoice/x';
+  const CODE_II = 'https://qr/certificate/Nip/1/2/3/4/5';
 
-  it('emits a qr node with default fit 100 when qrUrl is present', () => {
-    const out = qrRenderer(block, ctxWith({ qrUrl: 'https://qr/invoice/x' }), noopRender);
-    expect(out).toEqual({ qr: 'https://qr/invoice/x', fit: 100 });
+  /**
+   * A rendered code is always `{ width: 'auto', stack: [code, link?] }` — the
+   * wrapper is what lets a `columns` row pin the codes to the right margin.
+   */
+  type QrNode = { width: string; stack: Array<Record<string, unknown>> };
+  const codeOf = (node: unknown) => (node as QrNode).stack?.[0] as { svg: string; width: number; height: number };
+  /** The SVG a given URL must produce — the code's identity, in one value. */
+  const svgFor = (url: string) => codeOf(qrRenderer({ type: 'qr' }, ctxWith({ qrUrl: url }), noopRender)).svg;
+  const svgOf = (node: unknown) => codeOf(node)?.svg;
+
+  it('draws the code itself, as a square SVG of the requested side', () => {
+    const code = codeOf(qrRenderer(block, ctxWith({ qrUrl: CODE_I }), noopRender));
+    expect(code.width).toBe(100); // the default fit
+    expect(code.height).toBe(100);
+    expect(String(code.svg)).toContain('<svg');
+    expect(code).not.toHaveProperty('qr'); // not pdfmake's own QR node
   });
 
-  it('honors a custom fit', () => {
-    const out = qrRenderer({ type: 'qr', fit: 64 }, ctxWith({ qrUrl: 'https://qr/invoice/x' }), noopRender);
-    expect(out).toEqual({ qr: 'https://qr/invoice/x', fit: 64 });
+  it('hugs its content, so a columns row can pin it to the right margin', () => {
+    const out = qrRenderer(block, ctxWith({ qrUrl: CODE_I }), noopRender) as QrNode;
+    expect(out.width).toBe('auto');
   });
 
-  it('emits an empty text node when qrUrl binding is empty', () => {
-    const out = qrRenderer(block, ctxWith({ qrUrl: '' }), noopRender);
-    expect(out).toEqual({ text: '' });
+  it('honors a custom fit exactly, with no rounding down', () => {
+    // pdfmake's QR node quantizes to whole points per module, so it can only
+    // produce a handful of sizes; drawing the modules ourselves means the side
+    // is whatever was asked for.
+    for (const fit of [64, 77, 103]) {
+      const code = codeOf(qrRenderer({ type: 'qr', fit }, ctxWith({ qrUrl: CODE_I }), noopRender));
+      expect(code.width).toBe(fit);
+      expect(code.height).toBe(fit);
+    }
   });
 
-  it('emits an empty text node when qrUrl binding is absent', () => {
-    const out = qrRenderer(block, ctxWith({}), noopRender);
-    expect(out).toEqual({ text: '' });
+  it('surrounds the code with the quiet zone the QR standard requires', () => {
+    const svg = codeOf(qrRenderer(block, ctxWith({ qrUrl: CODE_I }), noopRender)).svg;
+    const [, span] = /viewBox="0 0 (\d+) \1"/.exec(svg)!;
+    const modules = QRCode.create(CODE_I, { errorCorrectionLevel: 'M' }).modules.size;
+    expect(Number(span)).toBe(modules + 8); // four modules of margin on each side
+  });
+
+  it('refuses a fit that would leave the modules unreadable', () => {
+    const modules = QRCode.create(CODE_I, { errorCorrectionLevel: 'M' }).modules.size + 8;
+    expect(() => qrRenderer({ type: 'qr', fit: modules - 1 }, ctxWith({ qrUrl: CODE_I }), noopRender)).toThrow(
+      /QR too small/,
+    );
+    expect(() => qrRenderer({ type: 'qr', fit: modules }, ctxWith({ qrUrl: CODE_I }), noopRender)).not.toThrow();
+  });
+
+  it('encodes at 15% error correction, not the 7% default', () => {
+    // An invoice is printed, folded and scanned off paper; `L` leaves no margin
+    // for a crease across the code. A stronger level needs more modules, which
+    // is how this is observable from the outside.
+    // Measured on a real-length Code I URL: at the short test URL above, both
+    // levels happen to land on the same QR version and the difference is
+    // invisible.
+    const url = 'https://qr.ksef.mf.gov.pl/invoice/1111111111/15-01-2026/QCGVZWPVMG32C3qH6CXWlMlsJRbDtkuul7N-H92YWsE';
+    const svg = codeOf(qrRenderer(block, ctxWith({ qrUrl: url }), noopRender)).svg;
+    const span = Number(/viewBox="0 0 (\d+)/.exec(svg)![1]);
+    const atL = QRCode.create(url, { errorCorrectionLevel: 'L' }).modules.size + 8;
+    const atM = QRCode.create(url, { errorCorrectionLevel: 'M' }).modules.size + 8;
+    expect(span).toBe(atM);
+    expect(atM).toBeGreaterThan(atL);
+  });
+
+  it('renders nothing when the qrUrl binding is empty', () => {
+    expect(qrRenderer(block, ctxWith({ qrUrl: '' }), noopRender)).toBeNull();
+  });
+
+  it('renders nothing when the qrUrl binding is absent', () => {
+    expect(qrRenderer(block, ctxWith({}), noopRender)).toBeNull();
+  });
+
+  describe('code selection', () => {
+    const both = { qrUrl: CODE_I, certificateQrUrl: CODE_II };
+
+    it('defaults to Code I', () => {
+      expect(svgOf(qrRenderer(block, ctxWith(both), noopRender))).toBe(svgFor(CODE_I));
+    });
+
+    it('reads Code I explicitly', () => {
+      const out = qrRenderer({ type: 'qr', code: 'invoice' }, ctxWith(both), noopRender);
+      expect(svgOf(out)).toBe(svgFor(CODE_I));
+    });
+
+    it('reads Code II from its own binding', () => {
+      const out = qrRenderer({ type: 'qr', code: 'certificate' }, ctxWith(both), noopRender);
+      expect(svgOf(out)).toBe(svgFor(CODE_II));
+    });
+
+    it('drops Code II on an invoice that carries none', () => {
+      // The built-in templates always ask for both, and the block sits in a
+      // columns row: an empty node here would take an elastic column of its own
+      // and push Code I off the right margin, so the node must disappear.
+      const out = qrRenderer({ type: 'qr', code: 'certificate' }, ctxWith({ qrUrl: CODE_I }), noopRender);
+      expect(out).toBeNull();
+    });
+
+    it('prints Code II even when Code I is missing', () => {
+      const out = qrRenderer({ type: 'qr', code: 'certificate' }, ctxWith({ certificateQrUrl: CODE_II }), noopRender);
+      expect(svgOf(out)).toBe(svgFor(CODE_II));
+    });
+  });
+
+  describe('the clickable link', () => {
+    it('is absent unless the render asks for it', () => {
+      const out = qrRenderer(block, ctxWith({ qrUrl: CODE_I }), noopRender) as QrNode;
+      expect(out.stack).toHaveLength(1); // the code alone, nothing under it
+      expect(codeOf(out).svg).toBe(svgFor(CODE_I));
+    });
+
+    it('sits under the code and points at the same URL', () => {
+      const out = qrRenderer(block, ctxWith({ qrUrl: CODE_I }, { qrLinks: true }), noopRender) as {
+        stack: Array<Record<string, unknown>>;
+      };
+      expect(out.stack[0]).toMatchObject({ svg: svgFor(CODE_I) });
+      expect(out.stack[1]).toEqual({ text: 'openLink', link: CODE_I });
+    });
+
+    it('links Code II to the certificate URL, not the invoice one', () => {
+      const out = qrRenderer(
+        { type: 'qr', code: 'certificate' },
+        ctxWith({ qrUrl: CODE_I, certificateQrUrl: CODE_II }, { qrLinks: true }),
+        noopRender,
+      ) as { stack: Array<Record<string, unknown>> };
+      expect(out.stack[1]).toMatchObject({ link: CODE_II });
+    });
+
+    it('takes the style the template names for it', () => {
+      const out = qrRenderer(
+        { type: 'qr', linkStyle: 'qrLink' },
+        ctxWith({ qrUrl: CODE_I }, { qrLinks: true }),
+        noopRender,
+      ) as { stack: Array<Record<string, unknown>> };
+      expect(out.stack[1]).toEqual({ text: 'openLink', link: CODE_I, style: 'qrLink' });
+    });
+
+    it('adds no link to a code that is not printed', () => {
+      expect(qrRenderer(block, ctxWith({ qrUrl: '' }, { qrLinks: true }), noopRender)).toBeNull();
+    });
   });
 });

@@ -216,10 +216,30 @@ export interface AnnotationsBlock {
   style?: string;
 }
 
+/**
+ * One KSeF verification QR. `code` picks which one: `'invoice'` is Code I,
+ * derived from the document; `'certificate'` is Code II, which only offline
+ * invoices carry and which the caller must supply as a ready-made URL.
+ *
+ * `fit` is the printed side in points, quiet zone included, and it is exact: two
+ * blocks given the same `fit` come out the same size however much data each code
+ * carries. What varies instead is the module size — Code II carries a signature
+ * and runs 57–85 modules against Code I's 41, so the same box makes its modules
+ * roughly half as wide. That is the number a scanner cares about, and the
+ * renderer refuses a `fit` that drives it below a point per module.
+ */
 export interface QrBlock {
   type: 'qr';
   when?: string;
   fit?: number;
+  /** Which verification code to print. Default `'invoice'` (Code I). */
+  code?: 'invoice' | 'certificate';
+  /**
+   * Style for the clickable link printed under the code. The link itself is
+   * switched on by the render options, not by the template; this only says how
+   * it looks.
+   */
+  linkStyle?: string;
 }
 
 export interface FooterBlock {
@@ -433,7 +453,13 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
       style: z.string().optional(),
     }).strict(),
     z.object({ type: z.literal('annotations'), fields: z.array(fieldDef), style: z.string().optional() }).strict(),
-    z.object({ type: z.literal('qr'), when: z.string().optional(), fit: z.number().optional() }).strict(),
+    z.object({
+      type: z.literal('qr'),
+      when: z.string().optional(),
+      fit: z.number().optional(),
+      code: z.enum(['invoice', 'certificate']).optional(),
+      linkStyle: z.string().optional(),
+    }).strict(),
     z.object({
       type: z.literal('footer'),
       label: z.string().optional(),

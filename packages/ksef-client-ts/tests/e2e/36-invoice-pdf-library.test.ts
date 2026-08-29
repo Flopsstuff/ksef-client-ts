@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createRequire } from 'node:module';
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
+import { createHash, generateKeyPairSync } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -13,13 +13,14 @@ import {
   detectUpoVersion,
   type InvoiceTemplate,
 } from 'ksef-client-ts/pdf';
+import { VerificationLinkService } from 'ksef-client-ts';
 
 // Companion to spec 35, which drives the same renderer through the CLI. The CLI
-// is a strict subset of the library: it wires five of the ten RenderOptions
-// (locale, qr, ksefNumber, env, logo) and cannot pass a template as an object at
-// all. This spec covers what the command line cannot reach — baseQrUrl, theme,
-// bilingualSeparator, strict, invoiceHash, and renderInvoicePdfFromTemplate —
-// so a regression there is not invisible just because no flag exposes it.
+// is a strict subset of the library: it wires most of RenderOptions but cannot
+// pass a template as an object at all. This spec covers what the command line
+// cannot reach — baseQrUrl, theme, bilingualSeparator, strict, invoiceHash, and
+// renderInvoicePdfFromTemplate — so a regression there is not invisible just
+// because no flag exposes it.
 //
 // It imports by package specifier on purpose: that resolves through the exports
 // map to dist/, so the published artifact is what gets exercised, not src.
@@ -36,6 +37,8 @@ const fixtures = join(repoRoot, 'tests', 'fixtures', 'pdf');
 const outDir = process.env.KSEF_PDF_OUT ?? join(repoRoot, '.pdf-preview');
 const inputsDir = join(outDir, '_inputs');
 const PREFIX = 'lib';
+/** Same host as the CLI preview set: a demo link is one a reader can click. */
+const DEMO_QR_HOST = 'https://qr-demo.ksef.mf.gov.pl';
 
 const fx = (name: string) => join(fixtures, name);
 const bytes = (name: string) => new Uint8Array(readFileSync(fx(name)));
@@ -184,9 +187,50 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
       await save(`${PREFIX}-08-string-input`, renderInvoicePdf(text('e2e-vat-multi.xml'), 'fa3-default'));
     });
 
+    it('prints both verification codes, each with a clickable link', async () => {
+      // Code II cannot be derived here — it is signed with the issuer's offline
+      // certificate key — so the library takes it as a ready-made URL. Built
+      // with a throwaway key so the code has a realistic density.
+      const key = generateKeyPairSync('ec', { namedCurve: 'P-256' }).privateKey.export({
+        type: 'pkcs8',
+        format: 'pem',
+      }) as string;
+      const certificateQrUrl = new VerificationLinkService(
+        DEMO_QR_HOST,
+      ).buildCertificateVerificationUrl(
+        'Nip',
+        '1111111111',
+        '1111111111',
+        '01F20A5D352AE590',
+        createHash('sha256').update(bytes('e2e-vat-multi.xml')).digest('base64'),
+        key,
+      );
+      await save(
+        `${PREFIX}-09-both-qr-codes-with-links`,
+        renderInvoicePdf(bytes('e2e-vat-multi.xml'), 'fa3-default', {
+          qr: true,
+          env: 'demo',
+          certificateQrUrl,
+          qrLinks: true,
+          locale: 'en+pl',
+        }),
+      );
+    });
+
+    it('takes a Code I URL verbatim, skipping derivation entirely', async () => {
+      await save(
+        `${PREFIX}-10-supplied-code-i-url`,
+        renderInvoicePdf(bytes('e2e-vat-multi.xml'), 'fa3-default', {
+          qrUrl: `${DEMO_QR_HOST}/invoice/1111111111/15-01-2026/SUPPLIED-VERBATIM`,
+          qrLinks: true,
+          ksefNumber: KSEF_NUMBER,
+        }),
+      );
+    });
+
     // Receipt last, as in spec 35.
     it('renders a UPO through the library entry point', async () => {
-      await save(`${PREFIX}-09-upo`, renderUpoPdf(bytes('upo-4_3.xml'), { locale: 'en+pl' }));
+      await save(`${PREFIX}-11-upo`, renderUpoPdf(bytes('upo-4_3.xml'), { locale: 'en+pl' }));
     });
   });
 

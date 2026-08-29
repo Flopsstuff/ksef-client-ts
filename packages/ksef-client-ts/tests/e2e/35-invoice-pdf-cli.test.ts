@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawnSync } from 'node:child_process';
+import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { VerificationLinkService } from '../../src/qr/verification-link-service.js';
 
 // Spawn-based coverage for `ksef invoice pdf` — renders the whole preview set
 // through the built CLI (dist/cli.js), no network and no authentication. It
@@ -34,6 +36,13 @@ const fx = (name: string) => join(fixtures, name);
 /** A KSeF number shaped like the real thing; this one identifies nobody. */
 const KSEF_NUMBER = '1111111111-20260115-010000000000-00';
 
+/**
+ * The QR group renders against DEMO. The documents are invented, so no verifier
+ * will resolve them anywhere — but a demo link is the one a reader can safely
+ * click, and it keeps every code in the group pointing at the same host.
+ */
+const DEMO_QR_HOST = 'https://qr-demo.ksef.mf.gov.pl';
+
 function run(args: string[]) {
   const result = spawnSync('node', [cliEntry, ...args], { encoding: 'utf-8', cwd: repoRoot });
   return { status: result.status ?? -1, stdout: result.stdout, stderr: result.stderr };
@@ -50,6 +59,7 @@ function isCompletePdf(file: string): boolean {
 /** Derived inputs that no fixture can hold on its own. */
 let oldTotalsTemplate: string;
 let multiDocumentUpo: string;
+let certificateQrUrl: string;
 
 function writeDerivedInputs(): void {
   // A copy of fa3-default whose totals read a single rate bucket — the shape the
@@ -80,6 +90,22 @@ function writeDerivedInputs(): void {
   );
   multiDocumentUpo = join(inputsDir, 'cli-upo-4_3-five-documents.xml');
   writeFileSync(multiDocumentUpo, upo.slice(0, end) + '\n' + clones.join('\n') + upo.slice(end));
+
+  // Code II is signed with the issuer's offline-certificate key, so it can only
+  // be built, never derived from the document. A throwaway EC key gives a URL of
+  // realistic length — which is what decides how dense the printed code is.
+  const key = generateKeyPairSync('ec', { namedCurve: 'P-256' }).privateKey.export({
+    type: 'pkcs8',
+    format: 'pem',
+  }) as string;
+  certificateQrUrl = new VerificationLinkService(DEMO_QR_HOST).buildCertificateVerificationUrl(
+    'Nip',
+    '1111111111',
+    '1111111111',
+    '01F20A5D352AE590',
+    randomBytes(32).toString('base64'),
+    key,
+  );
 }
 
 describe('35 - `ksef invoice pdf` renders the preview set', () => {
@@ -101,6 +127,10 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
 
   /** The mixed-rate document with the flags every totals variant shares. */
   const mixedVat = () => [fx('e2e-vat-multi.xml'), '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')];
+  /** The QR group: the same document before KSeF gave it a number, against DEMO. */
+  const qrGroup = () => [fx('e2e-vat-multi.xml'), '--logo', fx('e2e-logo.png'), '--env', 'demo'];
+  /** Both codes on the page; links and locale are left to the variant. */
+  const bothCodes = () => [...qrGroup(), '--qr', '--qr-cert-url', certificateQrUrl];
 
   const variants: Array<[name: string, args: () => string[]]> = [
     [`${PREFIX}-01-invoice-pl-qr`, () => [fx('e2e-services-np.xml'), '--qr', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
@@ -121,10 +151,30 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     // --totals summary, since that is the group those rows belong to.
     [`${PREFIX}-11-invoice-mixed-vat-single-bucket-totals`, () => [...mixedVat(), '--totals', 'summary', '--template-file', oldTotalsTemplate]],
     [`${PREFIX}-12-invoice-mixed-vat-bilingual`, () => [...mixedVat(), '--locale', 'en+pl', '--totals', 'both']],
+    // Six variants covering four dimensions — which codes, links on or off,
+    // the three locales, and a supplied versus derived Code I. Every value of
+    // every dimension appears at least twice, paired with different values of
+    // the others, so a regression in any one of them shows up somewhere. The
+    // single-code rows also carry the layout case that matters: with one code
+    // absent, the other must still sit against the right margin.
+    //
+    //   #   codes   links  locale  Code I
+    //   13  I       no     pl      derived
+    //   14  I       yes    en      supplied
+    //   15  II      yes    pl      —
+    //   16  II      no     en+pl   —
+    //   17  both    yes    en+pl   derived
+    //   18  both    no     en      derived
+    [`${PREFIX}-13-qr-code-i`, () => [...qrGroup(), '--qr']],
+    [`${PREFIX}-14-qr-code-i-links-en-supplied-url`, () => [...qrGroup(), '--qr-url', `${DEMO_QR_HOST}/invoice/1111111111/15-01-2026/SUPPLIED-VERBATIM`, '--qr-links', '--locale', 'en']],
+    [`${PREFIX}-15-qr-code-ii-links`, () => [...qrGroup(), '--qr-cert-url', certificateQrUrl, '--qr-links']],
+    [`${PREFIX}-16-qr-code-ii-bilingual`, () => [...qrGroup(), '--qr-cert-url', certificateQrUrl, '--locale', 'en+pl']],
+    [`${PREFIX}-17-qr-both-codes-links-bilingual`, () => [...bothCodes(), '--qr-links', '--locale', 'en+pl']],
+    [`${PREFIX}-18-qr-both-codes-en`, () => [...bothCodes(), '--locale', 'en']],
     // Receipts last: they are a different document and read as their own group.
-    [`${PREFIX}-13-upo-pl`, () => [fx('upo-4_3.xml')]],
-    [`${PREFIX}-14-upo-bilingual`, () => [fx('upo-4_3.xml'), '--locale', 'en+pl']],
-    [`${PREFIX}-15-upo-five-documents`, () => [multiDocumentUpo]],
+    [`${PREFIX}-19-upo-pl`, () => [fx('upo-4_3.xml')]],
+    [`${PREFIX}-20-upo-bilingual`, () => [fx('upo-4_3.xml'), '--locale', 'en+pl']],
+    [`${PREFIX}-21-upo-five-documents`, () => [multiDocumentUpo]],
   ];
 
   it.each(variants)('renders %s', (name, args) => {
@@ -139,7 +189,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
   it('renders every variant of the set', () => {
     // Guards against a variant being silently dropped from the table above:
     // regen.sh and this spec are meant to cover the same ground.
-    expect(variants).toHaveLength(15);
+    expect(variants).toHaveLength(21);
     for (const [name] of variants) {
       expect(existsSync(join(outDir, `${name}.pdf`)), `${name}.pdf missing`).toBe(true);
     }

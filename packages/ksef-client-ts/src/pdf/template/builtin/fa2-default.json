@@ -8,6 +8,7 @@
     "muted": { "color": "#666666", "fontSize": 8 },
     "offline": { "color": "#b00020", "bold": true },
     "footerNote": { "fontSize": 7, "color": "#999999" },
+    "qrLink": { "fontSize": 8, "color": "#0645ad", "decoration": "underline" },
     "partyIdentity": { "fontSize": 9 },
     "partyDetails": { "fontSize": 8 }
   },
@@ -189,6 +190,14 @@
       }
     },
     { "type": "divider" },
-    { "type": "qr", "when": "qr", "fit": 90 }
+    {
+      "type": "columns",
+      "when": "qr",
+      "columns": [
+        { "type": "text", "label": "verifyInKsef", "style": "h2" },
+        { "type": "qr", "code": "invoice", "fit": 104, "linkStyle": "qrLink" },
+        { "type": "qr", "code": "certificate", "fit": 104, "linkStyle": "qrLink" }
+      ]
+    }
   ]
 }

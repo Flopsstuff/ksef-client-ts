@@ -53,6 +53,25 @@ export interface RenderOptions {
   ksefNumber?: string;
   /** Embed the KSeF Code I QR derived from the invoice XML. */
   qr?: boolean;
+  /**
+   * Code I URL, used verbatim instead of being derived from the document.
+   * Supplying it is intent enough — `qr` need not also be set.
+   */
+  qrUrl?: string;
+  /**
+   * Code II URL — the issuer's offline-certificate verification link, which
+   * only an invoice issued offline carries. It cannot be derived here: the link
+   * is signed with the private key of a KSeF offline certificate, and a PDF
+   * renderer has no business holding one. Build it with
+   * `VerificationLinkService.buildCertificateVerificationUrl` (or `ksef qr
+   * certificate`) and pass the result.
+   */
+  certificateQrUrl?: string;
+  /**
+   * Print the URL under each QR as a clickable link, for readers who have the
+   * PDF on screen rather than on paper.
+   */
+  qrLinks?: boolean;
   /** Environment used to derive the QR base URL. Default `'prod'`. */
   env?: 'prod' | 'test' | 'demo';
   /** Override the QR base URL (offline / non-standard). */
@@ -90,7 +109,7 @@ function buildContext(
   root: unknown,
   template: InvoiceTemplate,
   opts: RenderOptions,
-  qrUrl: string,
+  qrUrls: { invoice: string; certificate: string },
 ): RenderContext {
   const label = makeLabelResolver(opts.locale ?? 'pl', {
     bilingualSeparator: opts.bilingualSeparator,
@@ -101,14 +120,18 @@ function buildContext(
     'opts.logo': opts.logo ?? '',
     'opts.ksefNumber': opts.ksefNumber ?? '',
     'opts.accent': opts.theme?.accent ?? '',
-    qrUrl,
+    qrUrl: qrUrls.invoice,
+    certificateQrUrl: qrUrls.certificate,
   };
 
   const totals = opts.totals ?? 'buckets';
   const flags: Record<string, boolean> = {
     hasKsefNumber: Boolean(opts.ksefNumber),
     offline: !opts.ksefNumber,
-    qr: Boolean(opts.qr) && qrUrl !== '',
+    // Either code is enough to keep the QR area on the page: an offline invoice
+    // may be waiting for its number and still carry Code II.
+    qr: qrUrls.invoice !== '' || qrUrls.certificate !== '',
+    qrLinks: Boolean(opts.qrLinks),
     totalsBuckets: totals === 'buckets' || totals === 'both',
     totalsSummary: totals === 'summary' || totals === 'both',
   };
@@ -151,10 +174,12 @@ async function renderWithTemplate(
   const parsed = parseXmlForPdf(xml);
   const body = extractBody(parsed, template.schema);
 
-  // QR (Code I) is derived only for invoices — the hash is computed over the
-  // ORIGINAL input bytes (bypassing the parser) so it matches the KSeF registry.
-  let qrUrl = '';
-  if (opts.qr && !template.schema.startsWith('UPO')) {
+  // QR (Code I) is derived only for invoices, and only when the caller did not
+  // hand us the URL — the hash is computed over the ORIGINAL input bytes
+  // (bypassing the parser) so it matches the KSeF registry. Code II is never
+  // derived: it carries a signature made with the issuer's private key.
+  let qrUrl = opts.qrUrl ?? '';
+  if (!qrUrl && opts.qr && !template.schema.startsWith('UPO')) {
     qrUrl = deriveInvoiceQrUrl({
       rawInput,
       body,
@@ -165,7 +190,10 @@ async function renderWithTemplate(
     });
   }
 
-  const ctx = buildContext(body, template, opts, qrUrl);
+  const ctx = buildContext(body, template, opts, {
+    invoice: qrUrl,
+    certificate: opts.certificateQrUrl ?? '',
+  });
   const doc = interpretTemplate(template, ctx, blockRegistry);
   const pdfMake = await loadPdfMake();
   return createPdfBuffer(pdfMake, doc);
