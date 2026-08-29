@@ -18,6 +18,20 @@ export class VerificationLinkService {
         `Invalid issueDate for verification URL: ${JSON.stringify(issueDate)} (expected a parseable date, e.g. "2026-06-08").`,
       );
     }
+    // A date that does not exist does not fail to parse — it rolls forward, so
+    // "2026-02-30" becomes 2026-03-02 and the code would verify a different
+    // issue date than the invoice carries, visible only to whoever scans it.
+    // Date-only strings parse as UTC, so the canonical form round-trips exactly;
+    // a string carrying a time, or a Date the caller built, is left alone.
+    if (typeof issueDate === 'string') {
+      const dateOnly = issueDate.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly) && date.toISOString().slice(0, 10) !== dateOnly) {
+        throw new Error(
+          `Invalid issueDate for verification URL: ${JSON.stringify(issueDate)} is not a real calendar date ` +
+            `(it would be read as ${date.toISOString().slice(0, 10)}).`,
+        );
+      }
+    }
     const dd = String(date.getUTCDate()).padStart(2, '0');
     const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
     const yyyy = date.getUTCFullYear();

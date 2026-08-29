@@ -134,6 +134,15 @@ describe('deriveInvoiceQrUrl', () => {
   // A default render reads bindings leniently, so an absent NIP resolves to ''
   // and slid into the URL as an empty path segment — a code that resolves
   // nowhere, and looks fine until someone scans the printed page.
+  // The date reaches the URL builder straight from P_1, so a document stating a
+  // day that does not exist would print a code for its neighbour.
+  it('throws when the issue date is a day that does not exist', () => {
+    const badDay = { Podmiot1: { DaneIdentyfikacyjne: { NIP: '5213003700' } }, Fa: { P_1: '2026-02-30' } };
+    expect(() => deriveInvoiceQrUrl({ rawInput: CLEAN, body: badDay })).toThrow(
+      /not a real calendar date/,
+    );
+  });
+
   it('throws a clear error when the seller NIP is absent, rather than emitting an empty segment', () => {
     const noNip = { Fa: { P_1: '2025-01-15' } };
     expect(() => deriveInvoiceQrUrl({ rawInput: CLEAN, body: noNip })).toThrow(KSeFPdfError);

@@ -36,6 +36,33 @@ describe('VerificationLinkService', () => {
       expect(() => service.buildInvoiceVerificationUrl(nip, 'not-a-date', hash)).toThrow(/Invalid issueDate/);
     });
 
+    // A date that does not exist parses fine and rolls forward, so the code
+    // would carry a different issue date than the invoice — and only a scan
+    // would reveal it.
+    it('throws on a date that does not exist rather than rolling it forward', () => {
+      expect(() => service.buildInvoiceVerificationUrl(nip, '2026-02-30', hash)).toThrow(
+        /not a real calendar date/,
+      );
+      expect(() => service.buildInvoiceVerificationUrl(nip, '2026-13-01', hash)).toThrow(
+        /Invalid issueDate/,
+      );
+      expect(() => service.buildInvoiceVerificationUrl(nip, '2025-02-29', hash)).toThrow(
+        /not a real calendar date/,
+      );
+    });
+
+    it('accepts the leap day of an actual leap year', () => {
+      expect(service.buildInvoiceVerificationUrl(nip, '2024-02-29', hash)).toMatch(/\/29-02-2024\//);
+    });
+
+    it('leaves a date carrying a time, and a caller-built Date, alone', () => {
+      expect(service.buildInvoiceVerificationUrl(nip, '2024-01-01T00:00:00Z', hash)).toMatch(
+        /\/01-01-2024\//,
+      );
+      const built = new Date(Date.UTC(2024, 0, 31));
+      expect(service.buildInvoiceVerificationUrl(nip, built, hash)).toMatch(/\/31-01-2024\//);
+    });
+
     it('should use Base64URL encoding without padding', () => {
       const url = service.buildInvoiceVerificationUrl(nip, '2024-01-01T00:00:00Z', hash);
 
