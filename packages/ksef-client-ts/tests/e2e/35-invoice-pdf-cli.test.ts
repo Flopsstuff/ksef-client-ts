@@ -7,9 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { VerificationLinkService } from '../../src/qr/verification-link-service.js';
 
 // Spawn-based coverage for `ksef invoice pdf` — renders the whole preview set
-// through the built CLI (dist/cli.js), no network and no authentication. It
-// mirrors invoices/temp/regen.sh so the two cannot drift: the same variants,
-// the same flags, only against anonymous fixtures instead of real invoices.
+// through the built CLI (dist/cli.js), no network and no authentication.
+// Anonymous fixtures throughout: nothing here needs a real invoice.
 //
 // The assertions are deliberately shallow — a file appears, and it is a
 // structurally complete PDF. Layout is judged by eye, not here; asserting on
@@ -141,34 +140,30 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
   const ACCENT_SHORT = '#b04';
   const SUPPLIED_CODE_I = `${DEMO_QR_HOST}/invoice/1111111111/15-01-2026/SUPPLIED-VERBATIM`;
 
-  /** The mixed-rate document with the flags every totals variant shares. */
-  const mixedVat = () => [fx('e2e-vat-multi.xml'), '--ksef-number', KSEF_NUMBER, ...LOGO()];
-
   /**
    * The preview set, laid out as a covering design rather than one variant per
    * feature. Nine dimensions are in play — document, locale, which QR codes,
-   * links, logo, KSeF number, totals mode, accent colour, and where Code I
-   * comes from — and a
-   * row per combination would be hundreds of PDFs nobody looks at. Instead each
-   * row varies several at once so that every value of every dimension appears,
-   * and the pairs that actually interact are covered.
+   * links, logo, KSeF number, totals mode, accent colour, and where Code I comes
+   * from — and a row per combination would be hundreds of PDFs nobody looks at.
+   * Instead each row varies several at once so that every value of every
+   * dimension appears, and the pairs that actually interact are covered.
    *
-   * Rows 01–05 are that covering design. Rows 06–10 are deliberately NOT: the
-   * totals modes only mean anything compared side by side, so those five hold
-   * every other flag identical and vary one thing.
+   * Between them these five rows already spend every totals mode — buckets,
+   * summary, both, none — so the modes need no pages of their own.
    *
    *   #   document      locale  QR     links  logo  KSeF nr  totals   accent
    *   01  services-np   pl      I      no     yes   yes      buckets  #5AB595
    *   02  fa3           en      I      yes    no    yes      summary  no       (Code I supplied)
    *   03  buyer-no-id   uk      II     yes    yes   no       both     no
    *   04  vat-multi     en+pl   II     no     no    no       none     no
-   *   05  vat-multi     pl+uk   both   yes    yes   no       both     no       (+ notes)
+   *   05  vat-multi     pl+uk   both   yes    yes   no       both     no       (+ notes, template file)
    *
    * What each row is there to show, beyond its share of the grid: 01 the
    * everyday online invoice, and the accent against the default palette; 02 an
    * invoice whose Code I URL was handed over ready-made; 03 a foreign buyer
    * with no NIP, issued offline; 04 and 05 the layout cases — one code absent,
-   * then both present — where the codes must stay against the right margin.
+   * then both present — where the codes must stay against the right margin, and
+   * 05 additionally the only page built from a template file.
    */
   const variants: Array<[name: string, args: () => string[]]> = [
     [`${PREFIX}-01-invoice-pl-code-i-accent`, () => [
@@ -187,24 +182,18 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
       fx('e2e-vat-multi.xml'), '--locale', 'en+pl',
       '--env', 'demo', '--qr-cert-url', certificateQrUrl, '--totals', 'none',
     ]],
-    [`${PREFIX}-05-invoice-pl-uk-offline-both-codes-links-notes`, () => [
+    // The only page drawn from a template file rather than a built-in, which is
+    // what keeps --template-file wired. Its totals deliberately read the
+    // standard-rate bucket alone instead of summing every bucket, so on this
+    // multi-rate invoice the net and VAT lines are narrower than the line items
+    // above them — that is the template choosing, not the renderer erring.
+    // What the summing itself computes is pinned exactly in totals-sum.test.ts;
+    // nothing here reads a figure off the page.
+    [`${PREFIX}-05-invoice-pl-uk-custom-template-file`, () => [
       fx('e2e-vat-multi.xml'), ...LOGO(), '--locale', 'pl+uk',
       '--env', 'demo', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links', '--totals', 'both',
-      '--notes', notesFile,
+      '--notes', notesFile, '--template-file', oldTotalsTemplate,
     ]],
-    // Every totals mode on one mixed-rate document (23% + 8% + exempt), so the
-    // four can be compared page by page. Only --totals differs between them —
-    // and the accent on 06, which is safe here because it reaches the title and
-    // the section headings, never the totals rows the group exists to compare.
-    // The amount due must appear in all of them.
-    [`${PREFIX}-06-totals-none-accent`, () => [...mixedVat(), '--totals', 'none', '--accent', ACCENT]],
-    [`${PREFIX}-07-totals-buckets`, () => [...mixedVat(), '--totals', 'buckets']],
-    [`${PREFIX}-08-totals-summary`, () => [...mixedVat(), '--totals', 'summary']],
-    [`${PREFIX}-09-totals-both`, () => [...mixedVat(), '--totals', 'both']],
-    // The A/B against 08: identical document and flags, but the totals read the
-    // standard-rate bucket alone instead of summing all of them. It needs
-    // --totals summary, since that is the group those rows belong to.
-    [`${PREFIX}-10-totals-summary-single-bucket-template`, () => [...mixedVat(), '--totals', 'summary', '--template-file', oldTotalsTemplate]],
     // Not part of the grid: `fa3-showcase` is a built-in whose point is to
     // exercise the DSL — palette, letter spacing, highlighted text, colour bars
     // drawn as data-URI images. Rendered with everything switched on, so a DSL
@@ -212,14 +201,14 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     // It also carries the accent, in its short hex form: this template sets its
     // own heading colours, so it is the page that shows whether an accent wins
     // over a template's palette.
-    [`${PREFIX}-11-showcase-template-accent`, () => [
+    [`${PREFIX}-06-showcase-template-accent`, () => [
       fx('e2e-vat-multi.xml'), '--template', 'fa3-showcase', ...LOGO(),
       '--env', 'demo', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links',
       '--totals', 'summary', '--notes', notesFile, '--accent', ACCENT_SHORT,
     ]],
     // Receipts last: they are a different document and read as their own group.
-    [`${PREFIX}-12-upo-pl`, () => [fx('upo-4_3.xml')]],
-    [`${PREFIX}-13-upo-five-documents-bilingual`, () => [multiDocumentUpo, '--locale', 'en+pl']],
+    [`${PREFIX}-07-upo-pl`, () => [fx('upo-4_3.xml')]],
+    [`${PREFIX}-08-upo-five-documents-bilingual`, () => [multiDocumentUpo, '--locale', 'en+pl']],
   ];
 
   /**
@@ -273,8 +262,8 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
 
   it('renders every variant of the set', () => {
     // Guards against a variant being silently dropped from the table above:
-    // regen.sh and this spec are meant to cover the same ground.
-    expect(variants).toHaveLength(13);
+    // the count is stated here so removing a row has to be deliberate.
+    expect(variants).toHaveLength(8);
     for (const [name] of variants) {
       expect(existsSync(join(outDir, `${name}.pdf`)), `${name}.pdf missing`).toBe(true);
     }
