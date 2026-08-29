@@ -231,6 +231,20 @@ export interface PaymentBlock {
   style?: string;
 }
 
+/**
+ * Placeholder for the sections the caller passes to the render, printed in
+ * order, each as a heading over its body. The template decides *where* they go
+ * and how they look; the content comes from {@link RenderOptions.notes} and is
+ * not in the document at all. The block renders nothing when no notes were
+ * supplied, so a template can carry it unconditionally.
+ */
+export interface NotesBlock {
+  type: 'notes';
+  /** See {@link HEADING_STYLE_DOC}. Applies to each note's heading. */
+  headingStyle?: string;
+  style?: string;
+}
+
 export interface AnnotationsBlock {
   type: 'annotations';
   fields: FieldDef[];
@@ -334,6 +348,13 @@ export interface ImageBlock {
 
 export interface DividerBlock {
   type: 'divider';
+  /**
+   * A rule is only ever there to separate two things, so it has to be able to
+   * disappear with the thing it separates: the built-in templates close the
+   * `notes` block with one, and an invoice carrying no notes must not show a
+   * stray line above its verification codes.
+   */
+  when?: string;
   style?: string;
 }
 
@@ -349,6 +370,7 @@ export type Block =
   | TotalsBlock
   | PaymentBlock
   | AnnotationsBlock
+  | NotesBlock
   | QrBlock
   | FooterBlock
   | TextBlock
@@ -478,6 +500,11 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
       style: z.string().optional(),
     }).strict(),
     z.object({
+      type: z.literal('notes'),
+      headingStyle: z.string().optional(),
+      style: z.string().optional(),
+    }).strict(),
+    z.object({
       type: z.literal('annotations'),
       fields: z.array(fieldDef),
       headingStyle: z.string().optional(),
@@ -540,7 +567,7 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
       width: z.number().optional(),
       when: z.string().optional(),
     }).strict(),
-    z.object({ type: z.literal('divider'), style: z.string().optional() }).strict(),
+    z.object({ type: z.literal('divider'), when: z.string().optional(), style: z.string().optional() }).strict(),
     z.object({ type: z.literal('spacer'), height: z.number().optional() }).strict(),
   ]),
 ) as z.ZodType<Block>;

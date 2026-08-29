@@ -20,7 +20,7 @@ import { KSeFPdfError } from './errors.js';
 import { makeLabelResolver } from './i18n/index.js';
 import type { Locale } from './i18n/types.js';
 import { validateTemplate, type InvoiceTemplate, type TemplateSchemaId } from './template/dsl.js';
-import { interpretTemplate, type RenderContext } from './template/interpret.js';
+import { interpretTemplate, type RenderContext, type RenderNote } from './template/interpret.js';
 import { blockRegistry } from './template/blocks/index.js';
 import { getBuiltinTemplate, builtinTemplateNames } from './template/builtin/index.js';
 import { loadPdfMake, createPdfBuffer } from './fonts.js';
@@ -28,6 +28,7 @@ import { deriveInvoiceQrUrl } from './qr.js';
 
 export type { Locale } from './i18n/types.js';
 export type { InvoiceTemplate } from './template/dsl.js';
+export type { RenderNote } from './template/interpret.js';
 export { detectInvoiceVersion, detectUpoVersion } from './parse.js';
 
 /**
@@ -86,6 +87,14 @@ export interface RenderOptions {
   strict?: boolean;
   /** Precomputed canonical invoice hash (base64) — used verbatim for the QR. */
   invoiceHash?: string;
+  /**
+   * Extra sections to print where the template puts its `notes` block — in the
+   * built-in templates, between the payment details and the verification codes.
+   * Each is a heading over a body, both plain text, and they appear in the order
+   * given. Nothing here comes from the invoice: this is what the sender wants to
+   * say alongside it.
+   */
+  notes?: RenderNote[];
 }
 
 type RawXml = string | Uint8Array;
@@ -124,6 +133,8 @@ function buildContext(
     certificateQrUrl: qrUrls.certificate,
   };
 
+  const notes = (opts.notes ?? []).filter((n) => (n?.head ?? '').trim() !== '' || (n?.body ?? '').trim() !== '');
+
   const totals = opts.totals ?? 'buckets';
   const flags: Record<string, boolean> = {
     hasKsefNumber: Boolean(opts.ksefNumber),
@@ -134,9 +145,12 @@ function buildContext(
     qrLinks: Boolean(opts.qrLinks),
     totalsBuckets: totals === 'buckets' || totals === 'both',
     totalsSummary: totals === 'summary' || totals === 'both',
+    // So a template can gate other things on notes being present — a divider
+    // around them, say — without the block itself needing a condition.
+    notes: notes.length > 0,
   };
 
-  return { root, strict: opts.strict ?? false, label, bindings, flags };
+  return { root, strict: opts.strict ?? false, label, bindings, flags, notes };
 }
 
 /**

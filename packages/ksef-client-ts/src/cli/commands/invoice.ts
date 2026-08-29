@@ -605,6 +605,33 @@ function readImageAsDataUri(file: string): string {
   return `data:${mime};base64,${fs.readFileSync(file).toString('base64')}`;
 }
 
+/**
+ * Read the `--notes` file: an array of `{ head, body }`. Validated here rather
+ * than left to the renderer, because a hand-written JSON file is exactly where a
+ * shape mistake happens and a silent one would print nothing at all.
+ */
+function readNotesFile(file: string): Array<{ head: string; body: string }> {
+  if (!fs.existsSync(file)) {
+    throw new Error(`Notes file not found: ${file}`);
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(fs.readFileSync(file, 'utf-8'));
+  } catch (error) {
+    throw new Error(`Notes file is not valid JSON: ${file} (${(error as Error).message})`);
+  }
+  if (!Array.isArray(parsed)) {
+    throw new Error(`Notes file must hold an array of { head, body } objects: ${file}`);
+  }
+  return parsed.map((entry, i) => {
+    const note = entry as { head?: unknown; body?: unknown };
+    if (typeof note?.head !== 'string' || typeof note?.body !== 'string') {
+      throw new Error(`Notes entry ${i} must have string "head" and "body": ${file}`);
+    }
+    return { head: note.head, body: note.body };
+  });
+}
+
 const pdf = defineCommand({
   meta: { name: 'pdf', description: 'Render an invoice or UPO XML to a PDF (offline; requires the optional pdfmake peer)' },
   args: {
@@ -621,6 +648,7 @@ const pdf = defineCommand({
     upo: { type: 'boolean', description: 'Treat the input as a UPO document (otherwise auto-detected)' },
     logo: { type: 'string', description: 'Path to a logo image (PNG/JPEG/GIF/WebP/SVG) to print in the header' },
     totals: { type: 'string', description: 'Tax breakdown above the amount due: none | buckets (as recorded) | summary (computed) | both (default: buckets)' },
+    notes: { type: 'string', description: 'Path to a JSON file with extra sections: [{ "head": "…", "body": "…" }, …]' },
     env: { type: 'string', description: 'Environment for the QR base URL (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
   },
@@ -646,6 +674,7 @@ const pdf = defineCommand({
 
       const env = args.env as 'prod' | 'test' | 'demo' | undefined;
       const logo = args.logo ? readImageAsDataUri(args.logo as string) : undefined;
+      const notes = args.notes ? readNotesFile(args.notes as string) : undefined;
       const renderOpts = {
         locale: locale as PdfLocale,
         totals: totals as PdfTotals,
@@ -656,6 +685,7 @@ const pdf = defineCommand({
         ...(args.ksefNumber ? { ksefNumber: args.ksefNumber as string } : {}),
         ...(env ? { env } : {}),
         ...(logo ? { logo } : {}),
+        ...(notes ? { notes } : {}),
       };
 
       // Exact bytes preserve the QR hash; pass the raw file as a Uint8Array.

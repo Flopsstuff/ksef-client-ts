@@ -60,6 +60,7 @@ function isCompletePdf(file: string): boolean {
 let oldTotalsTemplate: string;
 let multiDocumentUpo: string;
 let certificateQrUrl: string;
+let notesFile: string;
 
 function writeDerivedInputs(): void {
   // A copy of fa3-default whose totals read a single rate bucket — the shape the
@@ -98,6 +99,15 @@ function writeDerivedInputs(): void {
     type: 'pkcs8',
     format: 'pem',
   }) as string;
+  notesFile = join(inputsDir, 'cli-notes.json');
+  writeFileSync(
+    notesFile,
+    JSON.stringify([
+      { head: 'Warunki dostawy', body: 'Towar wydany w magazynie sprzedawcy. Ryzyko przechodzi na kupującego z chwilą wydania.' },
+      { head: 'Uwaga', body: 'Prosimy o podanie numeru faktury w tytule przelewu.' },
+    ]),
+  );
+
   certificateQrUrl = new VerificationLinkService(DEMO_QR_HOST).buildCertificateVerificationUrl(
     'Nip',
     '1111111111',
@@ -148,7 +158,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
    *   02  fa3           en      I      yes    no    yes      summary   (Code I supplied)
    *   03  buyer-no-id   uk      II     yes    yes   no       both
    *   04  vat-multi     en+pl   II     no     no    no       none
-   *   05  vat-multi     pl+uk   both   yes    yes   no       both
+   *   05  vat-multi     pl+uk   both   yes    yes   no       both      (+ notes)
    *
    * What each row is there to show, beyond its share of the grid: 01 the
    * everyday online invoice; 02 an invoice whose Code I URL was handed over
@@ -173,9 +183,10 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
       fx('e2e-vat-multi.xml'), '--locale', 'en+pl',
       '--env', 'demo', '--qr-cert-url', certificateQrUrl, '--totals', 'none',
     ]],
-    [`${PREFIX}-05-invoice-pl-uk-offline-both-codes-links`, () => [
+    [`${PREFIX}-05-invoice-pl-uk-offline-both-codes-links-notes`, () => [
       fx('e2e-vat-multi.xml'), ...LOGO(), '--locale', 'pl+uk',
       '--env', 'demo', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links', '--totals', 'both',
+      '--notes', notesFile,
     ]],
     // Every totals mode on one mixed-rate document (23% + 8% + exempt), so the
     // four can be compared page by page. Same flags throughout — only --totals
@@ -216,6 +227,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     expect(covered('--qr-cert-url'), 'Code II is never printed').toBe(true);
     expect(covered('--qr-links'), 'the links are never printed').toBe(true);
     expect(covered('--template-file'), 'a custom template file is never used').toBe(true);
+    expect(covered('--notes'), 'caller-supplied notes are never printed').toBe(true);
     expect(covered('--logo'), 'the logo is never printed').toBe(true);
     // The absences matter as much: a Polish default locale, an invoice with no
     // logo, and one still waiting for its KSeF number.

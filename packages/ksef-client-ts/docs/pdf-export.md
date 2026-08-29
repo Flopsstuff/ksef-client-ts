@@ -138,6 +138,7 @@ detectUpoVersion(xml);     // 'UPO(4.2)' | 'UPO(4.3)' | null
 
 It deliberately does not apply to `when` conditions, repeater `from` paths, `firstOf` alternatives or `sum` members: those are sets where absence is the normal case, not a mistake. Typos in them are caught for the built-in templates by a lint that resolves every such path against the reference fixtures.
 | `invoiceHash` | `string` | Precomputed canonical invoice hash (base64), used verbatim for the QR. |
+| `notes` | `{ head, body }[]` | Extra sections printed where the template puts its `notes` block. |
 
 ---
 
@@ -172,6 +173,7 @@ The `schema` field binds a template to a single document kind. If you render an 
 | `totals` | Net / VAT / gross summary rows (a row reads one path or sums several) |
 | `payment` | Payment details (amount paid, date, method) |
 | `annotations` | Miscellaneous labelled fields |
+| `notes` | The caller's own sections, from `notes` — a heading over a body, each |
 | `qr` | One KSeF verification QR — `code: "invoice"` (Code I, the default) or `code: "certificate"` (Code II) |
 | `footer` | Footer note |
 
@@ -193,7 +195,7 @@ A `qr` block's `fit` is the printed side in points, quiet zone included, and it 
 
 - **Binding paths** are dot-paths into the document body — e.g. `Fa.P_2` (invoice number), `Podmiot1.DaneIdentyfikacyjne.Nazwa` (seller name). Paths are relative to the body element, not the document wrapper.
 - **`label`** references an i18n label key resolved per locale; **`text`** is a literal string printed as-is.
-- **`when`** conditionally renders a block against a presence test. It accepts a binding path (e.g. `Fa.Platnosc`) or a context flag: `qr`, `offline`, `hasKsefNumber`.
+- **`when`** conditionally renders a block against a presence test. It accepts a binding path (e.g. `Fa.Platnosc`) or a context flag: `qr`, `offline`, `hasKsefNumber`, `notes`, `totalsBuckets`, `totalsSummary`. A `divider` takes it too, so a rule can disappear with whatever it separates — the built-in templates close their `notes` block with `{ "type": "divider", "when": "notes" }`, which leaves no stray line on an invoice that carries none.
 - **`format`** names a value formatter: `money`, `date`, `number`, or `nip`.
 - **`optional`** marks a binding the document may legitimately omit, exempting it from `strict`. Mark exactly what the schema declares optional — everything left unmarked is a field the document must carry.
 - **`headingStyle`** (`parties`, `payment`, `annotations`) names the style for the heading those blocks print themselves — `Sprzedawca`, `Płatność`. It reaches that first line only: labels nested inside a block (`Adres`, `Dane kontaktowe`, `Rachunek bankowy`) are a level down and stay on `h2`, so section headings can be lifted without dragging every label along. Both default to `h2`; the built-in templates name `h1` for the block headings and leave the nested ones on `h2`. The `header` block's title works the same way through plain `style`, defaulting to `title`. A `styles` map that omits `h2` or `title` loses those headings with nothing in the JSON to point at.
@@ -294,6 +296,35 @@ const pdf = await renderInvoicePdf(xml, 'fa3-default', {
 
 ---
 
+## Notes
+
+Some of what belongs on an invoice is not in the invoice: delivery terms, a payment reminder, a line the accountant wants on every document. `notes` takes those as an array of sections and prints them where the template puts its `notes` block — in the built-in templates, between the payment details and the verification codes.
+
+```ts
+const pdf = await renderInvoicePdf(xml, 'fa3-default', {
+  notes: [
+    { head: 'Warunki dostawy', body: 'Towar wydany w magazynie sprzedawcy.' },
+    { head: 'Uwaga', body: 'Prosimy o podanie numeru faktury w tytule przelewu.' },
+  ],
+});
+```
+
+Both halves are plain text — no bindings, no markup, and a `\n` is a line break. A note therefore cannot reach into the document or disturb the layout around it. An entry blank on both halves is dropped, one with only a head or only a body prints that half, and a render with no notes leaves no trace of the block at all.
+
+Each note's heading takes the block's `headingStyle` — the built-in templates set `h1`, the same level as `Płatność`, since a note is a section of its own rather than a label inside one — and the bodies are body text. From the CLI the sections come from a JSON file:
+
+```bash
+ksef invoice pdf invoice.xml --notes ./notes.json
+```
+
+```json
+[
+  { "head": "Warunki dostawy", "body": "Towar wydany w magazynie sprzedawcy." }
+]
+```
+
+---
+
 ## Verification QR codes
 
 KSeF defines two verification codes, and the built-in templates print both when both are available.
@@ -361,6 +392,7 @@ ksef invoice pdf upo.xml --template-file ./templates/my-upo.json
 | `--qr-links` | Print a clickable link under each QR code |
 | `--ksef-number <number>` | KSeF number to print (absent → marked OFFLINE) |
 | `--totals <none\|buckets\|summary\|both>` | Tax breakdown above the amount due (default `buckets`) |
+| `--notes <path>` | JSON file of extra sections: `[{ "head": …, "body": … }]` |
 | `--upo` | Treat the input as a UPO document (otherwise auto-detected); ignored when a template is named explicitly |
 | `--env <prod\|test\|demo>` | Environment for the QR base URL |
 | `--out <path>` | Output PDF path (default: alongside the source) |

@@ -193,6 +193,8 @@
       }
     },
     { "type": "divider" },
+    { "type": "notes", "headingStyle": "h1" },
+    { "type": "divider", "when": "notes" },
     {
       "type": "columns",
       "when": "qr",

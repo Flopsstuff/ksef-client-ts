@@ -47,6 +47,24 @@ export interface RenderContext {
   bindings: Record<string, string>;
   /** Boolean aliases for `when` (e.g. `hasKsefNumber`, `qr`). */
   flags: Record<string, boolean>;
+  /**
+   * Extra sections supplied by the caller, printed where the template puts its
+   * `notes` block. They travel beside `bindings` rather than in it because a
+   * binding is a single string and these are a list of records — and beside
+   * `root` because they are not in the document: the XML is what KSeF has, the
+   * notes are what the sender wants to say alongside it.
+   */
+  notes?: RenderNote[];
+}
+
+/**
+ * One caller-supplied section: a heading over a paragraph. Both are plain text
+ * — no bindings, no markup — so a note cannot reach into the document or change
+ * the layout around it.
+ */
+export interface RenderNote {
+  head: string;
+  body: string;
 }
 
 /**

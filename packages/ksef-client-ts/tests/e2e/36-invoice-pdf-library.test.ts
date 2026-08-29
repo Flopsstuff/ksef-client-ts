@@ -203,6 +203,7 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
           qrUrl: `${DEMO_QR_HOST}/invoice/1111111111/15-01-2026/SUPPLIED-VERBATIM`,
           qrLinks: true,
           locale: 'pl+uk',
+          notes: [{ head: 'Delivery terms', body: 'Goods released at the seller warehouse.' }],
           ksefNumber: KSEF_NUMBER,
         }),
       );

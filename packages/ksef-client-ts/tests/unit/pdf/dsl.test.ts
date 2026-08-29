@@ -136,3 +136,15 @@ describe('validateTemplate', () => {
     }
   });
 });
+
+describe('a divider can be conditional', () => {
+  it('accepts a `when`', () => {
+    expect(() =>
+      validateTemplate({ schema: 'FA(3)', blocks: [{ type: 'divider', when: 'notes' }] }),
+    ).not.toThrow();
+  });
+
+  it('still accepts a plain one', () => {
+    expect(() => validateTemplate({ schema: 'FA(3)', blocks: [{ type: 'divider' }] })).not.toThrow();
+  });
+});

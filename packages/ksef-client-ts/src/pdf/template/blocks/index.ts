@@ -12,6 +12,7 @@ import { linesRenderer } from './lines.js';
 import { totalsRenderer } from './totals.js';
 import { paymentRenderer } from './payment.js';
 import { annotationsRenderer } from './annotations.js';
+import { notesRenderer } from './notes.js';
 import { footerRenderer } from './footer.js';
 import { tableRenderer } from './table.js';
 import { eachRenderer } from './each.js';
@@ -25,6 +26,7 @@ export const blockRegistry: BlockRegistry = {
   totals: totalsRenderer as BlockRenderer,
   payment: paymentRenderer as BlockRenderer,
   annotations: annotationsRenderer as BlockRenderer,
+  notes: notesRenderer as BlockRenderer,
   footer: footerRenderer as BlockRenderer,
   table: tableRenderer as BlockRenderer,
   each: eachRenderer as BlockRenderer,

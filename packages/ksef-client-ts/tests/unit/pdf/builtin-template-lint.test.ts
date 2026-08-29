@@ -29,7 +29,7 @@ const FIXTURE_BY_TEMPLATE: Record<string, string> = {
 
 /** `when` values resolved from the render context, not from the XML. */
 const CONTEXT_CONDITIONS = new Set([
-  'qr', 'offline', 'hasKsefNumber', 'totalsBuckets', 'totalsSummary',
+  'qr', 'offline', 'hasKsefNumber', 'totalsBuckets', 'totalsSummary', 'notes',
   'opts.logo', 'opts.ksefNumber', 'opts.accent', 'qrUrl',
 ]);
 
