@@ -14,6 +14,7 @@ import { makeLabelResolver } from '../../../src/pdf/i18n/index.js';
 import type { Locale } from '../../../src/pdf/i18n/types.js';
 import { VerificationLinkService } from '../../../src/qr/verification-link-service.js';
 import { Environment } from '../../../src/config/environments.js';
+import { KSeFPdfError } from '../../../src/pdf/errors.js';
 import type { RenderContext } from '../../../src/pdf/template/interpret.js';
 import type { QrBlock } from '../../../src/pdf/template/dsl.js';
 
@@ -129,6 +130,16 @@ describe('deriveInvoiceQrUrl', () => {
     const noDate = { Podmiot1: { DaneIdentyfikacyjne: { NIP: '5213003700' } } };
     expect(() => deriveInvoiceQrUrl({ rawInput: CLEAN, body: noDate })).toThrow(/issue date/i);
   });
+
+  // A default render reads bindings leniently, so an absent NIP resolves to ''
+  // and slid into the URL as an empty path segment — a code that resolves
+  // nowhere, and looks fine until someone scans the printed page.
+  it('throws a clear error when the seller NIP is absent, rather than emitting an empty segment', () => {
+    const noNip = { Fa: { P_1: '2025-01-15' } };
+    expect(() => deriveInvoiceQrUrl({ rawInput: CLEAN, body: noNip })).toThrow(KSeFPdfError);
+    expect(() => deriveInvoiceQrUrl({ rawInput: CLEAN, body: noNip })).toThrow(/seller NIP/i);
+  });
+
 });
 
 describe('qrRenderer', () => {

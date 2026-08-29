@@ -69,6 +69,16 @@ export function deriveInvoiceQrUrl(params: DeriveInvoiceQrUrlParams): string {
   // Issue date lives at Faktura/Fa/P_1 — the invoice-line group `Fa`, not the
   // document root (where Podmiot1 sits). Reading it at the root yields '' and a
   // NaN-NaN-NaN date segment in the URL.
+  // Both segments are policed here rather than left to `strict`: a default
+  // render reads them leniently, and an empty one does not fail — it produces a
+  // URL with a hole in it (`…/invoice//15-01-2026/…`) that only reveals itself
+  // when someone scans the printed code.
+  if (nip === '') {
+    throw new KSeFPdfError(
+      'Cannot build the QR verification URL: seller NIP (Podmiot1/DaneIdentyfikacyjne/NIP) ' +
+        'is missing from the invoice.',
+    );
+  }
   const issueDate = get(params.body, 'Fa.P_1', params.strict);
   if (issueDate === '') {
     throw new KSeFPdfError(
