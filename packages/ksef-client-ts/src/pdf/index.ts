@@ -77,7 +77,7 @@ export interface RenderOptions {
   env?: 'prod' | 'test' | 'demo';
   /** Override the QR base URL (offline / non-standard). */
   baseQrUrl?: string;
-  /** Logo as a `data:` URI. */
+  /** Logo as a `data:` URI. PNG or JPEG — pdfmake draws no other format. */
   logo?: string;
   /** Theming (accent colour only; the font is the bundled Roboto). */
   theme?: { accent?: string };

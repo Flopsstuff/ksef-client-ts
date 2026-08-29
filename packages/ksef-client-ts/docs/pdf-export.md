@@ -129,7 +129,7 @@ detectUpoVersion(xml);     // 'UPO(4.2)' | 'UPO(4.3)' | null
 | `ksefNumber` | `string` | KSeF number printed on the visualization; when absent the document is marked **OFFLINE**. |
 | `env` | `'prod' \| 'test' \| 'demo'` | Environment used to derive the QR base URL. Default `'prod'`. |
 | `baseQrUrl` | `string` | Override the QR base URL (offline / non-standard). |
-| `logo` | `string` | Logo image as a `data:` URI. |
+| `logo` | `string` | Logo image as a `data:` URI. PNG or JPEG only. |
 | `theme` | `{ accent?: string }` | Accent colour. |
 | `bilingualSeparator` | `string` | Separator for the bilingual locales. Default `' / '`. |
 | `strict` | `boolean` | Throw on a missing binding instead of rendering an empty string. |

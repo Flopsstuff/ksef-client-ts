@@ -576,13 +576,16 @@ type PdfLocale = (typeof VALID_PDF_LOCALES)[number];
 const VALID_PDF_TOTALS = ['none', 'buckets', 'summary', 'both'] as const;
 type PdfTotals = (typeof VALID_PDF_TOTALS)[number];
 
+/**
+ * The formats pdfmake's `image` node can actually draw. GIF, WebP and SVG were
+ * accepted here once, but pdfmake 0.2.x rejects every one of them with
+ * "Unknown image format" partway through rendering — so the PDF never
+ * materialized. Better to refuse the file at the flag than to fail at render.
+ */
 const LOGO_MIME_BY_EXT: Record<string, string> = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.webp': 'image/webp',
-  '.svg': 'image/svg+xml',
 };
 
 /**
@@ -646,7 +649,7 @@ const pdf = defineCommand({
     qrLinks: { type: 'boolean', description: 'Print a clickable link under each QR code' },
     ksefNumber: { type: 'string', description: 'KSeF number to print (absent → marked OFFLINE)' },
     upo: { type: 'boolean', description: 'Treat the input as a UPO document (otherwise auto-detected)' },
-    logo: { type: 'string', description: 'Path to a logo image (PNG/JPEG/GIF/WebP/SVG) to print in the header' },
+    logo: { type: 'string', description: 'Path to a logo image (PNG/JPEG) to print in the header' },
     totals: { type: 'string', description: 'Tax breakdown above the amount due: none | buckets (as recorded) | summary (computed) | both (default: buckets)' },
     notes: { type: 'string', description: 'Path to a JSON file with extra sections: [{ "head": "…", "body": "…" }, …]' },
     env: { type: 'string', description: 'Environment for the QR base URL (test/demo/prod)' },

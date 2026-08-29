@@ -277,4 +277,17 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     expect(res.status).not.toBe(0);
     expect(existsSync(out)).toBe(false);
   });
+
+  // pdfmake draws PNG and JPEG and nothing else, so a vector or animated logo
+  // has to be refused at the flag — accepting it only moves the failure into
+  // the middle of the render, where the message names no file the caller passed.
+  it('refuses a logo format the renderer cannot draw', () => {
+    const svg = join(inputsDir, 'logo.svg');
+    writeFileSync(svg, '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"/>');
+    const out = join(outDir, 'should-not-exist-3.pdf');
+    const res = run(['invoice', 'pdf', fx('fa3.xml'), '--logo', svg, '--out', out]);
+    expect(res.status).not.toBe(0);
+    expect(`${res.stdout}${res.stderr}`).toMatch(/Unsupported logo format/);
+    expect(existsSync(out)).toBe(false);
+  });
 });
