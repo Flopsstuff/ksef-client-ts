@@ -619,13 +619,17 @@ const pdf = defineCommand({
       const pdfModule = await import('../../pdf/index.js');
 
       let bytes: Uint8Array;
+      // An explicit template wins over document auto-detection: the built-in
+      // registry holds the UPO layouts too, so `--template`/`--template-file`
+      // must be honoured for UPO input as well. The renderer validates the
+      // template's schema against the document, so a wrong pairing still fails.
       const isUpo = Boolean(args.upo) || (pdfModule.detectInvoiceVersion(xmlStr) === null && pdfModule.detectUpoVersion(xmlStr) !== null);
-      if (isUpo) {
-        bytes = await pdfModule.renderUpoPdf(xmlBytes, renderOpts);
-      } else if (args.templateFile) {
+      if (args.templateFile) {
         bytes = await pdfModule.renderInvoicePdfFromFile(xmlBytes, args.templateFile as string, renderOpts);
       } else if (args.template) {
         bytes = await pdfModule.renderInvoicePdf(xmlBytes, args.template as string, renderOpts);
+      } else if (isUpo) {
+        bytes = await pdfModule.renderUpoPdf(xmlBytes, renderOpts);
       } else {
         const version = pdfModule.detectInvoiceVersion(xmlStr);
         const builtin = version === 'FA(2)' ? 'fa2-default' : 'fa3-default';

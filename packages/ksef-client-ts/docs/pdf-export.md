@@ -282,6 +282,9 @@ ksef invoice pdf invoice.xml --template-file ./templates/my-invoice.json --out .
 
 # UPO receipt (auto-detected, or force with --upo)
 ksef invoice pdf upo.xml --upo
+
+# UPO receipt with a custom layout
+ksef invoice pdf upo.xml --template-file ./templates/my-upo.json
 ```
 
 | Flag | Description |
@@ -291,11 +294,11 @@ ksef invoice pdf upo.xml --upo
 | `--locale <pl\|en\|pl+en>` | Label language (default `pl`) |
 | `--qr` | Embed the KSeF Code I QR derived from the XML |
 | `--ksef-number <number>` | KSeF number to print (absent → marked OFFLINE) |
-| `--upo` | Treat the input as a UPO document (otherwise auto-detected) |
+| `--upo` | Treat the input as a UPO document (otherwise auto-detected); ignored when a template is named explicitly |
 | `--env <prod\|test\|demo>` | Environment for the QR base URL |
 | `--out <path>` | Output PDF path (default: alongside the source) |
 
-`--template` and `--template-file` are mutually exclusive — pass at most one. If `pdfmake` is not installed, the command exits with the same friendly install hint shown above.
+`--template` and `--template-file` are mutually exclusive — pass at most one. An explicit template takes precedence over document auto-detection, so a custom UPO layout is selected the same way an invoice one is; the renderer still rejects a template whose `schema` does not match the document. If `pdfmake` is not installed, the command exits with the same friendly install hint shown above.
 
 ---
 

@@ -151,6 +151,31 @@ describe('invoice pdf — CLI wiring', () => {
     expect(mockedPdf.renderUpoPdf).toHaveBeenCalled();
   });
 
+  it('honors --template for a UPO document instead of the default UPO renderer', async () => {
+    mockedPdf.detectInvoiceVersion.mockReturnValue(null);
+    mockedPdf.detectUpoVersion.mockReturnValue('UPO(4.3)');
+    await runPdf({ file: 'upo.xml', template: 'upo-4_2' });
+    expect(mockedPdf.renderInvoicePdf).toHaveBeenCalledWith(expect.any(Uint8Array), 'upo-4_2', expect.anything());
+    expect(mockedPdf.renderUpoPdf).not.toHaveBeenCalled();
+  });
+
+  it('honors --template-file alongside an explicit --upo', async () => {
+    await runPdf({ file: 'upo.xml', upo: true, templateFile: './custom-upo.json' });
+    expect(mockedPdf.renderInvoicePdfFromFile).toHaveBeenCalledWith(
+      expect.any(Uint8Array),
+      './custom-upo.json',
+      expect.anything(),
+    );
+    expect(mockedPdf.renderUpoPdf).not.toHaveBeenCalled();
+  });
+
+  it('surfaces an unknown template name for UPO input instead of ignoring the flag', async () => {
+    mockedPdf.detectInvoiceVersion.mockReturnValue(null);
+    mockedPdf.detectUpoVersion.mockReturnValue('UPO(4.3)');
+    mockedPdf.renderInvoicePdf.mockRejectedValue(new Error('Unknown built-in template "bogus".'));
+    await expect(runPdf({ file: 'upo.xml', template: 'bogus' })).rejects.toThrow(/Unknown built-in template/);
+  });
+
   it('passes qr / ksefNumber / env through to the renderer', async () => {
     await runPdf({ file: 'invoice.xml', qr: true, ksefNumber: 'NR-1', env: 'test' });
     expect(mockedPdf.renderInvoicePdf).toHaveBeenCalledWith(
