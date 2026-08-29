@@ -29,6 +29,12 @@ describe('built-in templates render valid PDFs', () => {
     expect(isPdf(await renderUpoPdf(upo42))).toBe(true);
   });
 
+  it('fa3-showcase renders FA(3)', async () => {
+    // Registered like any other built-in, so it has to keep rendering: the DSL
+    // lints check its shape, this checks that the shape still produces a page.
+    expect(isPdf(await renderInvoicePdf(fa3, 'fa3-showcase', { qr: true, qrLinks: true }))).toBe(true);
+  });
+
   it('rejects a non-UPO document in renderUpoPdf', async () => {
     await expect(renderUpoPdf(fa3)).rejects.toThrow(/UPO/);
   });

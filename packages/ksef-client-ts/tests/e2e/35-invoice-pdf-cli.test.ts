@@ -199,9 +199,18 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     // standard-rate bucket alone instead of summing all of them. It needs
     // --totals summary, since that is the group those rows belong to.
     [`${PREFIX}-10-totals-summary-single-bucket-template`, () => [...mixedVat(), '--totals', 'summary', '--template-file', oldTotalsTemplate]],
+    // Not part of the grid: `fa3-showcase` is a built-in whose point is to
+    // exercise the DSL — palette, letter spacing, highlighted text, colour bars
+    // drawn as data-URI images. Rendered with everything switched on, so a DSL
+    // change that breaks it is visible rather than discovered by a reader.
+    [`${PREFIX}-11-showcase-template`, () => [
+      fx('e2e-vat-multi.xml'), '--template', 'fa3-showcase', ...LOGO(),
+      '--env', 'demo', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links',
+      '--totals', 'both', '--notes', notesFile,
+    ]],
     // Receipts last: they are a different document and read as their own group.
-    [`${PREFIX}-11-upo-pl`, () => [fx('upo-4_3.xml')]],
-    [`${PREFIX}-12-upo-five-documents-bilingual`, () => [multiDocumentUpo, '--locale', 'en+pl']],
+    [`${PREFIX}-12-upo-pl`, () => [fx('upo-4_3.xml')]],
+    [`${PREFIX}-13-upo-five-documents-bilingual`, () => [multiDocumentUpo, '--locale', 'en+pl']],
   ];
 
   /**
@@ -227,6 +236,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     expect(covered('--qr-cert-url'), 'Code II is never printed').toBe(true);
     expect(covered('--qr-links'), 'the links are never printed').toBe(true);
     expect(covered('--template-file'), 'a custom template file is never used').toBe(true);
+    expect(covered('--template '), 'a built-in is never selected by name').toBe(true);
     expect(covered('--notes'), 'caller-supplied notes are never printed').toBe(true);
     expect(covered('--logo'), 'the logo is never printed').toBe(true);
     // The absences matter as much: a Polish default locale, an invoice with no
@@ -248,7 +258,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
   it('renders every variant of the set', () => {
     // Guards against a variant being silently dropped from the table above:
     // regen.sh and this spec are meant to cover the same ground.
-    expect(variants).toHaveLength(12);
+    expect(variants).toHaveLength(13);
     for (const [name] of variants) {
       expect(existsSync(join(outDir, `${name}.pdf`)), `${name}.pdf missing`).toBe(true);
     }

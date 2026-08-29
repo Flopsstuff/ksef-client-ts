@@ -23,6 +23,7 @@ import type { Block, PartyField, TotalsBlock } from '../../../src/pdf/template/d
 const FIXTURE_BY_TEMPLATE: Record<string, string> = {
   'fa2-default': 'pdf/fa2.xml',
   'fa3-default': 'pdf/fa3.xml',
+  'fa3-showcase': 'pdf/fa3.xml',
   'upo-4_2': 'pdf/upo-4_2.xml',
   'upo-4_3': 'pdf/upo-4_3.xml',
 };

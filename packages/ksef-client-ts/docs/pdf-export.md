@@ -17,7 +17,7 @@ Supported documents:
 
 | Document | Versions | Default built-in template |
 |----------|----------|---------------------------|
-| Standard invoice | `FA(2)`, `FA(3)` | `fa2-default`, `fa3-default` |
+| Standard invoice | `FA(2)`, `FA(3)` | `fa2-default`, `fa3-default` (plus `fa3-showcase`, a demo of the DSL) |
 | UPO receipt | `UPO(4.2)`, `UPO(4.3)` | `upo-4_2`, `upo-4_3` |
 
 `FA(1)` is not supported.
@@ -250,6 +250,14 @@ A trimmed `FA(3)` template with a header, a seller/buyer panel, a line table, a 
 ```
 
 The bundled `fa3-default` template is a good, complete starting point to copy and adapt.
+
+There is also `fa3-showcase`, an FA(3) template built to exercise the DSL rather than to be shipped on a real invoice: a full palette, letter-spaced headings, highlighted text, its own label wording, and full-width colour bars drawn as data-URI images (a solid PNG stretched to the content width, since the DSL has no drawing primitive). Useful as a reference for what a template can reach — and, by its omissions, for what it cannot: the line-item table's header fill and rule colours belong to the renderer, and Roboto is the only bundled font.
+
+```bash
+ksef invoice pdf invoice.xml --template fa3-showcase --qr --qr-links
+```
+
+Note that its `labels` overrides make it Polish in every locale — an override replaces the bundle in all of them.
 
 ---
 
