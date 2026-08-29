@@ -85,6 +85,24 @@
     {
       "type": "totals",
       "rows": [
+        { "label": "net23", "path": "Fa.P_13_1", "when": "totalsBuckets", "format": "money" },
+        { "label": "vat23", "path": "Fa.P_14_1", "when": "totalsBuckets", "format": "money" },
+        { "label": "net8", "path": "Fa.P_13_2", "when": "totalsBuckets", "format": "money" },
+        { "label": "vat8", "path": "Fa.P_14_2", "when": "totalsBuckets", "format": "money" },
+        { "label": "net5", "path": "Fa.P_13_3", "when": "totalsBuckets", "format": "money" },
+        { "label": "vat5", "path": "Fa.P_14_3", "when": "totalsBuckets", "format": "money" },
+        { "label": "net4", "path": "Fa.P_13_4", "when": "totalsBuckets", "format": "money" },
+        { "label": "vat4", "path": "Fa.P_14_4", "when": "totalsBuckets", "format": "money" },
+        { "label": "netSpecial", "path": "Fa.P_13_5", "when": "totalsBuckets", "format": "money" },
+        { "label": "vatSpecial", "path": "Fa.P_14_5", "when": "totalsBuckets", "format": "money" },
+        { "label": "net0Domestic", "path": "Fa.P_13_6_1", "when": "totalsBuckets", "format": "money" },
+        { "label": "net0Wdt", "path": "Fa.P_13_6_2", "when": "totalsBuckets", "format": "money" },
+        { "label": "net0Export", "path": "Fa.P_13_6_3", "when": "totalsBuckets", "format": "money" },
+        { "label": "netExempt", "path": "Fa.P_13_7", "when": "totalsBuckets", "format": "money" },
+        { "label": "netOutsideTerritory", "path": "Fa.P_13_8", "when": "totalsBuckets", "format": "money" },
+        { "label": "netArticle100", "path": "Fa.P_13_9", "when": "totalsBuckets", "format": "money" },
+        { "label": "netReverseCharge", "path": "Fa.P_13_10", "when": "totalsBuckets", "format": "money" },
+        { "label": "netMargin", "path": "Fa.P_13_11", "when": "totalsBuckets", "format": "money" },
         {
           "label": "totalNet",
           "sum": [
@@ -93,17 +111,22 @@
             "Fa.P_13_3",
             "Fa.P_13_4",
             "Fa.P_13_5",
+            "Fa.P_13_6_1",
+            "Fa.P_13_6_2",
+            "Fa.P_13_6_3",
             "Fa.P_13_7",
             "Fa.P_13_8",
             "Fa.P_13_9",
             "Fa.P_13_10",
             "Fa.P_13_11"
           ],
+          "when": "totalsSummary",
           "format": "money"
         },
         {
           "label": "totalVat",
           "sum": ["Fa.P_14_1", "Fa.P_14_2", "Fa.P_14_3", "Fa.P_14_4", "Fa.P_14_5"],
+          "when": "totalsSummary",
           "format": "money"
         },
         { "label": "totalDue", "path": "Fa.P_15", "format": "money" }

@@ -130,6 +130,13 @@ export interface TotalsRow {
   path?: string;
   /** Binding paths to add up; absent buckets are skipped. */
   sum?: string[];
+  /**
+   * Visibility condition, evaluated like any other `when`. The built-in
+   * templates gate their per-bucket rows on `totalsBuckets` and their computed
+   * summary on `totalsSummary`, so {@link RenderOptions.totals} picks which of
+   * the two a reader gets without the template changing shape.
+   */
+  when?: string;
   format?: FormatterName;
   style?: string;
 }
@@ -324,6 +331,7 @@ const totalsRow = z
     label: z.string(),
     path: z.string().optional(),
     sum: z.array(z.string()).nonempty().optional(),
+    when: z.string().optional(),
     format: formatEnum.optional(),
     style: z.string().optional(),
   })

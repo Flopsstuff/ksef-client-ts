@@ -99,6 +99,9 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     console.log(`\n  rendered PDFs kept for review in ${outDir}\n`);
   });
 
+  /** The mixed-rate document with the flags every totals variant shares. */
+  const mixedVat = () => [fx('e2e-vat-multi.xml'), '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')];
+
   const variants: Array<[name: string, args: () => string[]]> = [
     [`${PREFIX}-01-invoice-pl-qr`, () => [fx('e2e-services-np.xml'), '--qr', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
     [`${PREFIX}-02-invoice-en`, () => [fx('e2e-services-np.xml'), '--locale', 'en', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
@@ -106,13 +109,22 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     [`${PREFIX}-04-invoice-offline`, () => [fx('e2e-services-np.xml'), '--logo', fx('e2e-logo.png')]],
     [`${PREFIX}-05-invoice-standard-rate`, () => [fx('fa3.xml')]],
     [`${PREFIX}-06-invoice-buyer-without-id`, () => [fx('e2e-buyer-no-id.xml'), '--logo', fx('e2e-logo.png')]],
-    [`${PREFIX}-07-invoice-mixed-vat-pl`, () => [fx('e2e-vat-multi.xml'), '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
-    [`${PREFIX}-08-invoice-mixed-vat-bilingual`, () => [fx('e2e-vat-multi.xml'), '--locale', 'en+pl', '--ksef-number', KSEF_NUMBER, '--logo', fx('e2e-logo.png')]],
-    [`${PREFIX}-09-invoice-single-bucket-totals`, () => [fx('e2e-vat-multi.xml'), '--template-file', oldTotalsTemplate, '--ksef-number', KSEF_NUMBER]],
+    // Every totals mode on one mixed-rate document (23% + 8% + exempt), so the
+    // four can be compared page by page. Same flags throughout — only --totals
+    // differs, and the amount due must appear in all of them.
+    [`${PREFIX}-07-invoice-mixed-vat-totals-none`, () => [...mixedVat(), '--totals', 'none']],
+    [`${PREFIX}-08-invoice-mixed-vat-totals-buckets`, () => [...mixedVat(), '--totals', 'buckets']],
+    [`${PREFIX}-09-invoice-mixed-vat-totals-summary`, () => [...mixedVat(), '--totals', 'summary']],
+    [`${PREFIX}-10-invoice-mixed-vat-totals-both`, () => [...mixedVat(), '--totals', 'both']],
+    // The A/B against 09: identical document and flags, but the totals read the
+    // standard-rate bucket alone instead of summing all of them. It needs
+    // --totals summary, since that is the group those rows belong to.
+    [`${PREFIX}-11-invoice-mixed-vat-single-bucket-totals`, () => [...mixedVat(), '--totals', 'summary', '--template-file', oldTotalsTemplate]],
+    [`${PREFIX}-12-invoice-mixed-vat-bilingual`, () => [...mixedVat(), '--locale', 'en+pl', '--totals', 'both']],
     // Receipts last: they are a different document and read as their own group.
-    [`${PREFIX}-10-upo-pl`, () => [fx('upo-4_3.xml')]],
-    [`${PREFIX}-11-upo-bilingual`, () => [fx('upo-4_3.xml'), '--locale', 'en+pl']],
-    [`${PREFIX}-12-upo-five-documents`, () => [multiDocumentUpo]],
+    [`${PREFIX}-13-upo-pl`, () => [fx('upo-4_3.xml')]],
+    [`${PREFIX}-14-upo-bilingual`, () => [fx('upo-4_3.xml'), '--locale', 'en+pl']],
+    [`${PREFIX}-15-upo-five-documents`, () => [multiDocumentUpo]],
   ];
 
   it.each(variants)('renders %s', (name, args) => {
@@ -127,7 +139,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
   it('renders every variant of the set', () => {
     // Guards against a variant being silently dropped from the table above:
     // regen.sh and this spec are meant to cover the same ground.
-    expect(variants).toHaveLength(12);
+    expect(variants).toHaveLength(15);
     for (const [name] of variants) {
       expect(existsSync(join(outDir, `${name}.pdf`)), `${name}.pdf missing`).toBe(true);
     }

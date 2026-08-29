@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { has, list } from '../../../src/pdf/accessor.js';
 import { parseXmlForPdf } from '../../../src/pdf/parse.js';
 import { getBuiltinTemplate, builtinTemplateNames } from '../../../src/pdf/template/builtin/index.js';
-import type { Block, PartyField } from '../../../src/pdf/template/dsl.js';
+import type { Block, PartyField, TotalsBlock } from '../../../src/pdf/template/dsl.js';
 
 /**
  * Strict mode throws on a missing *scalar* binding, which catches dot-path
@@ -28,7 +28,10 @@ const FIXTURE_BY_TEMPLATE: Record<string, string> = {
 };
 
 /** `when` values resolved from the render context, not from the XML. */
-const CONTEXT_CONDITIONS = new Set(['qr', 'offline', 'hasKsefNumber', 'opts.logo', 'opts.ksefNumber', 'opts.accent', 'qrUrl']);
+const CONTEXT_CONDITIONS = new Set([
+  'qr', 'offline', 'hasKsefNumber', 'totalsBuckets', 'totalsSummary',
+  'opts.logo', 'opts.ksefNumber', 'opts.accent', 'qrUrl',
+]);
 
 interface CollectedPaths {
   conditions: string[];
@@ -45,6 +48,11 @@ function collect(
     const when = (block as { when?: string }).when;
     if (when !== undefined && !CONTEXT_CONDITIONS.has(when)) acc.conditions.push(when);
 
+    if (block.type === 'totals') {
+      for (const row of block.rows) {
+        if (row.when !== undefined && !CONTEXT_CONDITIONS.has(row.when)) acc.conditions.push(row.when);
+      }
+    }
     if (block.type === 'lines') acc.repeaters.push(block.from);
     if (block.type === 'table' && block.from !== undefined) acc.repeaters.push(block.from);
     if (block.type === 'each') acc.repeaters.push(block.from);
@@ -108,6 +116,20 @@ describe('built-in template lint', () => {
       // identifier), but a set where *none* resolves means every path is wrong.
       const dead = alternatives.filter((paths) => !paths.some((p) => has(root, p)));
       expect(dead).toEqual([]);
+    },
+  );
+
+  it.each(['fa2-default', 'fa3-default'])(
+    '%s: the amount due and at least one rate bucket resolve',
+    (name) => {
+      // Totals rows are read leniently — they print only when present — so
+      // `strict` cannot police them. This is what catches a typo instead.
+      const root = bodyOf(name);
+      const totals = getBuiltinTemplate(name)!.blocks.find((b) => b.type === 'totals') as TotalsBlock;
+      const due = totals.rows.find((r) => r.label === 'totalDue')!;
+      expect(has(root, due.path!), 'the amount due must resolve').toBe(true);
+      const buckets = totals.rows.filter((r) => r.when === 'totalsBuckets' && r.path);
+      expect(buckets.some((r) => has(root, r.path!)), 'no rate bucket resolves').toBe(true);
     },
   );
 

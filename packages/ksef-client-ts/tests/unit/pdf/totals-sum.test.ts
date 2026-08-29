@@ -10,19 +10,30 @@ import { makeLabelResolver } from '../../../src/pdf/i18n/index.js';
 
 const fa3 = readFileSync(new URL('../../fixtures/pdf/fa3.xml', import.meta.url), 'utf8');
 
+/** 23% + 8% + exempt, so every totals mode has something to show. */
+const mixedRate = fa3
+  .replace('<P_13_1>500.00</P_13_1>', '<P_13_1>500.00</P_13_1><P_13_2>200.00</P_13_2><P_13_7>50.00</P_13_7>')
+  .replace('<P_14_1>115.00</P_14_1>', '<P_14_1>115.00</P_14_1><P_14_2>16.00</P_14_2>')
+  .replace('<P_15>615.00</P_15>', '<P_15>881.00</P_15>');
+
 /**
  * The net/VAT buckets a KSeF invoice can carry, from the FA(2)/FA(3) XSD (both
- * schemas declare the same set; there is no `P_13_6`). The `P_14_*W` fields are
- * the same tax restated in PLN for foreign-currency invoices, so they are
- * deliberately excluded — adding them would double-count.
+ * schemas declare the same set). The zero-rated sales are split three ways
+ * rather than sitting in a `P_13_6`: domestic, intra-EU supply and export.
+ * The `P_14_*W` fields are the same tax restated in PLN for foreign-currency
+ * invoices, so they are deliberately excluded — adding them would double-count.
  */
 const NET_BUCKETS = [
   'Fa.P_13_1', 'Fa.P_13_2', 'Fa.P_13_3', 'Fa.P_13_4', 'Fa.P_13_5',
+  'Fa.P_13_6_1', 'Fa.P_13_6_2', 'Fa.P_13_6_3',
   'Fa.P_13_7', 'Fa.P_13_8', 'Fa.P_13_9', 'Fa.P_13_10', 'Fa.P_13_11',
 ];
 const VAT_BUCKETS = ['Fa.P_14_1', 'Fa.P_14_2', 'Fa.P_14_3', 'Fa.P_14_4', 'Fa.P_14_5'];
 
-function totalsBody(xml: string, templateName: string) {
+type TotalsMode = 'none' | 'buckets' | 'summary' | 'both';
+
+/** Rendered totals as `label -> value`, in the order the rows appear. */
+function totalsRows(xml: string, templateName: string, mode: TotalsMode = 'summary') {
   const template = getBuiltinTemplate(templateName)!;
   const parsed = parseXmlForPdf(xml);
   const ctx = {
@@ -30,15 +41,22 @@ function totalsBody(xml: string, templateName: string) {
     strict: false,
     label: makeLabelResolver('en', {}),
     bindings: {},
-    flags: {},
+    flags: {
+      totalsBuckets: mode === 'buckets' || mode === 'both',
+      totalsSummary: mode === 'summary' || mode === 'both',
+    },
   };
   const doc = interpretTemplate(template, ctx, blockRegistry);
   const totals = (doc.content as Array<Record<string, unknown>>).find(
     (n) => Array.isArray(n.columns) && JSON.stringify(n).includes('table'),
   )!;
   const cols = totals.columns as Array<Record<string, never>>;
-  return (cols[1] as unknown as { table: { body: Array<Array<{ text: string }>> } }).table.body;
+  const body = (cols[1] as unknown as { table: { body: Array<Array<{ text: string }>> } }).table.body;
+  return body.map(([label, value]) => [label.text, value.text] as const);
 }
+
+const valueOf = (rows: ReadonlyArray<readonly [string, string]>, label: string) =>
+  rows.find(([l]) => l === label)?.[1];
 
 describe('sumDecimal', () => {
   it('adds monetary strings without floating-point drift', () => {
@@ -85,28 +103,83 @@ describe('built-in totals aggregate every VAT bucket', () => {
       .replace('<P_13_1>500.00</P_13_1>', '<P_13_2>500.00</P_13_2>')
       .replace('<P_14_1>115.00</P_14_1>', '<P_14_2>40.00</P_14_2>')
       .replace('<P_15>615.00</P_15>', '<P_15>540.00</P_15>');
-    const body = totalsBody(reduced, 'fa3-default');
-    expect(body[0][1].text).toBe('500,00');
-    expect(body[1][1].text).toBe('40,00');
-    expect(body[2][1].text).toBe('540,00');
+    const rows = totalsRows(reduced, 'fa3-default');
+    expect(valueOf(rows, 'Total net')).toBe('500,00');
+    expect(valueOf(rows, 'Total VAT')).toBe('40,00');
+    expect(valueOf(rows, 'Amount due')).toBe('540,00');
   });
 
   it('adds the buckets of a mixed-rate invoice', () => {
-    const mixed = fa3
-      .replace('<P_13_1>500.00</P_13_1>', '<P_13_1>500.00</P_13_1><P_13_2>200.00</P_13_2><P_13_7>50.00</P_13_7>')
-      .replace('<P_14_1>115.00</P_14_1>', '<P_14_1>115.00</P_14_1><P_14_2>16.00</P_14_2>')
-      .replace('<P_15>615.00</P_15>', '<P_15>881.00</P_15>');
-    const body = totalsBody(mixed, 'fa3-default');
-    expect(body[0][1].text).toBe('750,00'); // 500 + 200 + 50
-    expect(body[1][1].text).toBe('131,00'); // 115 + 16
-    expect(body[2][1].text).toBe('881,00');
+    const rows = totalsRows(mixedRate, 'fa3-default');
+    expect(valueOf(rows, 'Total net')).toBe('750,00'); // 500 + 200 + 50
+    expect(valueOf(rows, 'Total VAT')).toBe('131,00'); // 115 + 16
+    expect(valueOf(rows, 'Amount due')).toBe('881,00');
+  });
+
+  it('counts zero-rated sales, which sit in three separate buckets', () => {
+    // A 0% line lands in P_13_6_1 (domestic), P_13_6_2 (intra-EU supply) or
+    // P_13_6_3 (export) depending on why it is zero-rated — an exporter's whole
+    // turnover can live there and contribute no VAT at all.
+    const zeroRated = fa3
+      .replace(
+        '<P_13_1>500.00</P_13_1>',
+        '<P_13_1>500.00</P_13_1><P_13_6_1>100.00</P_13_6_1><P_13_6_2>2000.00</P_13_6_2><P_13_6_3>3000.00</P_13_6_3>',
+      )
+      .replace('<P_15>615.00</P_15>', '<P_15>5715.00</P_15>');
+    const rows = totalsRows(zeroRated, 'fa3-default');
+    expect(valueOf(rows, 'Total net')).toBe('5\u00A0600,00'); // 500 + 100 + 2000 + 3000
+    expect(valueOf(rows, 'Total VAT')).toBe('115,00'); // zero-rated sales carry no VAT
+    expect(valueOf(rows, 'Amount due')).toBe('5\u00A0715,00');
   });
 
   it('still renders the standard-rate-only fixture unchanged', () => {
-    const body = totalsBody(fa3, 'fa3-default');
-    expect(body[0][1].text).toBe('500,00');
-    expect(body[1][1].text).toBe('115,00');
-    expect(body[2][1].text).toBe('615,00');
+    const rows = totalsRows(fa3, 'fa3-default');
+    expect(valueOf(rows, 'Total net')).toBe('500,00');
+    expect(valueOf(rows, 'Total VAT')).toBe('115,00');
+    expect(valueOf(rows, 'Amount due')).toBe('615,00');
+  });
+});
+
+describe('the totals mode selects what a reader gets', () => {
+  it('none: the amount due and nothing else', () => {
+    expect(totalsRows(mixedRate, 'fa3-default', 'none')).toEqual([['Amount due', '881,00']]);
+  });
+
+  it('buckets: one row per bucket the invoice carries, nothing computed', () => {
+    expect(totalsRows(mixedRate, 'fa3-default', 'buckets')).toEqual([
+      ['Net 23%', '500,00'],
+      ['VAT 23%', '115,00'],
+      ['Net 8%', '200,00'],
+      ['VAT 8%', '16,00'],
+      ['Net exempt', '50,00'],
+      ['Amount due', '881,00'],
+    ]);
+  });
+
+  it('summary: only the computed totals', () => {
+    expect(totalsRows(mixedRate, 'fa3-default', 'summary')).toEqual([
+      ['Total net', '750,00'],
+      ['Total VAT', '131,00'],
+      ['Amount due', '881,00'],
+    ]);
+  });
+
+  it('both: the breakdown followed by the computed totals', () => {
+    const rows = totalsRows(mixedRate, 'fa3-default', 'both');
+    expect(rows.map(([l]) => l)).toEqual([
+      'Net 23%', 'VAT 23%', 'Net 8%', 'VAT 8%', 'Net exempt', 'Total net', 'Total VAT', 'Amount due',
+    ]);
+  });
+
+  it('never prints a bucket the invoice does not carry', () => {
+    const rows = totalsRows(fa3, 'fa3-default', 'both');
+    expect(rows.map(([l]) => l)).toEqual(['Net 23%', 'VAT 23%', 'Total net', 'Total VAT', 'Amount due']);
+  });
+
+  it('shows the amount due in every mode', () => {
+    for (const mode of ['none', 'buckets', 'summary', 'both'] as const) {
+      expect(valueOf(totalsRows(mixedRate, 'fa3-default', mode), 'Amount due'), mode).toBe('881,00');
+    }
   });
 });
 

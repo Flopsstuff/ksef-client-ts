@@ -124,6 +124,7 @@ detectUpoVersion(xml);     // 'UPO(4.2)' | 'UPO(4.3)' | null
 | Option | Type | Purpose |
 |--------|------|---------|
 | `locale` | `'pl' \| 'en' \| 'pl+en' \| 'en+pl'` | Label language. Default `'pl'`. |
+| `totals` | `'none' \| 'buckets' \| 'summary' \| 'both'` | Which tax breakdown to print above the amount due. Default `'buckets'`. |
 | `qr` | `boolean` | Embed the KSeF Code I verification QR derived from the invoice XML. |
 | `ksefNumber` | `string` | KSeF number printed on the visualization; when absent the document is marked **OFFLINE**. |
 | `env` | `'prod' \| 'test' \| 'demo'` | Environment used to derive the QR base URL. Default `'prod'`. |
@@ -184,7 +185,7 @@ The `schema` field binds a template to a single document kind. If you render an 
 - **`format`** names a value formatter: `money`, `date`, `number`, or `nip`.
 - **`firstOf`** (party fields only) prints the first of several paths that resolves. KSeF identifies a counterparty by exactly one of `NIP`, `NrVatUE` or `NrID` depending on where they are established, so the built-in templates bind the buyer's identifier this way; a panel bound to `NIP` alone has nothing to print for a foreign buyer.
 - **`width`** (table columns only) sizes a column: a number of points, `'auto'` to fit the content, or `'*'` to share out what is left (the default). Sizing is worth setting explicitly — pdfmake gives every `'*'` column the *same* width and never shrinks it below the widest minimum content width among them, so a single long unbreakable token silently widens the whole table past the page edge.
-- **`sum`** (totals rows only) adds several binding paths instead of reading one. A KSeF invoice has no single net or VAT total — the amounts are split across the `P_13_*` and `P_14_*` rate buckets — so the built-in templates aggregate them. Absent buckets are skipped, and the addition is decimal-exact. A totals row takes either `path` or `sum`, never both.
+- **`sum`** (totals rows only) adds several binding paths instead of reading one. A KSeF invoice has no single net or VAT total — the amounts are split across the `P_13_*` and `P_14_*` rate buckets, with zero-rated sales split three further ways (`P_13_6_1` domestic, `P_13_6_2` intra-EU supply, `P_13_6_3` export) — so the built-in templates aggregate them. Absent buckets are skipped, and the addition is decimal-exact. A totals row takes either `path` or `sum`, never both.
 
 ### Minimal example
 
@@ -232,6 +233,23 @@ A trimmed `FA(3)` template with a header, a seller/buyer panel, a line table, a 
 ```
 
 The bundled `fa3-default` template is a good, complete starting point to copy and adapt.
+
+---
+
+## Totals
+
+A KSeF invoice records no single net or VAT total. Net sales are split across the `P_13_*` rate buckets and the tax across `P_14_*`; the only total the document actually states is `P_15`, the amount due. `totals` chooses what to print above it — the amount due itself is always shown.
+
+| Mode | Prints |
+|------|--------|
+| `none` | The amount due, nothing else. |
+| `buckets` | One row per rate bucket the invoice carries, each a direct reading of a `P_13_*`/`P_14_*` field. Nothing is computed. Default. |
+| `summary` | Net and VAT totals, added up from every bucket. |
+| `both` | The breakdown, then the computed totals. |
+
+`summary` and `both` print two figures that exist nowhere in the document: the renderer adds them up. On an invoice whose buckets do not reconcile, those figures will not match what the issuer intended, and nothing on the page distinguishes them from `P_15`, which is read straight from the XML. `buckets` never has that problem — every number on the page traces to a field.
+
+Rows whose value is absent are skipped, so a template may list every bucket the schema allows and only the ones this invoice uses appear. The built-in templates do exactly that, gating the two groups on the `totalsBuckets` and `totalsSummary` context flags; a custom template can regroup them freely.
 
 ---
 
@@ -304,6 +322,7 @@ ksef invoice pdf upo.xml --template-file ./templates/my-upo.json
 | `--locale <pl\|en\|pl+en\|en+pl>` | Label language (default `pl`) |
 | `--qr` | Embed the KSeF Code I QR derived from the XML |
 | `--ksef-number <number>` | KSeF number to print (absent → marked OFFLINE) |
+| `--totals <none\|buckets\|summary\|both>` | Tax breakdown above the amount due (default `buckets`) |
 | `--upo` | Treat the input as a UPO document (otherwise auto-detected); ignored when a template is named explicitly |
 | `--env <prod\|test\|demo>` | Environment for the QR base URL |
 | `--out <path>` | Output PDF path (default: alongside the source) |

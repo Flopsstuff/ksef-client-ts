@@ -1,6 +1,6 @@
 import { applyFormat, sumDecimal } from '../../format.js';
 import type { TotalsBlock } from '../dsl.js';
-import { resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.js';
+import { evalWhen, resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.js';
 
 /**
  * Totals summary: a compact, right-aligned label/value table. Each row of
@@ -9,22 +9,35 @@ import { resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.j
  * sum of several (`sum`), because net sales and tax are split across the
  * `P_13_*`/`P_14_*` rate buckets and no single total field exists. The
  * borderless table is pushed to the right edge by an elastic spacer column.
+ *
+ * A row whose value resolves empty is dropped, so a template may list every
+ * rate bucket the schema allows and only the ones this invoice carries appear.
  */
 export const totalsRenderer: BlockRenderer<TotalsBlock> = (block, ctx) => {
-  // A `sum` lists every bucket the schema allows and a real invoice fills only
-  // the one or two that apply, so its paths are read non-strictly: an absent
-  // bucket is the normal case here, not the dot-path typo `strict` hunts for.
+  // Every read here is non-strict, `sum` and `path` alike. A totals row prints
+  // only when its value resolves, so a template lists every bucket the schema
+  // allows and a real invoice fills one or two — an absent bucket is the normal
+  // case, not the dot-path typo `strict` hunts for. Typos in our own presets are
+  // caught instead by the built-in template lint, which requires the amount due
+  // and at least one bucket to resolve against the reference fixtures.
   const lenient = { ...ctx, strict: false };
 
-  const body: PdfNode[][] = block.rows.map((row) => {
+  const body: PdfNode[][] = [];
+  for (const row of block.rows) {
+    if (!evalWhen(row.when, ctx)) continue;
     const raw = row.sum
       ? sumDecimal(row.sum.map((p) => resolveBinding(p, lenient)))
-      : resolveBinding(row.path ?? '', ctx);
-    return [
+      : resolveBinding(row.path ?? '', lenient);
+    const value = applyFormat(raw, row.format);
+    // A row that resolves empty is skipped, as in `payment` and `parties`: a
+    // template listing every rate bucket must not print a dangling label for
+    // each one an invoice does not use.
+    if (value === '') continue;
+    body.push([
       { text: ctx.label(row.label), bold: true },
-      { text: applyFormat(raw, row.format), alignment: 'right' },
-    ];
-  });
+      { text: value, alignment: 'right' },
+    ]);
+  }
 
   return {
     columns: [

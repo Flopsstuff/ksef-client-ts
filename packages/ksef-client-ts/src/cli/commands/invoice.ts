@@ -573,6 +573,9 @@ const validateCmd = defineCommand({
 const VALID_PDF_LOCALES = ['pl', 'en', 'pl+en', 'en+pl'] as const;
 type PdfLocale = (typeof VALID_PDF_LOCALES)[number];
 
+const VALID_PDF_TOTALS = ['none', 'buckets', 'summary', 'both'] as const;
+type PdfTotals = (typeof VALID_PDF_TOTALS)[number];
+
 const LOGO_MIME_BY_EXT: Record<string, string> = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -614,6 +617,7 @@ const pdf = defineCommand({
     ksefNumber: { type: 'string', description: 'KSeF number to print (absent → marked OFFLINE)' },
     upo: { type: 'boolean', description: 'Treat the input as a UPO document (otherwise auto-detected)' },
     logo: { type: 'string', description: 'Path to a logo image (PNG/JPEG/GIF/WebP/SVG) to print in the header' },
+    totals: { type: 'string', description: 'Tax breakdown above the amount due: none | buckets (as recorded) | summary (computed) | both (default: buckets)' },
     env: { type: 'string', description: 'Environment for the QR base URL (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
   },
@@ -632,10 +636,16 @@ const pdf = defineCommand({
         throw new Error(`Invalid --locale "${locale}". Valid: ${VALID_PDF_LOCALES.join(', ')}`);
       }
 
+      const totals = (args.totals as string | undefined) ?? 'buckets';
+      if (!VALID_PDF_TOTALS.includes(totals as PdfTotals)) {
+        throw new Error(`Invalid --totals "${totals}". Valid: ${VALID_PDF_TOTALS.join(', ')}`);
+      }
+
       const env = args.env as 'prod' | 'test' | 'demo' | undefined;
       const logo = args.logo ? readImageAsDataUri(args.logo as string) : undefined;
       const renderOpts = {
         locale: locale as PdfLocale,
+        totals: totals as PdfTotals,
         qr: Boolean(args.qr),
         ...(args.ksefNumber ? { ksefNumber: args.ksefNumber as string } : {}),
         ...(env ? { env } : {}),

@@ -30,9 +30,25 @@ export type { Locale } from './i18n/types.js';
 export type { InvoiceTemplate } from './template/dsl.js';
 export { detectInvoiceVersion, detectUpoVersion } from './parse.js';
 
+/**
+ * Which parts of the totals block a reader gets. `Do zapłaty` is always shown —
+ * it is `P_15`, a real field. What varies is the tax breakdown above it:
+ *
+ * - `'none'` — nothing but the amount due.
+ * - `'buckets'` — one row per rate bucket the invoice actually carries, each a
+ *   direct reading of a `P_13_*`/`P_14_*` field. Nothing is computed.
+ * - `'summary'` — net and VAT totals, added up from every bucket. Convenient,
+ *   but these two figures exist nowhere in the document: the renderer computes
+ *   them.
+ * - `'both'` — the breakdown followed by the computed totals.
+ */
+export type TotalsMode = 'none' | 'buckets' | 'summary' | 'both';
+
 export interface RenderOptions {
   /** Label language. Default `'pl'`. */
   locale?: Locale;
+  /** Which totals to print above the amount due. Default `'buckets'`. */
+  totals?: TotalsMode;
   /** KSeF number printed on the visualization; absent → marked OFFLINE. */
   ksefNumber?: string;
   /** Embed the KSeF Code I QR derived from the invoice XML. */
@@ -88,10 +104,13 @@ function buildContext(
     qrUrl,
   };
 
+  const totals = opts.totals ?? 'buckets';
   const flags: Record<string, boolean> = {
     hasKsefNumber: Boolean(opts.ksefNumber),
     offline: !opts.ksefNumber,
     qr: Boolean(opts.qr) && qrUrl !== '',
+    totalsBuckets: totals === 'buckets' || totals === 'both',
+    totalsSummary: totals === 'summary' || totals === 'both',
   };
 
   return { root, strict: opts.strict ?? false, label, bindings, flags };
