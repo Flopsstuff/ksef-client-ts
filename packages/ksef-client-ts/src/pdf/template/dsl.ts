@@ -36,6 +36,18 @@ export interface FieldDef {
   style?: string;
 }
 
+/**
+ * A table column. `width` maps to pdfmake's column sizing: a number is an
+ * explicit point width, `'auto'` fits the content, and `'*'` shares out what is
+ * left. Sizing matters more than it looks — pdfmake gives every `'*'` column the
+ * *same* width, and that shared width cannot go below the widest minimum content
+ * width among them, so one long unbreakable token (a KSeF number, a base64 hash)
+ * inflates every column and pushes the table off the page. Default `'*'`.
+ */
+export interface ColumnDef extends FieldDef {
+  width?: number | 'auto' | '*';
+}
+
 // ── Semantic blocks ────────────────────────────────────────────────────────
 
 export interface HeaderBlock {
@@ -62,7 +74,7 @@ export interface PartiesBlock {
 export interface LinesBlock {
   type: 'lines';
   from: string;
-  columns: FieldDef[];
+  columns: ColumnDef[];
   style?: string;
 }
 
@@ -152,10 +164,27 @@ export interface StackBlock {
   style?: string;
 }
 
+/**
+ * Repeat a group of blocks once per entry of a collection, with each entry as
+ * the binding root — so children use paths relative to the item, exactly as
+ * `lines` columns do. Where a table forces every record onto one row, this lays
+ * a record out however its fields need, which is what wide records (a UPO
+ * document: a 35-character KSeF number beside a 44-character hash) require to
+ * stay on the page. `separator` draws a divider between entries.
+ */
+export interface EachBlock {
+  type: 'each';
+  from: string;
+  blocks: Block[];
+  separator?: boolean;
+  when?: string;
+  style?: string;
+}
+
 export interface TableBlock {
   type: 'table';
   from?: string;
-  columns: FieldDef[];
+  columns: ColumnDef[];
   headers?: boolean;
   when?: string;
   style?: string;
@@ -191,6 +220,7 @@ export type Block =
   | TextBlock
   | ColumnsBlock
   | StackBlock
+  | EachBlock
   | TableBlock
   | ImageBlock
   | DividerBlock
@@ -221,6 +251,16 @@ const fieldDef = z
     path: z.string(),
     format: formatEnum.optional(),
     style: z.string().optional(),
+  })
+  .strict();
+
+const columnDef = z
+  .object({
+    label: z.string(),
+    path: z.string(),
+    format: formatEnum.optional(),
+    style: z.string().optional(),
+    width: z.union([z.number().positive(), z.literal('auto'), z.literal('*')]).optional(),
   })
   .strict();
 
@@ -257,7 +297,7 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({
       type: z.literal('lines'),
       from: z.string(),
-      columns: z.array(fieldDef),
+      columns: z.array(columnDef),
       style: z.string().optional(),
     }).strict(),
     z.object({ type: z.literal('totals'), rows: z.array(totalsRow), style: z.string().optional() }).strict(),
@@ -305,9 +345,17 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
       style: z.string().optional(),
     }).strict(),
     z.object({
+      type: z.literal('each'),
+      from: z.string(),
+      blocks: z.array(blockSchema),
+      separator: z.boolean().optional(),
+      when: z.string().optional(),
+      style: z.string().optional(),
+    }).strict(),
+    z.object({
       type: z.literal('table'),
       from: z.string().optional(),
-      columns: z.array(fieldDef),
+      columns: z.array(columnDef),
       headers: z.boolean().optional(),
       when: z.string().optional(),
       style: z.string().optional(),

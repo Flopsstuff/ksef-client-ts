@@ -14,6 +14,7 @@ import { paymentRenderer } from './payment.js';
 import { annotationsRenderer } from './annotations.js';
 import { footerRenderer } from './footer.js';
 import { tableRenderer } from './table.js';
+import { eachRenderer } from './each.js';
 import { imageRenderer } from './image.js';
 import { qrRenderer } from './qr.js';
 
@@ -26,6 +27,7 @@ export const blockRegistry: BlockRegistry = {
   annotations: annotationsRenderer as BlockRenderer,
   footer: footerRenderer as BlockRenderer,
   table: tableRenderer as BlockRenderer,
+  each: eachRenderer as BlockRenderer,
   image: imageRenderer as BlockRenderer,
   qr: qrRenderer as BlockRenderer,
 };

@@ -41,11 +41,15 @@ function collect(blocks: Block[], acc: CollectedPaths = { conditions: [], repeat
     if (when !== undefined && !CONTEXT_CONDITIONS.has(when)) acc.conditions.push(when);
 
     if (block.type === 'lines') acc.repeaters.push(block.from);
-    if (block.type === 'table') acc.repeaters.push(block.from);
+    if (block.type === 'table' && block.from !== undefined) acc.repeaters.push(block.from);
+    if (block.type === 'each') acc.repeaters.push(block.from);
     if (block.type === 'payment' && block.accounts) acc.repeaters.push(block.accounts.from);
 
     if (block.type === 'stack') collect(block.stack, acc);
     if (block.type === 'columns') collect(block.columns, acc);
+    // `each` rebinds the root to one entry, so its children's paths are
+    // item-relative and cannot be resolved against the document root here.
+    // Its own `from` is checked above.
   }
   return acc;
 }
@@ -82,6 +86,7 @@ describe('built-in template lint', () => {
     expect(fa3.repeaters).toContain('Fa.FaWiersz');
     expect(fa3.repeaters).toContain('Fa.Platnosc.RachunekBankowy');
     expect(collect(getBuiltinTemplate('upo-4_3')!.blocks).repeaters).toContain('Dokument');
+    expect(collect(getBuiltinTemplate('upo-4_2')!.blocks).repeaters).toContain('Dokument');
   });
 
   it('fails a template whose `when` path is misspelled', () => {

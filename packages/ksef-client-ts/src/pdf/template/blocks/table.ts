@@ -13,8 +13,8 @@ import { resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.j
  *   via `resolveBinding(col.path)`.
  *
  * A header row of localized `col.label`s is prepended unless `headers` is
- * explicitly `false`. Columns share the width evenly (`'*'`) under a light
- * horizontal-line layout.
+ * explicitly `false`. Each column takes its own `width` (default `'*'`, an even
+ * share) under a light horizontal-line layout.
  */
 export const tableRenderer: BlockRenderer<TableBlock> = (block, ctx) => {
   const { columns } = block;
@@ -36,7 +36,7 @@ export const tableRenderer: BlockRenderer<TableBlock> = (block, ctx) => {
   const node: Record<string, unknown> = {
     table: {
       headerRows: showHeaders ? 1 : 0,
-      widths: columns.map(() => '*'),
+      widths: columns.map((col) => col.width ?? '*'),
       body,
     },
     layout: 'lightHorizontalLines',

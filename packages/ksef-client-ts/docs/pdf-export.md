@@ -172,7 +172,9 @@ The `schema` field binds a template to a single document kind. If you render an 
 | `qr` | The verification QR image |
 | `footer` | Footer note |
 
-**Primitive blocks** are layout building blocks: `text`, `columns`, `stack`, `table`, `image`, `divider`, `spacer`.
+**Primitive blocks** are layout building blocks: `text`, `columns`, `stack`, `each`, `table`, `image`, `divider`, `spacer`.
+
+`each` repeats a group of blocks once per entry of a collection, with the entry as the binding root, so its children use item-relative paths. Use it where a table cannot fit a record on one row — the built-in UPO templates lay out each confirmed document this way, because a 35-character KSeF number beside a 44-character hash will not share a page-wide row.
 
 ### Bindings, labels, conditions, and formats
 
@@ -180,6 +182,7 @@ The `schema` field binds a template to a single document kind. If you render an 
 - **`label`** references an i18n label key resolved per locale; **`text`** is a literal string printed as-is.
 - **`when`** conditionally renders a block against a presence test. It accepts a binding path (e.g. `Fa.Platnosc`) or a context flag: `qr`, `offline`, `hasKsefNumber`.
 - **`format`** names a value formatter: `money`, `date`, `number`, or `nip`.
+- **`width`** (table columns only) sizes a column: a number of points, `'auto'` to fit the content, or `'*'` to share out what is left (the default). Sizing is worth setting explicitly — pdfmake gives every `'*'` column the *same* width and never shrinks it below the widest minimum content width among them, so a single long unbreakable token silently widens the whole table past the page edge.
 - **`sum`** (totals rows only) adds several binding paths instead of reading one. A KSeF invoice has no single net or VAT total — the amounts are split across the `P_13_*` and `P_14_*` rate buckets — so the built-in templates aggregate them. Absent buckets are skipped, and the addition is decimal-exact. A totals row takes either `path` or `sum`, never both.
 
 ### Minimal example
@@ -206,9 +209,9 @@ A trimmed `FA(3)` template with a header, a seller/buyer panel, a line table, a 
       "type": "lines",
       "from": "Fa.FaWiersz",
       "columns": [
-        { "label": "name", "path": "P_7" },
-        { "label": "qty",  "path": "P_8B", "format": "number" },
-        { "label": "net",  "path": "P_11", "format": "money" }
+        { "label": "name", "path": "P_7",  "width": "*" },
+        { "label": "qty",  "path": "P_8B", "width": 44, "format": "number" },
+        { "label": "net",  "path": "P_11", "width": 70, "format": "money" }
       ]
     },
     {

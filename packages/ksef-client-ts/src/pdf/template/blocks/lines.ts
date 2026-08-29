@@ -10,6 +10,11 @@ import { type BlockRenderer, type PdfNode } from '../interpret.js';
  * normalized to a one-element array, so one line renders like many). Each cell
  * reads its column path row-relative with {@link get} and applies the column's
  * formatter. With no entries only the header row is emitted.
+ *
+ * Column widths come from the template (`'*'` when unset). Leaving them all
+ * `'*'` is rarely right: pdfmake sizes star columns identically and never below
+ * the widest minimum content width among them, so one long unbreakable token
+ * silently widens the whole table past the page edge.
  */
 export const linesRenderer: BlockRenderer<LinesBlock> = (block, ctx) => {
   const headerRow: PdfNode[] = block.columns.map((c) => ({ text: ctx.label(c.label), bold: true }));
@@ -20,7 +25,7 @@ export const linesRenderer: BlockRenderer<LinesBlock> = (block, ctx) => {
   return {
     table: {
       headerRows: 1,
-      widths: block.columns.map(() => '*'),
+      widths: block.columns.map((c) => c.width ?? '*'),
       body: [headerRow, ...bodyRows],
     },
     layout: 'lightHorizontalLines',

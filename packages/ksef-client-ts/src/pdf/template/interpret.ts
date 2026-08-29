@@ -39,8 +39,12 @@ export interface RenderContext {
   flags: Record<string, boolean>;
 }
 
-/** Recurse into a child block (depth-guarded); `null` when the child is hidden. */
-export type RenderChild = (child: Block) => PdfContent | null;
+/**
+ * Recurse into a child block (depth-guarded); `null` when the child is hidden.
+ * A container may pass its own context to rebind the binding root — that is how
+ * `each` renders a child against one entry of a collection.
+ */
+export type RenderChild = (child: Block, ctxOverride?: RenderContext) => PdfContent | null;
 
 /** A block renderer: pure (block, ctx) → pdfmake node(s), or `null` if hidden. */
 export type BlockRenderer<B extends Block = Block> = (
@@ -138,7 +142,7 @@ export function interpretBlock(
   if (!renderer) {
     throw new KSeFPdfError(`No renderer registered for block type "${block.type}"`);
   }
-  const render: RenderChild = (child) => interpretBlock(child, ctx, registry, depth + 1);
+  const render: RenderChild = (child, over) => interpretBlock(child, over ?? ctx, registry, depth + 1);
   return renderer(block, ctx, render);
 }
 

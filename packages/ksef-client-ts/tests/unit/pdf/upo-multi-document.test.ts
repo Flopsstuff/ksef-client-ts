@@ -55,7 +55,7 @@ describe.each([
     expect(tree).toContain('FA/2025/01/003');
   });
 
-  it('emits one table row per document plus the header', () => {
+  it('emits one field group per document, separated by dividers', () => {
     const template = getBuiltinTemplate(templateName)!;
     const parsed = parseXmlForPdf(withDocuments(single, 4));
     const ctx = {
@@ -66,10 +66,33 @@ describe.each([
       flags: {},
     };
     const doc = interpretTemplate(template, ctx, blockRegistry);
-    const table = (doc.content as Array<Record<string, unknown>>).find((n) => 'table' in n) as {
-      table: { body: unknown[] };
+    const tree = JSON.stringify(doc);
+
+    // Each document contributes its own KSeF-number row, and consecutive
+    // documents are separated by a divider (3 for 4 documents).
+    expect(tree.split('"KSeF document number"')).toHaveLength(5);
+    const group = (doc.content as Array<Record<string, unknown>>).find(
+      (n) => Array.isArray(n.stack) && JSON.stringify(n).includes('KSeF document number'),
+    ) as { stack: unknown[] };
+    expect(JSON.stringify(group).split('"canvas"')).toHaveLength(4);
+  });
+
+  it('keeps every field on the page instead of clipping wide records', () => {
+    const template = getBuiltinTemplate(templateName)!;
+    const parsed = parseXmlForPdf(single);
+    const ctx = {
+      root: (parsed as Record<string, unknown>).Potwierdzenie,
+      strict: false,
+      label: makeLabelResolver('en', {}),
+      bindings: {},
+      flags: {},
     };
-    expect(table.table.body).toHaveLength(5); // 1 header + 4 documents
+    const tree = JSON.stringify(interpretTemplate(template, ctx, blockRegistry));
+    // A table would have forced the hash and both dates onto one row with the
+    // 35-character KSeF number; stacked rows carry all of them.
+    for (const label of ['KSeF document number', 'Invoice number', 'Issue date', 'KSeF number assignment date', 'Document hash']) {
+      expect(tree).toContain(label);
+    }
   });
 });
 

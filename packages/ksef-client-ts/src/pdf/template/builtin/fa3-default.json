@@ -47,38 +47,40 @@
       "type": "lines",
       "from": "Fa.FaWiersz",
       "columns": [
-        { "label": "lp", "path": "NrWierszaFa" },
-        { "label": "name", "path": "P_7" },
-        { "label": "unit", "path": "P_8A" },
-        { "label": "qty", "path": "P_8B", "format": "number" },
-        { "label": "unitPrice", "path": "P_9A", "format": "money" },
-        { "label": "vatRate", "path": "P_12" },
-        { "label": "net", "path": "P_11", "format": "money" }
+        { "label": "lp", "path": "NrWierszaFa", "width": 24 },
+        { "label": "name", "path": "P_7", "width": "*" },
+        { "label": "unit", "path": "P_8A", "width": 36 },
+        { "label": "qty", "path": "P_8B", "format": "number", "width": 44 },
+        { "label": "unitPrice", "path": "P_9A", "format": "money", "width": 64 },
+        { "label": "vatRate", "path": "P_12", "width": 50 },
+        { "label": "net", "path": "P_11", "format": "money", "width": 70 }
       ]
     },
     { "type": "spacer", "height": 10 },
     {
       "type": "totals",
       "rows": [
-        { "label": "totalNet", "sum": [
-          "Fa.P_13_1",
-          "Fa.P_13_2",
-          "Fa.P_13_3",
-          "Fa.P_13_4",
-          "Fa.P_13_5",
-          "Fa.P_13_7",
-          "Fa.P_13_8",
-          "Fa.P_13_9",
-          "Fa.P_13_10",
-          "Fa.P_13_11"
-        ], "format": "money" },
-        { "label": "totalVat", "sum": [
-          "Fa.P_14_1",
-          "Fa.P_14_2",
-          "Fa.P_14_3",
-          "Fa.P_14_4",
-          "Fa.P_14_5"
-        ], "format": "money" },
+        {
+          "label": "totalNet",
+          "sum": [
+            "Fa.P_13_1",
+            "Fa.P_13_2",
+            "Fa.P_13_3",
+            "Fa.P_13_4",
+            "Fa.P_13_5",
+            "Fa.P_13_7",
+            "Fa.P_13_8",
+            "Fa.P_13_9",
+            "Fa.P_13_10",
+            "Fa.P_13_11"
+          ],
+          "format": "money"
+        },
+        {
+          "label": "totalVat",
+          "sum": ["Fa.P_14_1", "Fa.P_14_2", "Fa.P_14_3", "Fa.P_14_4", "Fa.P_14_5"],
+          "format": "money"
+        },
         { "label": "totalDue", "path": "Fa.P_15", "format": "money" }
       ]
     },
