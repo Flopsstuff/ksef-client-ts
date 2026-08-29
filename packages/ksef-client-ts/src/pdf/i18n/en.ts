@@ -36,6 +36,7 @@ export const en: LabelBundle = {
   sessionRef: 'Session reference number',
   receiptDate: 'KSeF number assignment date',
   documentHash: 'Document hash',
+  documents: 'Documents',
   page: 'Page',
   of: 'of',
 };

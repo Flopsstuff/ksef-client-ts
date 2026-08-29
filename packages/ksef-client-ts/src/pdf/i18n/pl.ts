@@ -41,6 +41,7 @@ export const pl: LabelBundle = {
   sessionRef: 'Numer referencyjny sesji',
   receiptDate: 'Data nadania numeru KSeF',
   documentHash: 'Skrót dokumentu',
+  documents: 'Dokumenty',
   // footer
   page: 'Strona',
   of: 'z',

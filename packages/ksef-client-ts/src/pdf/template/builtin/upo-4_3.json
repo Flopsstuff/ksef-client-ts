@@ -10,33 +10,21 @@
     { "type": "header", "title": { "label": "upoTitle" } },
     { "type": "divider" },
     { "type": "spacer", "height": 10 },
+    { "type": "columns", "columns": [
+      { "type": "text", "label": "sessionRef", "style": "fieldLabel" },
+      { "type": "text", "path": "NumerReferencyjnySesji" }
+    ] },
+    { "type": "spacer", "height": 10 },
+    { "type": "text", "label": "documents", "style": "fieldLabel" },
     {
-      "type": "stack",
-      "stack": [
-        { "type": "columns", "columns": [
-          { "type": "text", "label": "sessionRef", "style": "fieldLabel" },
-          { "type": "text", "path": "NumerReferencyjnySesji" }
-        ] },
-        { "type": "columns", "columns": [
-          { "type": "text", "label": "ksefDocNumber", "style": "fieldLabel" },
-          { "type": "text", "path": "Dokument.NumerKSeFDokumentu" }
-        ] },
-        { "type": "columns", "columns": [
-          { "type": "text", "label": "invoiceNumber", "style": "fieldLabel" },
-          { "type": "text", "path": "Dokument.NumerFaktury" }
-        ] },
-        { "type": "columns", "columns": [
-          { "type": "text", "label": "issueDate", "style": "fieldLabel" },
-          { "type": "text", "path": "Dokument.DataWystawieniaFaktury", "format": "date" }
-        ] },
-        { "type": "columns", "columns": [
-          { "type": "text", "label": "receiptDate", "style": "fieldLabel" },
-          { "type": "text", "path": "Dokument.DataNadaniaNumeruKSeF", "format": "date" }
-        ] },
-        { "type": "columns", "columns": [
-          { "type": "text", "label": "documentHash", "style": "fieldLabel" },
-          { "type": "text", "path": "Dokument.SkrotDokumentu", "style": "muted" }
-        ] }
+      "type": "lines",
+      "from": "Dokument",
+      "columns": [
+        { "label": "ksefDocNumber", "path": "NumerKSeFDokumentu" },
+        { "label": "invoiceNumber", "path": "NumerFaktury" },
+        { "label": "issueDate", "path": "DataWystawieniaFaktury", "format": "date" },
+        { "label": "receiptDate", "path": "DataNadaniaNumeruKSeF", "format": "date" },
+        { "label": "documentHash", "path": "SkrotDokumentu" }
       ]
     }
   ]
