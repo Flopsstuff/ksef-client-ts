@@ -41,9 +41,17 @@ function missingError(): KSeFPdfError {
   );
 }
 
-/** True iff `version` satisfies `^0.2.20` — i.e. `0.2.x` with `x >= 20`. */
+/**
+ * True iff `version` satisfies `^0.2.20` — i.e. `0.2.x` with `x >= 20`.
+ *
+ * The pattern is anchored at both ends and admits build metadata but not a
+ * prerelease tag, which is what `^0.2.20` means: SemVer ranges exclude
+ * prereleases unless the comparator carries one of its own. Matching a numeric
+ * prefix alone let `0.2.20-beta.1` through the compatibility guard — a build
+ * the range does not accept and this renderer has not been tried against.
+ */
 export function satisfiesRequiredRange(version: string): boolean {
-  const m = /^(\d+)\.(\d+)\.(\d+)/.exec(version.trim());
+  const m = /^(\d+)\.(\d+)\.(\d+)(?:\+[0-9A-Za-z.-]+)?$/.exec(version.trim());
   if (!m) return false;
   const major = Number(m[1]);
   const minor = Number(m[2]);

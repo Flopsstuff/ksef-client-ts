@@ -39,6 +39,26 @@ describe('satisfiesRequiredRange', () => {
   it('rejects an empty string', () => {
     expect(satisfiesRequiredRange('')).toBe(false);
   });
+
+  // `^0.2.20` excludes prereleases: a SemVer range only admits them when the
+  // comparator carries a prerelease of its own. A build that calls itself
+  // 0.2.20-beta.1 is not a version this renderer has been tried against.
+  it('rejects a prerelease of an otherwise supported version', () => {
+    expect(satisfiesRequiredRange('0.2.20-beta.1')).toBe(false);
+    expect(satisfiesRequiredRange('0.2.21-rc.0')).toBe(false);
+    expect(satisfiesRequiredRange('0.3.0-alpha')).toBe(false);
+  });
+
+  it('accepts build metadata, which the range does admit', () => {
+    expect(satisfiesRequiredRange('0.2.20+build.5')).toBe(true);
+    expect(satisfiesRequiredRange('0.2.99+20260830')).toBe(true);
+  });
+
+  it('rejects a version with trailing junk', () => {
+    expect(satisfiesRequiredRange('0.2.20foo')).toBe(false);
+    expect(satisfiesRequiredRange('0.2.20.1')).toBe(false);
+    expect(satisfiesRequiredRange('v0.2.20')).toBe(false);
+  });
 });
 
 describe('normalizeVfs', () => {
