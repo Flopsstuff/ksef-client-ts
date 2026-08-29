@@ -8,11 +8,16 @@ import { resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.j
  * scalar binding).
  */
 export const annotationsRenderer: BlockRenderer<AnnotationsBlock> = (block, ctx) => {
+  // Bindings the schema declares optional are read leniently even under strict,
+  // as the lines, payment, table and totals renderers do. Without this a field
+  // the template marked optional still throws when the document omits it, which
+  // is the one thing the marker exists to prevent.
+  const lenientCtx = { ...ctx, strict: false };
+
   const stack: PdfNode[] = [{ text: ctx.label('annotations'), style: block.headingStyle ?? 'h2' }];
   for (const field of block.fields) {
-    stack.push({
-      text: `${ctx.label(field.label)}: ${applyFormat(resolveBinding(field.path, ctx), field.format)}`,
-    });
+    const value = resolveBinding(field.path, field.optional ? lenientCtx : ctx);
+    stack.push({ text: `${ctx.label(field.label)}: ${applyFormat(value, field.format)}` });
   }
 
   return {

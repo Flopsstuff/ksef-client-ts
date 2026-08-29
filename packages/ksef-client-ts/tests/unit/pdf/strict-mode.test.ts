@@ -106,6 +106,46 @@ describe('strict mode still catches a typo in a required binding', () => {
   });
 });
 
+/**
+ * `annotations` is a custom-template block — no built-in uses one — which is
+ * how it came to be the only field-bearing renderer that read every path
+ * strictly. Its fields take the same `optional` marker as every other block's,
+ * so they have to mean the same thing.
+ */
+describe('an annotations block honours the optional marker', () => {
+  const withAnnotations = (fields: FieldDef[]): InvoiceTemplate => ({
+    schema: 'FA(3)',
+    blocks: [{ type: 'annotations', fields }],
+  });
+
+  it('renders strict when a field the document omits is marked optional', async () => {
+    const template = withAnnotations([
+      { label: 'paid', path: 'Fa.Adnotacje.NieIstnieje', optional: true },
+    ]);
+    await expect(
+      renderInvoicePdfFromTemplate(fx('fa3.xml'), template, { strict: true }),
+    ).resolves.toBeInstanceOf(Uint8Array);
+  });
+
+  it('still throws strict on an unmarked field the document omits', async () => {
+    const template = withAnnotations([{ label: 'paid', path: 'Fa.Adnotacje.NieIstnieje' }]);
+    await expect(
+      renderInvoicePdfFromTemplate(fx('fa3.xml'), template, { strict: true }),
+    ).rejects.toThrow('Missing binding: "Fa.Adnotacje.NieIstnieje"');
+  });
+
+  it('renders either way without strict', async () => {
+    for (const optional of [true, undefined]) {
+      const template = withAnnotations([
+        { label: 'paid', path: 'Fa.Adnotacje.NieIstnieje', ...(optional ? { optional } : {}) },
+      ]);
+      await expect(
+        renderInvoicePdfFromTemplate(fx('fa3.xml'), template),
+      ).resolves.toBeInstanceOf(Uint8Array);
+    }
+  });
+});
+
 describe('the built-in templates mark the right bindings', () => {
   it.each(['fa2-default', 'fa3-default'])('%s polices the amount due', (name) => {
     const totals = getBuiltinTemplate(name)!.blocks.find((b) => b.type === 'totals') as TotalsBlock;
