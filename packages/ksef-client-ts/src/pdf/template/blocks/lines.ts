@@ -19,7 +19,7 @@ import { type BlockRenderer, type PdfNode } from '../interpret.js';
 export const linesRenderer: BlockRenderer<LinesBlock> = (block, ctx) => {
   const headerRow: PdfNode[] = block.columns.map((c) => ({ text: ctx.label(c.label), bold: true }));
   const bodyRows: PdfNode[][] = list(ctx.root, block.from).map((row) =>
-    block.columns.map((c) => ({ text: applyFormat(get(row, c.path, ctx.strict), c.format) })),
+    block.columns.map((c) => ({ text: applyFormat(get(row, c.path, c.optional ? false : ctx.strict), c.format) })),
   );
 
   return {

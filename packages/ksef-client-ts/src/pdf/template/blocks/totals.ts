@@ -14,12 +14,11 @@ import { evalWhen, resolveBinding, type BlockRenderer, type PdfNode } from '../i
  * rate bucket the schema allows and only the ones this invoice carries appear.
  */
 export const totalsRenderer: BlockRenderer<TotalsBlock> = (block, ctx) => {
-  // Every read here is non-strict, `sum` and `path` alike. A totals row prints
-  // only when its value resolves, so a template lists every bucket the schema
-  // allows and a real invoice fills one or two — an absent bucket is the normal
-  // case, not the dot-path typo `strict` hunts for. Typos in our own presets are
-  // caught instead by the built-in template lint, which requires the amount due
-  // and at least one bucket to resolve against the reference fixtures.
+  // A `sum` lists every bucket the schema allows and a real invoice fills one or
+  // two, so it is always read leniently. A `path` row honours `strict` unless
+  // the template marks it optional — which is how `Do zapłaty` stays policed:
+  // `P_15` has no optional ancestor in the FA schema, so its absence is a
+  // template typo or a broken document, never a normal invoice.
   const lenient = { ...ctx, strict: false };
 
   const body: PdfNode[][] = [];
@@ -27,7 +26,7 @@ export const totalsRenderer: BlockRenderer<TotalsBlock> = (block, ctx) => {
     if (!evalWhen(row.when, ctx)) continue;
     const raw = row.sum
       ? sumDecimal(row.sum.map((p) => resolveBinding(p, lenient)))
-      : resolveBinding(row.path ?? '', lenient);
+      : resolveBinding(row.path ?? '', row.optional ? lenient : ctx);
     const value = applyFormat(raw, row.format);
     // A row that resolves empty is skipped, as in `payment` and `parties`: a
     // template listing every rate bucket must not print a dangling label for

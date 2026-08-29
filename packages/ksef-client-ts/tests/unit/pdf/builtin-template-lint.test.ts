@@ -64,8 +64,11 @@ function collect(
           if ('fields' in field) {
             if (field.from !== undefined) acc.repeaters.push(field.from);
             walkFields(field.fields);
+          } else if ('firstOf' in field) {
+            acc.alternatives.push(field.firstOf);
           }
-          else acc.alternatives.push(field.firstOf);
+          // `{ path, optional }` is a plain binding; strict covers the ones that
+          // are not marked, and an optional one is absent by design.
         }
       };
       walkFields(block.left.fields);

@@ -32,6 +32,14 @@ export interface LabelRef {
 export interface FieldDef {
   label: string;
   path: string;
+  /**
+   * The document may legitimately omit this binding, so `strict` must not throw
+   * on it. Mark exactly the paths the KSeF schema declares optional: everything
+   * left unmarked is a field the document must carry, and a strict render turns
+   * its absence — almost always a dot-path typo — into an error instead of a
+   * blank line.
+   */
+  optional?: boolean;
   format?: FormatterName;
   style?: string;
 }
@@ -78,7 +86,11 @@ export interface HeaderBlock {
  * foreign buyer. Alternatives are read leniently — the ones that do not apply
  * are absent by design, not by mistake.
  */
-export type PartyField = string | { firstOf: string[] } | PartyGroup;
+export type PartyField =
+  | string
+  | { path: string; optional?: boolean }
+  | { firstOf: string[] }
+  | PartyGroup;
 
 /**
  * A labelled sub-group inside a party panel — the address, say. The label is a
@@ -128,6 +140,8 @@ export interface LinesBlock {
 export interface TotalsRow {
   label: string;
   path?: string;
+  /** See {@link FieldDef.optional}. A `sum` is always read leniently. */
+  optional?: boolean;
   /** Binding paths to add up; absent buckets are skipped. */
   sum?: string[];
   /**
@@ -296,6 +310,7 @@ const labelRef = z.object({ label: z.string().optional(), text: z.string().optio
 const partyField: z.ZodType<PartyField> = z.lazy(() =>
   z.union([
     z.string(),
+    z.object({ path: z.string(), optional: z.boolean().optional() }).strict(),
     z.object({ firstOf: z.array(z.string()).nonempty() }).strict(),
     z
       .object({
@@ -311,6 +326,7 @@ const fieldDef = z
   .object({
     label: z.string(),
     path: z.string(),
+    optional: z.boolean().optional(),
     format: formatEnum.optional(),
     style: z.string().optional(),
   })
@@ -320,6 +336,7 @@ const columnDef = z
   .object({
     label: z.string(),
     path: z.string(),
+    optional: z.boolean().optional(),
     format: formatEnum.optional(),
     style: z.string().optional(),
     width: z.union([z.number().positive(), z.literal('auto'), z.literal('*')]).optional(),
@@ -330,6 +347,7 @@ const totalsRow = z
   .object({
     label: z.string(),
     path: z.string().optional(),
+    optional: z.boolean().optional(),
     sum: z.array(z.string()).nonempty().optional(),
     when: z.string().optional(),
     format: formatEnum.optional(),

@@ -134,7 +134,9 @@ detectUpoVersion(xml);     // 'UPO(4.2)' | 'UPO(4.3)' | null
 | `bilingualSeparator` | `string` | Separator for the bilingual locales. Default `' / '`. |
 | `strict` | `boolean` | Throw on a missing binding instead of rendering an empty string. |
 
-`strict` covers the scalar bindings a template *prints*. It deliberately does not apply to `when` conditions or repeater `from` paths: the KSeF schemas make `Platnosc` and `RachunekBankowy` optional, so an absent node there is a cash-paid invoice rather than a template mistake, and throwing would reject valid documents. Typos in those paths are caught for the built-in templates by a lint that resolves every `when` and `from` against the reference fixtures.
+`strict` polices the scalar bindings a template prints — a misspelled path throws instead of leaving a blank line. A binding the document may legitimately omit is exempted by marking it `optional` in the template, and the built-in templates mark exactly the paths the FA schema declares optional. `Fa.P_15` is not one of them: an invoice always states its amount due, so a strict render still catches a typo there.
+
+It deliberately does not apply to `when` conditions, repeater `from` paths, `firstOf` alternatives or `sum` members: those are sets where absence is the normal case, not a mistake. Typos in them are caught for the built-in templates by a lint that resolves every such path against the reference fixtures.
 | `invoiceHash` | `string` | Precomputed canonical invoice hash (base64), used verbatim for the QR. |
 
 ---
@@ -183,6 +185,7 @@ The `schema` field binds a template to a single document kind. If you render an 
 - **`label`** references an i18n label key resolved per locale; **`text`** is a literal string printed as-is.
 - **`when`** conditionally renders a block against a presence test. It accepts a binding path (e.g. `Fa.Platnosc`) or a context flag: `qr`, `offline`, `hasKsefNumber`.
 - **`format`** names a value formatter: `money`, `date`, `number`, or `nip`.
+- **`optional`** marks a binding the document may legitimately omit, exempting it from `strict`. Mark exactly what the schema declares optional — everything left unmarked is a field the document must carry.
 - **`firstOf`** (party fields only) prints the first of several paths that resolves. KSeF identifies a counterparty by exactly one of `NIP`, `NrVatUE` or `NrID` depending on where they are established, so the built-in templates bind the buyer's identifier this way; a panel bound to `NIP` alone has nothing to print for a foreign buyer.
 - **`width`** (table columns only) sizes a column: a number of points, `'auto'` to fit the content, or `'*'` to share out what is left (the default). Sizing is worth setting explicitly — pdfmake gives every `'*'` column the *same* width and never shrinks it below the widest minimum content width among them, so a single long unbreakable token silently widens the whole table past the page edge.
 - **`sum`** (totals rows only) adds several binding paths instead of reading one. A KSeF invoice has no single net or VAT total — the amounts are split across the `P_13_*` and `P_14_*` rate buckets, with zero-rated sales split three further ways (`P_13_6_1` domestic, `P_13_6_2` intra-EU supply, `P_13_6_3` export) — so the built-in templates aggregate them. Absent buckets are skipped, and the addition is decimal-exact. A totals row takes either `path` or `sum`, never both.

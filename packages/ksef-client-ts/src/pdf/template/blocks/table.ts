@@ -17,6 +17,8 @@ import { resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.j
  * share) under a light horizontal-line layout.
  */
 export const tableRenderer: BlockRenderer<TableBlock> = (block, ctx) => {
+  // Bindings the schema declares optional are read leniently even under strict.
+  const lenientCtx = { ...ctx, strict: false };
   const { columns } = block;
   const showHeaders = block.headers !== false;
   const body: PdfNode[][] = [];
@@ -27,10 +29,10 @@ export const tableRenderer: BlockRenderer<TableBlock> = (block, ctx) => {
 
   if (block.from !== undefined) {
     for (const row of list(ctx.root, block.from)) {
-      body.push(columns.map((col) => ({ text: applyFormat(get(row, col.path, ctx.strict), col.format) })));
+      body.push(columns.map((col) => ({ text: applyFormat(get(row, col.path, col.optional ? false : ctx.strict), col.format) })));
     }
   } else {
-    body.push(columns.map((col) => ({ text: applyFormat(resolveBinding(col.path, ctx), col.format) })));
+    body.push(columns.map((col) => ({ text: applyFormat(resolveBinding(col.path, col.optional ? lenientCtx : ctx), col.format) })));
   }
 
   const node: Record<string, unknown> = {

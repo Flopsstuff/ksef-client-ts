@@ -32,7 +32,11 @@
           {
             "label": "address",
             "style": "partyAddress",
-            "fields": ["Podmiot1.Adres.AdresL1", "Podmiot1.Adres.AdresL2", "Podmiot1.Adres.KodKraju"]
+            "fields": [
+              "Podmiot1.Adres.AdresL1",
+              { "path": "Podmiot1.Adres.AdresL2", "optional": true },
+              "Podmiot1.Adres.KodKraju"
+            ]
           },
           {
             "label": "contact",
@@ -56,7 +60,11 @@
           {
             "label": "address",
             "style": "partyAddress",
-            "fields": ["Podmiot2.Adres.AdresL1", "Podmiot2.Adres.AdresL2", "Podmiot2.Adres.KodKraju"]
+            "fields": [
+              "Podmiot2.Adres.AdresL1",
+              { "path": "Podmiot2.Adres.AdresL2", "optional": true },
+              "Podmiot2.Adres.KodKraju"
+            ]
           },
           {
             "label": "contact",
@@ -73,36 +81,60 @@
       "from": "Fa.FaWiersz",
       "columns": [
         { "label": "lp", "path": "NrWierszaFa", "width": 24 },
-        { "label": "name", "path": "P_7", "width": "*" },
-        { "label": "unit", "path": "P_8A", "width": 24 },
-        { "label": "qty", "path": "P_8B", "format": "number", "width": 24 },
-        { "label": "unitPrice", "path": "P_9A", "format": "money", "width": 50 },
-        { "label": "vatRate", "path": "P_12", "width": 50 },
-        { "label": "net", "path": "P_11", "format": "money", "width": 60 }
+        { "label": "name", "path": "P_7", "width": "*", "optional": true },
+        { "label": "unit", "path": "P_8A", "width": 24, "optional": true },
+        { "label": "qty", "path": "P_8B", "format": "number", "width": 24, "optional": true },
+        { "label": "unitPrice", "path": "P_9A", "format": "money", "width": 50, "optional": true },
+        { "label": "vatRate", "path": "P_12", "width": 50, "optional": true },
+        { "label": "net", "path": "P_11", "format": "money", "width": 60, "optional": true }
       ]
     },
     { "type": "spacer", "height": 21 },
     {
       "type": "totals",
       "rows": [
-        { "label": "net23", "path": "Fa.P_13_1", "when": "totalsBuckets", "format": "money" },
-        { "label": "vat23", "path": "Fa.P_14_1", "when": "totalsBuckets", "format": "money" },
-        { "label": "net8", "path": "Fa.P_13_2", "when": "totalsBuckets", "format": "money" },
-        { "label": "vat8", "path": "Fa.P_14_2", "when": "totalsBuckets", "format": "money" },
-        { "label": "net5", "path": "Fa.P_13_3", "when": "totalsBuckets", "format": "money" },
-        { "label": "vat5", "path": "Fa.P_14_3", "when": "totalsBuckets", "format": "money" },
-        { "label": "net4", "path": "Fa.P_13_4", "when": "totalsBuckets", "format": "money" },
-        { "label": "vat4", "path": "Fa.P_14_4", "when": "totalsBuckets", "format": "money" },
-        { "label": "netSpecial", "path": "Fa.P_13_5", "when": "totalsBuckets", "format": "money" },
-        { "label": "vatSpecial", "path": "Fa.P_14_5", "when": "totalsBuckets", "format": "money" },
-        { "label": "net0Domestic", "path": "Fa.P_13_6_1", "when": "totalsBuckets", "format": "money" },
-        { "label": "net0Wdt", "path": "Fa.P_13_6_2", "when": "totalsBuckets", "format": "money" },
-        { "label": "net0Export", "path": "Fa.P_13_6_3", "when": "totalsBuckets", "format": "money" },
-        { "label": "netExempt", "path": "Fa.P_13_7", "when": "totalsBuckets", "format": "money" },
-        { "label": "netOutsideTerritory", "path": "Fa.P_13_8", "when": "totalsBuckets", "format": "money" },
-        { "label": "netArticle100", "path": "Fa.P_13_9", "when": "totalsBuckets", "format": "money" },
-        { "label": "netReverseCharge", "path": "Fa.P_13_10", "when": "totalsBuckets", "format": "money" },
-        { "label": "netMargin", "path": "Fa.P_13_11", "when": "totalsBuckets", "format": "money" },
+        { "label": "net23", "path": "Fa.P_13_1", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "vat23", "path": "Fa.P_14_1", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "net8", "path": "Fa.P_13_2", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "vat8", "path": "Fa.P_14_2", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "net5", "path": "Fa.P_13_3", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "vat5", "path": "Fa.P_14_3", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "net4", "path": "Fa.P_13_4", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "vat4", "path": "Fa.P_14_4", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "netSpecial", "path": "Fa.P_13_5", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "vatSpecial", "path": "Fa.P_14_5", "when": "totalsBuckets", "format": "money", "optional": true },
+        {
+          "label": "net0Domestic",
+          "path": "Fa.P_13_6_1",
+          "when": "totalsBuckets",
+          "format": "money",
+          "optional": true
+        },
+        { "label": "net0Wdt", "path": "Fa.P_13_6_2", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "net0Export", "path": "Fa.P_13_6_3", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "netExempt", "path": "Fa.P_13_7", "when": "totalsBuckets", "format": "money", "optional": true },
+        {
+          "label": "netOutsideTerritory",
+          "path": "Fa.P_13_8",
+          "when": "totalsBuckets",
+          "format": "money",
+          "optional": true
+        },
+        {
+          "label": "netArticle100",
+          "path": "Fa.P_13_9",
+          "when": "totalsBuckets",
+          "format": "money",
+          "optional": true
+        },
+        {
+          "label": "netReverseCharge",
+          "path": "Fa.P_13_10",
+          "when": "totalsBuckets",
+          "format": "money",
+          "optional": true
+        },
+        { "label": "netMargin", "path": "Fa.P_13_11", "when": "totalsBuckets", "format": "money", "optional": true },
         {
           "label": "totalNet",
           "sum": [
@@ -137,17 +169,17 @@
       "type": "payment",
       "when": "Fa.Platnosc",
       "rows": [
-        { "label": "paid", "path": "Fa.Platnosc.Zaplacono" },
-        { "label": "paymentDate", "path": "Fa.Platnosc.TerminPlatnosci.Termin", "format": "date" },
-        { "label": "paymentMethod", "path": "Fa.Platnosc.FormaPlatnosci", "format": "paymentForm" }
+        { "label": "paid", "path": "Fa.Platnosc.Zaplacono", "optional": true },
+        { "label": "paymentDate", "path": "Fa.Platnosc.TerminPlatnosci.Termin", "format": "date", "optional": true },
+        { "label": "paymentMethod", "path": "Fa.Platnosc.FormaPlatnosci", "format": "paymentForm", "optional": true }
       ],
       "accounts": {
         "from": "Fa.Platnosc.RachunekBankowy",
         "heading": "bankAccounts",
         "fields": [
           { "label": "bankAccount", "path": "NrRB" },
-          { "label": "swift", "path": "SWIFT" },
-          { "label": "bankName", "path": "NazwaBanku" }
+          { "label": "swift", "path": "SWIFT", "optional": true },
+          { "label": "bankName", "path": "NazwaBanku", "optional": true }
         ]
       }
     },

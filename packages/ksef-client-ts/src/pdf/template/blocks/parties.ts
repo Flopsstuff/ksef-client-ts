@@ -32,8 +32,13 @@ function isGroup(field: PartyField): field is PartyGroup {
 export const partiesRenderer: BlockRenderer<PartiesBlock> = (block, ctx) => {
   const at = (root: unknown, strict = ctx.strict): RenderContext => ({ ...ctx, root, strict });
 
-  const resolveValue = (field: string | { firstOf: string[] }, root: unknown, strict: boolean): string => {
+  const resolveValue = (
+    field: string | { path: string; optional?: boolean } | { firstOf: string[] },
+    root: unknown,
+    strict: boolean,
+  ): string => {
     if (typeof field === 'string') return resolveBinding(field, at(root, strict));
+    if ('path' in field) return resolveBinding(field.path, at(root, field.optional ? false : strict));
     for (const path of field.firstOf) {
       const value = resolveBinding(path, at(root, false));
       if (value) return value;

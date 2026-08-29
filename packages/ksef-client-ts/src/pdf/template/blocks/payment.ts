@@ -17,10 +17,12 @@ import { resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.j
  * interpreter, so this renderer always emits its content.
  */
 export const paymentRenderer: BlockRenderer<PaymentBlock> = (block, ctx) => {
+  // Bindings the schema declares optional are read leniently even under strict.
+  const lenientCtx = { ...ctx, strict: false };
   const stack: PdfNode[] = [{ text: ctx.label('payment'), style: 'h2' }];
 
   for (const row of block.rows) {
-    const value = applyFormat(resolveBinding(row.path, ctx), row.format);
+    const value = applyFormat(resolveBinding(row.path, row.optional ? lenientCtx : ctx), row.format);
     if (value === '') continue;
     stack.push({ text: `${ctx.label(row.label)}: ${value}` });
   }
@@ -29,7 +31,7 @@ export const paymentRenderer: BlockRenderer<PaymentBlock> = (block, ctx) => {
     const lines: PdfNode[] = [];
     for (const account of list(ctx.root, block.accounts.from)) {
       for (const field of block.accounts.fields) {
-        const value = applyFormat(get(account, field.path, ctx.strict), field.format);
+        const value = applyFormat(get(account, field.path, field.optional ? false : ctx.strict), field.format);
         if (value === '') continue;
         lines.push({ text: `${ctx.label(field.label)}: ${value}` });
       }
