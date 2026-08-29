@@ -12,6 +12,7 @@
     "payment": "PŁATNOŚĆ",
     "bankAccounts": "rachunek",
     "totalDue": "DO ZAPŁATY",
+    "currency": "waluta",
     "verifyInKsef": "ZWERYFIKUJ W KSeF",
     "openLink": "otwórz"
   },
@@ -140,7 +141,8 @@
           "when": "totalsSummary",
           "format": "money"
         },
-        { "label": "totalDue", "path": "Fa.P_15", "format": "money" }
+        { "label": "totalDue", "path": "Fa.P_15", "format": "money" },
+        { "label": "currency", "path": "Fa.KodWaluty" }
       ]
     },
     { "type": "spacer", "height": 4 },

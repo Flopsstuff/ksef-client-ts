@@ -168,7 +168,8 @@
           "when": "totalsSummary",
           "format": "money"
         },
-        { "label": "totalDue", "path": "Fa.P_15", "format": "money" }
+        { "label": "totalDue", "path": "Fa.P_15", "format": "money" },
+        { "label": "currency", "path": "Fa.KodWaluty" }
       ]
     },
     { "type": "spacer", "height": 21 },

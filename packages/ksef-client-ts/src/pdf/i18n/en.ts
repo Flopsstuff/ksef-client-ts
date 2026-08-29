@@ -43,6 +43,7 @@ export const en: LabelBundle = {
   totalNet: 'Total net',
   totalVat: 'Total VAT',
   totalDue: 'Amount due',
+  currency: 'Currency',
   payment: 'Payment',
   paid: 'Paid',
   paymentDate: 'Payment due',

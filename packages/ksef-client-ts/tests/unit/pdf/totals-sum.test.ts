@@ -9,6 +9,9 @@ import { blockRegistry } from '../../../src/pdf/template/blocks/index.js';
 import { makeLabelResolver } from '../../../src/pdf/i18n/index.js';
 
 const fa3 = readFileSync(new URL('../../fixtures/pdf/fa3.xml', import.meta.url), 'utf8');
+const fa2 = readFileSync(new URL('../../fixtures/pdf/fa2.xml', import.meta.url), 'utf8');
+/** Settled in EUR — the case where an unqualified amount misleads. */
+const eurInvoice = readFileSync(new URL('../../fixtures/pdf/e2e-buyer-no-id.xml', import.meta.url), 'utf8');
 
 /** 23% + 8% + exempt, so every totals mode has something to show. */
 const mixedRate = fa3
@@ -142,7 +145,10 @@ describe('built-in totals aggregate every VAT bucket', () => {
 
 describe('the totals mode selects what a reader gets', () => {
   it('none: the amount due and nothing else', () => {
-    expect(totalsRows(mixedRate, 'fa3-default', 'none')).toEqual([['Amount due', '881,00']]);
+    expect(totalsRows(mixedRate, 'fa3-default', 'none')).toEqual([
+      ['Amount due', '881,00'],
+      ['Currency', 'PLN'],
+    ]);
   });
 
   it('buckets: one row per bucket the invoice carries, nothing computed', () => {
@@ -153,6 +159,7 @@ describe('the totals mode selects what a reader gets', () => {
       ['VAT 8%', '16,00'],
       ['Net exempt', '50,00'],
       ['Amount due', '881,00'],
+      ['Currency', 'PLN'],
     ]);
   });
 
@@ -161,6 +168,7 @@ describe('the totals mode selects what a reader gets', () => {
       ['Total net', '750,00'],
       ['Total VAT', '131,00'],
       ['Amount due', '881,00'],
+      ['Currency', 'PLN'],
     ]);
   });
 
@@ -168,18 +176,38 @@ describe('the totals mode selects what a reader gets', () => {
     const rows = totalsRows(mixedRate, 'fa3-default', 'both');
     expect(rows.map(([l]) => l)).toEqual([
       'Net 23%', 'VAT 23%', 'Net 8%', 'VAT 8%', 'Net exempt', 'Total net', 'Total VAT', 'Amount due',
+      'Currency',
     ]);
   });
 
   it('never prints a bucket the invoice does not carry', () => {
     const rows = totalsRows(fa3, 'fa3-default', 'both');
-    expect(rows.map(([l]) => l)).toEqual(['Net 23%', 'VAT 23%', 'Total net', 'Total VAT', 'Amount due']);
+    expect(rows.map(([l]) => l)).toEqual([
+      'Net 23%', 'VAT 23%', 'Total net', 'Total VAT', 'Amount due', 'Currency',
+    ]);
   });
 
   it('shows the amount due in every mode', () => {
     for (const mode of ['none', 'buckets', 'summary', 'both'] as const) {
       expect(valueOf(totalsRows(mixedRate, 'fa3-default', mode), 'Amount due'), mode).toBe('881,00');
     }
+  });
+
+  // Money is printed unqualified, so without the currency an invoice settled in
+  // EUR reads as one settled in PLN. KodWaluty is mandatory in both schemas, so
+  // every invoice can say which it is, in every mode.
+  it('names the currency in every mode and every invoice built-in', () => {
+    for (const template of ['fa2-default', 'fa3-default', 'fa3-showcase'] as const) {
+      const xml = template === 'fa2-default' ? fa2 : fa3;
+      for (const mode of ['none', 'buckets', 'summary', 'both'] as const) {
+        const rows = totalsRows(xml, template, mode);
+        expect(valueOf(rows, 'Currency'), `${template}/${mode}`).toBe('PLN');
+      }
+    }
+  });
+
+  it('prints the invoice currency, not an assumed one', () => {
+    expect(valueOf(totalsRows(eurInvoice, 'fa3-default'), 'Currency')).toBe('EUR');
   });
 });
 
