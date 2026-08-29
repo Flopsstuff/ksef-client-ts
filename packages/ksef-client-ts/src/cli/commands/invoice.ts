@@ -659,7 +659,7 @@ const pdf = defineCommand({
     ksefNumber: { type: 'string', description: 'KSeF number to print (absent → marked OFFLINE)' },
     upo: { type: 'boolean', description: 'Treat the input as a UPO document (otherwise auto-detected)' },
     logo: { type: 'string', description: 'Path to a logo image (PNG/JPEG) to print in the header' },
-    accent: { type: 'string', description: 'Accent colour for the title and headings, as hex (e.g. #B00043)' },
+    accent: { type: 'string', description: 'Accent colour for the title and headings, as hex (e.g. #5AB595)' },
     totals: { type: 'string', description: 'Tax breakdown above the amount due: none | buckets (as recorded) | summary (computed) | both (default: buckets)' },
     notes: { type: 'string', description: 'Path to a JSON file with extra sections: [{ "head": "…", "body": "…" }, …]' },
     env: { type: 'string', description: 'Environment for the QR base URL (test/demo/prod)' },
@@ -687,7 +687,7 @@ const pdf = defineCommand({
 
       const accent = args.accent as string | undefined;
       if (accent !== undefined && !HEX_COLOUR.test(accent)) {
-        throw new Error(`Invalid --accent "${accent}". Expected a hex colour such as #B00043 or #b04.`);
+        throw new Error(`Invalid --accent "${accent}". Expected a hex colour such as #5AB595 or #b04.`);
       }
 
       const env = args.env as 'prod' | 'test' | 'demo' | undefined;

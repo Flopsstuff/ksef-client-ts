@@ -50,25 +50,25 @@ describe('theme.accent', () => {
   });
 
   it('repaints the title and both heading levels', async () => {
-    await renderInvoicePdf(fa3, 'fa3-default', { theme: { accent: '#B00043' } });
+    await renderInvoicePdf(fa3, 'fa3-default', { theme: { accent: '#5AB595' } });
     const styles = lastStyles();
-    expect(styles.title?.color).toBe('#B00043');
-    expect(styles.h1?.color).toBe('#B00043');
-    expect(styles.h2?.color).toBe('#B00043');
+    expect(styles.title?.color).toBe('#5AB595');
+    expect(styles.h1?.color).toBe('#5AB595');
+    expect(styles.h2?.color).toBe('#5AB595');
   });
 
   it('keeps every other property of the styles it repaints', async () => {
     await renderInvoicePdf(fa3, 'fa3-default');
     const before = lastStyles();
-    await renderInvoicePdf(fa3, 'fa3-default', { theme: { accent: '#B00043' } });
+    await renderInvoicePdf(fa3, 'fa3-default', { theme: { accent: '#5AB595' } });
     const after = lastStyles();
-    expect(after.h1).toEqual({ ...before.h1, color: '#B00043' });
+    expect(after.h1).toEqual({ ...before.h1, color: '#5AB595' });
   });
 
   it('leaves styles it does not own alone', async () => {
     await renderInvoicePdf(fa3, 'fa3-default');
     const before = lastStyles();
-    await renderInvoicePdf(fa3, 'fa3-default', { theme: { accent: '#B00043' } });
+    await renderInvoicePdf(fa3, 'fa3-default', { theme: { accent: '#5AB595' } });
     expect(lastStyles().muted).toEqual(before.muted);
   });
 

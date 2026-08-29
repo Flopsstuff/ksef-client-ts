@@ -389,7 +389,7 @@ ksef invoice pdf upo.xml --upo
 ksef invoice pdf upo.xml --template-file ./templates/my-upo.json
 
 # Your own logo and accent colour
-ksef invoice pdf invoice.xml --logo ./brand/logo.png --accent '#B00043'
+ksef invoice pdf invoice.xml --logo ./brand/logo.png --accent '#5AB595'
 ```
 
 | Flag | Description |
@@ -405,7 +405,7 @@ ksef invoice pdf invoice.xml --logo ./brand/logo.png --accent '#B00043'
 | `--totals <none\|buckets\|summary\|both>` | Tax breakdown above the amount due (default `buckets`) |
 | `--notes <path>` | JSON file of extra sections: `[{ "head": …, "body": … }]` |
 | `--logo <path>` | Logo image printed in the header — PNG or JPEG |
-| `--accent <hex>` | Accent colour for the title and headings, e.g. `#B00043` |
+| `--accent <hex>` | Accent colour for the title and headings, e.g. `#5AB595` |
 | `--upo` | Treat the input as a UPO document (otherwise auto-detected); ignored when a template is named explicitly |
 | `--env <prod\|test\|demo>` | Environment for the QR base URL |
 | `--out <path>` | Output PDF path (default: alongside the source) |

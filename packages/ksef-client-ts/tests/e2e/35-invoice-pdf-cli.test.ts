@@ -136,6 +136,9 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
   });
 
   const LOGO = () => ['--logo', fx('e2e-logo.png')];
+  /** The two hex forms the flag accepts, so the preview set exercises both. */
+  const ACCENT = '#5AB595';
+  const ACCENT_SHORT = '#b04';
   const SUPPLIED_CODE_I = `${DEMO_QR_HOST}/invoice/1111111111/15-01-2026/SUPPLIED-VERBATIM`;
 
   /** The mixed-rate document with the flags every totals variant shares. */
@@ -143,8 +146,9 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
 
   /**
    * The preview set, laid out as a covering design rather than one variant per
-   * feature. Eight dimensions are in play — document, locale, which QR codes,
-   * links, logo, KSeF number, totals mode, and where Code I comes from — and a
+   * feature. Nine dimensions are in play — document, locale, which QR codes,
+   * links, logo, KSeF number, totals mode, accent colour, and where Code I
+   * comes from — and a
    * row per combination would be hundreds of PDFs nobody looks at. Instead each
    * row varies several at once so that every value of every dimension appears,
    * and the pairs that actually interact are covered.
@@ -153,23 +157,23 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
    * totals modes only mean anything compared side by side, so those five hold
    * every other flag identical and vary one thing.
    *
-   *   #   document      locale  QR     links  logo  KSeF nr  totals
-   *   01  services-np   pl      I      no     yes   yes      buckets
-   *   02  fa3           en      I      yes    no    yes      summary   (Code I supplied)
-   *   03  buyer-no-id   uk      II     yes    yes   no       both
-   *   04  vat-multi     en+pl   II     no     no    no       none
-   *   05  vat-multi     pl+uk   both   yes    yes   no       both      (+ notes)
+   *   #   document      locale  QR     links  logo  KSeF nr  totals   accent
+   *   01  services-np   pl      I      no     yes   yes      buckets  #5AB595
+   *   02  fa3           en      I      yes    no    yes      summary  no       (Code I supplied)
+   *   03  buyer-no-id   uk      II     yes    yes   no       both     no
+   *   04  vat-multi     en+pl   II     no     no    no       none     no
+   *   05  vat-multi     pl+uk   both   yes    yes   no       both     no       (+ notes)
    *
    * What each row is there to show, beyond its share of the grid: 01 the
-   * everyday online invoice; 02 an invoice whose Code I URL was handed over
-   * ready-made; 03 a foreign buyer with no NIP, issued offline; 04 and 05 the
-   * layout cases — one code absent, then both present — where the codes must
-   * stay against the right margin.
+   * everyday online invoice, and the accent against the default palette; 02 an
+   * invoice whose Code I URL was handed over ready-made; 03 a foreign buyer
+   * with no NIP, issued offline; 04 and 05 the layout cases — one code absent,
+   * then both present — where the codes must stay against the right margin.
    */
   const variants: Array<[name: string, args: () => string[]]> = [
-    [`${PREFIX}-01-invoice-pl-code-i`, () => [
+    [`${PREFIX}-01-invoice-pl-code-i-accent`, () => [
       fx('e2e-services-np.xml'), '--ksef-number', KSEF_NUMBER, ...LOGO(),
-      '--env', 'demo', '--qr', '--totals', 'buckets',
+      '--env', 'demo', '--qr', '--totals', 'buckets', '--accent', ACCENT,
     ]],
     [`${PREFIX}-02-invoice-en-supplied-code-i-links`, () => [
       fx('fa3.xml'), '--ksef-number', KSEF_NUMBER, '--locale', 'en',
@@ -189,9 +193,11 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
       '--notes', notesFile,
     ]],
     // Every totals mode on one mixed-rate document (23% + 8% + exempt), so the
-    // four can be compared page by page. Same flags throughout — only --totals
-    // differs, and the amount due must appear in all of them.
-    [`${PREFIX}-06-totals-none`, () => [...mixedVat(), '--totals', 'none']],
+    // four can be compared page by page. Only --totals differs between them —
+    // and the accent on 06, which is safe here because it reaches the title and
+    // the section headings, never the totals rows the group exists to compare.
+    // The amount due must appear in all of them.
+    [`${PREFIX}-06-totals-none-accent`, () => [...mixedVat(), '--totals', 'none', '--accent', ACCENT]],
     [`${PREFIX}-07-totals-buckets`, () => [...mixedVat(), '--totals', 'buckets']],
     [`${PREFIX}-08-totals-summary`, () => [...mixedVat(), '--totals', 'summary']],
     [`${PREFIX}-09-totals-both`, () => [...mixedVat(), '--totals', 'both']],
@@ -203,10 +209,13 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     // exercise the DSL — palette, letter spacing, highlighted text, colour bars
     // drawn as data-URI images. Rendered with everything switched on, so a DSL
     // change that breaks it is visible rather than discovered by a reader.
-    [`${PREFIX}-11-showcase-template`, () => [
+    // It also carries the accent, in its short hex form: this template sets its
+    // own heading colours, so it is the page that shows whether an accent wins
+    // over a template's palette.
+    [`${PREFIX}-11-showcase-template-accent`, () => [
       fx('e2e-vat-multi.xml'), '--template', 'fa3-showcase', ...LOGO(),
       '--env', 'demo', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links',
-      '--totals', 'both', '--notes', notesFile,
+      '--totals', 'both', '--notes', notesFile, '--accent', ACCENT_SHORT,
     ]],
     // Receipts last: they are a different document and read as their own group.
     [`${PREFIX}-12-upo-pl`, () => [fx('upo-4_3.xml')]],
@@ -239,11 +248,15 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     expect(covered('--template '), 'a built-in is never selected by name').toBe(true);
     expect(covered('--notes'), 'caller-supplied notes are never printed').toBe(true);
     expect(covered('--logo'), 'the logo is never printed').toBe(true);
+    for (const accent of ['#5AB595', '#b04']) {
+      expect(covered(`--accent ${accent}`), `no variant renders with accent ${accent}`).toBe(true);
+    }
     // The absences matter as much: a Polish default locale, an invoice with no
     // logo, and one still waiting for its KSeF number.
     expect(args.some((a) => !a.includes('--locale')), 'nothing renders in the default locale').toBe(true);
     expect(args.some((a) => !a.includes('--logo')), 'nothing renders without a logo').toBe(true);
     expect(args.some((a) => !a.includes('--ksef-number')), 'nothing renders as OFFLINE').toBe(true);
+    expect(args.some((a) => !a.includes('--accent')), 'nothing renders in the default colours').toBe(true);
   });
 
   it.each(variants)('renders %s', (name, args) => {
@@ -287,16 +300,6 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     expect(res.status).not.toBe(0);
     expect(`${res.stdout}${res.stderr}`).toMatch(/Invalid --accent/);
     expect(existsSync(out)).toBe(false);
-  });
-
-  it('accepts both hex forms of an accent colour', () => {
-    for (const accent of ['#B00043', '#b04']) {
-      // Prefixed so this spec's own cleanup owns the file, as the header requires.
-      const out = join(outDir, `${PREFIX}-accent-${accent.slice(1)}.pdf`);
-      const res = run(['invoice', 'pdf', fx('fa3.xml'), '--accent', accent, '--out', out]);
-      expect(res.status, `exit ${res.status}\n${res.stderr}`).toBe(0);
-      expect(isCompletePdf(out), `${out} is not a complete PDF`).toBe(true);
-    }
   });
 
   // pdfmake draws PNG and JPEG and nothing else, so a vector or animated logo

@@ -25,16 +25,16 @@
   </Podmiot1>
   <Podmiot2>
     <DaneIdentyfikacyjne>
-      <NrID>REG-000123</NrID>
-      <Nazwa>Example Overseas Ltd</Nazwa>
+      <NrID>GB-000123</NrID>
+      <Nazwa>Example Trading Ltd</Nazwa>
     </DaneIdentyfikacyjne>
     <Adres>
-      <KodKraju>KY</KodKraju>
-      <AdresL1>1 Example Bay Road, 3rd Floor - Suite 100, P.O. Box 10000</AdresL1>
-      <AdresL2>Grand Cayman, Cayman Islands</AdresL2>
+      <KodKraju>GB</KodKraju>
+      <AdresL1>12 Example Street, Floor 3</AdresL1>
+      <AdresL2>London EC1A 1BB, United Kingdom</AdresL2>
     </Adres>
     <DaneKontaktowe>
-      <Email>ap@overseas.example</Email>
+      <Email>accounts@trading.example</Email>
     </DaneKontaktowe>
     <JST>2</JST>
     <GV>2</GV>
@@ -45,8 +45,8 @@
     <P_1M>Warszawa</P_1M>
     <P_2>FIX/NP/2026/001</P_2>
     <P_6>2026-01-15</P_6>
-    <P_13_8>6966.00</P_13_8>
-    <P_15>6966.00</P_15>
+    <P_13_8>800.00</P_13_8>
+    <P_15>800.00</P_15>
     <Adnotacje>
       <P_16>2</P_16>
       <P_17>2</P_17>
@@ -66,22 +66,22 @@
     <RodzajFaktury>VAT</RodzajFaktury>
     <FaWiersz>
       <NrWierszaFa>1</NrWierszaFa>
-      <P_7>Software development services according to Master Services Agreement</P_7>
-      <Indeks>PKD 62.01.Z</Indeks>
-      <PKWiU>62.01.11.0</PKWiU>
-      <P_8A>h</P_8A>
-      <P_8B>174</P_8B>
-      <P_9A>39.00</P_9A>
-      <P_11>6786.00</P_11>
+      <P_7>Kalibracja urzadzen pomiarowych / Calibration of measuring equipment</P_7>
+      <Indeks>PKD 71.20.B</Indeks>
+      <PKWiU>71.20.19.0</PKWiU>
+      <P_8A>szt</P_8A>
+      <P_8B>20</P_8B>
+      <P_9A>20.00</P_9A>
+      <P_11>400.00</P_11>
       <P_12>np I</P_12>
     </FaWiersz>
     <FaWiersz>
       <NrWierszaFa>2</NrWierszaFa>
-      <P_7>Tooling compensation / Kompensacja narzedzi</P_7>
+      <P_7>Przeglad techniczny sprzetu / Technical inspection of equipment</P_7>
       <P_8A>szt</P_8A>
-      <P_8B>1</P_8B>
-      <P_9A>180.00</P_9A>
-      <P_11>180.00</P_11>
+      <P_8B>20</P_8B>
+      <P_9A>20.00</P_9A>
+      <P_11>400.00</P_11>
       <P_12>np I</P_12>
     </FaWiersz>
     <Platnosc>
