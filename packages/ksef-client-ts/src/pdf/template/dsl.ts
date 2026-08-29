@@ -261,7 +261,13 @@ export interface PaymentBlock {
  */
 export interface NotesBlock {
   type: 'notes';
-  /** See {@link HEADING_STYLE_DOC}. Applies to each note's heading. */
+  /**
+   * See {@link HEADING_STYLE_DOC}. Styles the section's own heading. Each
+   * note's title sits one level below that and is not configurable — a note is
+   * a sub-heading inside the section, the way `Adres` sits under `Sprzedawca`,
+   * and letting a template raise it would put the notes above the section that
+   * holds them.
+   */
   headingStyle?: string;
   style?: string;
 }
