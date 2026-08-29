@@ -132,6 +132,8 @@ detectUpoVersion(xml);     // 'UPO(4.2)' | 'UPO(4.3)' | null
 | `theme` | `{ accent?: string }` | Accent colour. |
 | `bilingualSeparator` | `string` | Separator for the `pl+en` locale. Default `' / '`. |
 | `strict` | `boolean` | Throw on a missing binding instead of rendering an empty string. |
+
+`strict` covers the scalar bindings a template *prints*. It deliberately does not apply to `when` conditions or repeater `from` paths: the KSeF schemas make `Platnosc` and `RachunekBankowy` optional, so an absent node there is a cash-paid invoice rather than a template mistake, and throwing would reject valid documents. Typos in those paths are caught for the built-in templates by a lint that resolves every `when` and `from` against the reference fixtures.
 | `invoiceHash` | `string` | Precomputed canonical invoice hash (base64), used verbatim for the QR. |
 
 ---

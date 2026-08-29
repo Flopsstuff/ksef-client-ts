@@ -1,0 +1,98 @@
+import { readFileSync } from 'node:fs';
+import { describe, it, expect } from 'vitest';
+import { has, list } from '../../../src/pdf/accessor.js';
+import { parseXmlForPdf } from '../../../src/pdf/parse.js';
+import { getBuiltinTemplate, builtinTemplateNames } from '../../../src/pdf/template/builtin/index.js';
+import type { Block } from '../../../src/pdf/template/dsl.js';
+
+/**
+ * Strict mode throws on a missing *scalar* binding, which catches dot-path
+ * typos in the values a template prints. It deliberately cannot do the same for
+ * `when` conditions and repeater `from` paths: `Platnosc` is `minOccurs="0"` in
+ * the FA schemas and `RachunekBankowy` is `minOccurs="0" maxOccurs="100"`, so an
+ * absent node there is a cash-paid invoice, not a mistake — making those throw
+ * would break strict rendering of perfectly valid documents.
+ *
+ * The typo risk is real all the same: a misspelled `when` silently hides its
+ * block and a misspelled `from` silently yields a header-only table, and the
+ * strict-mode fixture test would pass either way. This lint closes that gap
+ * where it can be closed without weakening the public contract — our own
+ * templates against fixtures that populate every path they reference.
+ */
+
+const FIXTURE_BY_TEMPLATE: Record<string, string> = {
+  'fa2-default': 'pdf/fa2.xml',
+  'fa3-default': 'pdf/fa3.xml',
+  'upo-4_2': 'pdf/upo-4_2.xml',
+  'upo-4_3': 'pdf/upo-4_3.xml',
+};
+
+/** `when` values resolved from the render context, not from the XML. */
+const CONTEXT_CONDITIONS = new Set(['qr', 'offline', 'hasKsefNumber', 'opts.logo', 'opts.ksefNumber', 'opts.accent', 'qrUrl']);
+
+interface CollectedPaths {
+  conditions: string[];
+  repeaters: string[];
+}
+
+function collect(blocks: Block[], acc: CollectedPaths = { conditions: [], repeaters: [] }): CollectedPaths {
+  for (const block of blocks) {
+    const when = (block as { when?: string }).when;
+    if (when !== undefined && !CONTEXT_CONDITIONS.has(when)) acc.conditions.push(when);
+
+    if (block.type === 'lines') acc.repeaters.push(block.from);
+    if (block.type === 'table') acc.repeaters.push(block.from);
+    if (block.type === 'payment' && block.accounts) acc.repeaters.push(block.accounts.from);
+
+    if (block.type === 'stack') collect(block.stack, acc);
+    if (block.type === 'columns') collect(block.columns, acc);
+  }
+  return acc;
+}
+
+function bodyOf(templateName: string): unknown {
+  const template = getBuiltinTemplate(templateName)!;
+  const xml = readFileSync(new URL(`../../fixtures/${FIXTURE_BY_TEMPLATE[templateName]}`, import.meta.url), 'utf8');
+  const parsed = parseXmlForPdf(xml) as Record<string, unknown>;
+  return parsed[template.schema.startsWith('UPO') ? 'Potwierdzenie' : 'Faktura'];
+}
+
+describe('built-in template lint', () => {
+  it('covers every built-in template', () => {
+    expect(builtinTemplateNames().sort()).toEqual(Object.keys(FIXTURE_BY_TEMPLATE).sort());
+  });
+
+  it.each(Object.keys(FIXTURE_BY_TEMPLATE))('%s: every `when` path resolves against its fixture', (name) => {
+    const root = bodyOf(name);
+    const { conditions } = collect(getBuiltinTemplate(name)!.blocks);
+    const unresolved = conditions.filter((path) => !has(root, path));
+    expect(unresolved).toEqual([]);
+  });
+
+  it.each(Object.keys(FIXTURE_BY_TEMPLATE))('%s: every repeater `from` path resolves against its fixture', (name) => {
+    const root = bodyOf(name);
+    const { repeaters } = collect(getBuiltinTemplate(name)!.blocks);
+    const empty = repeaters.filter((path) => list(root, path).length === 0);
+    expect(empty).toEqual([]);
+  });
+
+  it('actually inspects some paths (guards against a walker that finds nothing)', () => {
+    const fa3 = collect(getBuiltinTemplate('fa3-default')!.blocks);
+    expect(fa3.conditions).toContain('Fa.Platnosc');
+    expect(fa3.repeaters).toContain('Fa.FaWiersz');
+    expect(fa3.repeaters).toContain('Fa.Platnosc.RachunekBankowy');
+    expect(collect(getBuiltinTemplate('upo-4_3')!.blocks).repeaters).toContain('Dokument');
+  });
+
+  it('fails a template whose `when` path is misspelled', () => {
+    const root = bodyOf('fa3-default');
+    expect(has(root, 'Fa.Platnosc')).toBe(true);
+    expect(has(root, 'Fa.Platnsoc')).toBe(false); // the typo this lint exists to catch
+  });
+
+  it('fails a template whose repeater path is misspelled', () => {
+    const root = bodyOf('fa3-default');
+    expect(list(root, 'Fa.FaWiersz').length).toBeGreaterThan(0);
+    expect(list(root, 'Fa.FaWierzs')).toEqual([]);
+  });
+});
