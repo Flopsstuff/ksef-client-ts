@@ -56,6 +56,12 @@ export interface HeaderBlock {
   title?: LabelRef;
   number?: string;
   date?: string;
+  /**
+   * Binding for the KSeF number, printed in the same right-hand stack as
+   * `number` and `date`. Skipped when it resolves empty, so an offline
+   * visualization does not print a dangling label.
+   */
+  ksefNumber?: string;
   style?: string;
 }
 
@@ -286,6 +292,7 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
       title: labelRef.optional(),
       number: z.string().optional(),
       date: z.string().optional(),
+      ksefNumber: z.string().optional(),
       style: z.string().optional(),
     }).strict(),
     z.object({

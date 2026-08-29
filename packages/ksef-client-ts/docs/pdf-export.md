@@ -163,7 +163,7 @@ The `schema` field binds a template to a single document kind. If you render an 
 
 | Block | Renders |
 |-------|---------|
-| `header` | Title, invoice number, date, optional logo |
+| `header` | Title and optional logo on the left; invoice number, issue date and KSeF number stacked on the right |
 | `parties` | Seller / buyer two-column panel |
 | `lines` | Invoice line-item table |
 | `totals` | Net / VAT / gross summary rows (a row reads one path or sums several) |
@@ -198,7 +198,7 @@ A trimmed `FA(3)` template with a header, a seller/buyer panel, a line table, a 
     "muted": { "color": "#666666", "fontSize": 8 }
   },
   "blocks": [
-    { "type": "header", "title": { "label": "invoice" }, "number": "Fa.P_2", "date": "Fa.P_1" },
+    { "type": "header", "title": { "label": "invoice" }, "number": "Fa.P_2", "date": "Fa.P_1", "ksefNumber": "opts.ksefNumber" },
     { "type": "divider" },
     {
       "type": "parties",

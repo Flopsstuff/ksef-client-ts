@@ -9,14 +9,13 @@
     "footerNote": { "fontSize": 7, "color": "#999999" }
   },
   "blocks": [
-    { "type": "header", "logo": "opts.logo", "title": { "label": "invoice" }, "number": "Fa.P_2", "date": "Fa.P_1" },
     {
-      "type": "columns",
-      "when": "hasKsefNumber",
-      "columns": [
-        { "type": "text", "label": "ksefNumber", "style": "muted" },
-        { "type": "text", "path": "opts.ksefNumber", "style": "muted" }
-      ]
+      "type": "header",
+      "logo": "opts.logo",
+      "title": { "label": "invoice" },
+      "number": "Fa.P_2",
+      "date": "Fa.P_1",
+      "ksefNumber": "opts.ksefNumber"
     },
     { "type": "text", "label": "offline", "when": "offline", "style": "offline" },
     { "type": "divider" },

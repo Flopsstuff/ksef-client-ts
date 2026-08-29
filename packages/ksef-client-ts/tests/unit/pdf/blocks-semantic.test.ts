@@ -82,6 +82,38 @@ describe('headerRenderer', () => {
     expect(right.stack).toHaveLength(0);
   });
 
+  it('stacks the KSeF number under the date, in the same body font', () => {
+    const ctx = makeCtx(
+      { Fa: { P_2: 'FV/2025/01', P_1: '2025-01-15' } },
+      { bindings: { 'opts.ksefNumber': '1111111111-20250115-010000000000-00' } },
+    );
+    const node = rec(
+      headerRenderer(
+        { type: 'header', number: 'Fa.P_2', date: 'Fa.P_1', ksefNumber: 'opts.ksefNumber' },
+        ctx,
+        noRender,
+      ),
+    );
+    const [, right] = node.columns;
+    expect(right.stack).toHaveLength(3);
+    expect(right.stack[2].text).toBe('ksefNumber: 1111111111-20250115-010000000000-00');
+    // no style of its own — it inherits the document font like the two above it
+    expect(right.stack[2].style).toBeUndefined();
+  });
+
+  it('omits the KSeF line entirely when the number is absent (offline)', () => {
+    const node = rec(
+      headerRenderer(
+        { type: 'header', number: 'Fa.P_2', date: 'Fa.P_1', ksefNumber: 'opts.ksefNumber' },
+        makeCtx({ Fa: { P_2: 'FV/2025/01', P_1: '2025-01-15' } }),
+        noRender,
+      ),
+    );
+    const [, right] = node.columns;
+    expect(right.stack).toHaveLength(2);
+    expect(JSON.stringify(right.stack)).not.toContain('ksefNumber');
+  });
+
   it('drops the logo node when its binding resolves empty', () => {
     const node = rec(headerRenderer({ type: 'header', logo: 'missing.logo' }, makeCtx({}), noRender));
     const [left] = node.columns;
