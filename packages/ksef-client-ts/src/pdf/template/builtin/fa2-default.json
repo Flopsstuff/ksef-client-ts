@@ -58,7 +58,7 @@
         "label": "buyer",
         "style": "partyIdentity",
         "fields": [
-          "Podmiot2.DaneIdentyfikacyjne.Nazwa",
+          { "path": "Podmiot2.DaneIdentyfikacyjne.Nazwa", "optional": true },
           {
             "firstOf": [
               "Podmiot2.DaneIdentyfikacyjne.NIP",

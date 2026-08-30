@@ -45,12 +45,36 @@ describe('strict mode survives real documents', () => {
     ).resolves.toBeInstanceOf(Uint8Array);
   });
 
+  it('an invoice that does not name its buyer renders strict', async () => {
+    // `Nazwa` sits in an optional sequence inside `TPodmiot2` — art. 106e ust. 5
+    // pkt 3 lets an invoice omit the buyer's name — so its absence is a valid
+    // document, not a template typo.
+    const unnamed = fx('fa3.xml').replace(/\s*<Nazwa>Nabywca[^<]*<\/Nazwa>/, '');
+    expect(unnamed).not.toContain('Nabywca Przykładowy');
+    await expect(
+      renderInvoicePdfFromTemplate(unnamed, fa3Default(), { strict: true }),
+    ).resolves.toBeInstanceOf(Uint8Array);
+  });
+
   it('an invoice without the optional second address line renders strict', async () => {
     const noAddressL2 = fx('fa3.xml').replace(/\s*<AdresL2>[^<]*<\/AdresL2>/g, '');
     expect(noAddressL2).not.toContain('AdresL2');
     await expect(
       renderInvoicePdfFromTemplate(noAddressL2, fa3Default(), { strict: true }),
     ).resolves.toBeInstanceOf(Uint8Array);
+  });
+});
+
+describe('every built-in marks what the FA schemas let a buyer omit', () => {
+  it.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s marks the buyer name optional', (name) => {
+    const parties = getBuiltinTemplate(name)!.blocks.find((b) => b.type === 'parties') as {
+      right: { fields: unknown[] };
+    };
+    const nazwa = parties.right.fields.find(
+      (f): f is { path: string; optional?: boolean } =>
+        typeof f === 'object' && f !== null && (f as { path?: string }).path === 'Podmiot2.DaneIdentyfikacyjne.Nazwa',
+    );
+    expect(nazwa?.optional, 'the buyer name is optional in FA(2) and FA(3)').toBe(true);
   });
 });
 
