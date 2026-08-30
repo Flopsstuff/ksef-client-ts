@@ -36,6 +36,16 @@ const fx = (name: string) => join(fixtures, name);
 const KSEF_NUMBER = '1111111111-20260115-010000000000-00';
 
 /**
+ * The chain pages carry their own numbers: 07 names 06's in
+ * `FakturaZaliczkowa`, and 09 names 08's, so the link between two pages of one
+ * deal is visible on paper rather than asserted only in a fixture comment.
+ */
+const KSEF_ZAL_A = '1111111111-20250115-010000000000-A1';
+const KSEF_ROZ_A = '1111111111-20250210-010000000000-A2';
+const KSEF_ZAL_B = '1111111111-20250312-020000000000-B2';
+const KSEF_ROZ_B = '1111111111-20250408-020000000000-B3';
+
+/**
  * The QR group renders against DEMO. The documents are invented, so no verifier
  * will resolve them anywhere — but a demo link is the one a reader can safely
  * click, and it keeps every code in the group pointing at the same host.
@@ -194,43 +204,79 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
       '--env', 'demo', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links', '--totals', 'both',
       '--notes', notesFile, '--template-file', oldTotalsTemplate,
     ]],
-    // Not part of the grid either, and for the opposite reason to the showcase:
-    // this is the same default template on a different *document shape*. An
-    // advance invoice (`ZAL`) carries no `Fa.FaWiersz` — the goods it covers sit
-    // under `Fa.Zamowienie` — so the page a reader should see here is the order
-    // table under its own heading, with no empty item table above it. Flags are
-    // kept to a minimum precisely so nothing else on the page competes for the
-    // eye.
-    [`${PREFIX}-06-invoice-advance-order-lines`, () => [
-      fx('fa3-zal.xml'), '--ksef-number', KSEF_NUMBER,
+    // Beyond the grid the pages come in *chains*, numbered so one deal runs from
+    // page to page. Each chain is two documents and no more: an advance invoice
+    // and the settlement that closes it, for a different buyer and a different
+    // amount each time, with dates that only ever move forward.
+    //
+    //   06 → 07   Nabywca Przykładowy S.A.   order 615,00      remainder STATED
+    //   08 → 09   Odbiorca Handlowy Sp. z o.o.  order 1 230,00  remainder COMPUTED
+    //
+    // The two chains exist because the FA schemas let a settlement invoice
+    // state what is left in either of two ways, and the pages have to be right
+    // for both. 10 and 11 then stand alone: an ordinary invoice being paid down,
+    // and one that has been overpaid.
+
+    // 06 — chain A, the advance invoice (ZAL). No `Fa.FaWiersz`: the goods sit
+    // under `Fa.Zamowienie`, so the page shows the order table under its own
+    // heading with no empty item table above it. `P_15` is 450,00 — money
+    // *received*, not owed — and the two payments that make it up add to it
+    // exactly. Its KSeF number is the one page 07 points back at.
+    [`${PREFIX}-06-chain-a-advance`, () => [
+      fx('fa3-zal.xml'), '--ksef-number', KSEF_ZAL_A,
       '--env', 'demo', '--qr', '--totals', 'buckets',
     ]],
-    // Not part of the grid: `fa3-showcase` is a built-in whose point is to
-    // exercise the DSL — palette, letter spacing, highlighted text, colour bars
-    // drawn as data-URI images. Rendered with everything switched on, so a DSL
-    // change that breaks it is visible rather than discovered by a reader.
-    // It also carries the accent, in its short hex form: this template sets its
-    // own heading colours, so it is the page that shows whether an accent wins
-    // over a template's palette.
-    [`${PREFIX}-07-showcase-template-accent`, () => [
+    // 07 — chain A, the settlement (ROZ) that closes 06. The lines and VAT
+    // buckets show the whole 615,00 order while `P_15` is only the 165,00 still
+    // owed: read as a flat "amount due", those figures contradict each other.
+    [`${PREFIX}-07-chain-a-settlement-stated`, () => [
+      fx('fa3-roz.xml'), '--ksef-number', KSEF_ROZ_A,
+      '--env', 'demo', '--qr', '--totals', 'buckets',
+    ]],
+    // 08 — chain B, a different buyer and a different deal: order 1 230,00,
+    // advance 800,00 received in March.
+    [`${PREFIX}-08-chain-b-advance`, () => [
+      fx('fa3-zal-b.xml'), '--ksef-number', KSEF_ZAL_B,
+      '--env', 'demo', '--qr', '--totals', 'buckets',
+    ]],
+    // 09 — chain B's settlement, which states the payments it received instead
+    // of leaving them on 08. So `P_15` is the whole 1 230,00 and what is owed is
+    // the difference the schema defines: `P_15` less the sum of the `P_15Z`
+    // fields, 430,00. No field carries that number.
+    [`${PREFIX}-09-chain-b-settlement-computed`, () => [
+      fx('fa3-roz-b.xml'), '--ksef-number', KSEF_ROZ_B,
+      '--env', 'demo', '--qr', '--totals', 'buckets',
+    ]],
+    // 10 — standalone: an ordinary invoice being paid down, which is a
+    // different thing from an advance and reads differently. `Platnosc` takes
+    // the branch no other page reaches (no `Zaplacono`, a partial marker, one
+    // `ZaplataCzesciowa` per instalment), and the parts deliberately do *not*
+    // add up to the total — that is what "paid in part" means.
+    [`${PREFIX}-10-partial-payments`, () => [
+      fx('fa3-czesciowa.xml'), '--ksef-number', KSEF_NUMBER,
+      '--env', 'demo', '--qr', '--totals', 'buckets',
+    ]],
+    // 11 — standalone, the opposite end of the same branch: `Rozliczenie`
+    // states a `DoRozliczenia` overpayment rather than a `DoZaplaty`. Nothing
+    // is owed, so nothing on the page may ask for payment.
+    [`${PREFIX}-11-overpayment`, () => [
+      fx('fa3-nadplata.xml'), '--ksef-number', KSEF_NUMBER,
+      '--env', 'demo', '--qr', '--totals', 'buckets',
+    ]],
+    // 12 — not a document shape but a template: `fa3-showcase` exists to
+    // exercise the DSL (palette, letter spacing, highlighted text, colour bars
+    // drawn as data-URI images), rendered with everything switched on so a DSL
+    // change that breaks it is visible rather than discovered by a reader. It
+    // carries the accent in its short hex form, and so is the page that shows
+    // whether an accent wins over a template's own palette.
+    [`${PREFIX}-12-showcase-template-accent`, () => [
       fx('e2e-vat-multi.xml'), '--template', 'fa3-showcase', ...LOGO(),
       '--env', 'demo', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links',
       '--totals', 'summary', '--notes', notesFile, '--accent', ACCENT_SHORT,
     ]],
-    // Not part of the grid: another document shape rather than another set of
-    // flags. `Platnosc` states what has been paid through a choice, and this
-    // document takes the branch the other pages never reach — no `Zaplacono`,
-    // a partial marker, and a `ZaplataCzesciowa` per instalment. What a reader
-    // should see is the payment section saying the invoice is part-paid, then
-    // each part payment's amount, date and form kept together above the bank
-    // accounts.
-    [`${PREFIX}-10-invoice-partial-payments`, () => [
-      fx('fa3-czesciowa.xml'), '--ksef-number', KSEF_NUMBER,
-      '--env', 'demo', '--qr', '--totals', 'buckets',
-    ]],
     // Receipts last: they are a different document and read as their own group.
-    [`${PREFIX}-08-upo-pl`, () => [fx('upo-4_3.xml')]],
-    [`${PREFIX}-09-upo-five-documents-bilingual`, () => [multiDocumentUpo, '--locale', 'en+pl']],
+    [`${PREFIX}-13-upo-pl`, () => [fx('upo-4_3.xml')]],
+    [`${PREFIX}-14-upo-five-documents-bilingual`, () => [multiDocumentUpo, '--locale', 'en+pl']],
   ];
 
   /**
@@ -247,7 +293,8 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
       // An advance invoice reaches a branch of the template no other document
       // does, so it is pinned here rather than left to be dropped by accident.
       // So does an invoice settled in instalments.
-      'fa3-zal.xml', 'fa3-czesciowa.xml', 'upo-4_3.xml',
+      'fa3-zal.xml', 'fa3-roz.xml', 'fa3-zal-b.xml', 'fa3-roz-b.xml',
+      'fa3-czesciowa.xml', 'fa3-nadplata.xml', 'upo-4_3.xml',
     ]) {
       expect(covered(doc), `no variant renders ${doc}`).toBe(true);
     }
@@ -291,7 +338,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
   it('renders every variant of the set', () => {
     // Guards against a variant being silently dropped from the table above:
     // the count is stated here so removing a row has to be deliberate.
-    expect(variants).toHaveLength(10);
+    expect(variants).toHaveLength(14);
     for (const [name] of variants) {
       expect(existsSync(join(outDir, `${name}.pdf`)), `${name}.pdf missing`).toBe(true);
     }

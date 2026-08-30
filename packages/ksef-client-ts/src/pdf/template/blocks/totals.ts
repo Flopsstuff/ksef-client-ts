@@ -1,4 +1,5 @@
 import { applyFormat, sumDecimal } from '../../format.js';
+import { lessRepeatedSum, repeatedSum } from './field.js';
 import type { TotalsBlock } from '../dsl.js';
 import { evalWhen, resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.js';
 
@@ -24,9 +25,11 @@ export const totalsRenderer: BlockRenderer<TotalsBlock> = (block, ctx) => {
   const body: PdfNode[][] = [];
   for (const row of block.rows) {
     if (!evalWhen(row.when, ctx)) continue;
-    const raw = row.sum
-      ? sumDecimal(row.sum.map((p) => resolveBinding(p, lenient)))
-      : resolveBinding(row.path ?? '', row.optional ? lenient : ctx);
+    let base: string;
+    if (row.sum) base = sumDecimal(row.sum.map((p) => resolveBinding(p, lenient)));
+    else if (row.sumFrom) base = repeatedSum(row.sumFrom, ctx.root);
+    else base = resolveBinding(row.path ?? '', row.optional ? lenient : ctx);
+    const raw = row.less ? lessRepeatedSum(base, row.less, ctx.root) : base;
     const value = applyFormat(raw, row.format);
     // A row that resolves empty is skipped, as in `payment` and `parties`: a
     // template listing every rate bucket must not print a dangling label for

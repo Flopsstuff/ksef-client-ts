@@ -1,5 +1,6 @@
-import { applyFormat } from '../../format.js';
-import type { FieldDef } from '../dsl.js';
+import { get, list } from '../../accessor.js';
+import { applyFormat, sumDecimal } from '../../format.js';
+import type { FieldDef, RepeatedSum } from '../dsl.js';
 
 /**
  * Read one labelled field into its printable value: the binding, formatted, and
@@ -24,4 +25,39 @@ export function readField(
   if (value === '' || field.suffixPath === undefined) return value;
   const suffix = read(field.suffixPath, optional);
   return suffix === '' ? value : `${value} ${suffix}`;
+}
+
+/**
+ * `value` less the sum of one binding taken over every entry of a collection.
+ *
+ * This exists for a figure the FA schemas define as a difference rather than
+ * state outright: on a settlement invoice that also documents payments received
+ * before delivery, the schema says the difference between `P_15` and the sum of
+ * the individual `P_15Z` fields is what remains to be paid. Nothing carries that
+ * number, so a page that will not compute it cannot show it at all.
+ *
+ * Returns `''` when the base value is absent — a difference from nothing is not
+ * zero, it is unknown — and `sumDecimal` already yields `''` if any operand is
+ * unparseable, so a broken document prints a blank rather than a wrong figure.
+ */
+export function lessRepeatedSum(value: string, less: RepeatedSum, root: unknown): string {
+  if (value.trim() === '') return '';
+  const negated = list(root, less.from).map((entry) => {
+    const raw = get(entry, less.path).trim();
+    if (raw === '') return '';
+    return raw.startsWith('-') ? raw.slice(1) : `-${raw}`;
+  });
+  return sumDecimal([value, ...negated]);
+}
+
+/**
+ * The sum of one binding taken over every entry of a collection.
+ *
+ * `sum` adds up a fixed list of paths, which cannot express "every part payment
+ * this invoice records" — the entries are not known to the template. Absent and
+ * blank entries are skipped; an unparseable one makes the whole sum `''`, as it
+ * does everywhere else here, because a blank is safer than a wrong total.
+ */
+export function repeatedSum(sum: RepeatedSum, root: unknown): string {
+  return sumDecimal(list(root, sum.from).map((entry) => get(entry, sum.path)));
 }

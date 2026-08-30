@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Chain A, step 1 of 2. Synthetic, fully anonymous FA(2) *advance* invoice (ZAL): no FaWiersz,
-     the goods sit under Fa.Zamowienie because nothing has been delivered yet.
-     Order 615,00; two payments received (300,00 on 10.01 + 150,00 on 14.01) make up P_15 = 450,00.
-     Settled by fa2-roz.xml. No real taxpayer data. -->
-<Faktura xmlns="http://crd.gov.pl/wzor/2023/06/29/12648/"
+<!-- Chain A, step 2 of 2. Synthetic, fully anonymous FA(3) settlement invoice (ROZ, art. 106f ust. 3),
+     closing fa3-zal.xml. The lines and VAT buckets state the full 615,00 order, while P_15
+     states only the 165,00 left after the 450,00 advance. Remainder STATED.
+     No real taxpayer data. -->
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/"
          xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <Naglowek>
-        <KodFormularza kodSystemowy="FA (2)" wersjaSchemy="1-0E">FA</KodFormularza>
-        <WariantFormularza>2</WariantFormularza>
-        <DataWytworzeniaFa>2025-01-15T10:00:00Z</DataWytworzeniaFa>
+        <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+        <WariantFormularza>3</WariantFormularza>
+        <DataWytworzeniaFa>2025-02-10T10:00:00Z</DataWytworzeniaFa>
         <SystemInfo>anonymous test fixture</SystemInfo>
     </Naglowek>
     <Podmiot1>
@@ -45,13 +45,13 @@
     </Podmiot2>
     <Fa>
         <KodWaluty>PLN</KodWaluty>
-        <P_1>2025-01-15</P_1>
+        <P_1>2025-02-10</P_1>
         <P_1M>Warszawa</P_1M>
-        <P_2>ZAL/2025/01/001</P_2>
-        <P_6>2025-01-15</P_6>
-        <P_13_1>365.85</P_13_1>
-        <P_14_1>84.15</P_14_1>
-        <P_15>450.00</P_15>
+        <P_2>ROZ/2025/02/001</P_2>
+        <P_6>2025-02-05</P_6>
+        <P_13_1>500.00</P_13_1>
+        <P_14_1>115.00</P_14_1>
+        <P_15>165.00</P_15>
         <Adnotacje>
             <P_16>2</P_16>
             <P_17>2</P_17>
@@ -68,18 +68,23 @@
                 <P_PMarzyN>1</P_PMarzyN>
             </PMarzy>
         </Adnotacje>
-        <RodzajFaktury>ZAL</RodzajFaktury>
-        <ZaliczkaCzesciowa>
-            <P_6Z>2025-01-10</P_6Z>
-            <P_15Z>300.00</P_15Z>
-        </ZaliczkaCzesciowa>
-        <ZaliczkaCzesciowa>
-            <P_6Z>2025-01-14</P_6Z>
-            <P_15Z>150.00</P_15Z>
-        </ZaliczkaCzesciowa>
+        <RodzajFaktury>ROZ</RodzajFaktury>
+        <FakturaZaliczkowa>
+            <NrKSeFFaZaliczkowej>1111111111-20250115-010000000000-A1</NrKSeFFaZaliczkowej>
+        </FakturaZaliczkowa>
+        <FaWiersz>
+            <NrWierszaFa>1</NrWierszaFa>
+            <P_7>Usługa przykładowa</P_7>
+            <P_8A>szt.</P_8A>
+            <P_8B>5</P_8B>
+            <P_9A>100.00</P_9A>
+            <P_11>500.00</P_11>
+            <P_12>23</P_12>
+        </FaWiersz>
         <Platnosc>
-            <Zaplacono>1</Zaplacono>
-            <DataZaplaty>2025-01-14</DataZaplaty>
+            <TerminPlatnosci>
+                <Termin>2025-02-24</Termin>
+            </TerminPlatnosci>
             <FormaPlatnosci>6</FormaPlatnosci>
             <RachunekBankowy>
                 <NrRB>11109000880000000100000001</NrRB>
@@ -87,19 +92,5 @@
                 <NazwaBanku>Bank Przykładowy S.A.</NazwaBanku>
             </RachunekBankowy>
         </Platnosc>
-        <Zamowienie>
-            <WartoscZamowienia>615.00</WartoscZamowienia>
-            <ZamowienieWiersz>
-                <NrWierszaZam>1</NrWierszaZam>
-                <P_7Z>Usługa przykładowa — zaliczka</P_7Z>
-                <IndeksZ>IDX-0001</IndeksZ>
-                <P_8AZ>szt.</P_8AZ>
-                <P_8BZ>5</P_8BZ>
-                <P_9AZ>100.00</P_9AZ>
-                <P_11NettoZ>500.00</P_11NettoZ>
-                <P_11VatZ>115.00</P_11VatZ>
-                <P_12Z>23</P_12Z>
-            </ZamowienieWiersz>
-        </Zamowienie>
     </Fa>
 </Faktura>

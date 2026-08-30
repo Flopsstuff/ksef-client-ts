@@ -233,6 +233,27 @@ export interface TotalsRow {
   /** Binding paths to add up; absent buckets are skipped. */
   sum?: string[];
   /**
+   * Subtract from this row's value the sum of one binding taken over every
+   * entry of a collection.
+   *
+   * It exists for a figure the FA schemas define as a difference instead of
+   * stating it: on a settlement invoice that also documents payments received
+   * before delivery, the schema says the difference between `P_15` and the sum
+   * of the individual `P_15Z` fields is what remains to be paid. No field
+   * carries that number, so a page that will not compute it cannot show it.
+   *
+   * Like every computed figure here, it is only as sound as the document — see
+   * the warning on the totals summary. The row prints blank rather than a wrong
+   * number when anything it reads is unparseable.
+   */
+  less?: RepeatedSum;
+  /**
+   * Take this row's value as the sum of one binding over every entry of a
+   * collection — what an invoice has been paid so far, say, which `sum` cannot
+   * express because the entries are not known to the template.
+   */
+  sumFrom?: RepeatedSum;
+  /**
    * Visibility condition, evaluated like any other `when`. The built-in
    * templates gate their per-bucket rows on `totalsBuckets` and their computed
    * summary on `totalsSummary`, so {@link RenderOptions.totals} picks which of
@@ -276,6 +297,16 @@ export interface PaymentGroup {
  * advance one — and the template picks the right label by listing one row per
  * reading.
  */
+/**
+ * One binding read over every entry of a collection, to be summed. Used by
+ * `less`, where a figure is defined as a difference the document does not
+ * state — see {@link TotalsRow.less}.
+ */
+export interface RepeatedSum {
+  from: string;
+  path: string;
+}
+
 export interface PaymentRow extends Omit<FieldDef, 'path'> {
   /**
    * A row with no `path` prints its label alone, and is worth having because
@@ -285,6 +316,10 @@ export interface PaymentRow extends Omit<FieldDef, 'path'> {
    */
   path?: string;
   when?: string;
+  /** See {@link TotalsRow.less}. */
+  less?: RepeatedSum;
+  /** See {@link TotalsRow.sumFrom}. */
+  sumFrom?: RepeatedSum;
   /**
    * Repeat this line once per entry of a collection, with the entry as the
    * binding root (so `path` and `suffixPath` are item-relative). KSeF allows up
@@ -535,19 +570,22 @@ const columnDef = z
   })
   .strict();
 
+const repeatedSum = z.object({ from: z.string(), path: z.string() }).strict();
 const totalsRow = z
   .object({
     label: z.string(),
     path: z.string().optional(),
     optional: z.boolean().optional(),
     sum: z.array(z.string()).nonempty().optional(),
+    less: repeatedSum.optional(),
+    sumFrom: repeatedSum.optional(),
     when: z.string().optional(),
     format: formatEnum.optional(),
     style: z.string().optional(),
   })
   .strict()
-  .refine((r) => (r.path === undefined) !== (r.sum === undefined), {
-    message: 'a totals row needs exactly one of "path" or "sum"',
+  .refine((r) => [r.path, r.sum, r.sumFrom].filter((v) => v !== undefined).length === 1, {
+    message: 'a totals row needs exactly one of "path", "sum" or "sumFrom"',
   });
 
 // Recursive block schema (containers embed blocks). z.lazy breaks the cycle.
@@ -587,6 +625,8 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
           path: z.string().optional(),
           when: z.string().optional(),
           from: z.string().optional(),
+          less: repeatedSum.optional(),
+          sumFrom: repeatedSum.optional(),
         }),
       ),
       groups: z

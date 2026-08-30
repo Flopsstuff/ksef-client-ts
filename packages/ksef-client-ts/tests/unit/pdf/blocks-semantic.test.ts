@@ -1152,18 +1152,14 @@ describe('suffixPath', () => {
 describe('the built-in templates restate the amount due with its currency', () => {
   it.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s does it in the payment block', (name) => {
     const payment = getBuiltinTemplate(name)!.blocks.find((b) => b.type === 'payment') as {
-      rows: Array<{ label: string; path: string; suffixPath?: string }>;
+      rows: Array<{ label: string; path?: string; format?: string; suffixPath?: string }>;
     };
-    // One row per reading of `P_15`, then the settled payable — the figures
-    // restate the total, so they belong after the terms they settle.
-    const amounts = payment.rows.slice(-4);
-    expect(amounts.map((r) => r.path)).toEqual([
-      'Fa.P_15',
-      'Fa.P_15',
-      'Fa.P_15',
-      'Fa.Rozliczenie.DoZaplaty',
-    ]);
-    expect(amounts.map((r) => r.suffixPath)).toEqual(Array(4).fill('Fa.KodWaluty'));
+    // Every money figure the block prints names its currency — an amount and
+    // its currency are one fact — and they all sit after the terms they settle.
+    const money = payment.rows.filter((r) => r.format === 'money');
+    expect(money.length).toBeGreaterThan(1);
+    expect(money.every((r) => r.suffixPath === 'Fa.KodWaluty')).toBe(true);
+    expect(payment.rows.slice(-money.length)).toEqual(money);
   });
 });
 

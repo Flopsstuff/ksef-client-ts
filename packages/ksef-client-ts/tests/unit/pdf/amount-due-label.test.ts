@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { getBuiltinTemplate } from '../../../src/pdf/template/builtin/index.js';
-import { p15Flags } from '../../../src/pdf/document-flags.js';
+import { p15Flags, paymentFlags } from '../../../src/pdf/document-flags.js';
 import { parseXmlForPdf } from '../../../src/pdf/parse.js';
 import { blockRegistry } from '../../../src/pdf/template/blocks/index.js';
 import { interpretTemplate, type RenderContext } from '../../../src/pdf/template/interpret.js';
@@ -44,7 +44,7 @@ function render(templateName: string, xml: string): string[] {
     strict: false,
     label: makeLabelResolver('pl', {}),
     bindings: { 'opts.logo': '', 'opts.ksefNumber': '', 'opts.accent': '', qrUrl: '', certificateQrUrl: '' },
-    flags: { ...p15Flags(root), totalsBuckets: true },
+    flags: { ...p15Flags(root), ...paymentFlags(root), totalsBuckets: true },
   };
   return texts(interpretTemplate(template, ctx, blockRegistry));
 }
@@ -55,6 +55,8 @@ describe('which reading of P_15 a document supports', () => {
       p15IsAmountDue: true,
       p15IsAdvancePaid: false,
       p15IsAmountTotal: false,
+      p15IsRemainder: false,
+      settlementRemainder: false,
     });
   });
 
@@ -63,6 +65,8 @@ describe('which reading of P_15 a document supports', () => {
       p15IsAmountDue: false,
       p15IsAdvancePaid: true,
       p15IsAmountTotal: false,
+      p15IsRemainder: false,
+      settlementRemainder: false,
     });
   });
 
@@ -71,6 +75,53 @@ describe('which reading of P_15 a document supports', () => {
       p15IsAmountDue: false,
       p15IsAdvancePaid: false,
       p15IsAmountTotal: true,
+      p15IsRemainder: false,
+      settlementRemainder: false,
+    });
+  });
+
+  it('a settlement invoice: P_15 is what is left after the advances', () => {
+    // Its lines state the whole order (500,00 + 115,00) while P_15 states 165,00
+    // — the case where a flat `Do zapłaty` reads as a contradiction.
+    expect(p15Flags((parseXmlForPdf(fx('fa3-roz.xml')) as Record<string, unknown>).Faktura)).toEqual({
+      p15IsAmountDue: false,
+      p15IsAdvancePaid: false,
+      p15IsAmountTotal: false,
+      p15IsRemainder: true,
+      settlementRemainder: false,
+    });
+  });
+
+  it('a part-paid invoice: P_15 is the total, the remainder is what is owed', () => {
+    expect(p15Flags((parseXmlForPdf(fx('fa3-czesciowa.xml')) as Record<string, unknown>).Faktura)).toEqual({
+      p15IsAmountDue: false,
+      p15IsAdvancePaid: false,
+      p15IsAmountTotal: true,
+      p15IsRemainder: false,
+      settlementRemainder: false,
+    });
+  });
+
+  it('an overpaid invoice asks for nothing', () => {
+    expect(p15Flags((parseXmlForPdf(fx('fa3-nadplata.xml')) as Record<string, unknown>).Faktura)).toEqual({
+      p15IsAmountDue: false,
+      p15IsAdvancePaid: false,
+      p15IsAmountTotal: true,
+      p15IsRemainder: false,
+      settlementRemainder: false,
+    });
+  });
+
+  it('a settlement invoice that also states the payments it received', () => {
+    // Chain B's settlement restates the payments it received, so its P_15 is
+    // the whole 1 230,00 and the remainder is the difference the schema
+    // defines — P_15 must not be labelled as what is left.
+    expect(p15Flags((parseXmlForPdf(fx('fa3-roz-b.xml')) as Record<string, unknown>).Faktura)).toEqual({
+      p15IsAmountDue: false,
+      p15IsAdvancePaid: false,
+      p15IsAmountTotal: true,
+      p15IsRemainder: false,
+      settlementRemainder: true,
     });
   });
 
@@ -98,6 +149,46 @@ describe.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s names the figu
     // the reader still owes it.
     expect(out.some((t) => t.includes('Kwota zapłaty'))).toBe(true);
     expect(out.some((t) => /Do zap[łl]aty/i.test(t))).toBe(false);
+  });
+
+  it('calls the remainder a remainder on a settlement invoice', () => {
+    const out = render(name, fx(`${fa}-roz.xml`));
+    expect(out).toContain('165,00');
+    expect(out.some((t) => t.includes('Pozostało do zapłaty'))).toBe(true);
+    // The lines above it still state the full order, so naming this one
+    // plainly `Do zapłaty` is what made the page look self-contradictory.
+    expect(out).toContain('500,00');
+    expect(out.some((t) => /^Do zap[łl]aty$/i.test(t))).toBe(false);
+  });
+
+  it('computes the remainder the schema defines as a difference', () => {
+    // Chain B: P_15 is the whole 1 230,00 and the payments received are
+    // stated, so what is left — 430,00 — exists only as `P_15` minus the sum of
+    // the `P_15Z` fields. No field carries it.
+    const out = render(name, fx(`${fa}-roz-b.xml`));
+    // `money` groups thousands with a non-breaking space.
+    expect(out.some((t) => t.includes('1\u00a0230,00'))).toBe(true);
+    expect(out.some((t) => t.includes('Pozostało do zapłaty: 430,00 PLN'))).toBe(true);
+    expect(out.some((t) => t.includes('Kwota należności ogółem'))).toBe(true);
+  });
+
+  it('states what a part-paid invoice has paid and what is left', () => {
+    const out = render(name, fx(`${fa}-czesciowa.xml`));
+    expect(out.some((t) => t.includes('Zapłacono razem: 450,00 PLN'))).toBe(true);
+    expect(out.some((t) => t.includes('Pozostało do zapłaty: 165,00 PLN'))).toBe(true);
+  });
+
+  it('names an overpayment instead of demanding money', () => {
+    const out = render(name, fx(`${fa}-nadplata.xml`));
+    expect(out.some((t) => t.includes('Nadpłata do rozliczenia: 85,00 PLN'))).toBe(true);
+    // Nothing is owed, so nothing on the page asks for payment.
+    expect(out.some((t) => /^Do zap[łl]aty/i.test(t))).toBe(false);
+  });
+
+  it('names the advance invoice it settles', () => {
+    const out = render(name, fx(`${fa}-roz.xml`));
+    expect(out.some((t) => t.includes('Faktury zaliczkowe'))).toBe(true);
+    expect(out.some((t) => t.includes('1111111111-20250115-010000000000-A1'))).toBe(true);
   });
 
   it('prints the settled payable, not P_15, when the document states one', () => {

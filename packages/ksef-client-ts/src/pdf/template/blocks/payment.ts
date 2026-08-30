@@ -1,6 +1,7 @@
 import { get, list } from '../../accessor.js';
+import { applyFormat } from '../../format.js';
 import type { PaymentBlock } from '../dsl.js';
-import { readField } from './field.js';
+import { lessRepeatedSum, readField, repeatedSum } from './field.js';
 import { evalWhen, resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.js';
 
 /**
@@ -56,6 +57,17 @@ export const paymentRenderer: BlockRenderer<PaymentBlock> = (block, ctx) => {
     // paid in instalments states a payment term per instalment, and printing
     // only the first hides the rest of the schedule.
     const style = row.style ? { style: row.style } : {};
+    // A computed row states a figure the document does not: what has been paid
+    // so far, or what is left after it. It carries no `path`, so it is settled
+    // before the label-only case below.
+    if (row.sumFrom) {
+      const computed = applyFormat(repeatedSum(row.sumFrom, ctx.root), row.format);
+      if (computed !== '') {
+        const suffix = row.suffixPath ? resolveBinding(row.suffixPath, lenientCtx) : '';
+        stack.push({ text: `${ctx.label(row.label)}: ${suffix ? `${computed} ${suffix}` : computed}`, ...style });
+      }
+      continue;
+    }
     // A row with no binding is the label itself — `Zapłacono` states the fact,
     // and the schema's `1` after it would state nothing.
     if (row.path === undefined) {
@@ -65,7 +77,15 @@ export const paymentRenderer: BlockRenderer<PaymentBlock> = (block, ctx) => {
     const field = { ...row, path: row.path };
     const entries = row.from ? list(ctx.root, row.from) : [undefined];
     for (const entry of entries) {
-      const value = readField(field, readAt(entry));
+      let value: string;
+      if (row.less) {
+        const base = lessRepeatedSum(readAt(entry)(field.path, field.optional === true), row.less, ctx.root);
+        const formatted = applyFormat(base, row.format);
+        const suffix = formatted && row.suffixPath ? resolveBinding(row.suffixPath, lenientCtx) : '';
+        value = suffix ? `${formatted} ${suffix}` : formatted;
+      } else {
+        value = readField(field, readAt(entry));
+      }
       if (value === '') continue;
       stack.push({ text: `${ctx.label(row.label)}: ${value}`, ...style });
     }

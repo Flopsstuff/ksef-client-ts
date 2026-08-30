@@ -224,10 +224,35 @@
         { "label": "totalDue", "path": "Fa.P_15", "when": "p15IsAmountDue", "format": "money", "style": "strong" },
         { "label": "advancePaid", "path": "Fa.P_15", "when": "p15IsAdvancePaid", "format": "money", "style": "strong" },
         { "label": "amountTotal", "path": "Fa.P_15", "when": "p15IsAmountTotal", "format": "money", "style": "strong" },
+        { "label": "remainingDue", "path": "Fa.P_15", "when": "p15IsRemainder", "format": "money", "style": "strong" },
         {
           "label": "totalDue",
           "path": "Fa.Rozliczenie.DoZaplaty",
           "when": "Fa.Rozliczenie.DoZaplaty",
+          "format": "money",
+          "style": "strong"
+        },
+        {
+          "label": "remainingDue",
+          "path": "Fa.P_15",
+          "when": "settlementRemainder",
+          "less": { "from": "Fa.ZaliczkaCzesciowa", "path": "P_15Z" },
+          "format": "money",
+          "style": "strong"
+        },
+        { "label": "paidTotal", "when": "paidInPart", "sumFrom": { "from": "Fa.Platnosc.ZaplataCzesciowa", "path": "KwotaZaplatyCzesciowej" }, "format": "money" },
+        {
+          "label": "remainingDue",
+          "path": "Fa.P_15",
+          "when": "paidInPart",
+          "less": { "from": "Fa.Platnosc.ZaplataCzesciowa", "path": "KwotaZaplatyCzesciowej" },
+          "format": "money",
+          "style": "strong"
+        },
+        {
+          "label": "overpaid",
+          "path": "Fa.Rozliczenie.DoRozliczenia",
+          "when": "Fa.Rozliczenie.DoRozliczenia",
           "format": "money",
           "style": "strong"
         },
@@ -276,6 +301,48 @@
           "style": "strong"
         },
         {
+          "label": "remainingDue",
+          "path": "Fa.P_15",
+          "when": "p15IsRemainder",
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "remainingDue",
+          "path": "Fa.P_15",
+          "when": "settlementRemainder",
+          "less": { "from": "Fa.ZaliczkaCzesciowa", "path": "P_15Z" },
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "paidTotal",
+          "when": "paidInPart",
+          "sumFrom": { "from": "Fa.Platnosc.ZaplataCzesciowa", "path": "KwotaZaplatyCzesciowej" },
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "remainingDue",
+          "path": "Fa.P_15",
+          "when": "paidInPart",
+          "less": { "from": "Fa.Platnosc.ZaplataCzesciowa", "path": "KwotaZaplatyCzesciowej" },
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "overpaid",
+          "path": "Fa.Rozliczenie.DoRozliczenia",
+          "when": "Fa.Rozliczenie.DoRozliczenia",
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
           "label": "totalDue",
           "path": "Fa.Rozliczenie.DoZaplaty",
           "when": "Fa.Rozliczenie.DoZaplaty",
@@ -285,6 +352,27 @@
         }
       ],
       "groups": [
+        {
+          "from": "Fa.FakturaZaliczkowa",
+          "heading": "advanceInvoices",
+          "fields": [
+            { "label": "ksefNumber", "path": "NrKSeFFaZaliczkowej", "optional": true },
+            { "label": "invoiceNumber", "path": "NrFaZaliczkowej", "optional": true }
+          ]
+        },
+        {
+          "from": "Fa.ZaliczkaCzesciowa",
+          "heading": "advancePayments",
+          "fields": [
+            {
+              "label": "advancePaymentAmount",
+              "path": "P_15Z",
+              "format": "money",
+              "suffixPath": "/Fa.KodWaluty"
+            },
+            { "label": "advancePaymentDate", "path": "P_6Z", "format": "date" }
+          ]
+        },
         {
           "from": "Fa.Platnosc.ZaplataCzesciowa",
           "heading": "partialPayments",

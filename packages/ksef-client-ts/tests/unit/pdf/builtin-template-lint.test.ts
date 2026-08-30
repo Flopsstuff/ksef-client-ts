@@ -29,9 +29,18 @@ import type { Block, PartyField, TotalsBlock } from '../../../src/pdf/template/d
  * resolves against none.
  */
 const FIXTURES_BY_TEMPLATE: Record<string, string[]> = {
-  'fa2-default': ['pdf/fa2.xml', 'pdf/fa2-zal.xml', 'pdf/fa2-rozliczenie.xml', 'pdf/fa2-czesciowa.xml'],
-  'fa3-default': ['pdf/fa3.xml', 'pdf/fa3-zal.xml', 'pdf/fa3-rozliczenie.xml', 'pdf/fa3-czesciowa.xml'],
-  'fa3-showcase': ['pdf/fa3.xml', 'pdf/fa3-rozliczenie.xml', 'pdf/fa3-czesciowa.xml'],
+  'fa2-default': [
+    'pdf/fa2.xml', 'pdf/fa2-zal.xml', 'pdf/fa2-rozliczenie.xml', 'pdf/fa2-czesciowa.xml',
+    'pdf/fa2-roz.xml', 'pdf/fa2-zal-b.xml', 'pdf/fa2-roz-b.xml', 'pdf/fa2-nadplata.xml',
+  ],
+  'fa3-default': [
+    'pdf/fa3.xml', 'pdf/fa3-zal.xml', 'pdf/fa3-rozliczenie.xml', 'pdf/fa3-czesciowa.xml',
+    'pdf/fa3-roz.xml', 'pdf/fa3-zal-b.xml', 'pdf/fa3-roz-b.xml', 'pdf/fa3-nadplata.xml',
+  ],
+  'fa3-showcase': [
+    'pdf/fa3.xml', 'pdf/fa3-rozliczenie.xml', 'pdf/fa3-czesciowa.xml', 'pdf/fa3-zal.xml',
+    'pdf/fa3-roz.xml', 'pdf/fa3-zal-b.xml', 'pdf/fa3-roz-b.xml', 'pdf/fa3-nadplata.xml',
+  ],
   'upo-4_2': ['pdf/upo-4_2.xml'],
   'upo-4_3': ['pdf/upo-4_3.xml'],
 };
@@ -41,7 +50,9 @@ const CONTEXT_CONDITIONS = new Set([
   'qr', 'offline', 'hasKsefNumber', 'totalsBuckets', 'totalsSummary', 'notes',
   'opts.logo', 'opts.ksefNumber', 'opts.accent', 'qrUrl',
   // Which of `P_15`'s three readings this document supports.
-  'p15IsAmountDue', 'p15IsAdvancePaid', 'p15IsAmountTotal',
+  'p15IsAmountDue', 'p15IsAdvancePaid', 'p15IsAmountTotal', 'p15IsRemainder',
+  // Whether the remainder is a figure the schema defines as a difference.
+  'settlementRemainder',
   // How much of the invoice `Platnosc` says has been paid.
   'paidInFull', 'paidInPart',
 ]);
@@ -64,6 +75,12 @@ function collect(
     if (block.type === 'totals' || block.type === 'payment') {
       for (const row of block.rows) {
         if (row.when !== undefined && !CONTEXT_CONDITIONS.has(row.when)) acc.conditions.push(row.when);
+        // A computed row reads a collection too, and a typo in that path
+        // silently makes the figure wrong rather than absent — worse than a
+        // blank line, so it is linted like any other repeater.
+        for (const computed of [row.less, row.sumFrom]) {
+          if (computed) acc.repeaters.push(computed.from);
+        }
       }
     }
     if (block.type === 'lines') acc.repeaters.push(block.from);
@@ -169,6 +186,8 @@ describe('built-in template lint', () => {
     expect(fa3.repeaters).toContain('Fa.Platnosc.RachunekBankowy');
     expect(fa3.repeaters).toContain('Fa.Platnosc.TerminPlatnosci');
     expect(fa3.repeaters).toContain('Fa.Platnosc.ZaplataCzesciowa');
+    expect(fa3.repeaters).toContain('Fa.ZaliczkaCzesciowa');
+    expect(fa3.repeaters).toContain('Fa.FakturaZaliczkowa');
     expect(fa3.repeaters).toContain('Podmiot2.DaneKontaktowe');
     expect(fa3.conditions).toContain('Fa.Rozliczenie.DoZaplaty');
     expect(collect(getBuiltinTemplate('upo-4_3')!.blocks).repeaters).toContain('Dokument');

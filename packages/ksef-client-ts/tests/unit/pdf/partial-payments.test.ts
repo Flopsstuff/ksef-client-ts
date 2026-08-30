@@ -69,6 +69,46 @@ describe('how much of the invoice has been paid', () => {
   });
 });
 
+/**
+ * FA models two different things that both look like "part payments", and only
+ * one of them adds up:
+ *
+ * - `Fa.ZaliczkaCzesciowa` — the payments an advance invoice documents having
+ *   received, each `P_15Z` "składająca się na kwotę w polu P_15". These sum to
+ *   `P_15` exactly.
+ * - `Fa.Platnosc.ZaplataCzesciowa` — settlements against the receivable. These
+ *   sum to less than the total for as long as the invoice is only part-paid;
+ *   that is what `ZnacznikZaplatyCzesciowej = 1` means.
+ *
+ * Reading a page of the second as though it were the first is what makes the
+ * figures look broken, so both are rendered and each is named for what it is.
+ */
+describe.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s payments that make up P_15', (name) => {
+  const fa = name.startsWith('fa2') ? 'fa2' : 'fa3';
+
+  it('prints each received payment, and they add up to P_15', () => {
+    const xml = fx(`${fa}-zal.xml`);
+    const amounts = [...xml.matchAll(/<P_15Z>([\d.]+)<\/P_15Z>/g)].map((m) => Number(m[1]));
+    const total = Number(/<P_15>([\d.]+)<\/P_15>/.exec(xml)![1]);
+    expect(amounts.reduce((a, b) => a + b, 0)).toBe(total);
+
+    const lines = paymentLines(name, xml);
+    expect(lines).toEqual(
+      expect.arrayContaining([
+        'advancePayments',
+        'advancePaymentAmount: 300,00 PLN',
+        'advancePaymentDate: 10.01.2025',
+        'advancePaymentAmount: 150,00 PLN',
+        'advancePaymentDate: 14.01.2025',
+      ]),
+    );
+  });
+
+  it('prints no such section for an invoice that documents a single payment', () => {
+    expect(paymentLines(name, fx(`${fa}.xml`))).not.toContain('advancePayments');
+  });
+});
+
 describe.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s partial payments', (name) => {
   const fa = name.startsWith('fa2') ? 'fa2' : 'fa3';
 

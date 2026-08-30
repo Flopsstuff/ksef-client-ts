@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Synthetic, fully anonymous FA(3) *advance* invoice (ZAL): no FaWiersz, items under Fa.Zamowienie. No real taxpayer data. -->
+<!-- Chain A, step 1 of 2. Synthetic, fully anonymous FA(3) *advance* invoice (ZAL): no FaWiersz,
+     the goods sit under Fa.Zamowienie because nothing has been delivered yet.
+     Order 615,00; two payments received (300,00 on 10.01 + 150,00 on 14.01) make up P_15 = 450,00.
+     Settled by fa3-roz.xml. No real taxpayer data. -->
 <Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/"
          xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -44,11 +47,11 @@
         <KodWaluty>PLN</KodWaluty>
         <P_1>2025-01-15</P_1>
         <P_1M>Warszawa</P_1M>
-        <P_2>FA/2025/01/001</P_2>
+        <P_2>ZAL/2025/01/001</P_2>
         <P_6>2025-01-15</P_6>
-        <P_13_1>500.00</P_13_1>
-        <P_14_1>115.00</P_14_1>
-        <P_15>615.00</P_15>
+        <P_13_1>365.85</P_13_1>
+        <P_14_1>84.15</P_14_1>
+        <P_15>450.00</P_15>
         <Adnotacje>
             <P_16>2</P_16>
             <P_17>2</P_17>
@@ -66,11 +69,17 @@
             </PMarzy>
         </Adnotacje>
         <RodzajFaktury>ZAL</RodzajFaktury>
+        <ZaliczkaCzesciowa>
+            <P_6Z>2025-01-10</P_6Z>
+            <P_15Z>300.00</P_15Z>
+        </ZaliczkaCzesciowa>
+        <ZaliczkaCzesciowa>
+            <P_6Z>2025-01-14</P_6Z>
+            <P_15Z>150.00</P_15Z>
+        </ZaliczkaCzesciowa>
         <Platnosc>
             <Zaplacono>1</Zaplacono>
-            <TerminPlatnosci>
-                <Termin>2025-02-01</Termin>
-            </TerminPlatnosci>
+            <DataZaplaty>2025-01-14</DataZaplaty>
             <FormaPlatnosci>6</FormaPlatnosci>
             <RachunekBankowy>
                 <NrRB>11109000880000000100000001</NrRB>

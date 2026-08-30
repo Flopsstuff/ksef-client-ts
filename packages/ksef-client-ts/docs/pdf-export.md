@@ -219,14 +219,38 @@ An invoice settled in instalments takes the second branch and so carries no `Zap
 
 The part payments themselves are a `groups` entry, so each one's amount, date and form stay together instead of being split into three separate lists. A group's field paths are entry-relative; write a leading `/` to reach the document root instead, which is how a part payment's amount keeps the currency the invoice states once at the top.
 
+Two more repeating sections belong to the same story, and neither lives under `Platnosc`:
+
+| Element | What it holds | Does it add up to `P_15`? |
+|---------|---------------|---------------------------|
+| `Fa.ZaliczkaCzesciowa` (≤ 31) | The payments an advance invoice documents having received — each `P_15Z` is a part *of* `P_15` | **Yes**, exactly |
+| `Fa.Platnosc.ZaplataCzesciowa` (≤ 100) | Settlements against the receivable | No, not while `ZnacznikZaplatyCzesciowej` is `1` |
+| `Fa.FakturaZaliczkowa` (≤ 100) | The advance invoices a settlement invoice is issued against, by KSeF number or by their own | — |
+
+The two are easy to confuse and read very differently on the page, so the built-in templates print them under separate headings — `Otrzymane płatności` and `Zapłaty częściowe`.
+
 ### What `P_15` is called
 
-`P_15` does not mean the same thing on every document, so a template cannot give it one fixed label. The FA schemas define it as the total receivable, with two exceptions:
+`P_15` does not mean the same thing on every document, so a template cannot give it one fixed label. The FA schemas define it as the total receivable, with three exceptions:
 
 - on an **advance invoice** (`RodzajFaktury` `ZAL` or `KOR_ZAL`) it is the payment the document records as *already received* — labelling it `Do zapłaty` tells the reader to pay it a second time;
-- when the document carries **`Fa.Rozliczenie.DoZaplaty`** — `P_15` plus surcharges minus deductions — that is the figure actually payable, and `P_15` is only the total.
+- on a **settlement invoice** (`ROZ`, art. 106f ust. 3) it is what remains to be paid after the advances. Its lines and VAT buckets state the *whole* order, so this is the page where a flat `Do zapłaty` reads as a contradiction: line items of 615,00 above a demand for 165,00. Such an invoice comes in two shapes — see below;
+- when the document states the figure itself — **`Fa.Rozliczenie.DoZaplaty`** (`P_15` plus surcharges minus deductions), **`Fa.Rozliczenie.DoRozliczenia`** (an overpayment to refund or carry forward), or a **part-payment marker** — that figure is what the reader acts on and `P_15` is only the total.
 
-Exactly one of the `p15IsAmountDue`, `p15IsAdvancePaid` and `p15IsAmountTotal` context flags is true for a given document. The built-in templates list one row per reading and print the settled payable alongside it when the document states one; a custom template that binds `Fa.P_15` unconditionally should gate it the same way.
+Exactly one of the `p15IsAmountDue`, `p15IsAdvancePaid`, `p15IsRemainder` and `p15IsAmountTotal` context flags is true for a given document.
+
+#### The two shapes of a settlement invoice
+
+An issuer may state what is left in either of two ways, and both have to render correctly:
+
+| | `P_15` | What is owed |
+|---|---|---|
+| Leaves the advances on the invoice it references | The remainder | `P_15`, stated |
+| Restates the payments received (`Fa.ZaliczkaCzesciowa`) | The whole amount | `P_15` less the sum of the `P_15Z` fields |
+
+The schema defines the second outright: *«różnica kwoty w polu P_15 i sumy poszczególnych pól P_15Z stanowi kwotę pozostałą»*. No field carries that number, so a page that will not compute it cannot show it — which is what `less` is for. The `settlementRemainder` flag gates the computed row.
+
+The same applies to an invoice being paid down: nothing states what has been paid or what is left, so the built-in templates compute both with `sumFrom` and `less`, gated on `paidInPart`. The built-in templates list one row per reading and print the settled payable alongside it when the document states one; a custom template that binds `Fa.P_15` unconditionally should gate it the same way.
 
 > **Not yet covered:** the schema gives `P_15` a fourth reading on the correcting types (`KOR`, `KOR_ZAL`, `KOR_ROZ`), where it is a *correction of* the amount on the invoice being corrected rather than an absolute — possibly negative. The built-in templates currently label a correction's `P_15` as though it were an absolute figure. A template that renders corrections should say so in its own labels until this is handled.
 
@@ -236,7 +260,8 @@ An advance invoice (`RodzajFaktury` `ZAL` or `KOR_ZAL`) records the goods and se
 
 - **Binding paths** are dot-paths into the document body — e.g. `Fa.P_2` (invoice number), `Podmiot1.DaneIdentyfikacyjne.Nazwa` (seller name). Paths are relative to the body element, not the document wrapper.
 - **`label`** references an i18n label key resolved per locale; **`text`** is a literal string printed as-is.
-- **`when`** conditionally renders a block against a presence test. It accepts a binding path (e.g. `Fa.Platnosc`) or a context flag: `qr`, `offline`, `hasKsefNumber`, `notes`, `totalsBuckets`, `totalsSummary`, `p15IsAmountDue`, `p15IsAdvancePaid`, `p15IsAmountTotal`, `paidInFull`, `paidInPart`. A `divider` and a `lines` table take it too, so a rule can disappear with whatever it separates — the built-in templates close their `notes` block with `{ "type": "divider", "when": "notes" }`, which leaves no stray line on an invoice that carries none.
+- **`when`** conditionally renders a block against a presence test. It accepts a binding path (e.g. `Fa.Platnosc`) or a context flag: `qr`, `offline`, `hasKsefNumber`, `notes`, `totalsBuckets`, `totalsSummary`, `p15IsAmountDue`, `p15IsAdvancePaid`, `p15IsRemainder`, `p15IsAmountTotal`, `paidInFull`, `paidInPart`. A `divider` and a `lines` table take it too, so a rule can disappear with whatever it separates — the built-in templates close their `notes` block with `{ "type": "divider", "when": "notes" }`, which leaves no stray line on an invoice that carries none.
+- **`less`** and **`sumFrom`** (totals and payment rows) compute a figure the document does not state: `sumFrom` takes the sum of one binding over every entry of a collection, and `less` subtracts such a sum from the row's own value. `sum` cannot do this — it adds a fixed list of paths, and the entries of a repeater are not known to the template. Both print blank rather than a wrong number when anything they read is unparseable. Like every computed figure here, they are only as sound as the document.
 - **`format`** names a value formatter: `money`, `date`, `number`, or `nip`.
 - **`optional`** marks a binding the document may legitimately omit, exempting it from `strict`. Mark exactly what the schema declares optional — everything left unmarked is a field the document must carry.
 - **`headingStyle`** (`parties`, `payment`, `annotations`, `notes`) names the style for the heading those blocks print themselves — `Sprzedawca`, `Płatność`. It reaches that first line only: labels nested inside a block (`Adres`, `Dane kontaktowe`, `Rachunek bankowy`) are a level down and stay on `h2`, so section headings can be lifted without dragging every label along. Both default to `h2`; the built-in templates name `h1` for the block headings and leave the nested ones on `h2`. The `header` block's title works the same way through plain `style`, defaulting to `title`. A `styles` map that omits `h2` or `title` loses those headings with nothing in the JSON to point at.
