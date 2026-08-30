@@ -224,6 +224,47 @@ ksef invoice export-status <ref>                 # Check export status
 | `--page <n>` | Page offset (0-based) |
 | `--size <n>` | Page size |
 
+### Render a PDF
+
+Turns an invoice or a UPO receipt into a print-ready PDF, entirely offline — nothing here calls KSeF. The document kind is detected from the file, so a receipt does not need `--upo`.
+
+```bash
+ksef invoice pdf faktura.xml                                  # → faktura.pdf, Polish labels
+ksef invoice pdf faktura.xml --locale en+pl --out invoice.pdf # bilingual, explicit output path
+ksef invoice pdf faktura.xml --qr --ksef-number <ksefNumber>  # with the KSeF Code I verification QR
+ksef invoice pdf upo.xml --out upo.pdf                        # a receipt, detected as such
+```
+
+Rendering needs the optional `pdfmake` peer, and it has to sit where the CLI itself sits: the module is resolved from the installed package's own location, never from the working directory. Installing it into the current project does nothing for a CLI installed globally.
+
+```bash
+npm i -g "pdfmake@^0.2.20"   # the CLI was installed globally (see Installation above)
+npm i "pdfmake@^0.2.20"      # the CLI comes from this project's node_modules
+```
+
+Without it the command exits with an install hint instead of writing a file.
+
+| Flag | Description |
+|------|-------------|
+| `--template <name>` | Built-in template: `fa2-default`, `fa3-default`, `fa3-showcase`, `upo-4_2`, `upo-4_3`. Default: matched to the document's schema version |
+| `--template-file <path>` | A custom JSON template instead of a built-in. Mutually exclusive with `--template` |
+| `--locale <locale>` | `pl` (default), `en`, `uk`, or any two joined by `+` (`pl+uk`, `en+pl`) for side-by-side labels |
+| `--out <path>` | Output path. Default: alongside the source, with `.pdf` |
+| `--totals <mode>` | Tax breakdown above the amount due: `none`, `buckets` (as recorded, default), `summary` (computed), `both` |
+| `--qr` | Embed the KSeF Code I QR, derived from the document |
+| `--qr-url <url>` | Use this Code I URL verbatim instead of deriving one |
+| `--qr-cert-url <url>` | Code II (offline certificate) URL — build it with `ksef qr certificate` |
+| `--qr-links` | Print a clickable link under each QR code |
+| `--ksef-number <nr>` | KSeF number to print. Without it the page is marked OFFLINE |
+| `--env <env>` | Environment the QR verification host comes from: `test`, `demo`, `prod` |
+| `--logo <path>` | Logo image for the header (PNG or JPEG — pdfmake draws no other format) |
+| `--accent <hex>` | Accent colour for the title and headings (`#5AB595` or `#b04`) |
+| `--notes <path>` | JSON file of extra sections: `[{ "head": "…", "body": "…" }, …]`; either half may be omitted |
+| `--upo` | Treat the input as a UPO receipt instead of auto-detecting |
+| `--json` | Report the result as JSON |
+
+See [PDF Export](./pdf-export.md) for the template DSL, the built-in layouts, and the library API behind this command.
+
 ## Permissions
 
 ### Grant Permissions

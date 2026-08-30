@@ -70,6 +70,7 @@ src/
 ├── qr/                    # QR code + verification link generation
 ├── offline/               # Offline invoice mode (types, deadlines, storage)
 ├── xml/                   # Invoice XML layer (UPO parser, field extractor, serialization)
+├── pdf/                   # PDF rendering layer, its own entry point (see below)
 ├── errors/                # Error hierarchy (see below)
 ├── validation/            # Regex patterns, checksum validators, constraints
 ├── workflows/             # High-level orchestration (auth, sessions, export, polling)
@@ -212,6 +213,36 @@ Full lifecycle for the four KSeF offline modes (`offline24`, `offline`, `awaryjn
 | `file-storage.ts` | `FileOfflineInvoiceStorage` rooted at `~/.ksef/offline/` |
 
 See [Offline Mode](./offline-mode.md) for usage.
+
+---
+
+## PDF Layer (`src/pdf/`)
+
+Renders an invoice or a UPO receipt to a print-ready PDF. It is the one layer that is **not** reachable from `KSeFClient` and not exported from the package root: it ships as its own entry point, `ksef-client-ts/pdf`, because `pdfmake` is an optional peer. Importing the subpath without it does not throw — only a render call does, with an install hint — and nothing in the public type surface depends on `@types/pdfmake`, so consumers who never render still type-check.
+
+Nothing here calls the API. A render reads a local document and produces bytes.
+
+| File | Purpose |
+|------|---------|
+| `index.ts` | The public surface: `renderInvoicePdf`, `renderInvoicePdfFromTemplate`, `renderInvoicePdfFromFile`, `renderUpoPdf`, `getBuiltinTemplate`, `builtinTemplateNames`, plus the error classes this entry point throws |
+| `parse.ts` | Reads the XML into a plain tree and detects which document it is. An invoice says so twice — `Naglowek.KodFormularza`'s `kodSystemowy` attribute and `WariantFormularza` — and both must agree or the document is refused, since a mismatched pair would resolve every binding against the wrong schema. A UPO carries no such field, so its version comes from the namespace its root element is bound to |
+| `template/dsl.ts` | The template DSL: block/field types and the zod schema that validates an untrusted template, throwing `KSeFValidationError` |
+| `template/interpret.ts` | Walks a validated template against the document, resolving bindings, `when` conditions and repeaters into pdfmake content |
+| `template/blocks/*.ts` | One renderer per block kind — `header`, `parties`, `lines`, `totals`, `payment`, `annotations`, `notes`, `qr`, `table`, `each`, `image`, `footer` |
+| `template/builtin/` | The five shipped layouts as JSON: `fa2-default`, `fa3-default`, `upo-4_2`, `upo-4_3`, and `fa3-showcase` (which exists to exercise the DSL, not to be used on a real invoice) |
+| `document-flags.ts` | Facts a template gates on rather than computes: which of `P_15`'s readings this document supports, how much of it has been paid, what kind of invoice it is |
+| `accessor.ts` | Dot-path reads over the parsed tree, with the strict/lenient distinction a template's `optional` marks rely on |
+| `format.ts` | Value formatters (`money`, `date`, `number`, `nip`, `paymentForm`) and decimal-safe summing |
+| `i18n/` | Label bundles for Polish, English and Ukrainian, plus the resolver that pairs two of them for a bilingual render |
+| `qr.ts` | Derives the Code I verification URL from the document, hashing the *original* bytes so the digest matches what KSeF registered |
+| `fonts.ts` | Lazily loads `pdfmake` and its font VFS, and turns a document definition into bytes |
+| `errors.ts` | `KSeFPdfError` — a missing or incompatible `pdfmake`, a template/document version mismatch, a nesting overflow |
+
+**Templates are data, not code.** The DSL has bindings, conditions, repeaters and formatters, and deliberately no scripting: a template can only name bindings the renderer already offers. Those are paths into the parsed document, the resolved render options (`opts.logo`, `opts.ksefNumber`, the QR URLs, the caller's notes), and the flags derived from both — which of `P_15`'s readings applies, whether the invoice is part-paid, whether it has a KSeF number yet.
+
+**Error identity across entry points.** Each entry point is bundled separately, so `/pdf` carries its own copies of the error classes. `KSeFError` recognises its own kind by a registered symbol and therefore matches across them, which keeps one catch-all working; a *subclass* check is per entry point, so import `KSeFValidationError` and `KSeFPdfError` from `ksef-client-ts/pdf` when telling one failure apart from another. See [Error Handling](./error-handling.md).
+
+See [PDF Export](./pdf-export.md) for the usage guide and the template reference, and [CLI](./cli.md#render-a-pdf) for `ksef invoice pdf`.
 
 ---
 
