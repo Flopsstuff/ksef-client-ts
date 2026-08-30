@@ -238,7 +238,7 @@ Nothing here calls the API. A render reads a local document and produces bytes.
 | `fonts.ts` | Lazily loads `pdfmake` and its font VFS, and turns a document definition into bytes |
 | `errors.ts` | `KSeFPdfError` — a missing or incompatible `pdfmake`, a template/document version mismatch, a nesting overflow |
 
-**Templates are data, not code.** The DSL has bindings, conditions, repeaters and formatters, and deliberately no scripting: a template can only name paths the document already carries.
+**Templates are data, not code.** The DSL has bindings, conditions, repeaters and formatters, and deliberately no scripting: a template can only name bindings the renderer already offers. Those are paths into the parsed document, the resolved render options (`opts.logo`, `opts.ksefNumber`, the QR URLs, the caller's notes), and the flags derived from both — which of `P_15`'s readings applies, whether the invoice is part-paid, whether it has a KSeF number yet.
 
 **Error identity across entry points.** Each entry point is bundled separately, so `/pdf` carries its own copies of the error classes. `KSeFError` recognises its own kind by a registered symbol and therefore matches across them, which keeps one catch-all working; a *subclass* check is per entry point, so import `KSeFValidationError` and `KSeFPdfError` from `ksef-client-ts/pdf` when telling one failure apart from another. See [Error Handling](./error-handling.md).
 
