@@ -787,15 +787,17 @@ describe('paymentRenderer', () => {
         {
           type: 'payment',
           rows: [],
-          accounts: {
-            from: 'Fa.Platnosc.RachunekBankowy',
-            heading: 'bankAccounts',
-            fields: [
-              { label: 'bankAccount', path: 'NrRB' },
-              { label: 'swift', path: 'SWIFT' },
-              { label: 'bankName', path: 'NazwaBanku' },
-            ],
-          },
+          groups: [
+            {
+              from: 'Fa.Platnosc.RachunekBankowy',
+              heading: 'bankAccounts',
+              fields: [
+                { label: 'bankAccount', path: 'NrRB' },
+                { label: 'swift', path: 'SWIFT' },
+                { label: 'bankName', path: 'NazwaBanku' },
+              ],
+            },
+          ],
         },
         ctx,
         noRender,
@@ -819,11 +821,13 @@ describe('paymentRenderer', () => {
         {
           type: 'payment',
           rows: [{ label: 'paymentMethod', path: 'Fa.Platnosc.FormaPlatnosci', format: 'paymentForm' }],
-          accounts: {
-            from: 'Fa.Platnosc.RachunekBankowy',
-            heading: 'bankAccounts',
-            fields: [{ label: 'bankAccount', path: 'NrRB' }],
-          },
+          groups: [
+            {
+              from: 'Fa.Platnosc.RachunekBankowy',
+              heading: 'bankAccounts',
+              fields: [{ label: 'bankAccount', path: 'NrRB' }],
+            },
+          ],
         },
         makeCtx({ Fa: { Platnosc: { FormaPlatnosci: '6' } } }),
         noRender,
@@ -843,10 +847,12 @@ describe('paymentRenderer', () => {
         {
           type: 'payment',
           rows: [],
-          accounts: {
-            from: 'Fa.Platnosc.RachunekBankowy',
-            fields: [{ label: 'swift', path: 'SWIFT' }], // absent in the account → strict throws
-          },
+          groups: [
+            {
+              from: 'Fa.Platnosc.RachunekBankowy',
+              fields: [{ label: 'swift', path: 'SWIFT' }], // absent in the account → strict throws
+            },
+          ],
         },
         ctx,
         noRender,
@@ -946,11 +952,13 @@ describe('headingStyle', () => {
           type: 'payment',
           ...(headingStyle ? { headingStyle } : {}),
           rows: [{ label: 'paid', path: 'Fa.Platnosc.Zaplacono' }],
-          accounts: {
-            from: 'Fa.Platnosc.RachunekBankowy',
-            heading: 'bankAccounts',
-            fields: [{ label: 'bankAccount', path: 'NrRB' }],
-          },
+          groups: [
+            {
+              from: 'Fa.Platnosc.RachunekBankowy',
+              heading: 'bankAccounts',
+              fields: [{ label: 'bankAccount', path: 'NrRB' }],
+            },
+          ],
         },
         makeCtx({ Fa: { Platnosc: { Zaplacono: '1', RachunekBankowy: { NrRB: 'PL01' } } } }),
         noRender,
@@ -1197,10 +1205,12 @@ describe('row style', () => {
             { label: 'paymentMethod', path: 'Fa.Platnosc.FormaPlatnosci' },
             { label: 'amountDueTotal', path: 'Fa.P_15', style: 'strong' },
           ],
-          accounts: {
-            from: 'Fa.Platnosc.RachunekBankowy',
-            fields: [{ label: 'bankAccount', path: 'NrRB', style: 'strong' }],
-          },
+          groups: [
+            {
+              from: 'Fa.Platnosc.RachunekBankowy',
+              fields: [{ label: 'bankAccount', path: 'NrRB', style: 'strong' }],
+            },
+          ],
         },
         makeCtx({ Fa: { P_15: '123.00', Platnosc: { FormaPlatnosci: '6', RachunekBankowy: { NrRB: 'PL01' } } } }),
         noRender,

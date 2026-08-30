@@ -250,12 +250,20 @@ export interface TotalsBlock {
 }
 
 /**
- * A repeating group of bank-account fields under a payment block. `from` names
- * the account collection (read as an always-array), `fields` are the per-account
- * label:value lines, and `heading` is an optional i18n sub-heading printed once
- * when at least one account resolves.
+ * A repeating group under a payment block: `from` names the collection (read as
+ * an always-array), `fields` are the per-entry label:value lines, and `heading`
+ * is an optional i18n sub-heading printed once when at least one entry resolves.
+ *
+ * `Platnosc` has two of these — the bank accounts, and the partial payments an
+ * invoice settled in instalments records with an amount, a date and a form each
+ * — so a group holds several fields per entry and keeps each entry's lines
+ * together, which one repeating row per field could not do.
+ *
+ * Field paths are entry-relative, except one written with a leading `/`, which
+ * resolves from the document root: an amount inside a group still needs the
+ * currency the document states once, at the top.
  */
-export interface PaymentAccounts {
+export interface PaymentGroup {
   from: string;
   heading?: string;
   fields: FieldDef[];
@@ -268,7 +276,14 @@ export interface PaymentAccounts {
  * advance one — and the template picks the right label by listing one row per
  * reading.
  */
-export interface PaymentRow extends FieldDef {
+export interface PaymentRow extends Omit<FieldDef, 'path'> {
+  /**
+   * A row with no `path` prints its label alone, and is worth having because
+   * some facts are the label: `Zapłacono` says everything there is to say, and
+   * printing the schema's `1` after it says nothing. Such a row is normally
+   * paired with `when`.
+   */
+  path?: string;
   when?: string;
   /**
    * Repeat this line once per entry of a collection, with the entry as the
@@ -285,8 +300,8 @@ export interface PaymentBlock {
   type: 'payment';
   when?: string;
   rows: PaymentRow[];
-  accounts?: PaymentAccounts;
-  /** See {@link HEADING_STYLE_DOC}. The block label only, not `accounts.heading`. */
+  groups?: PaymentGroup[];
+  /** See {@link HEADING_STYLE_DOC}. The block label only, not a group's heading. */
   headingStyle?: string;
   style?: string;
 }
@@ -567,14 +582,23 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({
       type: z.literal('payment'),
       when: z.string().optional(),
-      rows: z.array(fieldDef.extend({ when: z.string().optional(), from: z.string().optional() })),
-      accounts: z
-        .object({
-          from: z.string(),
-          heading: z.string().optional(),
-          fields: z.array(fieldDef),
-        })
-        .strict()
+      rows: z.array(
+        fieldDef.extend({
+          path: z.string().optional(),
+          when: z.string().optional(),
+          from: z.string().optional(),
+        }),
+      ),
+      groups: z
+        .array(
+          z
+            .object({
+              from: z.string(),
+              heading: z.string().optional(),
+              fields: z.array(fieldDef),
+            })
+            .strict(),
+        )
         .optional(),
       headingStyle: z.string().optional(),
       style: z.string().optional(),

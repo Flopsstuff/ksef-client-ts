@@ -217,6 +217,17 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
       '--env', 'demo', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links',
       '--totals', 'summary', '--notes', notesFile, '--accent', ACCENT_SHORT,
     ]],
+    // Not part of the grid: another document shape rather than another set of
+    // flags. `Platnosc` states what has been paid through a choice, and this
+    // document takes the branch the other pages never reach — no `Zaplacono`,
+    // a partial marker, and a `ZaplataCzesciowa` per instalment. What a reader
+    // should see is the payment section saying the invoice is part-paid, then
+    // each part payment's amount, date and form kept together above the bank
+    // accounts.
+    [`${PREFIX}-10-invoice-partial-payments`, () => [
+      fx('fa3-czesciowa.xml'), '--ksef-number', KSEF_NUMBER,
+      '--env', 'demo', '--qr', '--totals', 'buckets',
+    ]],
     // Receipts last: they are a different document and read as their own group.
     [`${PREFIX}-08-upo-pl`, () => [fx('upo-4_3.xml')]],
     [`${PREFIX}-09-upo-five-documents-bilingual`, () => [multiDocumentUpo, '--locale', 'en+pl']],
@@ -235,7 +246,8 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
       'e2e-services-np.xml', 'fa3.xml', 'e2e-buyer-no-id.xml', 'e2e-vat-multi.xml',
       // An advance invoice reaches a branch of the template no other document
       // does, so it is pinned here rather than left to be dropped by accident.
-      'fa3-zal.xml', 'upo-4_3.xml',
+      // So does an invoice settled in instalments.
+      'fa3-zal.xml', 'fa3-czesciowa.xml', 'upo-4_3.xml',
     ]) {
       expect(covered(doc), `no variant renders ${doc}`).toBe(true);
     }
@@ -279,7 +291,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
   it('renders every variant of the set', () => {
     // Guards against a variant being silently dropped from the table above:
     // the count is stated here so removing a row has to be deliberate.
-    expect(variants).toHaveLength(9);
+    expect(variants).toHaveLength(10);
     for (const [name] of variants) {
       expect(existsSync(join(outDir, `${name}.pdf`)), `${name}.pdf missing`).toBe(true);
     }

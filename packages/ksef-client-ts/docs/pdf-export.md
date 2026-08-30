@@ -188,7 +188,7 @@ The `schema` field binds a template to a single document kind. If you render an 
 | `parties` | Seller / buyer two-column panel; a line that resolves empty is skipped. A labelled group reads `from` an optional parent element — the buyer's address, say — and is dropped whole when the document carries none |
 | `lines` | Invoice line-item table. Takes `when`, because an invoice does not always carry its items in the same place — see below |
 | `totals` | Net / VAT / gross summary rows (a row reads one path or sums several) |
-| `payment` | Payment details (amount paid, date, method). A row takes `when`, so one figure can be listed once per reading and only the applicable label prints, and `from`, so a repeated element — the payment terms of an instalment schedule — prints one line per entry |
+| `payment` | Payment details (status, dates, method, amounts), then the repeating sections of `groups` — the part payments and the bank accounts. A row takes `when`, so one figure can be listed once per reading and only the applicable label prints, and `from`, so a repeated element prints one line per entry |
 | `annotations` | Miscellaneous labelled fields |
 | `notes` | The caller's own sections, from `notes` — a heading over a body, each |
 | `qr` | One KSeF verification QR — `code: "invoice"` (Code I, the default) or `code: "certificate"` (Code II) |
@@ -208,6 +208,17 @@ A `qr` block's `fit` is the printed side in points, quiet zone included, and it 
 
 `each` repeats a group of blocks once per entry of a collection, with the entry as the binding root, so its children use item-relative paths. Use it where a table cannot fit a record on one row — the built-in UPO templates lay out each confirmed document this way, because a 35-character KSeF number beside a 44-character hash will not share a page-wide row.
 
+### How much has been paid
+
+`Fa.Platnosc` states this through a choice, and a template has to bind both branches or it will show nothing for half of all invoices:
+
+- **`Zaplacono`** — a bare `1` meaning settled in full, alongside `DataZaplaty`;
+- **`ZnacznikZaplatyCzesciowej`** (`1` paid in part, `2` paid in full) alongside up to 100 **`ZaplataCzesciowa`** entries, each carrying an amount, a date and a payment form.
+
+An invoice settled in instalments takes the second branch and so carries no `Zaplacono` at all. The `paidInFull` and `paidInPart` context flags cover both branches, and the status prints as a label on its own — the schema's `1` says nothing to a reader that the label does not already say.
+
+The part payments themselves are a `groups` entry, so each one's amount, date and form stay together instead of being split into three separate lists. A group's field paths are entry-relative; write a leading `/` to reach the document root instead, which is how a part payment's amount keeps the currency the invoice states once at the top.
+
 ### What `P_15` is called
 
 `P_15` does not mean the same thing on every document, so a template cannot give it one fixed label. The FA schemas define it as the total receivable, with two exceptions:
@@ -217,13 +228,15 @@ A `qr` block's `fit` is the printed side in points, quiet zone included, and it 
 
 Exactly one of the `p15IsAmountDue`, `p15IsAdvancePaid` and `p15IsAmountTotal` context flags is true for a given document. The built-in templates list one row per reading and print the settled payable alongside it when the document states one; a custom template that binds `Fa.P_15` unconditionally should gate it the same way.
 
+> **Not yet covered:** the schema gives `P_15` a fourth reading on the correcting types (`KOR`, `KOR_ZAL`, `KOR_ROZ`), where it is a *correction of* the amount on the invoice being corrected rather than an absolute — possibly negative. The built-in templates currently label a correction's `P_15` as though it were an absolute figure. A template that renders corrections should say so in its own labels until this is handled.
+
 An advance invoice (`RodzajFaktury` `ZAL` or `KOR_ZAL`) records the goods and services it covers under `Fa.Zamowienie`, and may carry no `Fa.FaWiersz` at all. A repeater with no entries still draws its header row, so a template that binds both gives each one a `when` — this is what the built-in templates do, and it is why an advance invoice shows its order rows under their own heading instead of an empty item table.
 
 ### Bindings, labels, conditions, and formats
 
 - **Binding paths** are dot-paths into the document body — e.g. `Fa.P_2` (invoice number), `Podmiot1.DaneIdentyfikacyjne.Nazwa` (seller name). Paths are relative to the body element, not the document wrapper.
 - **`label`** references an i18n label key resolved per locale; **`text`** is a literal string printed as-is.
-- **`when`** conditionally renders a block against a presence test. It accepts a binding path (e.g. `Fa.Platnosc`) or a context flag: `qr`, `offline`, `hasKsefNumber`, `notes`, `totalsBuckets`, `totalsSummary`, `p15IsAmountDue`, `p15IsAdvancePaid`, `p15IsAmountTotal`. A `divider` and a `lines` table take it too, so a rule can disappear with whatever it separates — the built-in templates close their `notes` block with `{ "type": "divider", "when": "notes" }`, which leaves no stray line on an invoice that carries none.
+- **`when`** conditionally renders a block against a presence test. It accepts a binding path (e.g. `Fa.Platnosc`) or a context flag: `qr`, `offline`, `hasKsefNumber`, `notes`, `totalsBuckets`, `totalsSummary`, `p15IsAmountDue`, `p15IsAdvancePaid`, `p15IsAmountTotal`, `paidInFull`, `paidInPart`. A `divider` and a `lines` table take it too, so a rule can disappear with whatever it separates — the built-in templates close their `notes` block with `{ "type": "divider", "when": "notes" }`, which leaves no stray line on an invoice that carries none.
 - **`format`** names a value formatter: `money`, `date`, `number`, or `nip`.
 - **`optional`** marks a binding the document may legitimately omit, exempting it from `strict`. Mark exactly what the schema declares optional — everything left unmarked is a field the document must carry.
 - **`headingStyle`** (`parties`, `payment`, `annotations`, `notes`) names the style for the heading those blocks print themselves — `Sprzedawca`, `Płatność`. It reaches that first line only: labels nested inside a block (`Adres`, `Dane kontaktowe`, `Rachunek bankowy`) are a level down and stay on `h2`, so section headings can be lifted without dragging every label along. Both default to `h2`; the built-in templates name `h1` for the block headings and leave the nested ones on `h2`. The `header` block's title works the same way through plain `style`, defaulting to `title`. A `styles` map that omits `h2` or `title` loses those headings with nothing in the JSON to point at.

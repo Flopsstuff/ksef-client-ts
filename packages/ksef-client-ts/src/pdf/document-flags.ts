@@ -39,3 +39,24 @@ export function p15Flags(root: unknown): Record<string, boolean> {
     p15IsAmountDue: !advance && !settled,
   };
 }
+
+/**
+ * How much of the invoice the document says has been paid.
+ *
+ * `Platnosc` states this through a choice: either `Zaplacono` (a bare `1`
+ * meaning settled in full, alongside `DataZaplaty`), or
+ * `ZnacznikZaplatyCzesciowej` — `1` paid in part, `2` paid in full — alongside
+ * up to 100 `ZaplataCzesciowa` entries. An invoice settled in instalments
+ * therefore carries no `Zaplacono` at all, which is why a template bound to
+ * that field alone showed nothing for it.
+ *
+ * The status is a flag rather than a printed value because `1` on the page
+ * says nothing to a reader; the label is the fact.
+ */
+export function paymentFlags(root: unknown): Record<string, boolean> {
+  const mark = get(root, 'Fa.Platnosc.ZnacznikZaplatyCzesciowej');
+  return {
+    paidInFull: get(root, 'Fa.Platnosc.Zaplacono') === '1' || mark === '2',
+    paidInPart: mark === '1',
+  };
+}

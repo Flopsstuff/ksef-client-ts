@@ -29,9 +29,9 @@ import type { Block, PartyField, TotalsBlock } from '../../../src/pdf/template/d
  * resolves against none.
  */
 const FIXTURES_BY_TEMPLATE: Record<string, string[]> = {
-  'fa2-default': ['pdf/fa2.xml', 'pdf/fa2-zal.xml', 'pdf/fa2-rozliczenie.xml'],
-  'fa3-default': ['pdf/fa3.xml', 'pdf/fa3-zal.xml', 'pdf/fa3-rozliczenie.xml'],
-  'fa3-showcase': ['pdf/fa3.xml', 'pdf/fa3-rozliczenie.xml'],
+  'fa2-default': ['pdf/fa2.xml', 'pdf/fa2-zal.xml', 'pdf/fa2-rozliczenie.xml', 'pdf/fa2-czesciowa.xml'],
+  'fa3-default': ['pdf/fa3.xml', 'pdf/fa3-zal.xml', 'pdf/fa3-rozliczenie.xml', 'pdf/fa3-czesciowa.xml'],
+  'fa3-showcase': ['pdf/fa3.xml', 'pdf/fa3-rozliczenie.xml', 'pdf/fa3-czesciowa.xml'],
   'upo-4_2': ['pdf/upo-4_2.xml'],
   'upo-4_3': ['pdf/upo-4_3.xml'],
 };
@@ -42,6 +42,8 @@ const CONTEXT_CONDITIONS = new Set([
   'opts.logo', 'opts.ksefNumber', 'opts.accent', 'qrUrl',
   // Which of `P_15`'s three readings this document supports.
   'p15IsAmountDue', 'p15IsAdvancePaid', 'p15IsAmountTotal',
+  // How much of the invoice `Platnosc` says has been paid.
+  'paidInFull', 'paidInPart',
 ]);
 
 interface CollectedPaths {
@@ -68,7 +70,7 @@ function collect(
     if (block.type === 'table' && block.from !== undefined) acc.repeaters.push(block.from);
     if (block.type === 'each') acc.repeaters.push(block.from);
     if (block.type === 'payment') {
-      if (block.accounts) acc.repeaters.push(block.accounts.from);
+      for (const group of block.groups ?? []) acc.repeaters.push(group.from);
       for (const row of block.rows) if (row.from !== undefined) acc.repeaters.push(row.from);
     }
     if (block.type === 'parties') {
@@ -166,6 +168,7 @@ describe('built-in template lint', () => {
     expect(fa3.repeaters).toContain('Fa.Zamowienie.ZamowienieWiersz');
     expect(fa3.repeaters).toContain('Fa.Platnosc.RachunekBankowy');
     expect(fa3.repeaters).toContain('Fa.Platnosc.TerminPlatnosci');
+    expect(fa3.repeaters).toContain('Fa.Platnosc.ZaplataCzesciowa');
     expect(fa3.repeaters).toContain('Podmiot2.DaneKontaktowe');
     expect(fa3.conditions).toContain('Fa.Rozliczenie.DoZaplaty');
     expect(collect(getBuiltinTemplate('upo-4_3')!.blocks).repeaters).toContain('Dokument');

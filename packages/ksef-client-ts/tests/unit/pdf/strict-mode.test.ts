@@ -236,7 +236,8 @@ describe('the built-in templates mark the right bindings', () => {
 
   it.each(['fa2-default', 'fa3-default'])('%s keeps the bank account number policed', (name) => {
     const payment = getBuiltinTemplate(name)!.blocks.find((b) => b.type === 'payment') as PaymentBlock;
-    const fields = Object.fromEntries((payment.accounts!.fields as FieldDef[]).map((f) => [f.label, f]));
+    const accounts = payment.groups!.find((g) => g.from === 'Fa.Platnosc.RachunekBankowy')!;
+    const fields = Object.fromEntries((accounts.fields as FieldDef[]).map((f) => [f.label, f]));
     expect(fields.bankAccount?.optional, 'NrRB is required inside RachunekBankowy').toBeUndefined();
     expect(fields.swift?.optional).toBe(true);
     expect(fields.bankName?.optional).toBe(true);

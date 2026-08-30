@@ -59,6 +59,11 @@ export const pl: LabelBundle = {
   // payment
   payment: 'Płatność',
   paid: 'Zapłacono',
+  paidInPart: 'Zapłacono w części',
+  paidDate: 'Data zapłaty',
+  partialPayments: 'Zapłaty częściowe',
+  partialAmount: 'Kwota zapłaty częściowej',
+  partialDate: 'Data zapłaty częściowej',
   paymentDate: 'Termin płatności',
   paymentMethod: 'Forma płatności',
   amountDueTotal: 'Kwota należności ogółem',

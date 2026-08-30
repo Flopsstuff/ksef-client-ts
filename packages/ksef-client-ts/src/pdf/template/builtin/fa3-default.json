@@ -240,7 +240,9 @@
       "headingStyle": "h1",
       "when": "Fa.Platnosc",
       "rows": [
-        { "label": "paid", "path": "Fa.Platnosc.Zaplacono", "optional": true },
+        { "label": "paid", "when": "paidInFull" },
+        { "label": "paidInPart", "when": "paidInPart" },
+        { "label": "paidDate", "path": "Fa.Platnosc.DataZaplaty", "format": "date", "optional": true },
         {
           "label": "paymentDate",
           "from": "Fa.Platnosc.TerminPlatnosci",
@@ -282,15 +284,32 @@
           "style": "strong"
         }
       ],
-      "accounts": {
-        "from": "Fa.Platnosc.RachunekBankowy",
-        "heading": "bankAccounts",
-        "fields": [
-          { "label": "bankAccount", "path": "NrRB" },
-          { "label": "swift", "path": "SWIFT", "optional": true },
-          { "label": "bankName", "path": "NazwaBanku", "optional": true }
-        ]
-      }
+      "groups": [
+        {
+          "from": "Fa.Platnosc.ZaplataCzesciowa",
+          "heading": "partialPayments",
+          "fields": [
+            {
+              "label": "partialAmount",
+              "path": "KwotaZaplatyCzesciowej",
+              "format": "money",
+              "suffixPath": "/Fa.KodWaluty"
+            },
+            { "label": "partialDate", "path": "DataZaplatyCzesciowej", "format": "date" },
+            { "label": "paymentMethod", "path": "FormaPlatnosci", "format": "paymentForm", "optional": true },
+            { "label": "paymentMethod", "path": "OpisPlatnosci", "optional": true }
+          ]
+        },
+        {
+          "from": "Fa.Platnosc.RachunekBankowy",
+          "heading": "bankAccounts",
+          "fields": [
+            { "label": "bankAccount", "path": "NrRB" },
+            { "label": "swift", "path": "SWIFT", "optional": true },
+            { "label": "bankName", "path": "NazwaBanku", "optional": true }
+          ]
+        }
+      ]
     },
     { "type": "divider" },
     { "type": "notes", "headingStyle": "h1" },
