@@ -90,9 +90,20 @@ export function p15Flags(root: unknown): Record<string, boolean> {
  */
 export function paymentFlags(root: unknown): Record<string, boolean> {
   const mark = get(root, 'Fa.Platnosc.ZnacznikZaplatyCzesciowej');
+  const paidInPart = mark === '1';
+  // What the instalments are paid against. The schema defines
+  // `Rozliczenie.DoZaplaty` as `P_15` plus surcharges less deductions, so a
+  // document that states it states the figure the reader owes — and a
+  // remainder taken off `P_15` would be short by the surcharge while the page's
+  // own `Do zapłaty` line, one row above, said otherwise. Nothing in FA stops
+  // an invoice carrying surcharges from being settled in instalments, so the
+  // two really do meet.
+  const payableStated = has(root, 'Fa.Rozliczenie.DoZaplaty');
   return {
     paidInFull: get(root, 'Fa.Platnosc.Zaplacono') === '1' || mark === '2',
-    paidInPart: mark === '1',
+    paidInPart,
+    paidInPartOfPayable: paidInPart && payableStated,
+    paidInPartOfTotal: paidInPart && !payableStated,
   };
 }
 

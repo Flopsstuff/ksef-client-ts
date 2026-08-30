@@ -56,8 +56,9 @@ const CONTEXT_CONDITIONS = new Set([
   // The settlement reconciliation, which is derived and so is gated on the
   // totals mode as well as on the document.
   'settlementBreakdown',
-  // How much of the invoice `Platnosc` says has been paid.
-  'paidInFull', 'paidInPart',
+  // How much of the invoice `Platnosc` says has been paid, and — where it is
+  // part-paid — which figure the instalments come off.
+  'paidInFull', 'paidInPart', 'paidInPartOfPayable', 'paidInPartOfTotal',
 ]);
 
 interface CollectedPaths {

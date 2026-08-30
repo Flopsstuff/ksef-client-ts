@@ -255,8 +255,16 @@
         { "label": "paidTotal", "when": "paidInPart", "sumFrom": { "from": "Fa.Platnosc.ZaplataCzesciowa", "path": "KwotaZaplatyCzesciowej" }, "format": "money" },
         {
           "label": "remainingDue",
+          "path": "Fa.Rozliczenie.DoZaplaty",
+          "when": "paidInPartOfPayable",
+          "less": { "from": "Fa.Platnosc.ZaplataCzesciowa", "path": "KwotaZaplatyCzesciowej" },
+          "format": "money",
+          "style": "strong"
+        },
+        {
+          "label": "remainingDue",
           "path": "Fa.P_15",
-          "when": "paidInPart",
+          "when": "paidInPartOfTotal",
           "less": { "from": "Fa.Platnosc.ZaplataCzesciowa", "path": "KwotaZaplatyCzesciowej" },
           "format": "money",
           "style": "strong"
@@ -340,8 +348,17 @@
         },
         {
           "label": "remainingDue",
+          "path": "Fa.Rozliczenie.DoZaplaty",
+          "when": "paidInPartOfPayable",
+          "less": { "from": "Fa.Platnosc.ZaplataCzesciowa", "path": "KwotaZaplatyCzesciowej" },
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "remainingDue",
           "path": "Fa.P_15",
-          "when": "paidInPart",
+          "when": "paidInPartOfTotal",
           "less": { "from": "Fa.Platnosc.ZaplataCzesciowa", "path": "KwotaZaplatyCzesciowej" },
           "format": "money",
           "suffixPath": "Fa.KodWaluty",

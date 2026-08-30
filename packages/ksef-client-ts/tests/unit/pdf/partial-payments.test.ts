@@ -4,7 +4,8 @@ import { getBuiltinTemplate } from '../../../src/pdf/template/builtin/index.js';
 import { documentFlags, paymentFlags } from '../../../src/pdf/document-flags.js';
 import { parseXmlForPdf } from '../../../src/pdf/parse.js';
 import { paymentRenderer } from '../../../src/pdf/template/blocks/payment.js';
-import type { PaymentBlock } from '../../../src/pdf/template/dsl.js';
+import { totalsRenderer } from '../../../src/pdf/template/blocks/totals.js';
+import type { PaymentBlock, TotalsBlock } from '../../../src/pdf/template/dsl.js';
 import type { PdfNode, RenderChild, RenderContext } from '../../../src/pdf/template/interpret.js';
 
 /**
@@ -44,15 +45,44 @@ function paymentLines(templateName: string, xml: string, locale?: (k: string) =>
   return out;
 }
 
+/** Rendered totals as `label -> value`, in the order the rows appear. */
+function totalsPairs(templateName: string, xml: string): Array<readonly [string, string]> {
+  const block = getBuiltinTemplate(templateName)!.blocks.find((b) => b.type === 'totals') as TotalsBlock;
+  const root = bodyOf(xml);
+  const ctx: RenderContext = {
+    root,
+    strict: false,
+    label: (k: string) => k,
+    bindings: {},
+    flags: { ...documentFlags(root), totalsBuckets: true },
+  };
+  const node = totalsRenderer(block, ctx, noRender) as {
+    columns: Array<{ table?: { body: Array<Array<{ text: string }>> } }>;
+  };
+  const body = node.columns.find((c) => c.table)!.table!.body;
+  return body.map(([label, value]) => [label!.text, value!.text] as const);
+}
+
 describe('how much of the invoice has been paid', () => {
   it('reads the full-payment branch', () => {
-    expect(paymentFlags(bodyOf(fx('fa3.xml')))).toEqual({ paidInFull: true, paidInPart: false });
+    expect(paymentFlags(bodyOf(fx('fa3.xml')))).toEqual({
+      paidInFull: true,
+      paidInPart: false,
+      paidInPartOfPayable: false,
+      paidInPartOfTotal: false,
+    });
   });
 
   it('reads the partial branch, which carries no Zaplacono at all', () => {
     const xml = fx('fa3-czesciowa.xml');
     expect(xml).not.toContain('<Zaplacono>');
-    expect(paymentFlags(bodyOf(xml))).toEqual({ paidInFull: false, paidInPart: true });
+    expect(paymentFlags(bodyOf(xml))).toEqual({
+      paidInFull: false,
+      paidInPart: true,
+      // No `Rozliczenie` on this fixture, so `P_15` is what is being paid down.
+      paidInPartOfPayable: false,
+      paidInPartOfTotal: true,
+    });
   });
 
   it('treats the marker value 2 as paid in full', () => {
@@ -60,12 +90,22 @@ describe('how much of the invoice has been paid', () => {
       '<ZnacznikZaplatyCzesciowej>1<',
       '<ZnacznikZaplatyCzesciowej>2<',
     );
-    expect(paymentFlags(bodyOf(xml))).toEqual({ paidInFull: true, paidInPart: false });
+    expect(paymentFlags(bodyOf(xml))).toEqual({
+      paidInFull: true,
+      paidInPart: false,
+      paidInPartOfPayable: false,
+      paidInPartOfTotal: false,
+    });
   });
 
   it('says nothing either way when the invoice states no payment status', () => {
     const xml = fx('fa3.xml').replace(/\s*<Zaplacono>1<\/Zaplacono>/, '');
-    expect(paymentFlags(bodyOf(xml))).toEqual({ paidInFull: false, paidInPart: false });
+    expect(paymentFlags(bodyOf(xml))).toEqual({
+      paidInFull: false,
+      paidInPart: false,
+      paidInPartOfPayable: false,
+      paidInPartOfTotal: false,
+    });
   });
 });
 
@@ -169,3 +209,52 @@ describe.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s partial paymen
     expect(lines).toContain('bankAccount: 11109000880000000100000001');
   });
 });
+
+/**
+ * `Rozliczenie.DoZaplaty` is, in the schema's own words, "kwota należności do
+ * zapłaty równa polu P_15 powiększonemu o Obciazenia i pomniejszonemu o
+ * Odliczenia" — so on a document that states it, that figure, not `P_15`, is
+ * what the reader owes and therefore what the instalments are paid against.
+ *
+ * The two can appear together: nothing in FA stops an invoice carrying
+ * surcharges from being settled in instalments. A page that subtracts the
+ * instalments from `P_15` then prints a remainder short by the surcharge,
+ * directly under its own correct `Do zapłaty` line — two figures on one page
+ * that cannot both be right, and no error anywhere.
+ */
+describe.each(['fa2-default', 'fa3-default', 'fa3-showcase'])(
+  '%s pays instalments against the payable the document states',
+  (name) => {
+    const fa = name.startsWith('fa2') ? 'fa2' : 'fa3';
+    /** P_15 615,00 plus a 10,00 surcharge: 625,00 payable, 450,00 of it paid. */
+    const withSurcharge = (xml: string) =>
+      xml.replace(
+        '<Platnosc>',
+        '<Rozliczenie>' +
+          '<Obciazenia><Kwota>10.00</Kwota><Powod>Koszt dostawy</Powod></Obciazenia>' +
+          '<SumaObciazen>10.00</SumaObciazen>' +
+          '<DoZaplaty>625.00</DoZaplaty>' +
+          '</Rozliczenie><Platnosc>',
+      );
+
+    it('subtracts them from DoZaplaty in the payment block, not from P_15', () => {
+      const lines = paymentLines(name, withSurcharge(fx(`${fa}-czesciowa.xml`)));
+      expect(lines).toContain('paidTotal: 450,00 PLN');
+      expect(lines).toContain('remainingDue: 175,00 PLN');
+      expect(lines).not.toContain('remainingDue: 165,00 PLN');
+    });
+
+    it('subtracts them from DoZaplaty in the totals block too', () => {
+      const rows = totalsPairs(name, withSurcharge(fx(`${fa}-czesciowa.xml`)));
+      expect(rows).toContainEqual(['totalDue', '625,00']);
+      expect(rows).toContainEqual(['paidTotal', '450,00']);
+      expect(rows).toContainEqual(['remainingDue', '175,00']);
+    });
+
+    it('still subtracts them from P_15 when the document states no payable', () => {
+      const plain = fx(`${fa}-czesciowa.xml`);
+      expect(paymentLines(name, plain)).toContain('remainingDue: 165,00 PLN');
+      expect(totalsPairs(name, plain)).toContainEqual(['remainingDue', '165,00']);
+    });
+  },
+);
