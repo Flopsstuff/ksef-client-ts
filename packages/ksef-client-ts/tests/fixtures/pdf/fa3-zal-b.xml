@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chain B, step 1 of 2. Synthetic, fully anonymous FA(3) *advance* invoice (ZAL) for a different
+     buyer and a different deal than chain A: order 1 230,00, of which 800,00 was received
+     (500,00 on 04.03 + 300,00 on 11.03) and makes up P_15.
+     Settled by fa3-roz-b.xml. No real taxpayer data. -->
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/"
+         xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Naglowek>
+        <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+        <WariantFormularza>3</WariantFormularza>
+        <DataWytworzeniaFa>2025-03-12T10:00:00Z</DataWytworzeniaFa>
+        <SystemInfo>anonymous test fixture</SystemInfo>
+    </Naglowek>
+    <Podmiot1>
+        <DaneIdentyfikacyjne>
+            <NIP>1111111111</NIP>
+            <Nazwa>Sprzedawca Przykładowy Sp. z o.o.</Nazwa>
+        </DaneIdentyfikacyjne>
+        <Adres>
+            <KodKraju>PL</KodKraju>
+            <AdresL1>ul. Przykładowa 1</AdresL1>
+            <AdresL2>00-001 Warszawa</AdresL2>
+        </Adres>
+        <DaneKontaktowe>
+            <Email>kontakt@sprzedawca.example</Email>
+            <Telefon>+48000000001</Telefon>
+        </DaneKontaktowe>
+    </Podmiot1>
+    <Podmiot2>
+        <DaneIdentyfikacyjne>
+            <NIP>5555555555</NIP>
+            <Nazwa>Odbiorca Handlowy Sp. z o.o.</Nazwa>
+        </DaneIdentyfikacyjne>
+        <Adres>
+            <KodKraju>PL</KodKraju>
+            <AdresL1>ul. Morska 17</AdresL1>
+            <AdresL2>81-001 Gdynia</AdresL2>
+        </Adres>
+        <DaneKontaktowe>
+            <Email>zakupy@odbiorca.example</Email>
+            <Telefon>+48000000005</Telefon>
+            <NrKlienta>KL-0042</NrKlienta>
+        </DaneKontaktowe>
+    </Podmiot2>
+    <Fa>
+        <KodWaluty>PLN</KodWaluty>
+        <P_1>2025-03-12</P_1>
+        <P_1M>Warszawa</P_1M>
+        <P_2>ZAL/2025/03/007</P_2>
+        <P_6>2025-03-12</P_6>
+        <P_13_1>650.41</P_13_1>
+        <P_14_1>149.59</P_14_1>
+        <P_15>800.00</P_15>
+        <Adnotacje>
+            <P_16>2</P_16>
+            <P_17>2</P_17>
+            <P_18>2</P_18>
+            <P_18A>2</P_18A>
+            <Zwolnienie>
+                <P_19N>1</P_19N>
+            </Zwolnienie>
+            <NoweSrodkiTransportu>
+                <P_22N>1</P_22N>
+            </NoweSrodkiTransportu>
+            <P_23>2</P_23>
+            <PMarzy>
+                <P_PMarzyN>1</P_PMarzyN>
+            </PMarzy>
+        </Adnotacje>
+        <RodzajFaktury>ZAL</RodzajFaktury>
+        <ZaliczkaCzesciowa>
+            <P_6Z>2025-03-04</P_6Z>
+            <P_15Z>500.00</P_15Z>
+        </ZaliczkaCzesciowa>
+        <ZaliczkaCzesciowa>
+            <P_6Z>2025-03-11</P_6Z>
+            <P_15Z>300.00</P_15Z>
+        </ZaliczkaCzesciowa>
+        <Platnosc>
+            <Zaplacono>1</Zaplacono>
+            <DataZaplaty>2025-03-11</DataZaplaty>
+            <FormaPlatnosci>6</FormaPlatnosci>
+            <RachunekBankowy>
+                <NrRB>11109000880000000100000001</NrRB>
+                <SWIFT>WBKPPLPP</SWIFT>
+                <NazwaBanku>Bank Przykładowy S.A.</NazwaBanku>
+            </RachunekBankowy>
+        </Platnosc>
+        <Zamowienie>
+            <WartoscZamowienia>1230.00</WartoscZamowienia>
+            <ZamowienieWiersz>
+                <NrWierszaZam>1</NrWierszaZam>
+                <P_7Z>Dostawa towaru — zaliczka</P_7Z>
+                <IndeksZ>IDX-0042</IndeksZ>
+                <P_8AZ>szt.</P_8AZ>
+                <P_8BZ>10</P_8BZ>
+                <P_9AZ>100.00</P_9AZ>
+                <P_11NettoZ>1000.00</P_11NettoZ>
+                <P_11VatZ>230.00</P_11VatZ>
+                <P_12Z>23</P_12Z>
+            </ZamowienieWiersz>
+        </Zamowienie>
+    </Fa>
+</Faktura>

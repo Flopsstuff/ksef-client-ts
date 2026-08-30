@@ -44,6 +44,9 @@ packages/ksef-client-ts/docs/public/open-api.json
 # markdown-vault MCP cache
 packages/ksef-client-ts/docs/.markdown_vault_mcp/
 
+# Rendered PDF previews from the `invoice pdf` E2E spec — reviewed by eye, never committed
+packages/ksef-client-ts/.pdf-preview/
+
 # macOS
 .DS_Store
 

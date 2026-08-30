@@ -1,0 +1,55 @@
+import { get, list } from '../../accessor.js';
+import type { TableBlock } from '../dsl.js';
+import { resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.js';
+import { buildCell, buildHeaderCell } from './cell.js';
+
+/**
+ * Generic pdfmake `table`. Two modes:
+ *
+ * - **Repeater** (`from` set): body rows come from `list(root, from)` — always an
+ *   array, so a single collapsed row iterates like many — and each cell reads a
+ *   row-relative binding via `get(row, col.path)`.
+ * - **Single row** (`from` absent): one body row read against the document root
+ *   via `resolveBinding(col.path)`.
+ *
+ * A header row of localized `col.label`s is prepended unless `headers` is
+ * explicitly `false`. Each column takes its own `width` (default `'*'`, an even
+ * share) under a light horizontal-line layout.
+ */
+export const tableRenderer: BlockRenderer<TableBlock> = (block, ctx) => {
+  // Bindings the schema declares optional are read leniently even under strict.
+  const lenientCtx = { ...ctx, strict: false };
+  const { columns } = block;
+  const showHeaders = block.headers !== false;
+  const body: PdfNode[][] = [];
+
+  if (showHeaders) {
+    body.push(columns.map((col) => buildHeaderCell(col, ctx)));
+  }
+
+  if (block.from !== undefined) {
+    for (const row of list(ctx.root, block.from)) {
+      body.push(columns.map((col) => buildCell(col, (path, optional) => get(row, path, optional ? false : ctx.strict), ctx)));
+    }
+  } else {
+    body.push(
+      columns.map((col) => buildCell(col, (path, optional) => resolveBinding(path, optional ? lenientCtx : ctx), ctx)),
+    );
+  }
+
+  // pdfmake reads `body[0].length` while measuring, so an empty body takes the
+  // render down rather than drawing nothing. A repeater with headers switched
+  // off and no rows to show reaches that state, and the honest result there is
+  // no table at all — the interpreter drops a null block.
+  if (body.length === 0) return null;
+
+  const node: Record<string, unknown> = {
+    table: {
+      headerRows: showHeaders ? 1 : 0,
+      widths: columns.map((col) => col.width ?? '*'),
+      body,
+    },
+    layout: 'lightHorizontalLines',
+  };
+  return block.style ? { ...node, style: block.style } : node;
+};

@@ -1,0 +1,69 @@
+{
+  "schema": "UPO(4.2)",
+  "page": { "size": "A4", "margins": [40, 40, 40, 40] },
+  "pageFooter": { "style": "footerNote" },
+  "styles": {
+    "title": { "fontSize": 16, "bold": true },
+    "fieldLabel": { "bold": true, "color": "#444444" },
+    "muted": { "color": "#666666" },
+    "footerNote": { "fontSize": 7, "color": "#999999" }
+  },
+  "blocks": [
+    { "type": "header", "title": { "label": "upoTitle" } },
+    { "type": "divider" },
+    { "type": "spacer", "height": 21 },
+    {
+      "type": "columns",
+      "columns": [
+        { "type": "text", "label": "sessionRef", "style": "fieldLabel" },
+        { "type": "text", "path": "NumerReferencyjnySesji" }
+      ]
+    },
+    { "type": "spacer", "height": 21 },
+    { "type": "text", "label": "documents", "style": "fieldLabel" },
+    { "type": "spacer", "height": 15 },
+    {
+      "type": "each",
+      "from": "Dokument",
+      "separator": true,
+      "blocks": [
+        {
+          "type": "columns",
+          "columns": [
+            { "type": "text", "label": "ksefDocNumber", "style": "fieldLabel" },
+            { "type": "text", "path": "NumerKSeFDokumentu" }
+          ]
+        },
+        {
+          "type": "columns",
+          "columns": [
+            { "type": "text", "label": "invoiceNumber", "style": "fieldLabel" },
+            { "type": "text", "path": "NumerFaktury" }
+          ]
+        },
+        {
+          "type": "columns",
+          "columns": [
+            { "type": "text", "label": "issueDate", "style": "fieldLabel" },
+            { "type": "text", "path": "DataWystawieniaFaktury", "format": "date" }
+          ]
+        },
+        {
+          "type": "columns",
+          "columns": [
+            { "type": "text", "label": "receiptDate", "style": "fieldLabel" },
+            { "type": "text", "path": "DataNadaniaNumeruKSeF", "format": "date" }
+          ]
+        },
+        {
+          "type": "columns",
+          "columns": [
+            { "type": "text", "label": "documentHash", "style": "fieldLabel" },
+            { "type": "text", "path": "SkrotDokumentu", "style": "muted" }
+          ]
+        },
+        { "type": "spacer", "height": 15 }
+      ]
+    }
+  ]
+}

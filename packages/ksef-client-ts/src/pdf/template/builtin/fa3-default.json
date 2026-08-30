@@ -1,0 +1,444 @@
+{
+  "schema": "FA(3)",
+  "page": { "size": "A4", "margins": [40, 40, 40, 50] },
+  "pageFooter": { "style": "footerNote" },
+  "styles": {
+    "title": { "fontSize": 20, "bold": true },
+    "h1": { "fontSize": 11, "bold": true, "margin": [0, 10, 0, 3], "color": "#000000" },
+    "lineMeta": { "fontSize": 6.5, "color": "#7A8CA0" },
+    "strong": { "bold": true },
+    "h2": { "fontSize": 10, "bold": true, "margin": [0, 10, 0, 3], "color": "#333333" },
+    "muted": { "color": "#666666", "fontSize": 8 },
+    "offline": { "color": "#b00020", "bold": true },
+    "footerNote": { "fontSize": 7, "color": "#999999" },
+    "qrLink": { "fontSize": 8, "color": "#0645ad", "decoration": "underline" },
+    "partyIdentity": { "fontSize": 9 },
+    "partyDetails": { "fontSize": 8 }
+  },
+  "blocks": [
+    {
+      "type": "header",
+      "logo": "opts.logo",
+      "logoWidth": 48,
+      "number": "Fa.P_2",
+      "date": "Fa.P_1",
+      "ksefNumber": "opts.ksefNumber",
+      "offlineStyle": "offline"
+    },
+    { "type": "divider" },
+    { "type": "spacer", "height": 4 },
+    {
+      "type": "parties",
+      "headingStyle": "h1",
+      "left": {
+        "label": "seller",
+        "style": "partyIdentity",
+        "fields": [
+          "Podmiot1.DaneIdentyfikacyjne.Nazwa",
+          "Podmiot1.DaneIdentyfikacyjne.NIP",
+          {
+            "label": "address",
+            "style": "partyDetails",
+            "fields": [
+              "Podmiot1.Adres.AdresL1",
+              { "path": "Podmiot1.Adres.AdresL2", "optional": true },
+              "Podmiot1.Adres.KodKraju"
+            ]
+          },
+          {
+            "label": "contact",
+            "from": "Podmiot1.DaneKontaktowe",
+            "style": "partyDetails",
+            "fields": ["Email", "Telefon"]
+          }
+        ]
+      },
+      "right": {
+        "label": "buyer",
+        "style": "partyIdentity",
+        "fields": [
+          { "path": "Podmiot2.DaneIdentyfikacyjne.Nazwa", "optional": true },
+          {
+            "firstOf": [
+              "Podmiot2.DaneIdentyfikacyjne.NIP",
+              {
+                "path": "Podmiot2.DaneIdentyfikacyjne.NrVatUE",
+                "prefixPath": "Podmiot2.DaneIdentyfikacyjne.KodUE"
+              },
+              {
+                "path": "Podmiot2.DaneIdentyfikacyjne.NrID",
+                "prefixPath": "Podmiot2.DaneIdentyfikacyjne.KodKraju"
+              }
+            ]
+          },
+          {
+            "label": "address",
+            "from": "Podmiot2.Adres",
+            "style": "partyDetails",
+            "fields": ["AdresL1", { "path": "AdresL2", "optional": true }, "KodKraju"]
+          },
+          {
+            "label": "contact",
+            "from": "Podmiot2.DaneKontaktowe",
+            "style": "partyDetails",
+            "fields": ["Email", "Telefon", "NrKlienta"]
+          }
+        ]
+      }
+    },
+    { "type": "spacer", "height": 9 },
+    {
+      "type": "lines",
+      "when": "Fa.FaWiersz",
+      "from": "Fa.FaWiersz",
+      "columns": [
+        { "label": "lp", "path": "NrWierszaFa", "width": 24 },
+        {
+          "label": "name",
+          "path": "P_7",
+          "width": "*",
+          "optional": true,
+          "subStyle": "lineMeta",
+          "sub": [
+            { "label": "pkwiu", "path": "PKWiU", "optional": true },
+            { "label": "indeks", "path": "Indeks", "optional": true },
+            { "label": "gtin", "path": "GTIN", "optional": true },
+            { "label": "cn", "path": "CN", "optional": true },
+            { "label": "pkob", "path": "PKOB", "optional": true }
+          ]
+        },
+        { "label": "unit", "path": "P_8A", "width": 24, "optional": true },
+        { "label": "qty", "path": "P_8B", "format": "number", "width": 24, "optional": true },
+        { "label": "unitPrice", "path": "P_9A", "format": "money", "width": 50, "optional": true },
+        { "label": "vatRate", "path": "P_12", "width": 50, "optional": true },
+        { "label": "net", "path": "P_11", "format": "money", "width": 60, "optional": true }
+      ]
+    },
+    {
+      "type": "text",
+      "label": "orderLines",
+      "style": "h1",
+      "when": "Fa.Zamowienie"
+    },
+    {
+      "type": "lines",
+      "when": "Fa.Zamowienie",
+      "from": "Fa.Zamowienie.ZamowienieWiersz",
+      "columns": [
+        { "label": "lp", "path": "NrWierszaZam", "width": 24 },
+        {
+          "label": "name",
+          "path": "P_7Z",
+          "width": "*",
+          "optional": true,
+          "subStyle": "lineMeta",
+          "sub": [
+            { "label": "pkwiu", "path": "PKWiUZ", "optional": true },
+            { "label": "indeks", "path": "IndeksZ", "optional": true },
+            { "label": "gtin", "path": "GTINZ", "optional": true },
+            { "label": "cn", "path": "CNZ", "optional": true },
+            { "label": "pkob", "path": "PKOBZ", "optional": true }
+          ]
+        },
+        { "label": "unit", "path": "P_8AZ", "width": 24, "optional": true },
+        { "label": "qty", "path": "P_8BZ", "format": "number", "width": 24, "optional": true },
+        { "label": "unitPrice", "path": "P_9AZ", "format": "money", "width": 50, "optional": true },
+        { "label": "vatRate", "path": "P_12Z", "width": 50, "optional": true },
+        { "label": "net", "path": "P_11NettoZ", "format": "money", "width": 60, "optional": true }
+      ]
+    },
+    { "type": "spacer", "height": 9 },
+    {
+      "type": "totals",
+      "rows": [
+        { "label": "orderValue", "path": "Fa.Zamowienie.WartoscZamowienia", "when": "Fa.Zamowienie", "format": "money", "optional": true },
+        { "label": "net23", "path": "Fa.P_13_1", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "vat23", "path": "Fa.P_14_1", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "net8", "path": "Fa.P_13_2", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "vat8", "path": "Fa.P_14_2", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "net5", "path": "Fa.P_13_3", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "vat5", "path": "Fa.P_14_3", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "net4", "path": "Fa.P_13_4", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "vat4", "path": "Fa.P_14_4", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "netSpecial", "path": "Fa.P_13_5", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "vatSpecial", "path": "Fa.P_14_5", "when": "totalsBuckets", "format": "money", "optional": true },
+        {
+          "label": "net0Domestic",
+          "path": "Fa.P_13_6_1",
+          "when": "totalsBuckets",
+          "format": "money",
+          "optional": true
+        },
+        { "label": "net0Wdt", "path": "Fa.P_13_6_2", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "net0Export", "path": "Fa.P_13_6_3", "when": "totalsBuckets", "format": "money", "optional": true },
+        { "label": "netExempt", "path": "Fa.P_13_7", "when": "totalsBuckets", "format": "money", "optional": true },
+        {
+          "label": "netOutsideTerritory",
+          "path": "Fa.P_13_8",
+          "when": "totalsBuckets",
+          "format": "money",
+          "optional": true
+        },
+        {
+          "label": "netArticle100",
+          "path": "Fa.P_13_9",
+          "when": "totalsBuckets",
+          "format": "money",
+          "optional": true
+        },
+        {
+          "label": "netReverseCharge",
+          "path": "Fa.P_13_10",
+          "when": "totalsBuckets",
+          "format": "money",
+          "optional": true
+        },
+        { "label": "netMargin", "path": "Fa.P_13_11", "when": "totalsBuckets", "format": "money", "optional": true },
+        {
+          "label": "totalNet",
+          "sum": [
+            "Fa.P_13_1",
+            "Fa.P_13_2",
+            "Fa.P_13_3",
+            "Fa.P_13_4",
+            "Fa.P_13_5",
+            "Fa.P_13_6_1",
+            "Fa.P_13_6_2",
+            "Fa.P_13_6_3",
+            "Fa.P_13_7",
+            "Fa.P_13_8",
+            "Fa.P_13_9",
+            "Fa.P_13_10",
+            "Fa.P_13_11"
+          ],
+          "when": "totalsSummary",
+          "format": "money"
+        },
+        {
+          "label": "totalVat",
+          "sum": ["Fa.P_14_1", "Fa.P_14_2", "Fa.P_14_3", "Fa.P_14_4", "Fa.P_14_5"],
+          "when": "totalsSummary",
+          "format": "money"
+        },
+        {
+          "label": "orderNet",
+          "when": "settlementBreakdown",
+          "sumFrom": { "from": "Fa.FaWiersz", "path": "P_11" },
+          "format": "money"
+        },
+        {
+          "label": "settledByAdvances",
+          "when": "settlementBreakdown",
+          "sumFrom": { "from": "Fa.FaWiersz", "path": "P_11" },
+          "less": { "sum": ["Fa.P_13_1", "Fa.P_13_2", "Fa.P_13_3", "Fa.P_13_4", "Fa.P_13_5", "Fa.P_13_6_1", "Fa.P_13_6_2", "Fa.P_13_6_3", "Fa.P_13_7", "Fa.P_13_8", "Fa.P_13_9", "Fa.P_13_10", "Fa.P_13_11"] },
+          "format": "money"
+        },
+        { "label": "totalDue", "path": "Fa.P_15", "when": "p15IsAmountDue", "format": "money", "style": "strong" },
+        { "label": "advancePaid", "path": "Fa.P_15", "when": "p15IsAdvancePaid", "format": "money", "style": "strong" },
+        { "label": "amountTotal", "path": "Fa.P_15", "when": "p15IsAmountTotal", "format": "money", "style": "strong" },
+        { "label": "remainingDue", "path": "Fa.P_15", "when": "p15IsRemainder", "format": "money", "style": "strong" },
+        {
+          "label": "totalDue",
+          "path": "Fa.Rozliczenie.DoZaplaty",
+          "when": "Fa.Rozliczenie.DoZaplaty",
+          "format": "money",
+          "style": "strong"
+        },
+        {
+          "label": "remainingDue",
+          "path": "Fa.P_15",
+          "when": "settlementRemainder",
+          "less": { "from": "Fa.ZaliczkaCzesciowa", "path": "P_15Z" },
+          "format": "money",
+          "style": "strong"
+        },
+        { "label": "paidTotal", "when": "paidInPart", "sumFrom": { "from": "Fa.Platnosc.ZaplataCzesciowa", "path": "KwotaZaplatyCzesciowej" }, "format": "money" },
+        {
+          "label": "remainingDue",
+          "path": "Fa.Rozliczenie.DoZaplaty",
+          "when": "paidInPartOfPayable",
+          "less": { "from": "Fa.Platnosc.ZaplataCzesciowa", "path": "KwotaZaplatyCzesciowej" },
+          "format": "money",
+          "style": "strong"
+        },
+        {
+          "label": "remainingDue",
+          "path": "Fa.P_15",
+          "when": "paidInPartOfTotal",
+          "less": { "from": "Fa.Platnosc.ZaplataCzesciowa", "path": "KwotaZaplatyCzesciowej" },
+          "format": "money",
+          "style": "strong"
+        },
+        {
+          "label": "overpaid",
+          "path": "Fa.Rozliczenie.DoRozliczenia",
+          "when": "Fa.Rozliczenie.DoRozliczenia",
+          "format": "money",
+          "style": "strong"
+        },
+        { "label": "currency", "path": "Fa.KodWaluty", "style": "strong" }
+      ]
+    },
+    { "type": "divider" },
+    {
+      "type": "payment",
+      "headingStyle": "h1",
+      "when": "Fa.Platnosc",
+      "rows": [
+        { "label": "paid", "when": "paidInFull" },
+        { "label": "paidInPart", "when": "paidInPart" },
+        { "label": "paidDate", "path": "Fa.Platnosc.DataZaplaty", "format": "date", "optional": true },
+        {
+          "label": "paymentDate",
+          "from": "Fa.Platnosc.TerminPlatnosci",
+          "path": "Termin",
+          "format": "date",
+          "optional": true
+        },
+        { "label": "paymentMethod", "path": "Fa.Platnosc.FormaPlatnosci", "format": "paymentForm", "optional": true },
+        {
+          "label": "amountDueTotal",
+          "path": "Fa.P_15",
+          "when": "p15IsAmountDue",
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "advancePaid",
+          "path": "Fa.P_15",
+          "when": "p15IsAdvancePaid",
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "amountTotal",
+          "path": "Fa.P_15",
+          "when": "p15IsAmountTotal",
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "remainingDue",
+          "path": "Fa.P_15",
+          "when": "p15IsRemainder",
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "remainingDue",
+          "path": "Fa.P_15",
+          "when": "settlementRemainder",
+          "less": { "from": "Fa.ZaliczkaCzesciowa", "path": "P_15Z" },
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "paidTotal",
+          "when": "paidInPart",
+          "sumFrom": { "from": "Fa.Platnosc.ZaplataCzesciowa", "path": "KwotaZaplatyCzesciowej" },
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "remainingDue",
+          "path": "Fa.Rozliczenie.DoZaplaty",
+          "when": "paidInPartOfPayable",
+          "less": { "from": "Fa.Platnosc.ZaplataCzesciowa", "path": "KwotaZaplatyCzesciowej" },
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "remainingDue",
+          "path": "Fa.P_15",
+          "when": "paidInPartOfTotal",
+          "less": { "from": "Fa.Platnosc.ZaplataCzesciowa", "path": "KwotaZaplatyCzesciowej" },
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "overpaid",
+          "path": "Fa.Rozliczenie.DoRozliczenia",
+          "when": "Fa.Rozliczenie.DoRozliczenia",
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "totalDue",
+          "path": "Fa.Rozliczenie.DoZaplaty",
+          "when": "Fa.Rozliczenie.DoZaplaty",
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        }
+      ],
+      "groups": [
+        {
+          "from": "Fa.FakturaZaliczkowa",
+          "heading": "advanceInvoices",
+          "fields": [
+            { "label": "ksefNumber", "path": "NrKSeFFaZaliczkowej", "optional": true },
+            { "label": "invoiceNumber", "path": "NrFaZaliczkowej", "optional": true }
+          ]
+        },
+        {
+          "from": "Fa.ZaliczkaCzesciowa",
+          "heading": "advancePayments",
+          "fields": [
+            {
+              "label": "advancePaymentAmount",
+              "path": "P_15Z",
+              "format": "money",
+              "suffixPath": "/Fa.KodWaluty"
+            },
+            { "label": "advancePaymentDate", "path": "P_6Z", "format": "date" }
+          ]
+        },
+        {
+          "from": "Fa.Platnosc.ZaplataCzesciowa",
+          "heading": "partialPayments",
+          "fields": [
+            {
+              "label": "partialAmount",
+              "path": "KwotaZaplatyCzesciowej",
+              "format": "money",
+              "suffixPath": "/Fa.KodWaluty"
+            },
+            { "label": "partialDate", "path": "DataZaplatyCzesciowej", "format": "date" },
+            { "label": "paymentMethod", "path": "FormaPlatnosci", "format": "paymentForm", "optional": true },
+            { "label": "paymentMethod", "path": "OpisPlatnosci", "optional": true }
+          ]
+        },
+        {
+          "from": "Fa.Platnosc.RachunekBankowy",
+          "heading": "bankAccounts",
+          "fields": [
+            { "label": "bankAccount", "path": "NrRB" },
+            { "label": "swift", "path": "SWIFT", "optional": true },
+            { "label": "bankName", "path": "NazwaBanku", "optional": true }
+          ]
+        }
+      ]
+    },
+    { "type": "divider" },
+    { "type": "notes", "headingStyle": "h1" },
+    { "type": "divider", "when": "notes" },
+    {
+      "type": "columns",
+      "when": "qr",
+      "columns": [
+        { "type": "text", "label": "verifyInKsef", "style": "h1" },
+        { "type": "qr", "code": "invoice", "fit": 104, "linkStyle": "qrLink" },
+        { "type": "qr", "code": "certificate", "fit": 104, "linkStyle": "qrLink" }
+      ]
+    }
+  ]
+}

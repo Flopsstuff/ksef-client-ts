@@ -570,7 +570,207 @@ const validateCmd = defineCommand({
   },
 });
 
+const VALID_PDF_LOCALES = ['pl', 'en', 'uk', 'pl+en', 'en+pl', 'pl+uk', 'uk+pl', 'en+uk', 'uk+en'] as const;
+type PdfLocale = (typeof VALID_PDF_LOCALES)[number];
+
+const VALID_PDF_TOTALS = ['none', 'buckets', 'summary', 'both'] as const;
+type PdfTotals = (typeof VALID_PDF_TOTALS)[number];
+
+/**
+ * The environments a QR verification host can be derived for. An unrecognized
+ * value falls through to production when the URL is built, so a typo would
+ * print a production host on a test invoice and the command would still report
+ * success — the flag has to be the place that catches it.
+ */
+const VALID_PDF_ENVS = ['prod', 'test', 'demo'] as const;
+type PdfEnv = (typeof VALID_PDF_ENVS)[number];
+
+/**
+ * A CSS hex colour, the one unambiguous way to name a brand colour. pdfmake
+ * silently ignores a value it does not recognize — the document comes out
+ * exactly as if no accent had been given — so a typo has to be caught at the
+ * flag or it becomes a PDF that is quietly wrong. Named colours still work
+ * through the library option, where the caller can see what they passed.
+ */
+const HEX_COLOUR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+/**
+ * The formats pdfmake's `image` node can actually draw. GIF, WebP and SVG were
+ * accepted here once, but pdfmake 0.2.x rejects every one of them with
+ * "Unknown image format" partway through rendering — so the PDF never
+ * materialized. Better to refuse the file at the flag than to fail at render.
+ */
+const LOGO_MIME_BY_EXT: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+};
+
+/**
+ * `RenderOptions.logo` takes a `data:` URI so the renderer never touches the
+ * filesystem; the CLI is where a path becomes one. The extension picks the MIME
+ * type — an unknown one is rejected rather than guessed, since a wrong type
+ * silently yields a blank space where the logo should be.
+ */
+function readImageAsDataUri(file: string): string {
+  if (!fs.existsSync(file)) {
+    throw new Error(`Logo file not found: ${file}`);
+  }
+  const ext = file.slice(file.lastIndexOf('.')).toLowerCase();
+  const mime = LOGO_MIME_BY_EXT[ext];
+  if (!mime) {
+    throw new Error(
+      `Unsupported logo format "${ext}". Supported: ${Object.keys(LOGO_MIME_BY_EXT).join(', ')}`,
+    );
+  }
+  return `data:${mime};base64,${fs.readFileSync(file).toString('base64')}`;
+}
+
+/**
+ * Read the `--notes` file: an array of `{ head, body }`. Validated here rather
+ * than left to the renderer, because a hand-written JSON file is exactly where a
+ * shape mistake happens and a silent one would print nothing at all.
+ *
+ * Either half may be left out — a note that is only a heading, or only a body,
+ * prints that half, which is what the renderer does with one and what the docs
+ * promise. What is refused is an entry carrying neither, and a half that is
+ * present but not a string: both are shape mistakes rather than intent.
+ */
+function readNotesFile(file: string): Array<{ head: string; body: string }> {
+  if (!fs.existsSync(file)) {
+    throw new Error(`Notes file not found: ${file}`);
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(fs.readFileSync(file, 'utf-8'));
+  } catch (error) {
+    throw new Error(`Notes file is not valid JSON: ${file} (${(error as Error).message})`);
+  }
+  if (!Array.isArray(parsed)) {
+    throw new Error(`Notes file must hold an array of { head, body } objects: ${file}`);
+  }
+  return parsed.map((entry, i) => {
+    const note = entry as { head?: unknown; body?: unknown };
+    for (const half of ['head', 'body'] as const) {
+      if (note?.[half] !== undefined && typeof note[half] !== 'string') {
+        throw new Error(`Notes entry ${i} has a non-string "${half}": ${file}`);
+      }
+    }
+    if (typeof note?.head !== 'string' && typeof note?.body !== 'string') {
+      throw new Error(`Notes entry ${i} must have a string "head", a string "body", or both: ${file}`);
+    }
+    return {
+      head: typeof note.head === 'string' ? note.head : '',
+      body: typeof note.body === 'string' ? note.body : '',
+    };
+  });
+}
+
+const pdf = defineCommand({
+  meta: { name: 'pdf', description: 'Render an invoice or UPO XML to a PDF (offline; requires the optional pdfmake peer)' },
+  args: {
+    file: { type: 'positional', description: 'Path to the invoice or UPO XML file', required: true },
+    template: { type: 'string', description: 'Built-in template name (e.g. fa3-default). Mutually exclusive with --template-file.' },
+    templateFile: { type: 'string', description: 'Path to a custom JSON template. Mutually exclusive with --template.' },
+    locale: { type: 'string', description: 'Label language: pl | en | uk, or any two joined by + (e.g. pl+uk); default pl' },
+    out: { type: 'string', description: 'Output PDF path (default: alongside the source, .pdf)' },
+    qr: { type: 'boolean', description: 'Embed the KSeF Code I QR derived from the XML' },
+    qrUrl: { type: 'string', description: 'Code I verification URL, used verbatim instead of deriving it' },
+    qrCertUrl: { type: 'string', description: 'Code II (offline certificate) verification URL — build it with `ksef qr certificate`' },
+    qrLinks: { type: 'boolean', description: 'Print a clickable link under each QR code' },
+    ksefNumber: { type: 'string', description: 'KSeF number to print (absent → marked OFFLINE)' },
+    upo: { type: 'boolean', description: 'Treat the input as a UPO document (otherwise auto-detected)' },
+    logo: { type: 'string', description: 'Path to a logo image (PNG/JPEG) to print in the header' },
+    accent: { type: 'string', description: 'Accent colour for the title and headings, as hex (e.g. #5AB595)' },
+    totals: { type: 'string', description: 'Tax breakdown above the amount due: none | buckets (as recorded) | summary (computed) | both (default: buckets)' },
+    notes: { type: 'string', description: 'Path to a JSON file with extra sections: [{ "head": "…", "body": "…" }, …]' },
+    env: { type: 'string', description: 'Environment for the QR base URL (test/demo/prod)' },
+    json: { type: 'boolean', description: 'Output as JSON' },
+  },
+  run({ args }) {
+    return withErrorHandler(async () => {
+      const file = args.file;
+      if (!fs.existsSync(file)) {
+        throw new Error(`File not found: ${file}`);
+      }
+      if (args.template && args.templateFile) {
+        throw new Error('--template and --template-file are mutually exclusive; pass only one.');
+      }
+
+      const locale = (args.locale as string | undefined) ?? 'pl';
+      if (!VALID_PDF_LOCALES.includes(locale as PdfLocale)) {
+        throw new Error(`Invalid --locale "${locale}". Valid: ${VALID_PDF_LOCALES.join(', ')}`);
+      }
+
+      const totals = (args.totals as string | undefined) ?? 'buckets';
+      if (!VALID_PDF_TOTALS.includes(totals as PdfTotals)) {
+        throw new Error(`Invalid --totals "${totals}". Valid: ${VALID_PDF_TOTALS.join(', ')}`);
+      }
+
+      const accent = args.accent as string | undefined;
+      if (accent !== undefined && !HEX_COLOUR.test(accent)) {
+        throw new Error(`Invalid --accent "${accent}". Expected a hex colour such as #5AB595 or #b04.`);
+      }
+
+      const env = args.env as string | undefined;
+      if (env !== undefined && !VALID_PDF_ENVS.includes(env as PdfEnv)) {
+        throw new Error(`Invalid --env "${env}". Valid: ${VALID_PDF_ENVS.join(', ')}`);
+      }
+      const logo = args.logo ? readImageAsDataUri(args.logo as string) : undefined;
+      const notes = args.notes ? readNotesFile(args.notes as string) : undefined;
+      const renderOpts = {
+        locale: locale as PdfLocale,
+        totals: totals as PdfTotals,
+        qr: Boolean(args.qr),
+        qrLinks: Boolean(args.qrLinks),
+        ...(args.qrUrl ? { qrUrl: args.qrUrl as string } : {}),
+        ...(args.qrCertUrl ? { certificateQrUrl: args.qrCertUrl as string } : {}),
+        ...(args.ksefNumber ? { ksefNumber: args.ksefNumber as string } : {}),
+        ...(env ? { env: env as PdfEnv } : {}),
+        ...(logo ? { logo } : {}),
+        ...(accent ? { theme: { accent } } : {}),
+        ...(notes ? { notes } : {}),
+      };
+
+      // Exact bytes preserve the QR hash; pass the raw file as a Uint8Array.
+      const xmlBytes = new Uint8Array(fs.readFileSync(file));
+      const xmlStr = Buffer.from(xmlBytes).toString('utf-8');
+
+      // Lazy bridge into the internal PDF module; it lazily requires pdfmake and,
+      // when absent/incompatible, throws a friendly install hint we surface here.
+      const pdfModule = await import('../../pdf/index.js');
+
+      let bytes: Uint8Array;
+      // An explicit template wins over document auto-detection: the built-in
+      // registry holds the UPO layouts too, so `--template`/`--template-file`
+      // must be honoured for UPO input as well. The renderer validates the
+      // template's schema against the document, so a wrong pairing still fails.
+      const isUpo = Boolean(args.upo) || (pdfModule.detectInvoiceVersion(xmlStr) === null && pdfModule.detectUpoVersion(xmlStr) !== null);
+      if (args.templateFile) {
+        bytes = await pdfModule.renderInvoicePdfFromFile(xmlBytes, args.templateFile as string, renderOpts);
+      } else if (args.template) {
+        bytes = await pdfModule.renderInvoicePdf(xmlBytes, args.template as string, renderOpts);
+      } else if (isUpo) {
+        bytes = await pdfModule.renderUpoPdf(xmlBytes, renderOpts);
+      } else {
+        const version = pdfModule.detectInvoiceVersion(xmlStr);
+        const builtin = version === 'FA(2)' ? 'fa2-default' : 'fa3-default';
+        bytes = await pdfModule.renderInvoicePdf(xmlBytes, builtin, renderOpts);
+      }
+
+      const outPath = (args.out as string | undefined) ?? file.replace(/\.xml$/i, '') + '.pdf';
+      fs.writeFileSync(outPath, bytes);
+
+      if (args.json) {
+        outputResult({ file, out: outPath, bytes: bytes.length }, { json: true });
+      } else {
+        outputSuccess(`PDF written to ${outPath} (${bytes.length} bytes)`);
+      }
+    }, { json: Boolean(args.json) });
+  },
+});
+
 export const invoiceCommand = defineCommand({
   meta: { name: 'invoice', description: 'Invoice commands' },
-  subCommands: { send, build: invoiceBuild, get, query, validate: validateCmd, export: exportCmd, 'export-status': exportStatus, 'export-incremental': exportIncremental },
+  subCommands: { send, build: invoiceBuild, get, query, pdf, validate: validateCmd, export: exportCmd, 'export-status': exportStatus, 'export-incremental': exportIncremental },
 });

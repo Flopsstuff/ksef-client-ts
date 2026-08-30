@@ -31,6 +31,59 @@ describe('VerificationLinkService', () => {
       expect(url).toMatch(/\/05-12-2024\//);
     });
 
+    it('throws on an unparseable date instead of emitting a NaN-NaN-NaN segment', () => {
+      expect(() => service.buildInvoiceVerificationUrl(nip, '', hash)).toThrow(/Invalid issueDate/);
+      expect(() => service.buildInvoiceVerificationUrl(nip, 'not-a-date', hash)).toThrow(/Invalid issueDate/);
+    });
+
+    // A date that does not exist parses fine and rolls forward, so the code
+    // would carry a different issue date than the invoice — and only a scan
+    // would reveal it.
+    it('throws on a date that does not exist rather than rolling it forward', () => {
+      expect(() => service.buildInvoiceVerificationUrl(nip, '2026-02-30', hash)).toThrow(
+        /not a real calendar date/,
+      );
+      expect(() => service.buildInvoiceVerificationUrl(nip, '2026-13-01', hash)).toThrow(
+        /Invalid issueDate/,
+      );
+      expect(() => service.buildInvoiceVerificationUrl(nip, '2025-02-29', hash)).toThrow(
+        /not a real calendar date/,
+      );
+    });
+
+    it('accepts the leap day of an actual leap year', () => {
+      expect(service.buildInvoiceVerificationUrl(nip, '2024-02-29', hash)).toMatch(/\/29-02-2024\//);
+    });
+
+    // The check reads the written calendar fields, so the form the date arrives
+    // in does not matter — a timestamp hides the same impossible day.
+    it('rejects an impossible day carrying a time as well', () => {
+      for (const value of ['2026-02-30T00:00:00Z', '2026-02-30T12:34:56+01:00', '2026-04-31T09:00:00Z']) {
+        expect(() => service.buildInvoiceVerificationUrl(nip, value, hash), value).toThrow(
+          /not a real calendar date/,
+        );
+      }
+    });
+
+    // Comparing the written date against the parsed UTC one would refuse these:
+    // with an offset the two legitimately fall on different days.
+    it('accepts a real date whose UTC day differs from the written one', () => {
+      expect(service.buildInvoiceVerificationUrl(nip, '2026-01-01T00:30:00+01:00', hash)).toMatch(
+        /\/31-12-2025\//,
+      );
+      expect(service.buildInvoiceVerificationUrl(nip, '2026-12-31T23:30:00-05:00', hash)).toMatch(
+        /\/01-01-2027\//,
+      );
+    });
+
+    it('leaves a date carrying a time, and a caller-built Date, alone', () => {
+      expect(service.buildInvoiceVerificationUrl(nip, '2024-01-01T00:00:00Z', hash)).toMatch(
+        /\/01-01-2024\//,
+      );
+      const built = new Date(Date.UTC(2024, 0, 31));
+      expect(service.buildInvoiceVerificationUrl(nip, built, hash)).toMatch(/\/31-01-2024\//);
+    });
+
     it('should use Base64URL encoding without padding', () => {
       const url = service.buildInvoiceVerificationUrl(nip, '2024-01-01T00:00:00Z', hash);
 

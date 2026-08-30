@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chain A, step 2 of 2. Synthetic, fully anonymous FA(2) settlement invoice (ROZ, art. 106f ust. 3),
+     closing fa2-zal.xml. The line items state the full 615,00 order, but the tax
+     summary and P_15 cover only what is left after the 450,00 advance: 134,15 net +
+     30,85 VAT = 165,00. The advance invoice already declared the tax on its own share,
+     so declaring the whole 115,00 again here would tax the deal twice.
+     Remainder STATED.
+     No real taxpayer data. -->
+<Faktura xmlns="http://crd.gov.pl/wzor/2023/06/29/12648/"
+         xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Naglowek>
+        <KodFormularza kodSystemowy="FA (2)" wersjaSchemy="1-0E">FA</KodFormularza>
+        <WariantFormularza>2</WariantFormularza>
+        <DataWytworzeniaFa>2025-02-10T10:00:00Z</DataWytworzeniaFa>
+        <SystemInfo>anonymous test fixture</SystemInfo>
+    </Naglowek>
+    <Podmiot1>
+        <DaneIdentyfikacyjne>
+            <NIP>1111111111</NIP>
+            <Nazwa>Sprzedawca Przykładowy Sp. z o.o.</Nazwa>
+        </DaneIdentyfikacyjne>
+        <Adres>
+            <KodKraju>PL</KodKraju>
+            <AdresL1>ul. Przykładowa 1</AdresL1>
+            <AdresL2>00-001 Warszawa</AdresL2>
+        </Adres>
+        <DaneKontaktowe>
+            <Email>kontakt@sprzedawca.example</Email>
+            <Telefon>+48000000001</Telefon>
+        </DaneKontaktowe>
+    </Podmiot1>
+    <Podmiot2>
+        <DaneIdentyfikacyjne>
+            <NIP>2222222222</NIP>
+            <Nazwa>Nabywca Przykładowy S.A.</Nazwa>
+        </DaneIdentyfikacyjne>
+        <Adres>
+            <KodKraju>PL</KodKraju>
+            <AdresL1>ul. Testowa 2</AdresL1>
+            <AdresL2>00-002 Kraków</AdresL2>
+        </Adres>
+        <DaneKontaktowe>
+            <Email>kontakt@nabywca.example</Email>
+            <Telefon>+48000000002</Telefon>
+            <NrKlienta>KL-0001</NrKlienta>
+        </DaneKontaktowe>
+    </Podmiot2>
+    <Fa>
+        <KodWaluty>PLN</KodWaluty>
+        <P_1>2025-02-10</P_1>
+        <P_1M>Warszawa</P_1M>
+        <P_2>ROZ/2025/02/001</P_2>
+        <P_6>2025-02-05</P_6>
+        <P_13_1>134.15</P_13_1>
+        <P_14_1>30.85</P_14_1>
+        <P_15>165.00</P_15>
+        <Adnotacje>
+            <P_16>2</P_16>
+            <P_17>2</P_17>
+            <P_18>2</P_18>
+            <P_18A>2</P_18A>
+            <Zwolnienie>
+                <P_19N>1</P_19N>
+            </Zwolnienie>
+            <NoweSrodkiTransportu>
+                <P_22N>1</P_22N>
+            </NoweSrodkiTransportu>
+            <P_23>2</P_23>
+            <PMarzy>
+                <P_PMarzyN>1</P_PMarzyN>
+            </PMarzy>
+        </Adnotacje>
+        <RodzajFaktury>ROZ</RodzajFaktury>
+        <FakturaZaliczkowa>
+            <NrKSeFFaZaliczkowej>1111111111-20250115-010000000000-A1</NrKSeFFaZaliczkowej>
+        </FakturaZaliczkowa>
+        <FaWiersz>
+            <NrWierszaFa>1</NrWierszaFa>
+            <P_7>Usługa przykładowa</P_7>
+            <P_8A>szt.</P_8A>
+            <P_8B>5</P_8B>
+            <P_9A>100.00</P_9A>
+            <P_11>500.00</P_11>
+            <P_12>23</P_12>
+        </FaWiersz>
+        <Platnosc>
+            <TerminPlatnosci>
+                <Termin>2025-02-24</Termin>
+            </TerminPlatnosci>
+            <FormaPlatnosci>6</FormaPlatnosci>
+            <RachunekBankowy>
+                <NrRB>11109000880000000100000001</NrRB>
+                <SWIFT>WBKPPLPP</SWIFT>
+                <NazwaBanku>Bank Przykładowy S.A.</NazwaBanku>
+            </RachunekBankowy>
+        </Platnosc>
+    </Fa>
+</Faktura>

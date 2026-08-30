@@ -39,4 +39,4 @@ Prepare a new version release: create a version branch, bump version in package.
 **Important**
 
 - Do NOT push to remote.
-- The branch name MUST use `version/` prefix per project convention (see CLAUDE.md).
+- The branch name MUST use `version/` prefix per project convention (see AGENTS.md).
