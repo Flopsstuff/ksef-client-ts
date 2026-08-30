@@ -377,6 +377,18 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     expect(existsSync(out)).toBe(false);
   });
 
+  // Reading the template is the CLI's job — `./pdf` touches no filesystem — so
+  // the path that does not exist has to be reported here, naming the file.
+  it('names the template file it cannot read, and writes nothing', () => {
+    const out = join(outDir, 'should-not-exist-3.pdf');
+    const res = run([
+      'invoice', 'pdf', fx('fa3.xml'), '--template-file', join(outDir, 'absent.json'), '--out', out,
+    ]);
+    expect(res.status).not.toBe(0);
+    expect(`${res.stdout}${res.stderr}`).toMatch(/Failed to read template file/);
+    expect(existsSync(out)).toBe(false);
+  });
+
   it('rejects a UPO handed to an invoice template', () => {
     const out = join(outDir, 'should-not-exist-2.pdf');
     const res = run(['invoice', 'pdf', fx('upo-4_3.xml'), '--template', 'fa3-default', '--out', out]);

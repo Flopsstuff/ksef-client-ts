@@ -8,8 +8,8 @@
  * registry. So the hash here is always taken over the ORIGINAL INPUT BYTES,
  * never over parsed/reserialized XML.
  */
-import crypto from 'node:crypto';
-import { VerificationLinkService } from '../qr/verification-link-service.js';
+import { buildInvoiceVerificationUrl } from '../qr/invoice-link.js';
+import { bytesToBase64 } from '../utils/base64.js';
 import { Environment } from '../config/environments.js';
 import { get } from './accessor.js';
 import { KSeFPdfError } from './errors.js';
@@ -17,14 +17,29 @@ import { KSeFPdfError } from './errors.js';
 /**
  * SHA-256 over the raw invoice bytes, returned as standard base64.
  *
- * A `Uint8Array` is hashed directly. A `string` is hashed as
- * `Buffer.from(str, 'utf8')` AS-IS — no BOM strip, no re-encode, no newline
- * normalization. The caller is responsible for handing us the same bytes KSeF
- * received.
+ * A `Uint8Array` is hashed directly. A `string` is encoded as UTF-8 AS-IS — no
+ * BOM strip, no re-encode, no newline normalization. The caller is responsible
+ * for handing us the same bytes KSeF received.
+ *
+ * WebCrypto rather than `node:crypto`, which is what lets this module render in
+ * a browser. The digest is asynchronous there, so this is too.
  */
-export function computeInvoiceHashBase64(rawInput: string | Uint8Array): string {
-  const bytes = typeof rawInput === 'string' ? Buffer.from(rawInput, 'utf8') : rawInput;
-  return crypto.createHash('sha256').update(bytes).digest('base64');
+export async function computeInvoiceHashBase64(rawInput: string | Uint8Array): Promise<string> {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) {
+    throw new KSeFPdfError(
+      'Cannot derive the KSeF verification code: WebCrypto (crypto.subtle) is unavailable. ' +
+        'A browser exposes it only in a secure context (HTTPS, or localhost). Pass a ' +
+        'precomputed `invoiceHash`, or the finished `qrUrl`, to render without deriving it here.',
+    );
+  }
+  // `digest` takes any `Uint8Array`; the cast only sidesteps TypeScript's newer
+  // generic view type, which excludes a SharedArrayBuffer-backed one from
+  // `BufferSource` even though WebCrypto accepts it.
+  const bytes = (
+    typeof rawInput === 'string' ? new TextEncoder().encode(rawInput) : rawInput
+  ) as BufferSource;
+  return bytesToBase64(new Uint8Array(await subtle.digest('SHA-256', bytes)));
 }
 
 /**
@@ -64,7 +79,7 @@ export interface DeriveInvoiceQrUrlParams {
  * An `invoiceHash` override is used verbatim; otherwise the hash is computed over
  * the raw input bytes.
  */
-export function deriveInvoiceQrUrl(params: DeriveInvoiceQrUrlParams): string {
+export async function deriveInvoiceQrUrl(params: DeriveInvoiceQrUrlParams): Promise<string> {
   const nip = get(params.body, 'Podmiot1.DaneIdentyfikacyjne.NIP', params.strict);
   // Issue date lives at Faktura/Fa/P_1 — the invoice-line group `Fa`, not the
   // document root (where Podmiot1 sits). Reading it at the root yields '' and a
@@ -85,7 +100,7 @@ export function deriveInvoiceQrUrl(params: DeriveInvoiceQrUrlParams): string {
       'Cannot build the QR verification URL: issue date (Fa/P_1) is missing from the invoice.',
     );
   }
-  const hash = params.invoiceHash ?? computeInvoiceHashBase64(params.rawInput);
+  const hash = params.invoiceHash ?? (await computeInvoiceHashBase64(params.rawInput));
   const base = resolveBaseQrUrl(params.env, params.baseQrUrl);
-  return new VerificationLinkService(base).buildInvoiceVerificationUrl(nip, issueDate, hash);
+  return buildInvoiceVerificationUrl(base, nip, issueDate, hash);
 }

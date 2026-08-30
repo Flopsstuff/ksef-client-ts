@@ -34,4 +34,29 @@ describe('loadPdfMake — friendly error when pdfmake import fails', () => {
     await expect(loadPdfMake()).rejects.toBeInstanceOf(KSeFPdfError);
     await expect(loadPdfMake()).rejects.toThrow(/pdfmake/);
   });
+
+  /**
+   * The import is poisoned for this whole module, so a resolved call is proof
+   * the loader never reached for it: an injected instance short-circuits the
+   * import and the version probe alike.
+   */
+  it('returns an injected instance without importing or probing pdfmake', async () => {
+    const injected = { createPdf: () => ({ getStream: () => ({ on: () => {}, end: () => {} }) }) };
+    await expect(loadPdfMake(injected as never)).resolves.toBe(injected);
+  });
+
+  /**
+   * Off Node there is nothing to read a version with. That used to be fatal —
+   * `null` was read as "pdfmake is not installed" and the render refused to
+   * start with pdfmake sitting in the bundle. Now the import decides, so the
+   * failure a browser sees is the same honest install error.
+   */
+  it('skips the version probe off Node, letting the import decide', async () => {
+    vi.stubGlobal('process', undefined);
+    try {
+      await expect(loadPdfMake()).rejects.toThrow(/pdfmake/);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

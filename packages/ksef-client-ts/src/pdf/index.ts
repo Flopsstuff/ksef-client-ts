@@ -1,14 +1,14 @@
 /**
- * `ksef-client-ts/pdf` — node-only subpath that renders KSeF invoice/UPO XML to
- * PDF via a template-driven block DSL. `pdfmake` is an optional peer loaded
- * lazily; importing this module without it must not throw — only a `render*`
- * call surfaces a friendly install error.
+ * `ksef-client-ts/pdf` — isomorphic subpath that renders KSeF invoice/UPO XML to
+ * PDF via a template-driven block DSL. It takes bytes and returns bytes, reaching
+ * for no Node builtin, so the same render runs in a browser or on an edge runtime.
+ * `pdfmake` is an optional peer loaded lazily; importing this module without it
+ * must not throw — only a `render*` call surfaces a friendly install error.
  *
  * This is the public surface: its types operate on our own DSL types and
  * `Uint8Array`, never on `@types/pdfmake`, so consumers without pdfmake still
  * type-check `./pdf`.
  */
-import { readFile } from 'node:fs/promises';
 import {
   detectInvoiceVersion,
   detectUpoVersion,
@@ -23,7 +23,7 @@ import { validateTemplate, type InvoiceTemplate, type TemplateSchemaId } from '.
 import { interpretTemplate, type RenderContext, type RenderNote } from './template/interpret.js';
 import { blockRegistry } from './template/blocks/index.js';
 import { getBuiltinTemplate as loadBuiltinTemplate, builtinTemplateNames } from './template/builtin/index.js';
-import { loadPdfMake, createPdfBuffer } from './fonts.js';
+import { loadPdfMake, createPdfBuffer, type PdfMakeLike } from './fonts.js';
 import { deriveInvoiceQrUrl } from './qr.js';
 import { documentFlags } from './document-flags.js';
 
@@ -32,6 +32,8 @@ export type { InvoiceTemplate } from './template/dsl.js';
 export type { RenderNote } from './template/interpret.js';
 export { detectInvoiceVersion, detectUpoVersion } from './parse.js';
 export { builtinTemplateNames } from './template/builtin/index.js';
+export { normalizeVfs } from './fonts.js';
+export type { PdfMakeLike, PdfDocStream } from './fonts.js';
 /**
  * The errors a render throws, from the entry point that throws them.
  *
@@ -132,6 +134,13 @@ export interface RenderOptions {
   strict?: boolean;
   /** Precomputed canonical invoice hash (base64) — used verbatim for the QR. */
   invoiceHash?: string;
+  /**
+   * A ready pdfmake instance with its `vfs` already assigned. When given, nothing
+   * is imported and no version is checked: the caller owns both. This is how an
+   * application controls when the ~2.25 MB of pdfmake loads (a lazy chunk behind
+   * a click), which fonts live in the VFS, and how it satisfies a strict CSP.
+   */
+  pdfMake?: PdfMakeLike;
   /**
    * Extra sections to print where the template puts its `notes` block — in the
    * built-in templates, between the payment details and the verification codes.
@@ -273,7 +282,7 @@ async function renderWithTemplate(
   // derived: it carries a signature made with the issuer's private key.
   let qrUrl = opts.qrUrl ?? '';
   if (!qrUrl && opts.qr && !template.schema.startsWith('UPO')) {
-    qrUrl = deriveInvoiceQrUrl({
+    qrUrl = await deriveInvoiceQrUrl({
       rawInput,
       body,
       env: opts.env,
@@ -288,7 +297,7 @@ async function renderWithTemplate(
     certificate: opts.certificateQrUrl ?? '',
   });
   const doc = interpretTemplate(applyAccent(template, opts.theme?.accent), ctx, blockRegistry);
-  const pdfMake = await loadPdfMake();
+  const pdfMake = await loadPdfMake(opts.pdfMake);
   return createPdfBuffer(pdfMake, doc);
 }
 
@@ -304,22 +313,6 @@ export async function renderInvoicePdf(
       `Unknown built-in template "${name}". Available: ${builtinTemplateNames().join(', ')}`,
     );
   }
-  return renderWithTemplate(xml, template, opts);
-}
-
-/** Render an invoice using a custom template loaded from a JSON file. */
-export async function renderInvoicePdfFromFile(
-  xml: RawXml,
-  path: string,
-  opts: RenderOptions = {},
-): Promise<Uint8Array> {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(await readFile(path, 'utf-8'));
-  } catch (err) {
-    throw new KSeFPdfError(`Failed to read template file "${path}": ${(err as Error).message}`);
-  }
-  const template = validateTemplate(parsed);
   return renderWithTemplate(xml, template, opts);
 }
 

@@ -17,6 +17,8 @@ import { invoiceBuild } from './invoice-build.js';
 import { normalizeCliDate } from '../date-utils.js';
 import { validate as validateInvoice } from '../../validation/invoice-validator.js';
 import { KSeFValidationError } from '../../errors/ksef-validation-error.js';
+import { KSeFPdfError } from '../../pdf/errors.js';
+import type { InvoiceTemplate } from '../../pdf/template/dsl.js';
 import { type SchemaType, SCHEMA_TYPES } from '../../validation/schemas/index.js';
 import { withKeyRotationRetry } from '../../crypto/with-key-rotation-retry.js';
 
@@ -747,7 +749,18 @@ const pdf = defineCommand({
       // template's schema against the document, so a wrong pairing still fails.
       const isUpo = Boolean(args.upo) || (pdfModule.detectInvoiceVersion(xmlStr) === null && pdfModule.detectUpoVersion(xmlStr) !== null);
       if (args.templateFile) {
-        bytes = await pdfModule.renderInvoicePdfFromFile(xmlBytes, args.templateFile as string, renderOpts);
+        // Reading the template is the CLI's job, not the renderer's: `./pdf` is
+        // isomorphic and touches no filesystem, so the bytes arrive parsed.
+        const templatePath = args.templateFile as string;
+        let template: unknown;
+        try {
+          template = JSON.parse(fs.readFileSync(templatePath, 'utf-8'));
+        } catch (err) {
+          throw new KSeFPdfError(
+            `Failed to read template file "${templatePath}": ${(err as Error).message}`,
+          );
+        }
+        bytes = await pdfModule.renderInvoicePdfFromTemplate(xmlBytes, template as InvoiceTemplate, renderOpts);
       } else if (args.template) {
         bytes = await pdfModule.renderInvoicePdf(xmlBytes, args.template as string, renderOpts);
       } else if (isUpo) {

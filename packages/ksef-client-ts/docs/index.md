@@ -49,7 +49,7 @@ features:
   - title: Invoice XML Validation
     details: Three-level client-side validation against official KSeF XSD schemas — well-formedness, schema structure (via generated Zod validators), and business rules (NIP/PESEL checksums, future date rejection). Supports all 6 invoice types with auto-detection. CLI batch validation, programmatic API, and opt-in pre-send validation in workflows.
   - title: PDF Visualization
-    details: Render FA (2)/(3) invoices and UPO (4.2)/(4.3) receipts to print-ready PDF offline from version-specific, declarative templates — Polish, English, or bilingual labels, an embedded KSeF Code I verification QR, and built-in or custom layouts. The `ksef invoice pdf` CLI brings the same rendering to shell workflows. PDF output uses the optional `pdfmake` peer (`npm i "pdfmake@^0.2.20"`), so the core install stays dependency-free.
+    details: Render FA (2)/(3) invoices and UPO (4.2)/(4.3) receipts to print-ready PDF offline from version-specific, declarative templates — Polish, English, or bilingual labels, an embedded KSeF Code I verification QR, and built-in or custom layouts. The renderer reaches for no Node.js builtin, so the same call runs on Node, in a browser, or on an edge runtime, and the `ksef invoice pdf` CLI brings it to shell workflows. PDF output uses the optional `pdfmake` peer (`npm i "pdfmake@^0.2.20"`), so the core install stays dependency-free.
   - title: Typed Errors with RFC 7807 Problem Details
     details: KSeFError hierarchy with dedicated classes for 400, 401, 403, 410, and 429 carrying structured diagnostic context (trace IDs, required-vs-present permissions, validation error lists). Exhaustive dispatch via the KSeFApiProblem union and assertNever helper. Fluent request builders catch mistakes at compile time before they hit the network.
   - title: Comprehensive Test Coverage
@@ -57,7 +57,7 @@ features:
   - title: Interactive Setup Wizard
     details: Get started in one command — ksef setup walks you through environment selection, NIP configuration, external signature authentication, and API token generation. Credentials are securely stored in ~/.ksef/credentials.json.
   - title: Zero HTTP Dependencies
-    details: Uses native fetch (Node 18+) with no external HTTP libraries. Dual ESM/CJS output via tsup. Resilient transport with exponential backoff retry, token bucket rate limiting, opt-in circuit breaker, and presigned URL validation.
+    details: Uses native fetch (Node 20+) with no external HTTP libraries. Dual ESM/CJS output via tsup. Resilient transport with exponential backoff retry, token bucket rate limiting, opt-in circuit breaker, and presigned URL validation.
   - title: fs-free Core
     details: The main entry point is free of filesystem access and runs on Node, Deno, and edge runtimes. Node.js-only features (filesystem access, XSD validation) are available via the `ksef-client-ts/node` export, keeping the core library small.
 ---

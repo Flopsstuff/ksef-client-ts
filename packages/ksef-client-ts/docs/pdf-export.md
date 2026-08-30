@@ -22,8 +22,8 @@ Supported documents:
 
 `FA(1)` is not supported.
 
-::: tip Node-only subpath
-`ksef-client-ts/pdf` is a Node.js subpath — it reads bytes and returns bytes, and is not part of the fs-free core entry point. Importing it never pulls `pdfmake` into your bundle; the dependency is loaded lazily only when a render function actually runs.
+::: tip Isomorphic subpath
+`ksef-client-ts/pdf` takes bytes and returns bytes, reaching for no Node.js builtin on the way — the same render runs on Node.js, in a browser, and on an edge runtime. See [Rendering in a browser](#rendering-in-a-browser). Importing it never pulls `pdfmake` into your bundle; the dependency is loaded lazily only when a render function actually runs.
 :::
 
 ---
@@ -47,7 +47,7 @@ which is not installed. Install it with: npm i "pdfmake@^0.2.20"
 
 ## Render functions
 
-All four render functions accept the XML as a `string` or a `Uint8Array`, take an optional `RenderOptions` object, and resolve to a `Uint8Array` of PDF bytes.
+All three render functions accept the XML as a `string` or a `Uint8Array`, take an optional `RenderOptions` object, and resolve to a `Uint8Array` of PDF bytes.
 
 > Passing the **raw file bytes** (`Uint8Array`) rather than a decoded string is recommended when embedding the QR code: the verification hash is computed over the original bytes, so it matches the value registered by KSeF exactly.
 
@@ -64,21 +64,19 @@ const pdf = await renderInvoicePdf(xml, 'fa3-default', { locale: 'pl+en', qr: tr
 await writeFile('invoice.pdf', pdf);
 ```
 
-### `renderInvoicePdfFromFile(xml, path, opts?)` — custom template file
-
-Render with a custom template loaded from a `.json` file. The template is validated before rendering; a structural problem throws with a path-tagged message.
-
-```ts
-import { renderInvoicePdfFromFile } from 'ksef-client-ts/pdf';
-
-const pdf = await renderInvoicePdfFromFile(xml, './templates/my-invoice.json', {
-  locale: 'pl',
-});
-```
-
 ### `renderInvoicePdfFromTemplate(xml, template, opts?)` — custom template object
 
-Render with a template you build in code (for example, generated at runtime).
+Render with a template you build in code — generated at runtime, pulled from a database, or read from a file. The renderer never touches the filesystem itself, so a template on disk is yours to load:
+
+```ts
+import { readFile } from 'node:fs/promises';
+import { renderInvoicePdfFromTemplate, type InvoiceTemplate } from 'ksef-client-ts/pdf';
+
+const template = JSON.parse(await readFile('./templates/my-invoice.json', 'utf-8')) as InvoiceTemplate;
+const pdf = await renderInvoicePdfFromTemplate(xml, template, { locale: 'pl' });
+```
+
+The template is validated before rendering; a structural problem throws with a path-tagged message.
 
 ```ts
 import { renderInvoicePdfFromTemplate, type InvoiceTemplate } from 'ksef-client-ts/pdf';
@@ -155,6 +153,7 @@ detectUpoVersion(xml);     // 'UPO(4.2)' | 'UPO(4.3)' | null
 
 It deliberately does not apply to `when` conditions, repeater `from` paths, `firstOf` alternatives or `sum` members: those are sets where absence is the normal case, not a mistake. Typos in them are caught for the built-in templates by a lint that resolves every such path against the reference fixtures.
 | `invoiceHash` | `string` | Precomputed canonical invoice hash (base64), used verbatim for the QR. |
+| `pdfMake` | `PdfMakeLike` | A pdfmake instance you loaded and configured yourself. See [Rendering in a browser](#rendering-in-a-browser). |
 | `notes` | `{ head, body }[]` | Extra sections printed where the template puts its `notes` block. |
 
 ---
@@ -445,6 +444,33 @@ Both codes are encoded here and handed to pdfmake as vector SVG rather than thro
 At the built-in `fit` of 104 (37 mm square) the modules come out at 0.75 mm for Code I and 0.56 mm for a Code II signed with an EC key. An RSA signature is four times longer and drops that to 0.39 mm — legal (both key types are), but at the edge of what prints and scans reliably, so raise `fit` if your certificate is RSA.
 
 When no `ksefNumber` is provided the visualization is marked **OFFLINE**. UPO receipts do not carry a QR code.
+
+---
+
+## Rendering in a browser
+
+`XML → PDF` is pure computation here: the templates are compiled into the bundle, the XML parser is plain JavaScript, and the QR modules are arithmetic. Nothing reads a file, opens a socket, or reaches for a Node.js builtin — so the whole thing runs client-side, and an invoice never has to leave the machine that renders it.
+
+Two details make it work in practice.
+
+**Load pdfmake yourself.** pdfmake is ~2.25 MB. Off Node.js the library cannot verify its version, so hand it over ready and it will be used as given — no import, no version check:
+
+```ts
+import { renderInvoicePdf, normalizeVfs, type PdfMakeLike } from 'ksef-client-ts/pdf';
+
+const pdfMake = (await import('pdfmake/build/pdfmake.js')).default as PdfMakeLike;
+pdfMake.vfs = normalizeVfs(await import('pdfmake/build/vfs_fonts.js'));
+
+const pdf = await renderInvoicePdf(xml, 'fa3-default', { qr: true, pdfMake });
+```
+
+Doing it this way is what lets you put pdfmake in a lazy chunk behind the button that renders, ship your own fonts in the VFS, or satisfy a strict Content-Security-Policy. Leaving `pdfMake` out is fine too — the library imports pdfmake's browser build itself, and your bundler resolves it like any other dependency.
+
+**The QR needs a secure context.** Deriving the Code I verification hash uses WebCrypto, which browsers expose only over HTTPS or on `localhost`. On a plain `http://` origin `crypto.subtle` is absent and the render throws rather than printing a code that verifies nothing. Where that is a problem, compute the hash elsewhere and pass it as `invoiceHash`, or pass the finished `qrUrl` — both are used verbatim.
+
+::: warning Bundler resolution
+The `qrcode` dependency ships separate Node.js and browser builds and selects between them through the legacy `browser` field. Vite, webpack, Rollup and Parcel honour that field by default; a bundler configured for a Node.js platform target will pick the server build and pull in `fs`. If yours does, alias `qrcode` to `qrcode/lib/browser.js`.
+:::
 
 ---
 

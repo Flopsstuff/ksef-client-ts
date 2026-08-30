@@ -57,6 +57,7 @@
     "lint": "tsc --noEmit",
     "check:node-types": "tsc --project tsconfig.node-check.json",
     "check:pdf-types": "tsc --project tsconfig.pdf-check.json",
+    "check:pdf-browser-types": "tsc --project tsconfig.pdf-browser-check.json",
     "check:attw": "attw --pack . --profile node16",
     "check:publint": "publint",
     "lint:md": "markdownlint-cli2",
@@ -97,7 +98,7 @@
     "url": "git+https://github.com/Flopsstuff/ksef-client-ts.git"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "dependencies": {
     "@peculiar/x509": "^1.12.3",

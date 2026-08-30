@@ -8,8 +8,15 @@
  * feature-detection: the spike showed 0.3.x can pass shallow shape checks yet
  * hang in `getBuffer`, so only the version number is trustworthy.
  */
-import { createRequire } from 'node:module';
 import { KSeFPdfError } from './errors.js';
+
+/**
+ * Assembled at runtime rather than written as a literal: a static `node:module`
+ * specifier is what a browser bundler resolves at build time, and this module
+ * has to survive that pass. Bundlers constant-fold string literals and template
+ * strings; none of them evaluates `.join()`.
+ */
+const NODE_MODULE_SPECIFIER = ['node', 'module'].join(':');
 
 const REQUIRED_RANGE = '^0.2.20';
 const INSTALL_HINT = `npm i "pdfmake@${REQUIRED_RANGE}"`;
@@ -59,10 +66,22 @@ export function satisfiesRequiredRange(version: string): boolean {
   return major === 0 && minor === 2 && patch >= 20;
 }
 
-function readPdfmakeVersion(): string | null {
+function isNodeRuntime(): boolean {
+  return typeof process !== 'undefined' && typeof process.versions?.node === 'string';
+}
+
+/**
+ * The installed pdfmake version, or `null` where it cannot be read: outside
+ * Node, or on a Node-shaped runtime that cannot resolve a package's own
+ * `package.json`. `null` means "unknown", NOT "absent" — see {@link loadPdfMake}.
+ */
+async function readPdfmakeVersion(): Promise<string | null> {
+  if (!isNodeRuntime()) return null;
   try {
-    const require = createRequire(import.meta.url);
-    const pkg = require('pdfmake/package.json') as { version?: string };
+    const { createRequire } = (await import(
+      /* @vite-ignore */ /* webpackIgnore: true */ NODE_MODULE_SPECIFIER
+    )) as typeof import('node:module');
+    const pkg = createRequire(import.meta.url)('pdfmake/package.json') as { version?: string };
     return typeof pkg.version === 'string' ? pkg.version : null;
   } catch {
     return null;
@@ -101,9 +120,22 @@ export function normalizeVfs(mod: unknown): unknown {
 /**
  * Resolve, version-check, and initialize pdfmake with the bundled Roboto VFS.
  * Throws {@link KSeFPdfError} if pdfmake is absent or outside `^0.2.20`.
+ *
+ * `override` short-circuits everything: a caller who has already loaded pdfmake
+ * and assigned its `vfs` owns the version question too, and nothing is imported
+ * here. That is the browser path, where the application decides when to pay for
+ * the ~2.25 MB and which fonts go into the VFS.
+ *
+ * Where no override is given, a readable version is authoritative — but an
+ * unreadable one is no longer fatal. Outside Node there is nothing to read it
+ * with, and treating that as "pdfmake is not installed" refused to render with
+ * pdfmake sitting in the bundle. The import below is what decides absence.
  */
-export async function loadPdfMake(): Promise<PdfMakeLike> {
-  assertPdfmakeVersion(readPdfmakeVersion());
+export async function loadPdfMake(override?: PdfMakeLike): Promise<PdfMakeLike> {
+  if (override) return override;
+
+  const version = await readPdfmakeVersion();
+  if (version !== null) assertPdfmakeVersion(version);
 
   let pdfmakeMod: unknown;
   let vfsMod: unknown;

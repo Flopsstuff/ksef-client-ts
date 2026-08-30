@@ -1,30 +1,78 @@
 /**
- * `/pdf` subpath error identity.
+ * /pdf subpath resolution and error identity.
  *
- * The package ships one bundle per entry point, so `./pdf` carries its own copy
- * of the error classes: an error raised by a render is not the root entry's
- * `KSeFValidationError`, and before the brand it was not the root's `KSeFError`
- * either. That silently broke the contract `docs/error-handling.md` states —
- * "a single `instanceof KSeFError` catch covers every library error" — for
- * every consumer of the PDF module.
+ * Verifies that:
+ *  1. The public render surface exports from `ksef-client-ts/pdf` (ESM + CJS).
+ *  2. The pdfmake injection seam ships alongside it — an application cannot
+ *     supply its own engine without `normalizeVfs`.
+ *  3. Nothing that reads the filesystem is exported: the subpath is isomorphic,
+ *     so loading a template off disk belongs to the caller, not to the renderer.
+ *  4. An error a render throws is still caught by one `instanceof KSeFError`
+ *     written against the package root. Each entry point is bundled on its own
+ *     and so carries its own copy of the error classes; without a brand that
+ *     survives the split, the contract `docs/error-handling.md` states — "a
+ *     single `instanceof KSeFError` catch covers every library error" — would
+ *     be false for every consumer of this module.
  *
- * These run against the built package (both conditions of the exports map), so
- * they fail if a bundling change reintroduces the split.
+ * These run against the built package, both conditions of the exports map, so
+ * they fail if a bundling change reintroduces either split.
  */
 import { createRequire } from 'node:module';
 import { describe, it, expect } from 'vitest';
 
-import { KSeFError, KSeFValidationError } from 'ksef-client-ts';
+// ESM import of the /pdf subpath (exercises the "import" condition in exports map)
+import * as esmPdf from 'ksef-client-ts/pdf';
 import {
   renderInvoicePdfFromTemplate,
   KSeFError as PdfKSeFError,
   KSeFPdfError,
   KSeFValidationError as PdfValidationError,
 } from 'ksef-client-ts/pdf';
+import { KSeFError, KSeFValidationError } from 'ksef-client-ts';
 
-const require_ = createRequire(import.meta.url);
-const cjsRoot = require_('ksef-client-ts') as typeof import('ksef-client-ts');
-const cjsPdf = require_('ksef-client-ts/pdf') as typeof import('ksef-client-ts/pdf');
+// CJS require of the /pdf subpath (exercises the "require" condition in exports map)
+const nodeRequire = createRequire(import.meta.url);
+const cjsPdf = nodeRequire('ksef-client-ts/pdf') as Record<string, unknown> &
+  typeof import('ksef-client-ts/pdf');
+const cjsRoot = nodeRequire('ksef-client-ts') as typeof import('ksef-client-ts');
+
+const PUBLIC_SYMBOLS = [
+  'renderInvoicePdf',
+  'renderInvoicePdfFromTemplate',
+  'renderUpoPdf',
+  'detectInvoiceVersion',
+  'detectUpoVersion',
+  'builtinTemplateNames',
+  'getBuiltinTemplate',
+  'normalizeVfs',
+] as const;
+
+describe('ksef-client-ts/pdf subpath — ESM resolution', () => {
+  for (const symbol of PUBLIC_SYMBOLS) {
+    it(`exports ${symbol}`, () => {
+      expect((esmPdf as Record<string, unknown>)[symbol]).toBeDefined();
+    });
+  }
+});
+
+describe('ksef-client-ts/pdf subpath — CJS resolution', () => {
+  for (const symbol of PUBLIC_SYMBOLS) {
+    it(`exports ${symbol}`, () => {
+      expect(cjsPdf[symbol]).toBeDefined();
+    });
+  }
+});
+
+describe('ksef-client-ts/pdf subpath — nothing filesystem-backed', () => {
+  it('does not export a template-from-disk renderer in either format', () => {
+    expect((esmPdf as Record<string, unknown>).renderInvoicePdfFromFile).toBeUndefined();
+    expect(cjsPdf.renderInvoicePdfFromFile).toBeUndefined();
+  });
+
+  it('imports without touching pdfmake, so the subpath stays cold', () => {
+    expect(nodeRequire.cache[nodeRequire.resolve('pdfmake/build/pdfmake.js')]).toBeUndefined();
+  });
+});
 
 /** Structurally invalid: a `lines` block with no `from`. */
 const badTemplate = { schema: 'FA(3)', blocks: [{ type: 'lines', columns: [] }] };

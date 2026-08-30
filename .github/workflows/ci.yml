@@ -46,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [18, 20, 22]
+        node-version: [20, 22, 24]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -81,7 +81,13 @@ jobs:
       - name: Check /pdf entry types
         run: yarn check:pdf-types
 
-      # Runs on every matrix Node (18/20/22): the ./pdf subpath imports/requires
+      # The same surface with no @types/node either: ./pdf claims to render in a
+      # browser, and a published type that needed a Node global would break that
+      # claim before any bundler got involved.
+      - name: Check /pdf entry types without Node types
+        run: yarn check:pdf-browser-types
+
+      # Runs on every matrix Node (20/22/24): the ./pdf subpath imports/requires
       # without eagerly loading pdfmake and never throws at module-load time.
       - name: Check /pdf cold subpath
         run: node packages/ksef-client-ts/scripts/check-pdf-cold.mjs
@@ -96,6 +102,11 @@ jobs:
 
       - name: Check fs-free core bundles
         run: node packages/ksef-client-ts/scripts/check-fs-free-core.mjs
+
+      # No Node builtin may reach the ./pdf bundle: the subpath renders in a
+      # browser, and a stray import breaks that only in a consumer's build.
+      - name: Check /pdf bundles are browser-safe
+        run: node packages/ksef-client-ts/scripts/check-pdf-browser-safe.mjs
 
       - name: Check package exports map
         run: yarn test:package

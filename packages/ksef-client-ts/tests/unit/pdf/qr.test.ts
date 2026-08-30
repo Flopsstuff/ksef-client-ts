@@ -32,36 +32,64 @@ function base64ToBase64Url(b64: string): string {
 }
 
 describe('computeInvoiceHashBase64 — byte-exact hash invariant', () => {
-  it('hashes a Uint8Array and the equivalent clean UTF-8 string to the SAME hash', () => {
+  it('hashes a Uint8Array and the equivalent clean UTF-8 string to the SAME hash', async () => {
     const bytes = new TextEncoder().encode(CLEAN);
-    const fromBytes = computeInvoiceHashBase64(bytes);
-    const fromString = computeInvoiceHashBase64(CLEAN);
+    const fromBytes = await computeInvoiceHashBase64(bytes);
+    const fromString = await computeInvoiceHashBase64(CLEAN);
 
     expect(fromBytes).toBe(fromString);
     // Sanity: matches a raw node:crypto digest over the same bytes.
     expect(fromString).toBe(crypto.createHash('sha256').update(Buffer.from(CLEAN, 'utf8')).digest('base64'));
   });
 
-  it('returns standard base64 (not base64url)', () => {
-    const hash = computeInvoiceHashBase64(CLEAN);
+  /**
+   * The gate on the WebCrypto port. A wrong digest does not fail: it produces a
+   * valid-looking QR pointing at a hash absent from the KSeF registry, and only
+   * whoever scans the printed page finds out. So every input shape that could
+   * encode differently — non-ASCII, a BOM, CRLF, an empty body, a lone
+   * surrogate, raw bytes — is pinned against node:crypto rather than against a
+   * digest this implementation produced.
+   */
+  it.each([
+    ['ascii', CLEAN],
+    ['polish diacritics', '<Faktura><P_1>Zażółć gęślą jaźń</P_1></Faktura>'],
+    ['a leading BOM', '﻿' + CLEAN],
+    ['CRLF newlines', CLEAN.replace(/\n/g, '\r\n')],
+    ['an empty document', ''],
+    ['an unpaired surrogate', '<Faktura>\uD800</Faktura>'],
+  ])('matches node:crypto over %s', async (_label, input) => {
+    expect(await computeInvoiceHashBase64(input)).toBe(
+      crypto.createHash('sha256').update(Buffer.from(input, 'utf8')).digest('base64'),
+    );
+  });
+
+  it('matches node:crypto over raw bytes that are not valid UTF-8', async () => {
+    const bytes = crypto.randomBytes(97);
+    expect(await computeInvoiceHashBase64(new Uint8Array(bytes))).toBe(
+      crypto.createHash('sha256').update(bytes).digest('base64'),
+    );
+  });
+
+  it('returns standard base64 (not base64url)', async () => {
+    const hash = await computeInvoiceHashBase64(CLEAN);
     // 32-byte digest → 44-char base64 with a trailing '=' pad.
     expect(hash).toMatch(/^[A-Za-z0-9+/]+=*$/);
     expect(hash).toHaveLength(44);
   });
 
-  it('changes the hash when a BOM is prepended', () => {
+  it('changes the hash when a BOM is prepended', async () => {
     const withBom = '﻿' + CLEAN;
-    expect(computeInvoiceHashBase64(withBom)).not.toBe(computeInvoiceHashBase64(CLEAN));
+    expect(await computeInvoiceHashBase64(withBom)).not.toBe(await computeInvoiceHashBase64(CLEAN));
   });
 
-  it('changes the hash when newlines are CRLF instead of LF', () => {
+  it('changes the hash when newlines are CRLF instead of LF', async () => {
     const crlf = CLEAN.replace(/\n/g, '\r\n');
-    expect(computeInvoiceHashBase64(crlf)).not.toBe(computeInvoiceHashBase64(CLEAN));
+    expect(await computeInvoiceHashBase64(crlf)).not.toBe(await computeInvoiceHashBase64(CLEAN));
   });
 
-  it('changes the hash when the XML is pretty-printed', () => {
+  it('changes the hash when the XML is pretty-printed', async () => {
     const pretty = '<Faktura>\n  <P_2>FV/1</P_2>\n</Faktura>';
-    expect(computeInvoiceHashBase64(pretty)).not.toBe(computeInvoiceHashBase64(CLEAN));
+    expect(await computeInvoiceHashBase64(pretty)).not.toBe(await computeInvoiceHashBase64(CLEAN));
   });
 });
 
@@ -87,11 +115,11 @@ describe('resolveBaseQrUrl', () => {
 });
 
 describe('deriveInvoiceQrUrl', () => {
-  it('equals VerificationLinkService.buildInvoiceVerificationUrl for the same inputs', () => {
-    const url = deriveInvoiceQrUrl({ rawInput: CLEAN, body, env: 'test' });
+  it('equals VerificationLinkService.buildInvoiceVerificationUrl for the same inputs', async () => {
+    const url = await deriveInvoiceQrUrl({ rawInput: CLEAN, body, env: 'test' });
 
     const base = Environment.TEST.qrUrl;
-    const hash = computeInvoiceHashBase64(CLEAN);
+    const hash = await computeInvoiceHashBase64(CLEAN);
     const expected = new VerificationLinkService(base).buildInvoiceVerificationUrl(
       '5213003700',
       '2025-01-15',
@@ -101,34 +129,34 @@ describe('deriveInvoiceQrUrl', () => {
     expect(url).toBe(expected);
   });
 
-  it('honors an explicit baseQrUrl override', () => {
-    const url = deriveInvoiceQrUrl({ rawInput: CLEAN, body, baseQrUrl: 'https://custom.example' });
+  it('honors an explicit baseQrUrl override', async () => {
+    const url = await deriveInvoiceQrUrl({ rawInput: CLEAN, body, baseQrUrl: 'https://custom.example' });
     expect(url.startsWith('https://custom.example/invoice/5213003700/15-01-2025/')).toBe(true);
   });
 
-  it('uses an invoiceHash override VERBATIM (does not recompute)', () => {
+  it('uses an invoiceHash override VERBATIM (does not recompute)', async () => {
     const override = 'AAAA++//zz==';
-    const withOverride = deriveInvoiceQrUrl({ rawInput: CLEAN, body, env: 'test', invoiceHash: override });
-    const withoutOverride = deriveInvoiceQrUrl({ rawInput: CLEAN, body, env: 'test' });
+    const withOverride = await deriveInvoiceQrUrl({ rawInput: CLEAN, body, env: 'test', invoiceHash: override });
+    const withoutOverride = await deriveInvoiceQrUrl({ rawInput: CLEAN, body, env: 'test' });
 
     // URL carries the base64url form of the override, not the computed hash.
     expect(withOverride.endsWith(base64ToBase64Url(override))).toBe(true);
     expect(withOverride).not.toBe(withoutOverride);
   });
 
-  it('passes strict through to the accessor (throws on a missing binding)', () => {
-    expect(() => deriveInvoiceQrUrl({ rawInput: CLEAN, body: {}, strict: true })).toThrow();
+  it('passes strict through to the accessor (throws on a missing binding)', async () => {
+    await expect(deriveInvoiceQrUrl({ rawInput: CLEAN, body: {}, strict: true })).rejects.toThrow();
   });
 
-  it('embeds a real DD-MM-YYYY issue date read from Fa/P_1 (regression: not NaN-NaN-NaN)', () => {
-    const url = deriveInvoiceQrUrl({ rawInput: CLEAN, body, env: 'prod' });
+  it('embeds a real DD-MM-YYYY issue date read from Fa/P_1 (regression: not NaN-NaN-NaN)', async () => {
+    const url = await deriveInvoiceQrUrl({ rawInput: CLEAN, body, env: 'prod' });
     expect(url).toContain('/invoice/5213003700/15-01-2025/');
     expect(url).not.toContain('NaN');
   });
 
-  it('throws a clear error when the issue date is absent (never emits a NaN date)', () => {
+  it('throws a clear error when the issue date is absent (never emits a NaN date)', async () => {
     const noDate = { Podmiot1: { DaneIdentyfikacyjne: { NIP: '5213003700' } } };
-    expect(() => deriveInvoiceQrUrl({ rawInput: CLEAN, body: noDate })).toThrow(/issue date/i);
+    await expect(deriveInvoiceQrUrl({ rawInput: CLEAN, body: noDate })).rejects.toThrow(/issue date/i);
   });
 
   // A default render reads bindings leniently, so an absent NIP resolves to ''
@@ -136,17 +164,17 @@ describe('deriveInvoiceQrUrl', () => {
   // nowhere, and looks fine until someone scans the printed page.
   // The date reaches the URL builder straight from P_1, so a document stating a
   // day that does not exist would print a code for its neighbour.
-  it('throws when the issue date is a day that does not exist', () => {
+  it('throws when the issue date is a day that does not exist', async () => {
     const badDay = { Podmiot1: { DaneIdentyfikacyjne: { NIP: '5213003700' } }, Fa: { P_1: '2026-02-30' } };
-    expect(() => deriveInvoiceQrUrl({ rawInput: CLEAN, body: badDay })).toThrow(
+    await expect(deriveInvoiceQrUrl({ rawInput: CLEAN, body: badDay })).rejects.toThrow(
       /not a real calendar date/,
     );
   });
 
-  it('throws a clear error when the seller NIP is absent, rather than emitting an empty segment', () => {
+  it('throws a clear error when the seller NIP is absent, rather than emitting an empty segment', async () => {
     const noNip = { Fa: { P_1: '2025-01-15' } };
-    expect(() => deriveInvoiceQrUrl({ rawInput: CLEAN, body: noNip })).toThrow(KSeFPdfError);
-    expect(() => deriveInvoiceQrUrl({ rawInput: CLEAN, body: noNip })).toThrow(/seller NIP/i);
+    await expect(deriveInvoiceQrUrl({ rawInput: CLEAN, body: noNip })).rejects.toThrow(KSeFPdfError);
+    await expect(deriveInvoiceQrUrl({ rawInput: CLEAN, body: noNip })).rejects.toThrow(/seller NIP/i);
   });
 
 });

@@ -9,7 +9,7 @@ export default defineConfig([
     sourcemap: true,
     splitting: false,
     shims: true,
-    target: "node18",
+    target: "node20",
     removeNodeProtocol: false,
     // pdfmake is an optional peer — never bundle it; it is loaded lazily at runtime.
     external: ["pdfmake"],
@@ -21,7 +21,7 @@ export default defineConfig([
     clean: false,
     sourcemap: true,
     splitting: false,
-    target: "node18",
+    target: "node20",
     banner: { js: "#!/usr/bin/env node" },
     removeNodeProtocol: false,
     // The CLI lazily bridges into ./pdf, which lazily imports pdfmake — keep it

@@ -10,22 +10,22 @@
  */
 import {
   renderInvoicePdf,
-  renderInvoicePdfFromFile,
   renderInvoicePdfFromTemplate,
   renderUpoPdf,
   detectInvoiceVersion,
   detectUpoVersion,
+  normalizeVfs,
   type Locale,
   type InvoiceTemplate,
   type RenderOptions,
+  type PdfMakeLike,
 } from 'ksef-client-ts/pdf';
 
 const xml = '<Faktura/>';
 const opts: RenderOptions = { locale: 'pl+en', qr: true, strict: false };
 
 const _a: Promise<Uint8Array> = renderInvoicePdf(xml, 'fa3-default', opts);
-const _b: Promise<Uint8Array> = renderInvoicePdfFromFile(xml, './tpl.json', opts);
-void _a; void _b;
+void _a;
 
 const template: InvoiceTemplate = {
   schema: 'FA(3)',
@@ -34,6 +34,16 @@ const template: InvoiceTemplate = {
 const _c: Promise<Uint8Array> = renderInvoicePdfFromTemplate(new Uint8Array(), template);
 const _d: Promise<Uint8Array> = renderUpoPdf(xml);
 void _c; void _d;
+
+// The injection seam: a caller-built pdfmake instance is describable without
+// `@types/pdfmake`, and `normalizeVfs` shapes the font module for it.
+declare const someVfsModule: unknown;
+const injected: PdfMakeLike = {
+  createPdf: () => ({ getStream: () => ({ on: () => {}, end: () => {} }) }),
+  vfs: normalizeVfs(someVfsModule),
+};
+const _e: Promise<Uint8Array> = renderInvoicePdf(xml, 'fa3-default', { pdfMake: injected });
+void _e;
 
 const _loc: Locale = 'en';
 const _iv: 'FA(2)' | 'FA(3)' | null = detectInvoiceVersion(xml);

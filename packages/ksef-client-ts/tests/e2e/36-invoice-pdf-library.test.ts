@@ -6,14 +6,15 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   renderInvoicePdf,
-  renderInvoicePdfFromFile,
   renderInvoicePdfFromTemplate,
   renderUpoPdf,
   getBuiltinTemplate,
   builtinTemplateNames,
   detectInvoiceVersion,
   detectUpoVersion,
+  normalizeVfs,
   type InvoiceTemplate,
+  type PdfMakeLike,
 } from 'ksef-client-ts/pdf';
 import { VerificationLinkService } from 'ksef-client-ts';
 
@@ -29,8 +30,9 @@ import { VerificationLinkService } from 'ksef-client-ts';
 // orthogonal, so isolating them costs a PDF each and proves nothing extra. What
 // has to hold is that none is left unexercised, which the check at the end of
 // the block asserts by reading the option list off the published types.
-// `renderInvoicePdfFromFile` is not among them — the CLI's `--template-file`
-// drives that path end to end in spec 35.
+// Reading a template off disk is not among them at all: `./pdf` is isomorphic
+// and never touches the filesystem, so the CLI's `--template-file` owns that
+// path end to end in spec 35.
 //
 // It imports by package specifier on purpose: that resolves through the exports
 // map to dist/, so the published artifact is what gets exercised, not src.
@@ -45,7 +47,6 @@ import { VerificationLinkService } from 'ksef-client-ts';
 const repoRoot = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 const fixtures = join(repoRoot, 'tests', 'fixtures', 'pdf');
 const outDir = process.env.KSEF_PDF_OUT ?? join(repoRoot, '.pdf-preview');
-const inputsDir = join(outDir, '_inputs');
 const PREFIX = 'lib';
 /** Same host as the CLI preview set: the environment this suite drives. */
 const TEST_QR_HOST = 'https://qr-test.ksef.mf.gov.pl';
@@ -78,7 +79,7 @@ async function save(name: string, render: Promise<Uint8Array>): Promise<string> 
 
 describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => {
   beforeAll(() => {
-    mkdirSync(inputsDir, { recursive: true });
+    mkdirSync(outDir, { recursive: true });
     for (const stale of readdirSync(outDir)) {
       if (stale.startsWith(`${PREFIX}-`)) rmSync(join(outDir, stale), { force: true });
     }
@@ -221,9 +222,24 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
       );
     });
 
+    // What a browser does: load pdfmake yourself, assign the VFS, hand the
+    // instance over. Nothing here is Node-specific except the two imports —
+    // which is the point, since the renderer neither imports nor probes when an
+    // engine is supplied. Exercised against the real pdfmake so an incompatible
+    // instance shape would show up as a broken PDF, not a passing mock.
+    it('renders through a caller-supplied pdfmake instance', async () => {
+      const pdfMake = (await import('pdfmake/build/pdfmake.js')).default as PdfMakeLike;
+      pdfMake.vfs = normalizeVfs(await import('pdfmake/build/vfs_fonts.js'));
+
+      await save(
+        `${PREFIX}-05-supplied-engine`,
+        renderInvoicePdf(bytes('fa3.xml'), 'fa3-default', { pdfMake, locale: 'en' }),
+      );
+    });
+
     // Receipt last, as in spec 35.
     it('renders a UPO through the library entry point', async () => {
-      await save(`${PREFIX}-05-upo`, renderUpoPdf(bytes('upo-4_3.xml'), { locale: 'uk' }));
+      await save(`${PREFIX}-06-upo`, renderUpoPdf(bytes('upo-4_3.xml'), { locale: 'uk' }));
     });
 
     it('leaves no render option unexercised', () => {
@@ -262,12 +278,6 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
       await expect(renderInvoicePdf(bytes('fa3.xml'), 'no-such-template')).rejects.toThrow(
         /Unknown built-in template/,
       );
-    });
-
-    it('rejects a template file that does not exist', async () => {
-      await expect(
-        renderInvoicePdfFromFile(bytes('fa3.xml'), join(inputsDir, 'absent.json')),
-      ).rejects.toThrow(/Failed to read template file/);
     });
 
     it('rejects a template object that fails validation', async () => {

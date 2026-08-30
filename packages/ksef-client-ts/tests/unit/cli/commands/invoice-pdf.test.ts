@@ -44,7 +44,6 @@ vi.mock('../../../../src/validation/invoice-validator.js', () => ({
 // that dynamic import too (same resolved module).
 vi.mock('../../../../src/pdf/index.js', () => ({
   renderInvoicePdf: vi.fn(),
-  renderInvoicePdfFromFile: vi.fn(),
   renderInvoicePdfFromTemplate: vi.fn(),
   renderUpoPdf: vi.fn(),
   detectInvoiceVersion: vi.fn(),
@@ -68,6 +67,17 @@ const mockedPdf = vi.mocked(pdfModule);
 const mockedOutput = vi.mocked(output);
 
 const FAKE_PDF = new Uint8Array([0x25, 0x50, 0x44, 0x46]); // "%PDF"
+const TEMPLATE_JSON = '{"schema":"FA(3)","blocks":[]}';
+
+/**
+ * The command reads two files through the same `readFileSync`: the invoice and,
+ * with `--template-file`, the template. Route by path so each gets its own body.
+ */
+function withTemplateFile(templatePath: string, body: string): void {
+  mockedFs.readFileSync.mockImplementation((target: string) =>
+    target === templatePath ? body : Buffer.from('<Faktura/>'),
+  );
+}
 
 function runPdf(args: Record<string, unknown>) {
   return (invoiceCommand.subCommands!.pdf as any).run!({ args });
@@ -81,7 +91,7 @@ beforeEach(() => {
   mockedPdf.detectInvoiceVersion.mockReturnValue('FA(3)');
   mockedPdf.detectUpoVersion.mockReturnValue(null);
   mockedPdf.renderInvoicePdf.mockResolvedValue(FAKE_PDF);
-  mockedPdf.renderInvoicePdfFromFile.mockResolvedValue(FAKE_PDF);
+  mockedPdf.renderInvoicePdfFromTemplate.mockResolvedValue(FAKE_PDF);
   mockedPdf.renderUpoPdf.mockResolvedValue(FAKE_PDF);
 });
 
@@ -143,13 +153,34 @@ describe('invoice pdf — CLI wiring', () => {
   });
 
   it('uses a custom template file with --template-file', async () => {
+    withTemplateFile('./custom.json', TEMPLATE_JSON);
     await runPdf({ file: 'invoice.xml', templateFile: './custom.json' });
-    expect(mockedPdf.renderInvoicePdfFromFile).toHaveBeenCalledWith(
+    expect(mockedPdf.renderInvoicePdfFromTemplate).toHaveBeenCalledWith(
       expect.any(Uint8Array),
-      './custom.json',
+      JSON.parse(TEMPLATE_JSON),
       expect.anything(),
     );
     expect(mockedPdf.renderInvoicePdf).not.toHaveBeenCalled();
+  });
+
+  // The renderer no longer reads the disk, so the CLI owns both the read and
+  // the message a bad path produces.
+  it('reports a template file it cannot read, naming the path', async () => {
+    mockedFs.readFileSync.mockImplementation((target: string) => {
+      if (target === './absent.json') throw new Error('ENOENT: no such file or directory');
+      return Buffer.from('<Faktura/>');
+    });
+    await expect(runPdf({ file: 'invoice.xml', templateFile: './absent.json' })).rejects.toThrow(
+      /Failed to read template file "\.\/absent\.json"/,
+    );
+    expect(mockedPdf.renderInvoicePdfFromTemplate).not.toHaveBeenCalled();
+  });
+
+  it('reports a template file that is not valid JSON', async () => {
+    withTemplateFile('./broken.json', '{ not json');
+    await expect(runPdf({ file: 'invoice.xml', templateFile: './broken.json' })).rejects.toThrow(
+      /Failed to read template file "\.\/broken\.json"/,
+    );
   });
 
   it('honors an explicit --out path', async () => {
@@ -179,10 +210,11 @@ describe('invoice pdf — CLI wiring', () => {
   });
 
   it('honors --template-file alongside an explicit --upo', async () => {
+    withTemplateFile('./custom-upo.json', TEMPLATE_JSON);
     await runPdf({ file: 'upo.xml', upo: true, templateFile: './custom-upo.json' });
-    expect(mockedPdf.renderInvoicePdfFromFile).toHaveBeenCalledWith(
+    expect(mockedPdf.renderInvoicePdfFromTemplate).toHaveBeenCalledWith(
       expect.any(Uint8Array),
-      './custom-upo.json',
+      JSON.parse(TEMPLATE_JSON),
       expect.anything(),
     );
     expect(mockedPdf.renderUpoPdf).not.toHaveBeenCalled();

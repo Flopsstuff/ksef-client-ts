@@ -327,7 +327,7 @@ Workflows accept a `KSeFClient` instance and options, returning typed results. T
 - **TypeScript 5.x** strict mode
 - **tsup** produces dual ESM + CJS + DTS output
 - **Imports use `.js` extensions** (ESM resolution convention, even in `.ts` source)
-- **Node.js 18+** required (native `fetch`, `crypto.webcrypto`)
+- **Node.js 20+** required (native `fetch`, `crypto.webcrypto`)
 - **yarn 4.x** (Corepack), `nodeLinker: node-modules`
 
 ---

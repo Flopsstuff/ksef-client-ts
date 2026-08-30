@@ -10,4 +10,4 @@ The tests in `xsd-validation.test.ts` validate the serializer's output against t
 
 ## Escalation plan
 
-If install flakiness exceeds ~5% of CI runs across the Node 18 / 20 / 22 matrix, the plan is to swap `libxmljs2` for a `child_process.spawnSync('xmllint', ['--schema', xsdPath, '-'])` invocation. `xmllint` is available on every GitHub-hosted runner image and requires no native build step. The validator module's public surface (`validateAgainstXsd(xml, xsdPath)` returning `{ valid, errors }`) is deliberately shaped so either backend can satisfy it without touching the test files.
+If install flakiness exceeds ~5% of CI runs across the Node 20 / 22 / 24 matrix, the plan is to swap `libxmljs2` for a `child_process.spawnSync('xmllint', ['--schema', xsdPath, '-'])` invocation. `xmllint` is available on every GitHub-hosted runner image and requires no native build step. The validator module's public surface (`validateAgainstXsd(xml, xsdPath)` returning `{ valid, errors }`) is deliberately shaped so either backend can satisfy it without touching the test files.

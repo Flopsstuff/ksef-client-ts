@@ -4,10 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [0.12.0] - Unreleased
 
+### Changed (breaking)
+
+- **Node.js 20 is now the minimum supported version** — Node.js 18 reached end of life in April 2025, and the library now relies on web-standard cryptography that Node.js 18 only exposes behind a flag.
+
 ### Added
 
 - **Invoice and receipt PDF export** — render KSeF invoices and their official UPO receipts to print-ready PDF documents offline, with Polish, English, or bilingual labels, an embedded KSeF verification code, and a choice of ready-made layouts or your own custom templates, also available from the command line.
 - **Optional PDF engine, kept out of the core install** — PDF rendering relies on an optional add-on that is not pulled in automatically, so installing the library adds no extra dependencies until you opt into PDF output.
+- **PDF visualization runs outside Node.js** — the renderer reaches for no platform-specific facility, so an invoice can be turned into a PDF in the browser or on an edge runtime, and never has to leave the machine that renders it. Applications that need to control when the rendering engine loads, ship their own fonts, or satisfy a strict content-security policy can supply the engine themselves.
 
 ### Fixed
 

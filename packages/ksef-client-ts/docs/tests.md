@@ -152,5 +152,5 @@ Since no env vars are available, the test bootstraps its own token:
 GitHub Actions workflow at `.github/workflows/ci.yml` (consolidated):
 
 - Triggers: push to `main` (src/tests changes), pull requests, manual dispatch
-- **Unit tests**: Node 18/20/22 matrix, coverage badge via gist
+- **Unit tests**: Node 20/22/24 matrix, coverage badge via gist
 - **E2E tests**: against KSeF TEST environment, 30min timeout, no secrets required

@@ -103,10 +103,14 @@ jobs:
           yarn lint
           yarn check:node-types
           yarn check:pdf-types
+          yarn check:pdf-browser-types
           node packages/ksef-client-ts/scripts/check-pdf-cold.mjs
+          node packages/ksef-client-ts/scripts/check-fs-free-core.mjs
+          node packages/ksef-client-ts/scripts/check-pdf-browser-safe.mjs
           yarn check:attw
           yarn check:publint
           yarn test
+          yarn test:package
 
       - name: Publish package
         working-directory: packages/ksef-client-ts
@@ -158,10 +162,14 @@ jobs:
           yarn lint
           yarn check:node-types
           yarn check:pdf-types
+          yarn check:pdf-browser-types
           node packages/ksef-client-ts/scripts/check-pdf-cold.mjs
+          node packages/ksef-client-ts/scripts/check-fs-free-core.mjs
+          node packages/ksef-client-ts/scripts/check-pdf-browser-safe.mjs
           yarn check:attw
           yarn check:publint
           yarn test
+          yarn test:package
 
       - name: Prepare scoped package name
         working-directory: packages/ksef-client-ts

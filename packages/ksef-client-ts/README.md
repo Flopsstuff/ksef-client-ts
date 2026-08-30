@@ -11,7 +11,7 @@ npm i ksef-client-ts      # library
 npm i -g ksef-client-ts   # ksef CLI
 ```
 
-Requires **Node.js 18+**. Dual ESM/CJS output via tsup.
+Requires **Node.js 20+**. Dual ESM/CJS output via tsup.
 
 ## Quick start
 
