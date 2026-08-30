@@ -74,12 +74,9 @@
           },
           {
             "label": "address",
+            "from": "Podmiot2.Adres",
             "style": "partyDetails",
-            "fields": [
-              "Podmiot2.Adres.AdresL1",
-              { "path": "Podmiot2.Adres.AdresL2", "optional": true },
-              "Podmiot2.Adres.KodKraju"
-            ]
+            "fields": ["AdresL1", { "path": "AdresL2", "optional": true }, "KodKraju"]
           },
           {
             "label": "contact",

@@ -56,6 +56,19 @@ describe('strict mode survives real documents', () => {
     ).resolves.toBeInstanceOf(Uint8Array);
   });
 
+  it('an invoice that states no buyer address renders strict', async () => {
+    // The whole `Podmiot2.Adres` element is minOccurs="0"; `AdresL1` and
+    // `KodKraju` are only mandatory *within* an address that exists.
+    const noAddress = fx('fa3.xml').replace(/<Podmiot2>[\s\S]*?<\/Podmiot2>/, (m) =>
+      m.replace(/\s*<Adres>[\s\S]*?<\/Adres>/, ''),
+    );
+    expect(noAddress).toContain('<Podmiot1>');
+    expect(noAddress).not.toContain('ul. Testowa 2');
+    await expect(
+      renderInvoicePdfFromTemplate(noAddress, fa3Default(), { strict: true }),
+    ).resolves.toBeInstanceOf(Uint8Array);
+  });
+
   it('an invoice without the optional second address line renders strict', async () => {
     const noAddressL2 = fx('fa3.xml').replace(/\s*<AdresL2>[^<]*<\/AdresL2>/g, '');
     expect(noAddressL2).not.toContain('AdresL2');
@@ -75,6 +88,33 @@ describe('every built-in marks what the FA schemas let a buyer omit', () => {
         typeof f === 'object' && f !== null && (f as { path?: string }).path === 'Podmiot2.DaneIdentyfikacyjne.Nazwa',
     );
     expect(nazwa?.optional, 'the buyer name is optional in FA(2) and FA(3)').toBe(true);
+  });
+
+  it.each(['fa2-default', 'fa3-default', 'fa3-showcase'])(
+    '%s reads the buyer address through its optional parent',
+    (name) => {
+      // Binding `Podmiot2.Adres.AdresL1` directly makes a mandatory child of an
+      // optional parent look mandatory. Reading the group `from` the parent
+      // drops it whole when the document carries no address.
+      const parties = getBuiltinTemplate(name)!.blocks.find((b) => b.type === 'parties') as {
+        right: { fields: unknown[] };
+      };
+      const address = parties.right.fields.find(
+        (f): f is { from?: string; fields: unknown[] } =>
+          typeof f === 'object' && f !== null && (f as { label?: string }).label === 'address',
+      );
+      expect(address?.from).toBe('Podmiot2.Adres');
+      expect(JSON.stringify(address)).not.toContain('Podmiot2.Adres.');
+    },
+  );
+
+  it('the seller address stays policed, because FA declares it mandatory', async () => {
+    const noSellerAddress = fx('fa3.xml').replace(/<Podmiot1>[\s\S]*?<\/Podmiot1>/, (m) =>
+      m.replace(/\s*<Adres>[\s\S]*?<\/Adres>/, ''),
+    );
+    await expect(
+      renderInvoicePdfFromTemplate(noSellerAddress, fa3Default(), { strict: true }),
+    ).rejects.toThrow(/Podmiot1\.Adres/);
   });
 });
 
