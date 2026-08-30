@@ -225,7 +225,7 @@ Nothing here calls the API. A render reads a local document and produces bytes.
 | File | Purpose |
 |------|---------|
 | `index.ts` | The public surface: `renderInvoicePdf`, `renderInvoicePdfFromTemplate`, `renderInvoicePdfFromFile`, `renderUpoPdf`, `getBuiltinTemplate`, `builtinTemplateNames`, plus the error classes this entry point throws |
-| `parse.ts` | Reads the XML into a plain tree and detects which document it is — `FA(2)`/`FA(3)` or `UPO(4.2)`/`UPO(4.3)` — from the namespace the root element is bound to |
+| `parse.ts` | Reads the XML into a plain tree and detects which document it is. An invoice says so twice — `Naglowek.KodFormularza`'s `kodSystemowy` attribute and `WariantFormularza` — and both must agree or the document is refused, since a mismatched pair would resolve every binding against the wrong schema. A UPO carries no such field, so its version comes from the namespace its root element is bound to |
 | `template/dsl.ts` | The template DSL: block/field types and the zod schema that validates an untrusted template, throwing `KSeFValidationError` |
 | `template/interpret.ts` | Walks a validated template against the document, resolving bindings, `when` conditions and repeaters into pdfmake content |
 | `template/blocks/*.ts` | One renderer per block kind — `header`, `parties`, `lines`, `totals`, `payment`, `annotations`, `notes`, `qr`, `table`, `each`, `image`, `footer` |
