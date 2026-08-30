@@ -95,3 +95,24 @@ export function paymentFlags(root: unknown): Record<string, boolean> {
     paidInPart: mark === '1',
   };
 }
+
+/**
+ * What kind of document this is, for the parts of the page that name it rather
+ * than compute from it — the title above all. `ZAL` and `ROZ` are the two an
+ * ordinary reader must not confuse: one records money taken before the sale,
+ * the other closes the sale against it, and both would otherwise be headed
+ * simply "Faktura". A correction of either keeps the plain heading: `KOR_ZAL`
+ * is not an advance invoice, it is a correction of one.
+ */
+export function kindFlags(root: unknown): Record<string, boolean> {
+  const kind = get(root, 'Fa.RodzajFaktury');
+  return {
+    isAdvanceInvoice: kind === 'ZAL',
+    isSettlementInvoice: kind === 'ROZ',
+  };
+}
+
+/** Every document-derived flag a template may gate on. */
+export function documentFlags(root: unknown): Record<string, boolean> {
+  return { ...p15Flags(root), ...paymentFlags(root), ...kindFlags(root) };
+}

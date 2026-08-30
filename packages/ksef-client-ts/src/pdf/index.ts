@@ -25,7 +25,7 @@ import { blockRegistry } from './template/blocks/index.js';
 import { getBuiltinTemplate as loadBuiltinTemplate, builtinTemplateNames } from './template/builtin/index.js';
 import { loadPdfMake, createPdfBuffer } from './fonts.js';
 import { deriveInvoiceQrUrl } from './qr.js';
-import { p15Flags, paymentFlags } from './document-flags.js';
+import { documentFlags } from './document-flags.js';
 
 export type { Locale } from './i18n/types.js';
 export type { InvoiceTemplate } from './template/dsl.js';
@@ -162,8 +162,7 @@ function buildContext(
 
   const totals = opts.totals ?? 'buckets';
   const flags: Record<string, boolean> = {
-    ...p15Flags(root),
-    ...paymentFlags(root),
+    ...documentFlags(root),
     hasKsefNumber: Boolean(opts.ksefNumber),
     offline: !opts.ksefNumber,
     // Either code is enough to keep the QR area on the page: an offline invoice

@@ -11,7 +11,16 @@ import { resolveBinding, resolveText, type BlockRenderer, type PdfNode } from '.
  * of drifting to the left margin under the title.
  */
 export const headerRenderer: BlockRenderer<HeaderBlock> = (block, ctx) => {
-  const title = resolveText(block.title, ctx) || ctx.label('invoice');
+  // A template may name its own title; otherwise the document names itself.
+  // An advance invoice and the one that settles it are the two a reader must
+  // not mistake for an ordinary invoice, and the heading is where that is
+  // cheapest to say.
+  const kind = ctx.flags.isAdvanceInvoice
+    ? 'invoiceAdvance'
+    : ctx.flags.isSettlementInvoice
+      ? 'invoiceSettlement'
+      : 'invoice';
+  const title = resolveText(block.title, ctx) || ctx.label(kind);
   const left: PdfNode[] = [{ text: title, style: block.style ?? 'title' }];
   if (block.logo) {
     const logo = resolveBinding(block.logo, ctx);

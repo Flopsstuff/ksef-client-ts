@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { getBuiltinTemplate } from '../../../src/pdf/template/builtin/index.js';
-import { p15Flags, paymentFlags } from '../../../src/pdf/document-flags.js';
+import { documentFlags, p15Flags } from '../../../src/pdf/document-flags.js';
 import { parseXmlForPdf } from '../../../src/pdf/parse.js';
 import { blockRegistry } from '../../../src/pdf/template/blocks/index.js';
 import { interpretTemplate, type RenderContext } from '../../../src/pdf/template/interpret.js';
@@ -44,7 +44,7 @@ function render(templateName: string, xml: string): string[] {
     strict: false,
     label: makeLabelResolver('pl', {}),
     bindings: { 'opts.logo': '', 'opts.ksefNumber': '', 'opts.accent': '', qrUrl: '', certificateQrUrl: '' },
-    flags: { ...p15Flags(root), ...paymentFlags(root), totalsBuckets: true },
+    flags: { ...documentFlags(root), totalsBuckets: true },
   };
   return texts(interpretTemplate(template, ctx, blockRegistry));
 }
@@ -81,8 +81,9 @@ describe('which reading of P_15 a document supports', () => {
   });
 
   it('a settlement invoice: P_15 is what is left after the advances', () => {
-    // Its lines state the whole order (500,00 + 115,00) while P_15 states 165,00
-    // — the case where a flat `Do zapłaty` reads as a contradiction.
+    // Its line items state the whole 615,00 order while the tax summary and
+    // `P_15` cover only the 165,00 remainder — the case where a flat
+    // `Do zapłaty` reads as a contradiction.
     expect(p15Flags((parseXmlForPdf(fx('fa3-roz.xml')) as Record<string, unknown>).Faktura)).toEqual({
       p15IsAmountDue: false,
       p15IsAdvancePaid: false,
@@ -113,9 +114,10 @@ describe('which reading of P_15 a document supports', () => {
   });
 
   it('a settlement invoice that also states the payments it received', () => {
-    // Chain B's settlement restates the payments it received, so its P_15 is
-    // the whole 1 230,00 and the remainder is the difference the schema
-    // defines — P_15 must not be labelled as what is left.
+    // Chain B's settlement documents a further payment it received, so its
+    // `P_15` covers that payment plus the rest and the remainder is the
+    // difference the schema defines — `P_15` must not be labelled as what is
+    // left.
     expect(p15Flags((parseXmlForPdf(fx('fa3-roz-b.xml')) as Record<string, unknown>).Faktura)).toEqual({
       p15IsAmountDue: false,
       p15IsAdvancePaid: false,
@@ -131,6 +133,28 @@ describe('which reading of P_15 a document supports', () => {
       '<RodzajFaktury>ZAL</RodzajFaktury>',
     );
     expect(p15Flags((parseXmlForPdf(xml) as Record<string, unknown>).Faktura).p15IsAdvancePaid).toBe(true);
+  });
+});
+
+describe.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s names the document itself', (name) => {
+  const fa = name.startsWith('fa2') ? 'fa2' : 'fa3';
+
+  it('heads an advance invoice as one', () => {
+    expect(render(name, fx(`${fa}-zal.xml`))).toContain('Faktura zaliczkowa');
+  });
+
+  it('heads a settlement invoice as one, in both of its shapes', () => {
+    expect(render(name, fx(`${fa}-roz.xml`))).toContain('Faktura rozliczająca');
+    expect(render(name, fx(`${fa}-roz-b.xml`))).toContain('Faktura rozliczająca');
+  });
+
+  it('leaves an ordinary invoice, and a correction of an advance, plainly headed', () => {
+    expect(render(name, fx(`${fa}.xml`))).toContain('Faktura');
+    // KOR_ZAL corrects an advance invoice; it is not one.
+    const korZal = fx(`${fa}-zal.xml`).replace('<RodzajFaktury>ZAL<', '<RodzajFaktury>KOR_ZAL<');
+    const out = render(name, korZal);
+    expect(out).toContain('Faktura');
+    expect(out).not.toContain('Faktura zaliczkowa');
   });
 });
 
@@ -162,13 +186,13 @@ describe.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s names the figu
   });
 
   it('computes the remainder the schema defines as a difference', () => {
-    // Chain B: P_15 is the whole 1 230,00 and the payments received are
-    // stated, so what is left — 430,00 — exists only as `P_15` minus the sum of
-    // the `P_15Z` fields. No field carries it.
+    // Chain B: `P_15` is the 430,00 this invoice covers, of which 250,00 was
+    // received before delivery and stated here — so what is still owed, 180,00,
+    // exists only as `P_15` minus the sum of the `P_15Z` fields. No field
+    // carries it.
     const out = render(name, fx(`${fa}-roz-b.xml`));
-    // `money` groups thousands with a non-breaking space.
-    expect(out.some((t) => t.includes('1\u00a0230,00'))).toBe(true);
-    expect(out.some((t) => t.includes('Pozostało do zapłaty: 430,00 PLN'))).toBe(true);
+    expect(out).toContain('430,00');
+    expect(out.some((t) => t.includes('Pozostało do zapłaty: 180,00 PLN'))).toBe(true);
     expect(out.some((t) => t.includes('Kwota należności ogółem'))).toBe(true);
   });
 

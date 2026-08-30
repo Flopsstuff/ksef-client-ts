@@ -3,6 +3,8 @@ import type { LabelBundle } from './types.js';
 /** Polish label bundle (canonical key set). */
 export const pl: LabelBundle = {
   invoice: 'Faktura',
+  invoiceAdvance: 'Faktura zaliczkowa',
+  invoiceSettlement: 'Faktura rozliczająca',
   duplicate: 'Duplikat',
   seller: 'Sprzedawca',
   buyer: 'Nabywca',
@@ -29,7 +31,7 @@ export const pl: LabelBundle = {
   gross: 'Wartość brutto',
   // advance-invoice order lines (Fa.Zamowienie)
   orderLines: 'Pozycje zamówienia lub umowy',
-  orderValue: 'Wartość zamówienia',
+  orderValue: 'Wartość zamówienia brutto',
   // totals
   // per-rate buckets (P_13_* / P_14_*)
   net23: 'Netto 23%',

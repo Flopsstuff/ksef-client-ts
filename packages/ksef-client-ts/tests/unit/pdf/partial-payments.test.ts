@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { getBuiltinTemplate } from '../../../src/pdf/template/builtin/index.js';
-import { paymentFlags } from '../../../src/pdf/document-flags.js';
+import { documentFlags, paymentFlags } from '../../../src/pdf/document-flags.js';
 import { parseXmlForPdf } from '../../../src/pdf/parse.js';
 import { paymentRenderer } from '../../../src/pdf/template/blocks/payment.js';
 import type { PaymentBlock } from '../../../src/pdf/template/dsl.js';
@@ -30,7 +30,7 @@ function paymentLines(templateName: string, xml: string, locale?: (k: string) =>
     strict: false,
     label: locale ?? ((k: string) => k),
     bindings: {},
-    flags: { p15IsAmountDue: true, ...paymentFlags(root) },
+    flags: { ...documentFlags(root) },
   };
   const out: string[] = [];
   const walk = (value: unknown): void => {

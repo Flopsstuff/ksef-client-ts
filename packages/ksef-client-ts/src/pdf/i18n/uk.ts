@@ -11,6 +11,8 @@ import type { LabelBundle } from './types.js';
  */
 export const uk: LabelBundle = {
   invoice: 'Фактура',
+  invoiceAdvance: 'Авансова фактура',
+  invoiceSettlement: 'Розрахункова фактура',
   duplicate: 'Дублікат',
   seller: 'Продавець',
   buyer: 'Покупець',
@@ -36,7 +38,7 @@ export const uk: LabelBundle = {
   gross: 'Сума брутто',
   // advance-invoice order lines (Fa.Zamowienie)
   orderLines: 'Позиції замовлення або договору',
-  orderValue: 'Вартість замовлення',
+  orderValue: 'Вартість замовлення, брутто',
   // per-rate buckets (P_13_* / P_14_*)
   net23: 'Нетто 23%',
   vat23: 'ПДВ 23%',

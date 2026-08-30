@@ -20,7 +20,6 @@
       "type": "header",
       "logo": "opts.logo",
       "logoWidth": 48,
-      "title": { "label": "invoice" },
       "number": "Fa.P_2",
       "date": "Fa.P_1",
       "ksefNumber": "opts.ksefNumber",

@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Chain B, step 2 of 2. Synthetic, fully anonymous FA(3) settlement invoice (ROZ, art. 106f ust. 3),
-     closing fa3-zal-b.xml. Unlike chain A it restates the payments received, so P_15 is the whole
-     1 230,00 and what is left — 430,00 — is the difference the schema defines: P_15 less the sum
-     of the P_15Z fields. Remainder COMPUTED. No real taxpayer data. -->
+     closing fa3-zal-b.xml, which had invoiced 800,00 of a 1 230,00 order.
+     This one covers the remaining 430,00 (349,59 net + 80,41 VAT) and *itself* documents one
+     further payment received before delivery — 250,00 on 01.04. So what is still owed is the
+     difference the schema defines, P_15 less the sum of the P_15Z fields: 180,00.
+     Remainder COMPUTED. No real taxpayer data. -->
 <Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/"
          xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -49,9 +51,9 @@
         <P_1M>Warszawa</P_1M>
         <P_2>ROZ/2025/04/007</P_2>
         <P_6>2025-04-02</P_6>
-        <P_13_1>1000.00</P_13_1>
-        <P_14_1>230.00</P_14_1>
-        <P_15>1230.00</P_15>
+        <P_13_1>349.59</P_13_1>
+        <P_14_1>80.41</P_14_1>
+        <P_15>430.00</P_15>
         <Adnotacje>
             <P_16>2</P_16>
             <P_17>2</P_17>
@@ -70,12 +72,8 @@
         </Adnotacje>
         <RodzajFaktury>ROZ</RodzajFaktury>
         <ZaliczkaCzesciowa>
-            <P_6Z>2025-03-04</P_6Z>
-            <P_15Z>500.00</P_15Z>
-        </ZaliczkaCzesciowa>
-        <ZaliczkaCzesciowa>
-            <P_6Z>2025-03-11</P_6Z>
-            <P_15Z>300.00</P_15Z>
+            <P_6Z>2025-04-01</P_6Z>
+            <P_15Z>250.00</P_15Z>
         </ZaliczkaCzesciowa>
         <FakturaZaliczkowa>
             <NrKSeFFaZaliczkowej>1111111111-20250312-020000000000-B2</NrKSeFFaZaliczkowej>

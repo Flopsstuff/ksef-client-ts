@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Chain A, step 2 of 2. Synthetic, fully anonymous FA(2) settlement invoice (ROZ, art. 106f ust. 3),
-     closing fa2-zal.xml. The lines and VAT buckets state the full 615,00 order, while P_15
-     states only the 165,00 left after the 450,00 advance. Remainder STATED.
+     closing fa2-zal.xml. The line items state the full 615,00 order, but the tax
+     summary and P_15 cover only what is left after the 450,00 advance: 134,15 net +
+     30,85 VAT = 165,00. The advance invoice already declared the tax on its own share,
+     so declaring the whole 115,00 again here would tax the deal twice.
+     Remainder STATED.
      No real taxpayer data. -->
 <Faktura xmlns="http://crd.gov.pl/wzor/2023/06/29/12648/"
          xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/"
@@ -49,8 +52,8 @@
         <P_1M>Warszawa</P_1M>
         <P_2>ROZ/2025/02/001</P_2>
         <P_6>2025-02-05</P_6>
-        <P_13_1>500.00</P_13_1>
-        <P_14_1>115.00</P_14_1>
+        <P_13_1>134.15</P_13_1>
+        <P_14_1>30.85</P_14_1>
         <P_15>165.00</P_15>
         <Adnotacje>
             <P_16>2</P_16>

@@ -3,6 +3,8 @@ import type { LabelBundle } from './types.js';
 /** English label bundle (mirrors the Polish key set). */
 export const en: LabelBundle = {
   invoice: 'Invoice',
+  invoiceAdvance: 'Advance invoice',
+  invoiceSettlement: 'Settlement invoice',
   duplicate: 'Duplicate',
   seller: 'Seller',
   buyer: 'Buyer',
@@ -28,7 +30,7 @@ export const en: LabelBundle = {
   gross: 'Gross amount',
   // advance-invoice order lines (Fa.Zamowienie)
   orderLines: 'Order or contract items',
-  orderValue: 'Order value',
+  orderValue: 'Order value, gross',
   // per-rate buckets (P_13_* / P_14_*)
   net23: 'Net 23%',
   vat23: 'VAT 23%',
