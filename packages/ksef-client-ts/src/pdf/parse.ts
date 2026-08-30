@@ -66,6 +66,82 @@ export function detectInvoiceVersion(xml: string): InvoiceVersion | null {
 }
 
 /**
+ * Skip one `<!…>` node of the prolog — in practice a DOCTYPE — and return the
+ * offset just past it. Its internal subset is bracketed and may itself contain
+ * `>`, so the terminator is the first unquoted `>` at bracket depth zero.
+ */
+function skipMarkupDeclaration(xml: string, at: number): number {
+  let depth = 0;
+  let quote = '';
+  for (let i = at + 2; i < xml.length; i += 1) {
+    const ch = xml[i];
+    if (quote !== '') {
+      if (ch === quote) quote = '';
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === '[') {
+      depth += 1;
+    } else if (ch === ']') {
+      depth -= 1;
+    } else if (ch === '>' && depth <= 0) {
+      return i + 1;
+    }
+  }
+  return xml.length;
+}
+
+/**
+ * The root element's start tag, verbatim, or `''` for a document without one.
+ *
+ * A scanner rather than a regular expression, because both halves of the job
+ * defeat one. The prolog may carry comments, processing instructions and a
+ * DOCTYPE, and each ends at its own terminator rather than at the next `>` —
+ * any of them may contain text that reads like a start tag, and a pattern that
+ * merely refuses `<?` and `<!` at the opening angle bracket would match that
+ * text instead of the real root. And a start tag itself ends at the first `>`
+ * *outside* a quoted attribute value, which XML permits unescaped; stopping at
+ * the first `>` truncates the tag and loses whatever follows, `xmlns` included.
+ */
+function rootStartTag(xml: string): string {
+  let i = 0;
+  while (i < xml.length) {
+    const lt = xml.indexOf('<', i);
+    if (lt === -1) return '';
+
+    if (xml.startsWith('<!--', lt)) {
+      const end = xml.indexOf('-->', lt + 4);
+      if (end === -1) return '';
+      i = end + 3;
+      continue;
+    }
+    if (xml.startsWith('<?', lt)) {
+      const end = xml.indexOf('?>', lt + 2);
+      if (end === -1) return '';
+      i = end + 2;
+      continue;
+    }
+    if (xml.startsWith('<!', lt)) {
+      i = skipMarkupDeclaration(xml, lt);
+      continue;
+    }
+
+    let quote = '';
+    for (let j = lt + 1; j < xml.length; j += 1) {
+      const ch = xml[j];
+      if (quote !== '') {
+        if (ch === quote) quote = '';
+      } else if (ch === '"' || ch === "'") {
+        quote = ch;
+      } else if (ch === '>') {
+        return xml.slice(lt, j + 1);
+      }
+    }
+    return '';
+  }
+  return '';
+}
+
+/**
  * Detect the UPO version. Requires a `Potwierdzenie` root, then reads the
  * version from the namespace that root element is bound to (`.../KSeF/v4-3` →
  * `UPO(4.3)`, `v4-2` → `UPO(4.2)`). The default `xmlns` declaration is not
@@ -80,14 +156,11 @@ export function detectUpoVersion(xml: string): UpoVersion | null {
   // the source rather than `parsed`: `removeNSPrefix` drops the xmlns
   // declarations, so the version is gone by the time the document is an object.
   //
-  // Comments come out first and the match is anchored to the document's *first*
-  // element, not to the first thing that looks like a Potwierdzenie. Scanning by
-  // name alone let a commented-out root — or any mention of the string in a note
-  // or an embedded document — decide the version instead.
-  const withoutComments = xml.replace(/<!--[\s\S]*?-->/g, '');
-  const firstElement = /<(?![?!])([\w.:-]+)[^>]*>/.exec(withoutComments);
-  const rootTag = firstElement?.[0] ?? '';
-  const qualifiedName = firstElement?.[1] ?? '';
+  // The tag is found by a scanner rather than by name, so a commented-out root —
+  // or any mention of the string in a note or an embedded document — cannot
+  // decide the version.
+  const rootTag = rootStartTag(xml);
+  const qualifiedName = /^<([\w.:-]+)/.exec(rootTag)?.[1] ?? '';
   const colon = qualifiedName.indexOf(':');
   const prefix = colon === -1 ? '' : qualifiedName.slice(0, colon);
   const rootName = colon === -1 ? qualifiedName : qualifiedName.slice(colon + 1);
