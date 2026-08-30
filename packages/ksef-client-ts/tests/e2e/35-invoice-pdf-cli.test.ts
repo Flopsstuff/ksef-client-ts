@@ -209,8 +209,12 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     // and the settlement that closes it, for a different buyer and a different
     // amount each time, with dates that only ever move forward.
     //
-    //   06 → 07   Nabywca Przykładowy S.A.   order 615,00      remainder STATED
+    //   06 → 07   Nabywca Przykładowy S.A.      order 615,00    remainder STATED
     //   08 → 09   Odbiorca Handlowy Sp. z o.o.  order 1 230,00  remainder COMPUTED
+    //
+    // Chain B renders in English. The document data stays Polish — labels are
+    // what a locale switches — so the pair doubles as proof that every label
+    // this story added has an English word behind it, not only a Polish one.
     //
     // The two chains exist because the FA schemas let a settlement invoice
     // state what is left in either of two ways, and the pages have to be right
@@ -240,7 +244,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     // 08 — chain B, a different buyer and a different deal: order 1 230,00,
     // advance 800,00 received in March.
     [`${PREFIX}-08-chain-b-advance`, () => [
-      fx('fa3-zal-b.xml'), '--ksef-number', KSEF_ZAL_B,
+      fx('fa3-zal-b.xml'), '--ksef-number', KSEF_ZAL_B, '--locale', 'en',
       '--env', 'demo', '--qr', '--totals', 'buckets',
     ]],
     // 09 — chain B's settlement, which states the payments it received instead
@@ -248,7 +252,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     // the difference the schema defines: `P_15` less the sum of the `P_15Z`
     // fields, 430,00. No field carries that number.
     [`${PREFIX}-09-chain-b-settlement-computed`, () => [
-      fx('fa3-roz-b.xml'), '--ksef-number', KSEF_ROZ_B,
+      fx('fa3-roz-b.xml'), '--ksef-number', KSEF_ROZ_B, '--locale', 'en',
       '--env', 'demo', '--qr', '--totals', 'both',
     ]],
     // 10 — standalone: an ordinary invoice being paid down, which is a
