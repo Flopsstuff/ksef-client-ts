@@ -22,13 +22,13 @@ yarn vitest run tests/unit/services/auth.test.ts   # Single file
 
 ## Unit Tests
 
-126 test files, 2165 passed / 9 skipped (2174 total). Located in `tests/unit/`. All service/HTTP calls are mocked — no network access, fast execution.
+157 test files, 2905 tests. Located in `tests/unit/`. All service/HTTP calls are mocked — no network access, fast execution.
 
 ### Coverage by Area
 
 | Area | Files | What is tested |
 |------|-------|----------------|
-| **cli** | 32 | All 17 command groups, client factory, config/session store, error handler, output formatting |
+| **cli** | 34 | All 17 command groups, client factory, config/session store, error handler, output formatting |
 | **services** | 14 | All 14 API services — request construction, response parsing, error propagation |
 | **http** | 10 | RestClient, RetryPolicy (backoff, jitter), RateLimitPolicy (token bucket), PresignedUrlPolicy, AuthManager (401 refresh), transport, RestRequest builder, KSeF feature constants, circuit breaker |
 | **workflows** | 10 | Auth workflow, online/batch session, invoice export, incremental export, HWM coordinator, polling utility |
@@ -36,6 +36,7 @@ yarn vitest run tests/unit/services/auth.test.ts   # Single file
 | **crypto** | 8 | CryptographyService (AES, RSA, ECDH, CSR), SignatureService (XAdES), CertificateService (self-signed), CertificateFetcher, PKCS#12 loader, auth XML builder |
 | **validation** | 10 | Regex patterns + checksum validators (NIP, PESEL, KSeF number CRC-8), constraints, char validity, XSD validation helpers |
 | **xml** | 9 | FA2/FA3/PEF builders, invoice serializer, XSD validation, property ordering |
+| **pdf** | 29 | Template DSL validation and interpretation, every block renderer, the built-in layouts against fixtures, document flags, formatters, i18n bundles, QR derivation and sizing, font loading, strict mode |
 | **utils** | 7 | Concurrency helpers, filesystem utilities, hashing, date/time helpers |
 | **builders** | 5 | AuthTokenRequest, AuthKsefTokenRequest, InvoiceQueryFilter, Permissions (person/entity/authorization), batch file |
 | **offline** | 4 | Offline invoice deadlines, file storage, holiday calendar, workflow orchestration |
@@ -108,6 +109,14 @@ This means tests can run on any machine, any CI, without configuring credentials
 | 32 | `32-offline-invoice.test.ts` | Offline invoice lifecycle | Cert + Crypto | 300s |
 | 33 | `33-xml-serialization.test.ts` | Invoice XML serialization round-trip | None | 60s |
 | 34 | `34-collective-identifiers.test.ts` | Collective identifier lifecycle | Cert + Crypto | 180s |
+| 35 | `35-invoice-pdf-cli.test.ts` | `ksef invoice pdf` through the built CLI: the whole preview set, plus the inputs it refuses | None | 120s |
+| 36 | `36-invoice-pdf-library.test.ts` | The same rendering through `ksef-client-ts/pdf`: template objects, supplied QR URLs, every render option | None | 120s |
+
+### The PDF Specs (35, 36)
+
+Both are exceptions to everything above: they authenticate against nothing and reach the network at no point — a render reads a local document and writes bytes. They need `yarn build` first, because 35 drives the built CLI (`dist/cli.js`) and 36 imports the built package.
+
+They also leave something behind on purpose. Each writes a numbered set of PDFs into `.pdf-preview/` (override with `KSEF_PDF_OUT`), distinguished by a `cli-`/`lib-` prefix, so the pages can be opened and judged by eye after a run. The assertions themselves are deliberately shallow — a file appears and is a structurally complete PDF — because asserting on glyph positions breaks on every deliberate design change while saying nothing about whether the page reads well. What they do catch is the class of failure unit tests cannot see: a template that stops validating at import, a bundling regression that drops the fonts, a flag that stops being wired, an optional peer that fails to load.
 
 ### Auth Helpers
 
