@@ -138,3 +138,22 @@ describe('the bundles stay key-complete', () => {
     }
   });
 });
+
+describe('a caller may reword any label for one render', () => {
+  it('outranks the template, which outranks the bundle', () => {
+    // Three sources, most specific first. The document titles are the reason
+    // this exists — an issuer who calls a settlement invoice `faktura końcowa`
+    // should not have to fork a template to say so.
+    expect(resolveLabel('invoiceSettlement', 'pl')).toBe('Faktura rozliczająca');
+    expect(resolveLabel('invoiceSettlement', 'pl', { overrides: { invoiceSettlement: 'Faktura końcowa' } }))
+      .toBe('Faktura końcowa');
+  });
+
+  it('names an advance invoice and a settlement invoice in every bundle', () => {
+    for (const locale of ['pl', 'en', 'uk'] as const) {
+      for (const key of ['invoice', 'invoiceAdvance', 'invoiceSettlement']) {
+        expect(resolveLabel(key, locale), `${key} missing from ${locale}`).not.toBe(key);
+      }
+    }
+  });
+});

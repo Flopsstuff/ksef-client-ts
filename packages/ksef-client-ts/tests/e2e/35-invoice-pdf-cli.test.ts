@@ -227,11 +227,15 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
       '--env', 'demo', '--qr', '--totals', 'buckets',
     ]],
     // 07 — chain A, the settlement (ROZ) that closes 06. The lines and VAT
-    // buckets show the whole 615,00 order while `P_15` is only the 165,00 still
-    // owed: read as a flat "amount due", those figures contradict each other.
+    // items show the whole 615,00 order while the tax summary and `P_15` cover
+    // only the 165,00 still owed — the advance invoice already declared the tax
+    // on its own share. Rendered with `--totals both`, so the derived bridge
+    // between the two (`Wartość zamówienia netto` and `Rozliczono zaliczkami`)
+    // is on the page: that reconciliation is computed, so it appears only where
+    // the caller has accepted computed figures.
     [`${PREFIX}-07-chain-a-settlement-stated`, () => [
       fx('fa3-roz.xml'), '--ksef-number', KSEF_ROZ_A,
-      '--env', 'demo', '--qr', '--totals', 'buckets',
+      '--env', 'demo', '--qr', '--totals', 'both',
     ]],
     // 08 — chain B, a different buyer and a different deal: order 1 230,00,
     // advance 800,00 received in March.
@@ -245,7 +249,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     // fields, 430,00. No field carries that number.
     [`${PREFIX}-09-chain-b-settlement-computed`, () => [
       fx('fa3-roz-b.xml'), '--ksef-number', KSEF_ROZ_B,
-      '--env', 'demo', '--qr', '--totals', 'buckets',
+      '--env', 'demo', '--qr', '--totals', 'both',
     ]],
     // 10 — standalone: an ordinary invoice being paid down, which is a
     // different thing from an advance and reads differently. `Platnosc` takes

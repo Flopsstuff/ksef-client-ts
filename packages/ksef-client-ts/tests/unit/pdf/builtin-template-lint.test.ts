@@ -53,6 +53,9 @@ const CONTEXT_CONDITIONS = new Set([
   'p15IsAmountDue', 'p15IsAdvancePaid', 'p15IsAmountTotal', 'p15IsRemainder',
   // Whether the remainder is a figure the schema defines as a difference.
   'settlementRemainder',
+  // The settlement reconciliation, which is derived and so is gated on the
+  // totals mode as well as on the document.
+  'settlementBreakdown',
   // How much of the invoice `Platnosc` says has been paid.
   'paidInFull', 'paidInPart',
 ]);
@@ -79,7 +82,9 @@ function collect(
         // silently makes the figure wrong rather than absent — worse than a
         // blank line, so it is linted like any other repeater.
         for (const computed of [row.less, row.sumFrom]) {
-          if (computed) acc.repeaters.push(computed.from);
+          // Only the collection form names a repeater; `{ path }` and `{ sum }`
+          // read the document root and are covered by the scalar lints.
+          if (computed?.from !== undefined) acc.repeaters.push(computed.from);
         }
       }
     }

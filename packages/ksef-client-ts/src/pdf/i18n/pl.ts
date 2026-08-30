@@ -53,6 +53,8 @@ export const pl: LabelBundle = {
   netReverseCharge: 'Netto odwrotne obciążenie',
   netMargin: 'Netto procedura marży',
   totalNet: 'Razem netto',
+  orderNet: 'Wartość zamówienia netto',
+  settledByAdvances: 'Rozliczono zaliczkami (netto)',
   totalVat: 'Razem VAT',
   totalDue: 'Do zapłaty',
   remainingDue: 'Pozostało do zapłaty',

@@ -36,7 +36,7 @@ function texts(doc: Record<string, unknown>): string[] {
 }
 
 /** Render through the same flag derivation the public entry point uses. */
-function render(templateName: string, xml: string): string[] {
+function render(templateName: string, xml: string, extraFlags: Record<string, boolean> = {}): string[] {
   const template = getBuiltinTemplate(templateName)!;
   const root = (parseXmlForPdf(xml) as Record<string, unknown>).Faktura;
   const ctx: RenderContext = {
@@ -44,7 +44,7 @@ function render(templateName: string, xml: string): string[] {
     strict: false,
     label: makeLabelResolver('pl', {}),
     bindings: { 'opts.logo': '', 'opts.ksefNumber': '', 'opts.accent': '', qrUrl: '', certificateQrUrl: '' },
-    flags: { ...documentFlags(root), totalsBuckets: true },
+    flags: { ...documentFlags(root), totalsBuckets: true, ...extraFlags },
   };
   return texts(interpretTemplate(template, ctx, blockRegistry));
 }
@@ -207,6 +207,30 @@ describe.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s names the figu
     expect(out.some((t) => t.includes('Nadpłata do rozliczenia: 85,00 PLN'))).toBe(true);
     // Nothing is owed, so nothing on the page asks for payment.
     expect(out.some((t) => /^Do zap[łl]aty/i.test(t))).toBe(false);
+  });
+
+  it('bridges the whole order to the remainder, when computed figures are allowed', () => {
+    // A settlement invoice states the whole order in its lines but taxes only
+    // what is left, so the two figures a reader tries to reconcile sit far
+    // apart. The bridge is derived — hence gated on the totals mode — and it
+    // uses no invented tax: the order's net is a sum of stated line values, and
+    // what the advances covered is that sum less the stated remainder.
+    const out = render(name, fx(`${fa}-roz.xml`), { totalsSummary: true, settlementBreakdown: true });
+    expect(out.some((t) => t.includes('Wartość zamówienia netto'))).toBe(true);
+    expect(out).toContain('500,00');
+    expect(out.some((t) => t.includes('Rozliczono zaliczkami'))).toBe(true);
+    expect(out).toContain('365,85'); // 500,00 − 134,15, the advance's own net
+  });
+
+  it('closes chain B against its advance invoice exactly', () => {
+    // 1 000,00 − 349,59 = 650,41, which is the net the advance invoice declared.
+    const out = render(name, fx(`${fa}-roz-b.xml`), { totalsSummary: true, settlementBreakdown: true });
+    expect(out).toContain('650,41');
+  });
+
+  it('prints no bridge when the caller asked for stated figures only', () => {
+    const out = render(name, fx(`${fa}-roz.xml`));
+    expect(out.some((t) => t.includes('Rozliczono zaliczkami'))).toBe(false);
   });
 
   it('names the advance invoice it settles', () => {

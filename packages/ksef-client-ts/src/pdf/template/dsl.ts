@@ -298,13 +298,16 @@ export interface PaymentGroup {
  * reading.
  */
 /**
- * One binding read over every entry of a collection, to be summed. Used by
- * `less`, where a figure is defined as a difference the document does not
- * state — see {@link TotalsRow.less}.
+ * A figure to read, in one of three shapes: `{ from, path }` sums one binding
+ * over every entry of a collection, `{ path }` reads a single binding, and
+ * `{ sum }` adds a fixed list of them. Used by `sumFrom` and `less`, where a
+ * figure is defined in terms of others the document does not state — see
+ * {@link TotalsRow.less}.
  */
 export interface RepeatedSum {
-  from: string;
-  path: string;
+  from?: string;
+  path?: string;
+  sum?: string[];
 }
 
 export interface PaymentRow extends Omit<FieldDef, 'path'> {
@@ -570,7 +573,15 @@ const columnDef = z
   })
   .strict();
 
-const repeatedSum = z.object({ from: z.string(), path: z.string() }).strict();
+const repeatedSum = z
+  .object({ from: z.string().optional(), path: z.string().optional(), sum: z.array(z.string()).nonempty().optional() })
+  .strict()
+  .refine((v) => (v.path !== undefined) !== (v.sum !== undefined), {
+    message: 'a computed figure needs exactly one of "path" (optionally with "from") or "sum"',
+  })
+  .refine((v) => v.from === undefined || v.path !== undefined, {
+    message: '"from" names a collection to read "path" over, so it needs "path"',
+  });
 const totalsRow = z
   .object({
     label: z.string(),

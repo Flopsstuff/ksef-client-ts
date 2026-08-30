@@ -51,6 +51,8 @@ export const en: LabelBundle = {
   netReverseCharge: 'Net reverse charge',
   netMargin: 'Net margin scheme',
   totalNet: 'Total net',
+  orderNet: 'Order value, net',
+  settledByAdvances: 'Settled by advances, net',
   totalVat: 'Total VAT',
   totalDue: 'Amount due',
   remainingDue: 'Remaining to pay',

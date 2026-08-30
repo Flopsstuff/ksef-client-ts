@@ -59,6 +59,8 @@ export const uk: LabelBundle = {
   netReverseCharge: 'Нетто зворотне нарахування',
   netMargin: 'Нетто маржинальна схема',
   totalNet: 'Разом нетто',
+  orderNet: 'Вартість замовлення, нетто',
+  settledByAdvances: 'Закрито авансами, нетто',
   totalVat: 'Разом ПДВ',
   totalDue: 'До сплати',
   remainingDue: 'Залишок до сплати',

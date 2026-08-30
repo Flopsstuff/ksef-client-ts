@@ -71,6 +71,13 @@ export interface RenderOptions {
   locale?: Locale;
   /** Which totals to print above the amount due. Default `'buckets'`. */
   totals?: TotalsMode;
+  /**
+   * Label overrides for this render, by key — `{ invoiceSettlement: 'Faktura
+   * końcowa' }`. They outrank a template's own `labels`, which in turn outrank
+   * the locale bundle, so a caller can reword any label without forking the
+   * template or the bundle. Unknown keys are ignored.
+   */
+  labels?: Record<string, string>;
   /** KSeF number printed on the visualization; absent → marked OFFLINE. */
   ksefNumber?: string;
   /** Embed the KSeF Code I QR derived from the invoice XML. */
@@ -147,7 +154,9 @@ function buildContext(
 ): RenderContext {
   const label = makeLabelResolver(opts.locale ?? 'pl', {
     bilingualSeparator: opts.bilingualSeparator,
-    overrides: template.labels,
+    // The caller is more specific to this render than the template is, so it
+    // wins: a template's own wording is a default, not a lock.
+    overrides: { ...template.labels, ...opts.labels },
   });
 
   const bindings: Record<string, string> = {
@@ -161,8 +170,9 @@ function buildContext(
   const notes = (opts.notes ?? []).filter((n) => (n?.head ?? '').trim() !== '' || (n?.body ?? '').trim() !== '');
 
   const totals = opts.totals ?? 'buckets';
+  const derived = documentFlags(root);
   const flags: Record<string, boolean> = {
-    ...documentFlags(root),
+    ...derived,
     hasKsefNumber: Boolean(opts.ksefNumber),
     offline: !opts.ksefNumber,
     // Either code is enough to keep the QR area on the page: an offline invoice
@@ -171,6 +181,12 @@ function buildContext(
     qrLinks: Boolean(opts.qrLinks),
     totalsBuckets: totals === 'buckets' || totals === 'both',
     totalsSummary: totals === 'summary' || totals === 'both',
+    // A settlement invoice states the whole order in its lines but taxes only
+    // the remainder, so the two figures a reader tries to reconcile sit far
+    // apart. The bridge between them is derived, which is why it appears only
+    // where the caller has accepted derived figures.
+    settlementBreakdown:
+      derived.isSettlementInvoice === true && (totals === 'summary' || totals === 'both'),
     // So a template can gate other things on notes being present — a divider
     // around them, say — without the block itself needing a condition.
     notes: notes.length > 0,

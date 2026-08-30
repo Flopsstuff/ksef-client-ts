@@ -42,12 +42,9 @@ export function readField(
  */
 export function lessRepeatedSum(value: string, less: RepeatedSum, root: unknown): string {
   if (value.trim() === '') return '';
-  const negated = list(root, less.from).map((entry) => {
-    const raw = get(entry, less.path).trim();
-    if (raw === '') return '';
-    return raw.startsWith('-') ? raw.slice(1) : `-${raw}`;
-  });
-  return sumDecimal([value, ...negated]);
+  const raw = repeatedSum(less, root).trim();
+  if (raw === '') return value;
+  return sumDecimal([value, raw.startsWith('-') ? raw.slice(1) : `-${raw}`]);
 }
 
 /**
@@ -58,6 +55,9 @@ export function lessRepeatedSum(value: string, less: RepeatedSum, root: unknown)
  * blank entries are skipped; an unparseable one makes the whole sum `''`, as it
  * does everywhere else here, because a blank is safer than a wrong total.
  */
-export function repeatedSum(sum: RepeatedSum, root: unknown): string {
-  return sumDecimal(list(root, sum.from).map((entry) => get(entry, sum.path)));
+export function repeatedSum(spec: RepeatedSum, root: unknown): string {
+  if (spec.sum) return sumDecimal(spec.sum.map((path) => get(root, path)));
+  const path = spec.path ?? '';
+  if (spec.from === undefined) return get(root, path);
+  return sumDecimal(list(root, spec.from).map((entry) => get(entry, path)));
 }
