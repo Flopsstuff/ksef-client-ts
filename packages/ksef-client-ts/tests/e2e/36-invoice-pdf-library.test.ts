@@ -47,8 +47,8 @@ const fixtures = join(repoRoot, 'tests', 'fixtures', 'pdf');
 const outDir = process.env.KSEF_PDF_OUT ?? join(repoRoot, '.pdf-preview');
 const inputsDir = join(outDir, '_inputs');
 const PREFIX = 'lib';
-/** Same host as the CLI preview set: a demo link is one a reader can click. */
-const DEMO_QR_HOST = 'https://qr-demo.ksef.mf.gov.pl';
+/** Same host as the CLI preview set: the environment this suite drives. */
+const TEST_QR_HOST = 'https://qr-test.ksef.mf.gov.pl';
 
 const require = createRequire(import.meta.url);
 
@@ -122,7 +122,7 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
           logo: LOGO,
           ksefNumber: KSEF_NUMBER,
           qr: true,
-          env: 'demo',
+          env: 'test',
         }),
       );
     });
@@ -185,7 +185,7 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
         format: 'pem',
       }) as string;
       const certificateQrUrl = new VerificationLinkService(
-        DEMO_QR_HOST,
+        TEST_QR_HOST,
       ).buildCertificateVerificationUrl(
         'Nip',
         '1111111111',
@@ -199,7 +199,7 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
         renderInvoicePdf(raw, 'fa3-default', {
           qr: true,
           strict: true,
-          env: 'demo',
+          env: 'test',
           invoiceHash,
           certificateQrUrl,
           qrLinks: true,
@@ -212,7 +212,7 @@ describe('36 - `ksef-client-ts/pdf` renders beyond what the CLI exposes', () => 
       await save(
         `${PREFIX}-04-supplied-code-i-url`,
         renderInvoicePdf(bytes('e2e-vat-multi.xml'), 'fa3-default', {
-          qrUrl: `${DEMO_QR_HOST}/invoice/1111111111/15-01-2026/SUPPLIED-VERBATIM`,
+          qrUrl: `${TEST_QR_HOST}/invoice/1111111111/15-01-2026/SUPPLIED-VERBATIM`,
           qrLinks: true,
           locale: 'pl+uk',
           notes: [{ head: 'Delivery terms', body: 'Goods released at the seller warehouse.' }],

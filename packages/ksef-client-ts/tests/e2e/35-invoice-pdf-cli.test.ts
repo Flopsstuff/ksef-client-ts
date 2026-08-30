@@ -46,11 +46,14 @@ const KSEF_ZAL_B = '1111111111-20250312-020000000000-B2';
 const KSEF_ROZ_B = '1111111111-20250408-020000000000-B3';
 
 /**
- * The QR group renders against DEMO. The documents are invented, so no verifier
- * will resolve them anywhere — but a demo link is the one a reader can safely
- * click, and it keeps every code in the group pointing at the same host.
+ * The QR group renders against TEST — the environment the rest of this suite
+ * drives, so a page cannot name one environment while the spec beside it
+ * authenticates against another. Nothing goes over the wire either way: a
+ * verification link is computed, never called, and the documents are invented,
+ * so no verifier resolves them anywhere. What naming a host buys is that every
+ * code in the group points at the same one.
  */
-const DEMO_QR_HOST = 'https://qr-demo.ksef.mf.gov.pl';
+const TEST_QR_HOST = 'https://qr-test.ksef.mf.gov.pl';
 
 function run(args: string[]) {
   const result = spawnSync('node', [cliEntry, ...args], { encoding: 'utf-8', cwd: repoRoot });
@@ -70,6 +73,7 @@ let oldTotalsTemplate: string;
 let multiDocumentUpo: string;
 let certificateQrUrl: string;
 let notesFile: string;
+let oneSidedNotes: string;
 
 function writeDerivedInputs(): void {
   // A copy of fa3-default whose totals read a single rate bucket — the shape the
@@ -117,7 +121,12 @@ function writeDerivedInputs(): void {
     ]),
   );
 
-  certificateQrUrl = new VerificationLinkService(DEMO_QR_HOST).buildCertificateVerificationUrl(
+  // A note with only a head, and one with only a body — the two shapes page 12
+  // is there to show.
+  oneSidedNotes = join(inputsDir, 'cli-notes-one-sided.json');
+  writeFileSync(oneSidedNotes, JSON.stringify([{ head: 'Tylko nagłówek' }, { body: 'Tylko treść.' }]));
+
+  certificateQrUrl = new VerificationLinkService(TEST_QR_HOST).buildCertificateVerificationUrl(
     'Nip',
     '1111111111',
     '1111111111',
@@ -148,7 +157,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
   /** The two hex forms the flag accepts, so the preview set exercises both. */
   const ACCENT = '#5AB595';
   const ACCENT_SHORT = '#b04';
-  const SUPPLIED_CODE_I = `${DEMO_QR_HOST}/invoice/1111111111/15-01-2026/SUPPLIED-VERBATIM`;
+  const SUPPLIED_CODE_I = `${TEST_QR_HOST}/invoice/1111111111/15-01-2026/SUPPLIED-VERBATIM`;
 
   /**
    * The preview set, laid out as a covering design rather than one variant per
@@ -178,7 +187,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
   const variants: Array<[name: string, args: () => string[]]> = [
     [`${PREFIX}-01-invoice-pl-code-i-accent`, () => [
       fx('e2e-services-np.xml'), '--ksef-number', KSEF_NUMBER, ...LOGO(),
-      '--env', 'demo', '--qr', '--totals', 'buckets', '--accent', ACCENT,
+      '--env', 'test', '--qr', '--totals', 'buckets', '--accent', ACCENT,
     ]],
     [`${PREFIX}-02-invoice-en-supplied-code-i-links`, () => [
       fx('fa3.xml'), '--ksef-number', KSEF_NUMBER, '--locale', 'en',
@@ -186,11 +195,11 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     ]],
     [`${PREFIX}-03-invoice-uk-offline-code-ii-links`, () => [
       fx('e2e-buyer-no-id.xml'), ...LOGO(), '--locale', 'uk',
-      '--env', 'demo', '--qr-cert-url', certificateQrUrl, '--qr-links', '--totals', 'both',
+      '--env', 'test', '--qr-cert-url', certificateQrUrl, '--qr-links', '--totals', 'both',
     ]],
     [`${PREFIX}-04-invoice-bilingual-offline-code-ii`, () => [
       fx('e2e-vat-multi.xml'), '--locale', 'en+pl',
-      '--env', 'demo', '--qr-cert-url', certificateQrUrl, '--totals', 'none',
+      '--env', 'test', '--qr-cert-url', certificateQrUrl, '--totals', 'none',
     ]],
     // The only page drawn from a template file rather than a built-in, which is
     // what keeps --template-file wired. Its totals deliberately read the
@@ -201,7 +210,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     // nothing here reads a figure off the page.
     [`${PREFIX}-05-invoice-pl-uk-custom-template-file`, () => [
       fx('e2e-vat-multi.xml'), ...LOGO(), '--locale', 'pl+uk',
-      '--env', 'demo', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links', '--totals', 'both',
+      '--env', 'test', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links', '--totals', 'both',
       '--notes', notesFile, '--template-file', oldTotalsTemplate,
     ]],
     // Beyond the grid the pages come in *chains*, numbered so one deal runs from
@@ -218,8 +227,9 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     //
     // The two chains exist because the FA schemas let a settlement invoice
     // state what is left in either of two ways, and the pages have to be right
-    // for both. 10 and 11 then stand alone: an ordinary invoice being paid down,
-    // and one that has been overpaid.
+    // for both. 10, 11 and 12 then stand alone: an ordinary invoice being paid
+    // down, one that has been overpaid, and one whose notes each carry only
+    // half of what a note can carry.
 
     // 06 — chain A, the advance invoice (ZAL). No `Fa.FaWiersz`: the goods sit
     // under `Fa.Zamowienie`, so the page shows the order table under its own
@@ -228,7 +238,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     // exactly. Its KSeF number is the one page 07 points back at.
     [`${PREFIX}-06-chain-a-advance`, () => [
       fx('fa3-zal.xml'), '--ksef-number', KSEF_ZAL_A,
-      '--env', 'demo', '--qr', '--totals', 'buckets',
+      '--env', 'test', '--qr', '--totals', 'buckets',
     ]],
     // 07 — chain A, the settlement (ROZ) that closes 06. The lines and VAT
     // items show the whole 615,00 order while the tax summary and `P_15` cover
@@ -239,13 +249,13 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     // the caller has accepted computed figures.
     [`${PREFIX}-07-chain-a-settlement-stated`, () => [
       fx('fa3-roz.xml'), '--ksef-number', KSEF_ROZ_A,
-      '--env', 'demo', '--qr', '--totals', 'both',
+      '--env', 'test', '--qr', '--totals', 'both',
     ]],
     // 08 — chain B, a different buyer and a different deal: order 1 230,00,
     // advance 800,00 received in March.
     [`${PREFIX}-08-chain-b-advance`, () => [
       fx('fa3-zal-b.xml'), '--ksef-number', KSEF_ZAL_B, '--locale', 'en',
-      '--env', 'demo', '--qr', '--totals', 'buckets',
+      '--env', 'test', '--qr', '--totals', 'buckets',
     ]],
     // 09 — chain B's settlement, which states the payments it received instead
     // of leaving them on 08. So `P_15` is the whole 1 230,00 and what is owed is
@@ -253,7 +263,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     // fields, 430,00. No field carries that number.
     [`${PREFIX}-09-chain-b-settlement-computed`, () => [
       fx('fa3-roz-b.xml'), '--ksef-number', KSEF_ROZ_B, '--locale', 'en',
-      '--env', 'demo', '--qr', '--totals', 'both',
+      '--env', 'test', '--qr', '--totals', 'both',
     ]],
     // 10 — standalone: an ordinary invoice being paid down, which is a
     // different thing from an advance and reads differently. `Platnosc` takes
@@ -262,29 +272,37 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     // add up to the total — that is what "paid in part" means.
     [`${PREFIX}-10-partial-payments`, () => [
       fx('fa3-czesciowa.xml'), '--ksef-number', KSEF_NUMBER,
-      '--env', 'demo', '--qr', '--totals', 'buckets',
+      '--env', 'test', '--qr', '--totals', 'buckets',
     ]],
     // 11 — standalone, the opposite end of the same branch: `Rozliczenie`
     // states a `DoRozliczenia` overpayment rather than a `DoZaplaty`. Nothing
     // is owed, so nothing on the page may ask for payment.
     [`${PREFIX}-11-overpayment`, () => [
       fx('fa3-nadplata.xml'), '--ksef-number', KSEF_NUMBER,
-      '--env', 'demo', '--qr', '--totals', 'buckets',
+      '--env', 'test', '--qr', '--totals', 'buckets',
     ]],
-    // 12 — not a document shape but a template: `fa3-showcase` exists to
+    // 12 — the notes flag, given a note with only a head and one with only a
+    // body. The renderer prints whichever half a note carries, and the docs say
+    // so, so the flag has to accept the same shape the library does: a CLI
+    // stricter than the API it fronts rejects input the user was told was
+    // valid. It is a page rather than an assertion because what a half-note
+    // looks like — a heading with nothing under it, a paragraph with nothing
+    // over it — is a layout question, and those are settled by eye here.
+    [`${PREFIX}-12-notes-one-sided`, () => [fx('fa3.xml'), '--notes', oneSidedNotes]],
+    // 13 — not a document shape but a template: `fa3-showcase` exists to
     // exercise the DSL (palette, letter spacing, highlighted text, colour bars
     // drawn as data-URI images), rendered with everything switched on so a DSL
     // change that breaks it is visible rather than discovered by a reader. It
     // carries the accent in its short hex form, and so is the page that shows
     // whether an accent wins over a template's own palette.
-    [`${PREFIX}-12-showcase-template-accent`, () => [
+    [`${PREFIX}-13-showcase-template-accent`, () => [
       fx('e2e-vat-multi.xml'), '--template', 'fa3-showcase', ...LOGO(),
-      '--env', 'demo', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links',
+      '--env', 'test', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links',
       '--totals', 'summary', '--notes', notesFile, '--accent', ACCENT_SHORT,
     ]],
     // Receipts last: they are a different document and read as their own group.
-    [`${PREFIX}-13-upo-pl`, () => [fx('upo-4_3.xml')]],
-    [`${PREFIX}-14-upo-five-documents-bilingual`, () => [multiDocumentUpo, '--locale', 'en+pl']],
+    [`${PREFIX}-14-upo-pl`, () => [fx('upo-4_3.xml')]],
+    [`${PREFIX}-15-upo-five-documents-bilingual`, () => [multiDocumentUpo, '--locale', 'en+pl']],
   ];
 
   /**
@@ -346,7 +364,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
   it('renders every variant of the set', () => {
     // Guards against a variant being silently dropped from the table above:
     // the count is stated here so removing a row has to be deliberate.
-    expect(variants).toHaveLength(14);
+    expect(variants).toHaveLength(15);
     for (const [name] of variants) {
       expect(existsSync(join(outDir, `${name}.pdf`)), `${name}.pdf missing`).toBe(true);
     }
@@ -366,21 +384,8 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     expect(existsSync(out)).toBe(false);
   });
 
-  // The renderer prints whichever half a note carries, and the docs say so, so
-  // the flag has to accept the same shape the library does — a CLI stricter than
-  // the API it fronts rejects input the user was told was valid.
-  it('accepts a note with only a head or only a body', () => {
-    const oneSided = join(inputsDir, `${PREFIX}-notes-one-sided.json`);
-    writeFileSync(
-      oneSided,
-      JSON.stringify([{ head: 'Tylko nagłówek' }, { body: 'Tylko treść.' }]),
-    );
-    const out = join(outDir, `${PREFIX}-notes-one-sided.pdf`);
-    const res = run(['invoice', 'pdf', fx('fa3.xml'), '--notes', oneSided, '--out', out]);
-    expect(res.status, `exit ${res.status}\n${res.stderr}`).toBe(0);
-    expect(isCompletePdf(out), `${out} is not a complete PDF`).toBe(true);
-  });
-
+  // Page 12 renders the note shapes the flag accepts; these two pin what it
+  // still refuses, which writes no file at all.
   it('still refuses a note entry that carries neither half', () => {
     const empty = join(inputsDir, `${PREFIX}-notes-empty-entry.json`);
     writeFileSync(empty, JSON.stringify([{ note: 'wrong key' }]));

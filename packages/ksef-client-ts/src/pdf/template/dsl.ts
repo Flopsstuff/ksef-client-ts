@@ -291,13 +291,6 @@ export interface PaymentGroup {
 }
 
 /**
- * A payment line: a field, plus the same `when` gate a totals row carries. The
- * gate exists because one figure can have several readings — `P_15` is an
- * amount owed on an ordinary invoice and an amount already received on an
- * advance one — and the template picks the right label by listing one row per
- * reading.
- */
-/**
  * A figure to read, in one of three shapes: `{ from, path }` sums one binding
  * over every entry of a collection, `{ path }` reads a single binding, and
  * `{ sum }` adds a fixed list of them. Used by `sumFrom` and `less`, where a
@@ -313,29 +306,51 @@ export type RepeatedSum =
   | { path: string; from?: string; sum?: never }
   | { sum: string[]; path?: never; from?: never };
 
-export interface PaymentRow extends Omit<FieldDef, 'path'> {
-  /**
-   * A row with no `path` prints its label alone, and is worth having because
-   * some facts are the label: `Zapłacono` says everything there is to say, and
-   * printing the schema's `1` after it says nothing. Such a row is normally
-   * paired with `when`.
-   */
-  path?: string;
-  when?: string;
-  /** See {@link TotalsRow.less}. */
-  less?: RepeatedSum;
-  /** See {@link TotalsRow.sumFrom}. */
-  sumFrom?: RepeatedSum;
-  /**
-   * Repeat this line once per entry of a collection, with the entry as the
-   * binding root (so `path` and `suffixPath` are item-relative). KSeF allows up
-   * to 100 `TerminPlatnosci` blocks — an invoice paid in instalments states one
-   * per instalment — and a scalar path silently prints only the first, because
-   * a walk that meets an array follows its head. Entries are read leniently:
-   * every field of a payment term is optional, so an absent one is by design.
-   */
-  from?: string;
-}
+/**
+ * A payment line: a field, plus the same `when` gate a totals row carries. The
+ * gate exists because one figure can have several readings — `P_15` is an
+ * amount owed on an ordinary invoice and an amount already received on an
+ * advance one — and the template picks the right label by listing one row per
+ * reading.
+ *
+ * Two shapes rather than one with everything optional, because a row is either
+ * read from the document or computed from it. The renderer settles a computed
+ * figure before it looks at any binding, so a row carrying both prints the
+ * computed number under a label written for the reading — and neither half is
+ * wrong on its own for an error to announce. The validator refuses the
+ * combination in a parsed template; the union refuses it in a hand-built one.
+ */
+export type PaymentRow = Omit<FieldDef, 'path'> & { when?: string } & (
+    | {
+        /**
+         * A row with no `path` prints its label alone, and is worth having
+         * because some facts are the label: `Zapłacono` says everything there
+         * is to say, and printing the schema's `1` after it says nothing. Such
+         * a row is normally paired with `when`.
+         */
+        path?: string;
+        /**
+         * Repeat this line once per entry of a collection, with the entry as
+         * the binding root (so `path` and `suffixPath` are item-relative). KSeF
+         * allows up to 100 `TerminPlatnosci` blocks — an invoice paid in
+         * instalments states one per instalment — and a scalar path silently
+         * prints only the first, because a walk that meets an array follows its
+         * head. Entries are read leniently: every field of a payment term is
+         * optional, so an absent one is by design.
+         */
+        from?: string;
+        /** See {@link TotalsRow.less}. */
+        less?: RepeatedSum;
+        sumFrom?: never;
+      }
+    | {
+        /** See {@link TotalsRow.sumFrom}. */
+        sumFrom: RepeatedSum;
+        path?: never;
+        from?: never;
+        less?: never;
+      }
+  );
 
 export interface PaymentBlock {
   type: 'payment';
