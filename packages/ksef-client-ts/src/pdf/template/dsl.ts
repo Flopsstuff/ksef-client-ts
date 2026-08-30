@@ -250,10 +250,21 @@ export interface PaymentAccounts {
   fields: FieldDef[];
 }
 
+/**
+ * A payment line: a field, plus the same `when` gate a totals row carries. The
+ * gate exists because one figure can have several readings — `P_15` is an
+ * amount owed on an ordinary invoice and an amount already received on an
+ * advance one — and the template picks the right label by listing one row per
+ * reading.
+ */
+export interface PaymentRow extends FieldDef {
+  when?: string;
+}
+
 export interface PaymentBlock {
   type: 'payment';
   when?: string;
-  rows: FieldDef[];
+  rows: PaymentRow[];
   accounts?: PaymentAccounts;
   /** See {@link HEADING_STYLE_DOC}. The block label only, not `accounts.heading`. */
   headingStyle?: string;
@@ -528,7 +539,7 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({
       type: z.literal('payment'),
       when: z.string().optional(),
-      rows: z.array(fieldDef),
+      rows: z.array(fieldDef.extend({ when: z.string().optional() })),
       accounts: z
         .object({
           from: z.string(),

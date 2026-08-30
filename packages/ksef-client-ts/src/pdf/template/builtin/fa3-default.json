@@ -218,7 +218,16 @@
           "when": "totalsSummary",
           "format": "money"
         },
-        { "label": "totalDue", "path": "Fa.P_15", "format": "money", "style": "strong" },
+        { "label": "totalDue", "path": "Fa.P_15", "when": "p15IsAmountDue", "format": "money", "style": "strong" },
+        { "label": "advancePaid", "path": "Fa.P_15", "when": "p15IsAdvancePaid", "format": "money", "style": "strong" },
+        { "label": "amountTotal", "path": "Fa.P_15", "when": "p15IsAmountTotal", "format": "money", "style": "strong" },
+        {
+          "label": "totalDue",
+          "path": "Fa.Rozliczenie.DoZaplaty",
+          "when": "Fa.Rozliczenie.DoZaplaty",
+          "format": "money",
+          "style": "strong"
+        },
         { "label": "currency", "path": "Fa.KodWaluty", "style": "strong" }
       ]
     },
@@ -231,7 +240,38 @@
         { "label": "paid", "path": "Fa.Platnosc.Zaplacono", "optional": true },
         { "label": "paymentDate", "path": "Fa.Platnosc.TerminPlatnosci.Termin", "format": "date", "optional": true },
         { "label": "paymentMethod", "path": "Fa.Platnosc.FormaPlatnosci", "format": "paymentForm", "optional": true },
-        { "label": "amountDueTotal", "path": "Fa.P_15", "format": "money", "suffixPath": "Fa.KodWaluty", "style": "strong" }
+        {
+          "label": "amountDueTotal",
+          "path": "Fa.P_15",
+          "when": "p15IsAmountDue",
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "advancePaid",
+          "path": "Fa.P_15",
+          "when": "p15IsAdvancePaid",
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "amountTotal",
+          "path": "Fa.P_15",
+          "when": "p15IsAmountTotal",
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "totalDue",
+          "path": "Fa.Rozliczenie.DoZaplaty",
+          "when": "Fa.Rozliczenie.DoZaplaty",
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        }
       ],
       "accounts": {
         "from": "Fa.Platnosc.RachunekBankowy",

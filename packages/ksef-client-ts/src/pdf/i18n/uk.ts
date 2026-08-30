@@ -59,6 +59,8 @@ export const uk: LabelBundle = {
   totalNet: 'Разом нетто',
   totalVat: 'Разом ПДВ',
   totalDue: 'До сплати',
+  advancePaid: 'Сума оплати',
+  amountTotal: 'Загальна сума',
   currency: 'Валюта',
   payment: 'Оплата',
   paid: 'Сплачено',

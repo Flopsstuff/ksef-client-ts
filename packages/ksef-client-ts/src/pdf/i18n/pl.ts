@@ -53,6 +53,8 @@ export const pl: LabelBundle = {
   totalNet: 'Razem netto',
   totalVat: 'Razem VAT',
   totalDue: 'Do zapłaty',
+  advancePaid: 'Kwota zapłaty',
+  amountTotal: 'Kwota należności ogółem',
   currency: 'Waluta',
   // payment
   payment: 'Płatność',

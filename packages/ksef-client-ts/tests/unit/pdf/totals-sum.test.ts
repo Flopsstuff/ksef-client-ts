@@ -47,6 +47,9 @@ function totalsRows(xml: string, templateName: string, mode: TotalsMode = 'summa
     flags: {
       totalsBuckets: mode === 'buckets' || mode === 'both',
       totalsSummary: mode === 'summary' || mode === 'both',
+      // Every fixture here is an ordinary invoice with no `Rozliczenie`, so
+      // `P_15` is the amount due and the templates label it that way.
+      p15IsAmountDue: true,
     },
   };
   const doc = interpretTemplate(template, ctx, blockRegistry);
@@ -98,7 +101,12 @@ describe('built-in totals aggregate every VAT bucket', () => {
     const byLabel = Object.fromEntries(totals.rows.map((r) => [r.label, r]));
     expect(byLabel.totalNet?.sum).toEqual(NET_BUCKETS);
     expect(byLabel.totalVat?.sum).toEqual(VAT_BUCKETS);
-    expect(byLabel.totalDue?.path).toBe('Fa.P_15');
+    // Two rows print under `Do zapłaty` and never together: `P_15` on a plain
+    // invoice, and the settled payable when the document states one.
+    expect(totals.rows.filter((r) => r.label === 'totalDue').map((r) => r.path)).toEqual([
+      'Fa.P_15',
+      'Fa.Rozliczenie.DoZaplaty',
+    ]);
   });
 
   it('prints real totals for a reduced-rate-only invoice', () => {

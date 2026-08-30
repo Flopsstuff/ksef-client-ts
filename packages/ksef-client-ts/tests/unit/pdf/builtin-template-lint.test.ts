@@ -29,9 +29,9 @@ import type { Block, PartyField, TotalsBlock } from '../../../src/pdf/template/d
  * resolves against none.
  */
 const FIXTURES_BY_TEMPLATE: Record<string, string[]> = {
-  'fa2-default': ['pdf/fa2.xml', 'pdf/fa2-zal.xml'],
-  'fa3-default': ['pdf/fa3.xml', 'pdf/fa3-zal.xml'],
-  'fa3-showcase': ['pdf/fa3.xml'],
+  'fa2-default': ['pdf/fa2.xml', 'pdf/fa2-zal.xml', 'pdf/fa2-rozliczenie.xml'],
+  'fa3-default': ['pdf/fa3.xml', 'pdf/fa3-zal.xml', 'pdf/fa3-rozliczenie.xml'],
+  'fa3-showcase': ['pdf/fa3.xml', 'pdf/fa3-rozliczenie.xml'],
   'upo-4_2': ['pdf/upo-4_2.xml'],
   'upo-4_3': ['pdf/upo-4_3.xml'],
 };
@@ -40,6 +40,8 @@ const FIXTURES_BY_TEMPLATE: Record<string, string[]> = {
 const CONTEXT_CONDITIONS = new Set([
   'qr', 'offline', 'hasKsefNumber', 'totalsBuckets', 'totalsSummary', 'notes',
   'opts.logo', 'opts.ksefNumber', 'opts.accent', 'qrUrl',
+  // Which of `P_15`'s three readings this document supports.
+  'p15IsAmountDue', 'p15IsAdvancePaid', 'p15IsAmountTotal',
 ]);
 
 interface CollectedPaths {
@@ -57,7 +59,7 @@ function collect(
     const when = (block as { when?: string }).when;
     if (when !== undefined && !CONTEXT_CONDITIONS.has(when)) acc.conditions.push(when);
 
-    if (block.type === 'totals') {
+    if (block.type === 'totals' || block.type === 'payment') {
       for (const row of block.rows) {
         if (row.when !== undefined && !CONTEXT_CONDITIONS.has(row.when)) acc.conditions.push(row.when);
       }
@@ -145,7 +147,7 @@ describe('built-in template lint', () => {
       // `strict` cannot police them. This is what catches a typo instead.
       const root = bodyOf(name);
       const totals = getBuiltinTemplate(name)!.blocks.find((b) => b.type === 'totals') as TotalsBlock;
-      const due = totals.rows.find((r) => r.label === 'totalDue')!;
+      const due = totals.rows.find((r) => r.path === 'Fa.P_15')!;
       expect(has(root, due.path!), 'the amount due must resolve').toBe(true);
       const buckets = totals.rows.filter((r) => r.when === 'totalsBuckets' && r.path);
       expect(buckets.some((r) => has(root, r.path!)), 'no rate bucket resolves').toBe(true);
@@ -159,6 +161,7 @@ describe('built-in template lint', () => {
     expect(fa3.repeaters).toContain('Fa.Zamowienie.ZamowienieWiersz');
     expect(fa3.repeaters).toContain('Fa.Platnosc.RachunekBankowy');
     expect(fa3.repeaters).toContain('Podmiot2.DaneKontaktowe');
+    expect(fa3.conditions).toContain('Fa.Rozliczenie.DoZaplaty');
     expect(collect(getBuiltinTemplate('upo-4_3')!.blocks).repeaters).toContain('Dokument');
     expect(collect(getBuiltinTemplate('upo-4_2')!.blocks).repeaters).toContain('Dokument');
     expect(fa3.alternatives).toHaveLength(1);

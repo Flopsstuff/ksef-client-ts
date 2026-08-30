@@ -1146,11 +1146,16 @@ describe('the built-in templates restate the amount due with its currency', () =
     const payment = getBuiltinTemplate(name)!.blocks.find((b) => b.type === 'payment') as {
       rows: Array<{ label: string; path: string; suffixPath?: string }>;
     };
-    const row = payment.rows.find((r) => r.label === 'amountDueTotal')!;
-    expect(row.path).toBe('Fa.P_15');
-    expect(row.suffixPath).toBe('Fa.KodWaluty');
-    // It restates the total, so it belongs after the terms it settles.
-    expect(payment.rows.at(-1)).toBe(row);
+    // One row per reading of `P_15`, then the settled payable — the figures
+    // restate the total, so they belong after the terms they settle.
+    const amounts = payment.rows.slice(-4);
+    expect(amounts.map((r) => r.path)).toEqual([
+      'Fa.P_15',
+      'Fa.P_15',
+      'Fa.P_15',
+      'Fa.Rozliczenie.DoZaplaty',
+    ]);
+    expect(amounts.map((r) => r.suffixPath)).toEqual(Array(4).fill('Fa.KodWaluty'));
   });
 });
 
