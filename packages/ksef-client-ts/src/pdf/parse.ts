@@ -67,7 +67,7 @@ export function detectInvoiceVersion(xml: string): InvoiceVersion | null {
 
 /**
  * Detect the UPO version. Requires a `Potwierdzenie` root, then reads the
- * version from the namespace marker in the raw XML (`.../KSeF/v4-3` →
+ * version from the namespace that root element is bound to (`.../KSeF/v4-3` →
  * `UPO(4.3)`, `v4-2` → `UPO(4.2)`). The default `xmlns` declaration is not
  * surfaced as an attribute by the compact parser, so we scan the source
  * directly. Returns `null` for non-UPO documents.
@@ -87,10 +87,23 @@ export function detectUpoVersion(xml: string): UpoVersion | null {
   const withoutComments = xml.replace(/<!--[\s\S]*?-->/g, '');
   const firstElement = /<(?![?!])([\w.:-]+)[^>]*>/.exec(withoutComments);
   const rootTag = firstElement?.[0] ?? '';
-  const rootName = (firstElement?.[1] ?? '').replace(/^[\w.-]+:/, '');
+  const qualifiedName = firstElement?.[1] ?? '';
+  const colon = qualifiedName.indexOf(':');
+  const prefix = colon === -1 ? '' : qualifiedName.slice(0, colon);
+  const rootName = colon === -1 ? qualifiedName : qualifiedName.slice(colon + 1);
   if (rootName !== 'Potwierdzenie') return null;
 
-  if (/KSeF\/v4-3\b/.test(rootTag)) return 'UPO(4.3)';
-  if (/KSeF\/v4-2\b/.test(rootTag)) return 'UPO(4.2)';
+  // The version has to come from the namespace the root is *in*, not from
+  // anywhere in its start tag: matching the whole tag let an unrelated document
+  // that merely quotes the string in some other attribute — a note, a source
+  // URL, a second namespace it does not use — be routed to the UPO renderer.
+  const wanted = prefix === '' ? 'xmlns' : `xmlns:${prefix}`;
+  let namespace = '';
+  for (const match of rootTag.matchAll(/\s(xmlns(?::[\w.-]+)?)\s*=\s*(["'])([^"']*)\2/g)) {
+    if (match[1] === wanted) namespace = match[3] ?? '';
+  }
+
+  if (/KSeF\/v4-3\b/.test(namespace)) return 'UPO(4.3)';
+  if (/KSeF\/v4-2\b/.test(namespace)) return 'UPO(4.2)';
   return null;
 }

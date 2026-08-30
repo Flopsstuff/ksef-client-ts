@@ -212,6 +212,32 @@ describe('detectUpoVersion', () => {
     expect(detectUpoVersion(xml)).toBe('UPO(4.3)');
   });
 
+  it('ignores the marker in an attribute that is not a namespace declaration', () => {
+    // The root element carries the string, but not as the namespace it is in —
+    // an arbitrary Potwierdzenie is not a UPO because it quotes a URL.
+    const xml = '<Potwierdzenie data-note="KSeF/v4-3"><X>1</X></Potwierdzenie>';
+    expect(detectUpoVersion(xml)).toBeNull();
+  });
+
+  it('ignores a namespace the root element is not bound to', () => {
+    const xml =
+      '<Potwierdzenie xmlns="http://example.invalid/other" ' +
+      'xmlns:upo="http://upo.schematy.mf.gov.pl/KSeF/v4-3"><X>1</X></Potwierdzenie>';
+    expect(detectUpoVersion(xml)).toBeNull();
+  });
+
+  it('reads the declaration bound to the root prefix, not another one', () => {
+    const xml =
+      '<upo:Potwierdzenie xmlns="http://upo.schematy.mf.gov.pl/KSeF/v4-2" ' +
+      'xmlns:upo="http://upo.schematy.mf.gov.pl/KSeF/v4-3"><X>1</X></upo:Potwierdzenie>';
+    expect(detectUpoVersion(xml)).toBe('UPO(4.3)');
+  });
+
+  it('accepts single-quoted and loosely spaced declarations', () => {
+    const xml = "<Potwierdzenie xmlns = 'http://upo.schematy.mf.gov.pl/KSeF/v4-2'><X>1</X></Potwierdzenie>";
+    expect(detectUpoVersion(xml)).toBe('UPO(4.2)');
+  });
+
   it('returns null for unrecognized XML', () => {
     expect(detectUpoVersion('<Foo/>')).toBeNull();
   });
