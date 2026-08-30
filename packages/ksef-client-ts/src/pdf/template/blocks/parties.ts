@@ -1,5 +1,5 @@
 import { list } from '../../accessor.js';
-import type { PartiesBlock, PartyColumn, PartyField, PartyGroup } from '../dsl.js';
+import type { PartiesBlock, PartyAlternative, PartyColumn, PartyField, PartyGroup } from '../dsl.js';
 import { resolveBinding, type BlockRenderer, type PdfNode, type RenderContext } from '../interpret.js';
 
 /**
@@ -31,7 +31,9 @@ function isGroup(field: PartyField): field is PartyGroup {
  * An entry may instead list alternatives (`firstOf`) and print the first that
  * resolves — which is how the counterparty identifier is bound, since KSeF
  * supplies exactly one of NIP / NrVatUE / NrID. Those are read leniently: the
- * alternatives that do not apply are absent by design.
+ * alternatives that do not apply are absent by design. An alternative may name
+ * a `prefixPath` for the qualifier the schema pairs it with — `KodUE` before
+ * `NrVatUE`, `KodKraju` before `NrID` — so the identifier prints whole.
  *
  * An entry may also be a labelled group — the address, the contact details —
  * rendered as a sub-heading over its own lines, and repeated per entry when it
@@ -47,15 +49,21 @@ export const partiesRenderer: BlockRenderer<PartiesBlock> = (block, ctx) => {
   const at = (root: unknown, strict = ctx.strict): RenderContext => ({ ...ctx, root, strict });
 
   const resolveValue = (
-    field: string | { path: string; optional?: boolean } | { firstOf: string[] },
+    field: string | { path: string; optional?: boolean } | { firstOf: PartyAlternative[] },
     root: unknown,
     strict: boolean,
   ): string => {
     if (typeof field === 'string') return resolveBinding(field, at(root, strict));
     if ('path' in field) return resolveBinding(field.path, at(root, field.optional ? false : strict));
-    for (const path of field.firstOf) {
+    for (const alternative of field.firstOf) {
+      const { path, prefixPath } = typeof alternative === 'string' ? { path: alternative, prefixPath: undefined } : alternative;
       const value = resolveBinding(path, at(root, false));
-      if (value) return value;
+      if (!value) continue;
+      // The qualifier is part of the identifier, not a second fact: `DE` and
+      // `123456789` are one VAT number and print as one. An absent qualifier
+      // leaves the number to stand alone rather than dropping the line.
+      const prefix = prefixPath ? resolveBinding(prefixPath, at(root, false)) : '';
+      return prefix ? `${prefix} ${value}` : value;
     }
     return '';
   };

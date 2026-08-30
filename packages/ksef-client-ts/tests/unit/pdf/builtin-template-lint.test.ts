@@ -47,7 +47,7 @@ const CONTEXT_CONDITIONS = new Set([
 interface CollectedPaths {
   conditions: string[];
   repeaters: string[];
-  /** `firstOf` alternative sets — at least one member must resolve. */
+  /** `firstOf` alternative sets, as paths — at least one member must resolve. */
   alternatives: string[][];
 }
 
@@ -76,7 +76,9 @@ function collect(
             if (field.from !== undefined) acc.repeaters.push(field.from);
             walkFields(field.fields);
           } else if ('firstOf' in field) {
-            acc.alternatives.push(field.firstOf);
+            // An alternative may carry a `prefixPath` qualifier; the path is
+            // what has to resolve for the alternative to apply at all.
+            acc.alternatives.push(field.firstOf.map((a) => (typeof a === 'string' ? a : a.path)));
           }
           // `{ path, optional }` is a plain binding; strict covers the ones that
           // are not marked, and an optional one is absent by design.

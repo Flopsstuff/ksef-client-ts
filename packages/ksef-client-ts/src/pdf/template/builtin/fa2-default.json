@@ -62,8 +62,14 @@
           {
             "firstOf": [
               "Podmiot2.DaneIdentyfikacyjne.NIP",
-              "Podmiot2.DaneIdentyfikacyjne.NrVatUE",
-              "Podmiot2.DaneIdentyfikacyjne.NrID"
+              {
+                "path": "Podmiot2.DaneIdentyfikacyjne.NrVatUE",
+                "prefixPath": "Podmiot2.DaneIdentyfikacyjne.KodUE"
+              },
+              {
+                "path": "Podmiot2.DaneIdentyfikacyjne.NrID",
+                "prefixPath": "Podmiot2.DaneIdentyfikacyjne.KodKraju"
+              }
             ]
           },
           {

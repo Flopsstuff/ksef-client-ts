@@ -149,8 +149,19 @@ export interface HeaderBlock {
 export type PartyField =
   | string
   | { path: string; optional?: boolean }
-  | { firstOf: string[] }
+  | { firstOf: PartyAlternative[] }
   | PartyGroup;
+
+/**
+ * One alternative in a `firstOf` set: a path, or a path with a qualifier
+ * printed in front of it. The qualifier exists because a tax identifier is not
+ * always the whole identifier — the FA schemas pair `NrVatUE` with the
+ * mandatory `KodUE` and allow `NrID` to be qualified by `KodKraju`, and a
+ * number printed without its country reads as a different, ambiguous one.
+ * The prefix is read leniently and dropped when absent, so an unqualified
+ * `NrID` still prints.
+ */
+export type PartyAlternative = string | { path: string; prefixPath?: string };
 
 /**
  * A labelled sub-group inside a party panel — the address, say. The label is a
@@ -452,7 +463,15 @@ const partyField: z.ZodType<PartyField> = z.lazy(() =>
   z.union([
     z.string(),
     z.object({ path: z.string(), optional: z.boolean().optional() }).strict(),
-    z.object({ firstOf: z.array(z.string()).nonempty() }).strict(),
+    z
+      .object({
+        firstOf: z
+          .array(
+            z.union([z.string(), z.object({ path: z.string(), prefixPath: z.string().optional() }).strict()]),
+          )
+          .nonempty(),
+      })
+      .strict(),
     z
       .object({
         label: z.string(),
