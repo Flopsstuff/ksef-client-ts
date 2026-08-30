@@ -32,6 +32,19 @@ export type { InvoiceTemplate } from './template/dsl.js';
 export type { RenderNote } from './template/interpret.js';
 export { detectInvoiceVersion, detectUpoVersion } from './parse.js';
 export { builtinTemplateNames } from './template/builtin/index.js';
+/**
+ * The errors a render throws, from the entry point that throws them.
+ *
+ * This subpath is bundled separately from the package root, so its classes are
+ * a distinct copy: catching `KSeFPdfError` or `KSeFValidationError` imported
+ * from `ksef-client-ts` would never match an error raised here. `KSeFError`
+ * itself does match across entry points — it recognises its own kind by a
+ * registered symbol — so a catch-all written against the root still works; the
+ * exports here are for telling a bad template apart from a missing pdfmake.
+ */
+export { KSeFPdfError } from './errors.js';
+export { KSeFError } from '../errors/ksef-error.js';
+export { KSeFValidationError, type ValidationDetail } from '../errors/ksef-validation-error.js';
 
 /**
  * A built-in template as a plain object, for callers who want to start from one

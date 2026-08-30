@@ -18,6 +18,8 @@ The library provides a structured error hierarchy so that callers can react prec
 
 All error classes extend a common base `KSeFError`, so a single `instanceof KSeFError` catch covers every library error without catching unrelated exceptions.
 
+This holds across the package's entry points (`ksef-client-ts`, `ksef-client-ts/node`, `ksef-client-ts/pdf`), which are bundled separately and therefore carry their own copies of the classes: `KSeFError` recognises its own kind by a registered symbol rather than by prototype. A *subclass* check is per entry point, so to tell one failure apart from another in the PDF module — an invalid template from a missing `pdfmake`, say — import `KSeFValidationError` and `KSeFPdfError` from `ksef-client-ts/pdf`.
+
 ---
 
 ## Error Hierarchy
