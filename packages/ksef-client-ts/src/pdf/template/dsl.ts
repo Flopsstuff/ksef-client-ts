@@ -635,13 +635,27 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
       type: z.literal('payment'),
       when: z.string().optional(),
       rows: z.array(
-        fieldDef.extend({
-          path: z.string().optional(),
-          when: z.string().optional(),
-          from: z.string().optional(),
-          less: repeatedSum.optional(),
-          sumFrom: repeatedSum.optional(),
-        }),
+        fieldDef
+          .extend({
+            path: z.string().optional(),
+            when: z.string().optional(),
+            from: z.string().optional(),
+            less: repeatedSum.optional(),
+            sumFrom: repeatedSum.optional(),
+          })
+          // A computed row is settled before the reading ones, so anything that
+          // describes a reading is dead weight beside `sumFrom` — and a row
+          // carrying both prints the computed figure under a label written for
+          // the other one, which no error would ever announce.
+          .refine(
+            (r) =>
+              r.sumFrom === undefined ||
+              (r.path === undefined && r.from === undefined && r.less === undefined),
+            {
+              message:
+                'a computed payment row states its own figure, so "sumFrom" takes no "path", "from" or "less"',
+            },
+          ),
       ),
       groups: z
         .array(

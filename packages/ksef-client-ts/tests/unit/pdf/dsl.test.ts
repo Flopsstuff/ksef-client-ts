@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { validateTemplate } from '../../../src/pdf/template/dsl.js';
 import type { InvoiceTemplate } from '../../../src/pdf/template/dsl.js';
 import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
+import {
+  builtinTemplateNames,
+  getBuiltinTemplate,
+} from '../../../src/pdf/template/builtin/index.js';
 
 /** A small but structurally rich valid template (header + text + nested container). */
 const VALID: unknown = {
@@ -179,5 +183,43 @@ describe('a computed figure states exactly one source', () => {
     expect(() => validateTemplate(totalsWith({ from: 'Fa.ZaliczkaCzesciowa' }))).toThrow(
       KSeFValidationError,
     );
+  });
+});
+
+// The payment renderer settles a computed row before it looks at any binding,
+// so a row carrying both prints the sum under a label written for the reading —
+// silently, since neither shape is wrong on its own.
+describe('a payment row is either read or computed, never both', () => {
+  const paymentWith = (row: Record<string, unknown>): unknown => ({
+    schema: 'FA(3)',
+    blocks: [{ type: 'payment', rows: [{ label: 'paid', ...row }] }],
+  });
+
+  it('accepts a label alone, a reading, and a computed figure', () => {
+    expect(() => validateTemplate(paymentWith({}))).not.toThrow();
+    expect(() => validateTemplate(paymentWith({ path: 'Fa.Platnosc.Zaplacono' }))).not.toThrow();
+    expect(() =>
+      validateTemplate(
+        paymentWith({ sumFrom: { from: 'Fa.Platnosc.ZaplataCzesciowa', path: 'KwotaZaplatyCzesciowej' } }),
+      ),
+    ).not.toThrow();
+  });
+
+  it.each([
+    ['path', { path: 'Fa.P_15' }],
+    ['from', { from: 'Fa.Platnosc.ZaplataCzesciowa' }],
+    ['less', { less: { path: 'Fa.P_15' } }],
+  ])('refuses a computed row that also carries %s', (_label, extra) => {
+    expect(() => validateTemplate(paymentWith({ sumFrom: { sum: ['Fa.P_15'] }, ...extra }))).toThrow(
+      KSeFValidationError,
+    );
+  });
+
+  // Every built-in drives this schema, and two of them carry computed payment
+  // rows — the refinement must not have made them invalid.
+  it('leaves every built-in template valid', () => {
+    for (const name of builtinTemplateNames()) {
+      expect(() => validateTemplate(getBuiltinTemplate(name)), name).not.toThrow();
+    }
   });
 });
