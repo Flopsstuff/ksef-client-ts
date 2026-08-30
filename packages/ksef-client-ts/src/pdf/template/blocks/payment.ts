@@ -11,6 +11,9 @@ import { evalWhen, resolveBinding, type BlockRenderer, type PdfNode } from '../i
  *
  * A row may carry `when` and is dropped when it does not apply, so a template
  * can list every reading of a figure and print the one this document supports.
+ * A row may also carry `from` and then prints once per entry of that
+ * collection, with the entry as its binding root — which is how an invoice paid
+ * in instalments shows every payment term instead of only the first.
  *
  * A row/field whose value resolves empty is skipped, so absent optional fields
  * (KSeF invoices carry many) don't print a dangling "Label:" with no value.
@@ -32,9 +35,18 @@ export const paymentRenderer: BlockRenderer<PaymentBlock> = (block, ctx) => {
     // A row may be one of several readings of the same figure, only one of
     // which applies to this document.
     if (!evalWhen(row.when, ctx)) continue;
-    const value = readField(row, (path, optional) => resolveBinding(path, optional ? lenientCtx : ctx));
-    if (value === '') continue;
-    stack.push({ text: `${ctx.label(row.label)}: ${value}`, ...(row.style ? { style: row.style } : {}) });
+    // A row with `from` prints one line per entry of a collection: an invoice
+    // paid in instalments states a payment term per instalment, and printing
+    // only the first hides the rest of the schedule.
+    const entries = row.from ? list(ctx.root, row.from) : [undefined];
+    for (const entry of entries) {
+      const value =
+        entry === undefined
+          ? readField(row, (path, optional) => resolveBinding(path, optional ? lenientCtx : ctx))
+          : readField(row, (path, optional) => get(entry, path, optional ? false : ctx.strict));
+      if (value === '') continue;
+      stack.push({ text: `${ctx.label(row.label)}: ${value}`, ...(row.style ? { style: row.style } : {}) });
+    }
   }
 
   if (block.accounts) {

@@ -188,7 +188,7 @@ The `schema` field binds a template to a single document kind. If you render an 
 | `parties` | Seller / buyer two-column panel; a line that resolves empty is skipped. A labelled group reads `from` an optional parent element — the buyer's address, say — and is dropped whole when the document carries none |
 | `lines` | Invoice line-item table. Takes `when`, because an invoice does not always carry its items in the same place — see below |
 | `totals` | Net / VAT / gross summary rows (a row reads one path or sums several) |
-| `payment` | Payment details (amount paid, date, method). A row takes `when`, so one figure can be listed once per reading and only the applicable label prints |
+| `payment` | Payment details (amount paid, date, method). A row takes `when`, so one figure can be listed once per reading and only the applicable label prints, and `from`, so a repeated element — the payment terms of an instalment schedule — prints one line per entry |
 | `annotations` | Miscellaneous labelled fields |
 | `notes` | The caller's own sections, from `notes` — a heading over a body, each |
 | `qr` | One KSeF verification QR — `code: "invoice"` (Code I, the default) or `code: "certificate"` (Code II) |

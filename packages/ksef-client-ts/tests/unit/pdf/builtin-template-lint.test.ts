@@ -67,7 +67,10 @@ function collect(
     if (block.type === 'lines') acc.repeaters.push(block.from);
     if (block.type === 'table' && block.from !== undefined) acc.repeaters.push(block.from);
     if (block.type === 'each') acc.repeaters.push(block.from);
-    if (block.type === 'payment' && block.accounts) acc.repeaters.push(block.accounts.from);
+    if (block.type === 'payment') {
+      if (block.accounts) acc.repeaters.push(block.accounts.from);
+      for (const row of block.rows) if (row.from !== undefined) acc.repeaters.push(row.from);
+    }
     if (block.type === 'parties') {
       const walkFields = (fields: PartyField[]): void => {
         for (const field of fields) {
@@ -162,6 +165,7 @@ describe('built-in template lint', () => {
     expect(fa3.repeaters).toContain('Fa.FaWiersz');
     expect(fa3.repeaters).toContain('Fa.Zamowienie.ZamowienieWiersz');
     expect(fa3.repeaters).toContain('Fa.Platnosc.RachunekBankowy');
+    expect(fa3.repeaters).toContain('Fa.Platnosc.TerminPlatnosci');
     expect(fa3.repeaters).toContain('Podmiot2.DaneKontaktowe');
     expect(fa3.conditions).toContain('Fa.Rozliczenie.DoZaplaty');
     expect(collect(getBuiltinTemplate('upo-4_3')!.blocks).repeaters).toContain('Dokument');

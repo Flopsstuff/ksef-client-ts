@@ -270,6 +270,15 @@ export interface PaymentAccounts {
  */
 export interface PaymentRow extends FieldDef {
   when?: string;
+  /**
+   * Repeat this line once per entry of a collection, with the entry as the
+   * binding root (so `path` and `suffixPath` are item-relative). KSeF allows up
+   * to 100 `TerminPlatnosci` blocks — an invoice paid in instalments states one
+   * per instalment — and a scalar path silently prints only the first, because
+   * a walk that meets an array follows its head. Entries are read leniently:
+   * every field of a payment term is optional, so an absent one is by design.
+   */
+  from?: string;
 }
 
 export interface PaymentBlock {
@@ -558,7 +567,7 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({
       type: z.literal('payment'),
       when: z.string().optional(),
-      rows: z.array(fieldDef.extend({ when: z.string().optional() })),
+      rows: z.array(fieldDef.extend({ when: z.string().optional(), from: z.string().optional() })),
       accounts: z
         .object({
           from: z.string(),

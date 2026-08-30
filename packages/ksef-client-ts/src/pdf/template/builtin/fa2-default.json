@@ -242,7 +242,13 @@
       "when": "Fa.Platnosc",
       "rows": [
         { "label": "paid", "path": "Fa.Platnosc.Zaplacono", "optional": true },
-        { "label": "paymentDate", "path": "Fa.Platnosc.TerminPlatnosci.Termin", "format": "date", "optional": true },
+        {
+          "label": "paymentDate",
+          "from": "Fa.Platnosc.TerminPlatnosci",
+          "path": "Termin",
+          "format": "date",
+          "optional": true
+        },
         { "label": "paymentMethod", "path": "Fa.Platnosc.FormaPlatnosci", "format": "paymentForm", "optional": true },
         {
           "label": "amountDueTotal",
