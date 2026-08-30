@@ -148,3 +148,36 @@ describe('a divider can be conditional', () => {
     expect(() => validateTemplate({ schema: 'FA(3)', blocks: [{ type: 'divider' }] })).not.toThrow();
   });
 });
+
+// The shapes `RepeatedSum` refuses at compile time are the ones the schema has
+// always refused at runtime. Pinning them here keeps the two from drifting: the
+// type is a mirror of these rules, and a template parsed from JSON never meets
+// the type at all.
+describe('a computed figure states exactly one source', () => {
+  const totalsWith = (sumFrom: unknown): unknown => ({
+    schema: 'FA(3)',
+    blocks: [{ type: 'totals', rows: [{ label: 'totalDue', sumFrom }] }],
+  });
+
+  it('accepts a path, a path over a collection, and a fixed list', () => {
+    expect(() => validateTemplate(totalsWith({ path: 'Fa.P_15' }))).not.toThrow();
+    expect(() => validateTemplate(totalsWith({ from: 'Fa.ZaliczkaCzesciowa', path: 'P_15Z' }))).not.toThrow();
+    expect(() => validateTemplate(totalsWith({ sum: ['Fa.P_13_1', 'Fa.P_14_1'] }))).not.toThrow();
+  });
+
+  it('refuses a figure with no source at all', () => {
+    expect(() => validateTemplate(totalsWith({}))).toThrow(KSeFValidationError);
+  });
+
+  it('refuses both sources at once', () => {
+    expect(() => validateTemplate(totalsWith({ path: 'Fa.P_15', sum: ['Fa.P_13_1'] }))).toThrow(
+      KSeFValidationError,
+    );
+  });
+
+  it('refuses a collection with nothing to read over it', () => {
+    expect(() => validateTemplate(totalsWith({ from: 'Fa.ZaliczkaCzesciowa' }))).toThrow(
+      KSeFValidationError,
+    );
+  });
+});

@@ -303,12 +303,15 @@ export interface PaymentGroup {
  * `{ sum }` adds a fixed list of them. Used by `sumFrom` and `less`, where a
  * figure is defined in terms of others the document does not state — see
  * {@link TotalsRow.less}.
+ *
+ * A union rather than three optional fields, so the shapes the validator
+ * already refuses — nothing at all, or a `from` with no `path` to read over —
+ * are refused at compile time too for a caller who builds the template as an
+ * object instead of parsing it from JSON.
  */
-export interface RepeatedSum {
-  from?: string;
-  path?: string;
-  sum?: string[];
-}
+export type RepeatedSum =
+  | { path: string; from?: string; sum?: never }
+  | { sum: string[]; path?: never; from?: never };
 
 export interface PaymentRow extends Omit<FieldDef, 'path'> {
   /**
