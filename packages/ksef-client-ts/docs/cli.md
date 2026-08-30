@@ -235,7 +235,14 @@ ksef invoice pdf faktura.xml --qr --ksef-number <ksefNumber>  # with the KSeF Co
 ksef invoice pdf upo.xml --out upo.pdf                        # a receipt, detected as such
 ```
 
-Rendering needs the optional `pdfmake` peer (`npm i "pdfmake@^0.2.20"`); without it the command exits with an install hint instead of writing a file.
+Rendering needs the optional `pdfmake` peer, and it has to sit where the CLI itself sits: the module is resolved from the installed package's own location, never from the working directory. Installing it into the current project does nothing for a CLI installed globally.
+
+```bash
+npm i -g "pdfmake@^0.2.20"   # the CLI was installed globally (see Installation above)
+npm i "pdfmake@^0.2.20"      # the CLI comes from this project's node_modules
+```
+
+Without it the command exits with an install hint instead of writing a file.
 
 | Flag | Description |
 |------|-------------|
