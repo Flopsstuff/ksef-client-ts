@@ -26,6 +26,7 @@ packages/ksef-client-ts/scripts/.crypto-fixtures/
 .claude/projects/
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+.claude/skills/ksef-monthly-invoice/
 
 # Plans
 plans/
