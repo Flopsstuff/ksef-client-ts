@@ -34,21 +34,17 @@ jobs:
             "$PR_BASE_REF" \
             "+refs/pull/$PR_NUMBER/head"
 
-      - name: Check OpenAI API key
-        id: check_openai_key
+      - name: Require OpenAI API key
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          if [ -n "$OPENAI_API_KEY" ]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "OPENAI_API_KEY is not available; skipping Codex review."
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "::error::OPENAI_API_KEY is not configured for this repository, so no Codex review ran on this pull request. Add the secret to restore automated review, or delete this workflow."
+            exit 1
           fi
 
       - name: Run Codex review
         id: run_codex
-        if: steps.check_openai_key.outputs.available == 'true'
         uses: openai/codex-action@v1
         env:
           PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
