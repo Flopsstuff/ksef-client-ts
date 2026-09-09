@@ -160,7 +160,8 @@ GitHub Actions workflows in `.github/workflows/` (the `.github/` dir stays at th
 - `release.yml` — on tag `v*`: create GitHub Release (from `packages/ksef-client-ts/CHANGELOG.md`), then publish to npm + GitHub Packages in parallel
 - `deploy-docs.yml` — VitePress → GitHub Pages (artifact from `packages/ksef-client-ts/docs/.vitepress/dist`)
 - `deno-smoke.yml` — Deno runtime smoke test (`deno task smoke`, run in the package dir)
-- `codex-pr-review.yml` — automatic Codex PR review on open/sync (prompt: `.github/codex/prompts/review.md`)
+
+Automated PR review is CodeRabbit (GitHub App, configured in `.coderabbit.yaml`), not a workflow, plus human review. There is deliberately no bot-review workflow — see `docs/decisions/0001-retire-codex-pr-review-workflow.md` before adding one.
 
 ### Documentation
 
