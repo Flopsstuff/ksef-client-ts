@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - **Correcting invoices in PDF export** — corrections of ordinary, advance and settlement invoices now render as what they are: the page is headed as a correction, names the invoices it corrects with their KSeF numbers, states the reason and the accounting effect, shows line items before and after the correction as two tables, the counterparties as they stood before the correction, the payment or remainder before it, and labels the total as a correction amount rather than an amount due.
 - **Additional invoice information in PDF export** — the free-form key/value notes an invoice carries are now printed on the page.
-- **Template filters and labelled placeholders** — a repeater in a custom template can show only the entries that carry or lack an element, a party panel can be gated on a condition, and a field can name the label to print where the document leaves its value empty.
+- **More control for custom templates** — a custom template can now show only the line items or records that carry (or lack) a given element, hide the seller or buyer panel when the document does not restate that party, and print a chosen label where the document leaves a value empty instead of a blank.
 
 ### Fixed
 
