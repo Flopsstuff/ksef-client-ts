@@ -118,7 +118,7 @@ describe.each(['fa2-default', 'fa3-default'])('%s prints what a correction is ab
     expect(out).toContain('Faktury korygowane');
     expect(out).toContain('FA/2025/01/001');
     expect(out).toContain('15.01.2025');
-    expect(out).toContain('1111111111-20260115-010000000000-00');
+    expect(out).toContain('1111111111-20260115-010000000000-D3');
   });
 
   it('says when the corrected invoice was issued outside KSeF', () => {
@@ -128,7 +128,7 @@ describe.each(['fa2-default', 'fa3-default'])('%s prints what a correction is ab
     );
     const out = render(name, outside);
     expect(out).toContain('wystawiona poza KSeF');
-    expect(out).not.toContain('1111111111-20260115-010000000000-00');
+    expect(out).not.toContain('1111111111-20260115-010000000000-D3');
   });
 
   it('states the reason and when the correction takes effect', () => {

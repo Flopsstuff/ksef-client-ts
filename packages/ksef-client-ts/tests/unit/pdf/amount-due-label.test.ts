@@ -289,7 +289,7 @@ describe.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s names the figu
   it('names the advance invoice it settles', () => {
     const out = render(name, fx(`${fa}-roz.xml`));
     expect(out.some((t) => t.includes('Faktury zaliczkowe'))).toBe(true);
-    expect(out.some((t) => t.includes('1111111111-20250115-010000000000-A1'))).toBe(true);
+    expect(out.some((t) => t.includes('1111111111-20250115-0100000000A1-1D'))).toBe(true);
   });
 
   it('prints the settled payable, not P_15, when the document states one', () => {

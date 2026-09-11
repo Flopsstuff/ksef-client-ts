@@ -33,20 +33,20 @@ const PREFIX = 'cli';
 const fx = (name: string) => join(fixtures, name);
 
 /** A KSeF number shaped like the real thing; this one identifies nobody. */
-const KSEF_NUMBER = '1111111111-20260115-010000000000-00';
+const KSEF_NUMBER = '1111111111-20260115-010000000000-D3';
 
 /**
  * The chain pages carry their own numbers: 07 names 06's in
  * `FakturaZaliczkowa`, and 11 names 09's, so the link between two pages of one
  * deal is visible on paper rather than asserted only in a fixture comment.
  */
-const KSEF_ZAL_A = '1111111111-20250115-010000000000-A1';
-const KSEF_ROZ_A = '1111111111-20250210-010000000000-A2';
-const KSEF_ZAL_B = '1111111111-20250312-020000000000-B2';
-const KSEF_ROZ_B = '1111111111-20250408-020000000000-B3';
-const KSEF_KOR_ROZ_A = '1111111111-20250220-010000000000-A3';
-const KSEF_KOR_ZAL_B = '1111111111-20250320-020000000000-B4';
-const KSEF_KOR_C = '1111111111-20250203-030000000000-C1';
+const KSEF_ZAL_A = '1111111111-20250115-0100000000A1-1D';
+const KSEF_ROZ_A = '1111111111-20250210-0100000000A2-6A';
+const KSEF_ZAL_B = '1111111111-20250312-0200000000B2-BB';
+const KSEF_ROZ_B = '1111111111-20250408-0200000000B3-F7';
+const KSEF_KOR_ROZ_A = '1111111111-20250220-0100000000A3-B5';
+const KSEF_KOR_ZAL_B = '1111111111-20250320-0200000000B4-BC';
+const KSEF_KOR_C = '1111111111-20250203-0300000000C1-EA';
 
 /**
  * The QR group renders against TEST — the environment the rest of this suite

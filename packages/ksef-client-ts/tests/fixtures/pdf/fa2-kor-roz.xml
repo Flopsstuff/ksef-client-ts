@@ -77,11 +77,11 @@
             <DataWystFaKorygowanej>2025-02-10</DataWystFaKorygowanej>
             <NrFaKorygowanej>ROZ/2025/02/001</NrFaKorygowanej>
             <NrKSeF>1</NrKSeF>
-            <NrKSeFFaKorygowanej>1111111111-20250210-010000000000-A2</NrKSeFFaKorygowanej>
+            <NrKSeFFaKorygowanej>1111111111-20250210-0100000000A2-6A</NrKSeFFaKorygowanej>
         </DaneFaKorygowanej>
         <P_15ZK>165.00</P_15ZK>
         <FakturaZaliczkowa>
-            <NrKSeFFaZaliczkowej>1111111111-20250115-010000000000-A1</NrKSeFFaZaliczkowej>
+            <NrKSeFFaZaliczkowej>1111111111-20250115-0100000000A1-1D</NrKSeFFaZaliczkowej>
         </FakturaZaliczkowa>
         <FaWiersz>
             <NrWierszaFa>1</NrWierszaFa>

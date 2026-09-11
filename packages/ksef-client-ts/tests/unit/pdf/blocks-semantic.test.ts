@@ -442,7 +442,7 @@ describe('headerRenderer', () => {
   it('stacks the KSeF number under the date, in the same body font', () => {
     const ctx = makeCtx(
       { Fa: { P_2: 'FV/2025/01', P_1: '2025-01-15' } },
-      { bindings: { 'opts.ksefNumber': '1111111111-20250115-010000000000-00' } },
+      { bindings: { 'opts.ksefNumber': '1111111111-20250115-010000000000-AD' } },
     );
     const node = rec(
       headerRenderer(
@@ -453,7 +453,7 @@ describe('headerRenderer', () => {
     );
     const [, right] = node.columns;
     expect(right.stack).toHaveLength(3);
-    expect(right.stack[2].text).toBe('ksefNumber: 1111111111-20250115-010000000000-00');
+    expect(right.stack[2].text).toBe('ksefNumber: 1111111111-20250115-010000000000-AD');
     // no style of its own — it inherits the document font like the two above it
     expect(right.stack[2].style).toBeUndefined();
   });
@@ -494,7 +494,7 @@ describe('headerRenderer', () => {
   it('drops the marker once the invoice carries a KSeF number', () => {
     const ctx = makeCtx(
       { Fa: { P_2: 'FV/2025/01', P_1: '2025-01-15' } },
-      { bindings: { 'opts.ksefNumber': '1111111111-20250115-010000000000-00' } },
+      { bindings: { 'opts.ksefNumber': '1111111111-20250115-010000000000-AD' } },
     );
     const node = rec(
       headerRenderer(
@@ -512,7 +512,7 @@ describe('headerRenderer', () => {
     const [, right] = node.columns;
     expect(right.stack).toHaveLength(3);
     expect(right.stack[2].style).toBeUndefined();
-    expect(right.stack[2].text).toContain('1111111111-20250115-010000000000-00');
+    expect(right.stack[2].text).toContain('1111111111-20250115-010000000000-AD');
   });
 
   // The marker stands in for the KSeF number, so a header that prints no such
