@@ -105,7 +105,7 @@ export function resolveText(
   if (!spec) return '';
   if (spec.label !== undefined) return ctx.label(spec.label);
   if (spec.text !== undefined) return spec.text;
-  if (spec.path !== undefined) return applyFormat(resolveBinding(spec.path, ctx), spec.format);
+  if (spec.path !== undefined) return applyFormat(resolveBinding(spec.path, ctx), spec.format, ctx.label);
   return '';
 }
 

@@ -78,6 +78,20 @@ export function list(root: unknown, path: string): unknown[] {
 }
 
 /**
+ * {@link list} narrowed to the entries where an item-relative path is present
+ * (`where`) or absent (`whereNot`). A correction may list its line items as
+ * before/after pairs, the "before" rows marked `StanPrzed`, and a table that
+ * shows one state has to leave the other out; nothing else in the DSL can
+ * express "the rows that carry this element", because a `when` tests the
+ * document root, not each entry.
+ */
+export function listWhere(root: unknown, path: string, where?: string, whereNot?: string): unknown[] {
+  return list(root, path).filter(
+    (entry) => (where === undefined || has(entry, where)) && (whereNot === undefined || !has(entry, whereNot)),
+  );
+}
+
+/**
  * Presence test for `when` conditions. An empty string, empty array, or missing
  * node is falsy; a present object/number/non-empty string is truthy.
  */

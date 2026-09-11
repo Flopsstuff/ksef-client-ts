@@ -64,6 +64,15 @@ export interface FieldDef {
    * the same strictness as the value it follows.
    */
   suffixPath?: string;
+  /**
+   * A label printed in place of a value that resolves empty. It exists for the
+   * schema's choices: where an invoice states either a value or a marker that
+   * the value does not apply — the KSeF number of a corrected invoice, or the
+   * flag that it was issued outside KSeF — the page should say the second
+   * thing rather than leave a hole. The line, cell or row is then kept, not
+   * skipped as an empty one otherwise is.
+   */
+  emptyLabel?: string;
 }
 
 /**
@@ -179,12 +188,28 @@ export interface PartyGroup {
    * block is optional, so an absent one is by design, not a typo.
    */
   from?: string;
+  /**
+   * With `from`, print the group's label over each entry rather than once
+   * over all of them. Three contact blocks read fine under one `Dane
+   * kontaktowe`; three buyers restated before a correction do not — each is a
+   * party of its own, and without a heading between them the second one's
+   * name reads as one more line of the first one's address.
+   */
+  headingPerEntry?: boolean;
   fields: PartyField[];
   style?: string;
 }
 
 export interface PartyColumn {
   label: string;
+  /**
+   * Hide this panel when the condition does not hold. The two panels of a
+   * block are otherwise always drawn; a correction restates the seller or the
+   * buyer as they stood, and either one independently, so a panel over a
+   * party the document does not restate would be a heading over nothing. A
+   * hidden panel keeps its lane empty so the other stays in place.
+   */
+  when?: string;
   /**
    * Style for the panel's own value lines — the counterparty's identity, since
    * everything below it lives in a labelled group. A group without a `style` of
@@ -197,6 +222,7 @@ export interface PartyColumn {
 
 export interface PartiesBlock {
   type: 'parties';
+  when?: string;
   left: PartyColumn;
   right: PartyColumn;
   /** See {@link HEADING_STYLE_DOC}. The panel labels only, not the group labels. */
@@ -215,6 +241,16 @@ export interface LinesBlock {
    * disappear when the document does not use it.
    */
   when?: string;
+  /**
+   * Keep only the entries where this item-relative path is present (`where`)
+   * or absent (`whereNot`); both may be given. A correction may list its line
+   * items as before/after pairs, the rows as they were marked `StanPrzed`, and
+   * one table cannot show both states without reading as duplicates — so the
+   * built-in templates draw two, one filtered each way, under their own
+   * headings.
+   */
+  where?: string;
+  whereNot?: string;
   columns: ColumnDef[];
   style?: string;
 }
@@ -382,9 +418,19 @@ export interface NotesBlock {
   style?: string;
 }
 
+/**
+ * Labelled lines under a heading — one `label: value` per field, with the
+ * lines that resolve empty left out and the whole block gone when none
+ * resolve, so a template may list every field a section can carry. The
+ * heading defaults to the `annotations` label; `heading` names another, which
+ * is how the same block prints the reason and effect of a correction.
+ */
 export interface AnnotationsBlock {
   type: 'annotations';
   fields: FieldDef[];
+  /** Label key for the heading. Default `annotations`. */
+  heading?: string;
+  when?: string;
   /** See {@link HEADING_STYLE_DOC}. */
   headingStyle?: string;
   style?: string;
@@ -460,6 +506,9 @@ export interface StackBlock {
 export interface EachBlock {
   type: 'each';
   from: string;
+  /** See {@link LinesBlock.where}. */
+  where?: string;
+  whereNot?: string;
   blocks: Block[];
   separator?: boolean;
   when?: string;
@@ -469,6 +518,9 @@ export interface EachBlock {
 export interface TableBlock {
   type: 'table';
   from?: string;
+  /** See {@link LinesBlock.where}. Only meaningful with `from`. */
+  where?: string;
+  whereNot?: string;
   columns: ColumnDef[];
   headers?: boolean;
   when?: string;
@@ -535,7 +587,7 @@ export interface InvoiceTemplate {
 
 // ── zod validation ─────────────────────────────────────────────────────────
 
-const formatEnum = z.enum(['money', 'date', 'number', 'nip', 'paymentForm']);
+const formatEnum = z.enum(['money', 'date', 'number', 'nip', 'paymentForm', 'correctionType']);
 const styleValue = z.union([z.string(), z.number(), z.boolean(), z.array(z.number())]);
 const styleSchema = z.record(z.string(), styleValue);
 const labelRef = z.object({ label: z.string().optional(), text: z.string().optional() }).strict();
@@ -556,6 +608,7 @@ const partyField: z.ZodType<PartyField> = z.lazy(() =>
       .object({
         label: z.string(),
         from: z.string().optional(),
+        headingPerEntry: z.boolean().optional(),
         fields: z.array(partyField),
         style: z.string().optional(),
       })
@@ -563,7 +616,7 @@ const partyField: z.ZodType<PartyField> = z.lazy(() =>
   ]),
 );
 const partyColumn = z
-  .object({ label: z.string(), style: z.string().optional(), fields: z.array(partyField) })
+  .object({ label: z.string(), when: z.string().optional(), style: z.string().optional(), fields: z.array(partyField) })
   .strict();
 const fieldDef = z
   .object({
@@ -573,6 +626,7 @@ const fieldDef = z
     format: formatEnum.optional(),
     style: z.string().optional(),
     suffixPath: z.string().optional(),
+    emptyLabel: z.string().optional(),
   })
   .strict();
 
@@ -584,6 +638,7 @@ const columnDef = z
     format: formatEnum.optional(),
     style: z.string().optional(),
     suffixPath: z.string().optional(),
+    emptyLabel: z.string().optional(),
     width: z.union([z.number().positive(), z.literal('auto'), z.literal('*')]).optional(),
     sub: z.array(fieldDef).nonempty().optional(),
     subStyle: z.string().optional(),
@@ -633,6 +688,7 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
     }).strict(),
     z.object({
       type: z.literal('parties'),
+      when: z.string().optional(),
       left: partyColumn,
       right: partyColumn,
       headingStyle: z.string().optional(),
@@ -642,6 +698,8 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
       type: z.literal('lines'),
       from: z.string(),
       when: z.string().optional(),
+      where: z.string().optional(),
+      whereNot: z.string().optional(),
       columns: z.array(columnDef),
       style: z.string().optional(),
     }).strict(),
@@ -694,6 +752,8 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({
       type: z.literal('annotations'),
       fields: z.array(fieldDef),
+      heading: z.string().optional(),
+      when: z.string().optional(),
       headingStyle: z.string().optional(),
       style: z.string().optional(),
     }).strict(),
@@ -734,6 +794,8 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({
       type: z.literal('each'),
       from: z.string(),
+      where: z.string().optional(),
+      whereNot: z.string().optional(),
       blocks: z.array(blockSchema),
       separator: z.boolean().optional(),
       when: z.string().optional(),
@@ -742,11 +804,19 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({
       type: z.literal('table'),
       from: z.string().optional(),
+      where: z.string().optional(),
+      whereNot: z.string().optional(),
       columns: z.array(columnDef),
       headers: z.boolean().optional(),
       when: z.string().optional(),
       style: z.string().optional(),
-    }).strict(),
+    })
+      .strict()
+      // A filter narrows the entries of a collection; a single-row table has
+      // none, and a filter it would silently ignore is a template mistake.
+      .refine((b) => b.from !== undefined || (b.where === undefined && b.whereNot === undefined), {
+        message: '"where" and "whereNot" need "from": a single-row table has no entries to filter',
+      }),
     z.object({
       type: z.literal('image'),
       src: z.string().optional(),

@@ -24,11 +24,11 @@ export function buildCell(
   read: (path: string, optional: boolean) => string,
   ctx: RenderContext,
 ): PdfNode {
-  const value = readField(column, read);
+  const value = readField(column, read, ctx.label);
 
   const parts: string[] = [];
   for (const sub of column.sub ?? []) {
-    const text = readField(sub, read);
+    const text = readField(sub, read, ctx.label);
     if (text !== '') parts.push(`${ctx.label(sub.label)} ${text}`);
   }
 

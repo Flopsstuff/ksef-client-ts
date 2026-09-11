@@ -61,7 +61,7 @@ export const paymentRenderer: BlockRenderer<PaymentBlock> = (block, ctx) => {
     // so far, or what is left after it. It carries no `path`, so it is settled
     // before the label-only case below.
     if (row.sumFrom) {
-      const computed = applyFormat(repeatedSum(row.sumFrom, ctx.root), row.format);
+      const computed = applyFormat(repeatedSum(row.sumFrom, ctx.root), row.format, ctx.label);
       if (computed !== '') {
         const suffix = row.suffixPath ? resolveBinding(row.suffixPath, lenientCtx) : '';
         stack.push({ text: `${ctx.label(row.label)}: ${suffix ? `${computed} ${suffix}` : computed}`, ...style });
@@ -80,11 +80,11 @@ export const paymentRenderer: BlockRenderer<PaymentBlock> = (block, ctx) => {
       let value: string;
       if (row.less) {
         const base = lessRepeatedSum(readAt(entry)(field.path, field.optional === true), row.less, ctx.root);
-        const formatted = applyFormat(base, row.format);
+        const formatted = applyFormat(base, row.format, ctx.label);
         const suffix = formatted && row.suffixPath ? resolveBinding(row.suffixPath, lenientCtx) : '';
         value = suffix ? `${formatted} ${suffix}` : formatted;
       } else {
-        value = readField(field, readAt(entry));
+        value = readField(field, readAt(entry), ctx.label);
       }
       if (value === '') continue;
       stack.push({ text: `${ctx.label(row.label)}: ${value}`, ...style });
@@ -95,7 +95,7 @@ export const paymentRenderer: BlockRenderer<PaymentBlock> = (block, ctx) => {
     const lines: PdfNode[] = [];
     for (const entry of list(ctx.root, group.from)) {
       for (const field of group.fields) {
-        const value = readField(field, readAt(entry));
+        const value = readField(field, readAt(entry), ctx.label);
         if (value === '') continue;
         lines.push({ text: `${ctx.label(field.label)}: ${value}`, ...(field.style ? { style: field.style } : {}) });
       }

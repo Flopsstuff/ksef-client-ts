@@ -4,7 +4,8 @@
      This one covers the remaining 430,00 (349,59 net + 80,41 VAT) and *itself* documents one
      further payment received before delivery — 250,00 on 01.04. So what is still owed is the
      difference the schema defines, P_15 less the sum of the P_15Z fields: 180,00.
-     Remainder COMPUTED. No real taxpayer data. -->
+     The seller's address is the one the correction of the advance invoice
+     (fa2-kor-zal.xml) put right. Remainder COMPUTED. No real taxpayer data. -->
 <Faktura xmlns="http://crd.gov.pl/wzor/2023/06/29/12648/"
          xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -21,8 +22,8 @@
         </DaneIdentyfikacyjne>
         <Adres>
             <KodKraju>PL</KodKraju>
-            <AdresL1>ul. Przykładowa 1</AdresL1>
-            <AdresL2>00-001 Warszawa</AdresL2>
+            <AdresL1>ul. Nowa 8</AdresL1>
+            <AdresL2>00-003 Warszawa</AdresL2>
         </Adres>
         <DaneKontaktowe>
             <Email>kontakt@sprzedawca.example</Email>
@@ -76,7 +77,7 @@
             <P_15Z>250.00</P_15Z>
         </ZaliczkaCzesciowa>
         <FakturaZaliczkowa>
-            <NrKSeFFaZaliczkowej>1111111111-20250312-020000000000-B2</NrKSeFFaZaliczkowej>
+            <NrKSeFFaZaliczkowej>1111111111-20250312-0200000000B2-BB</NrKSeFFaZaliczkowej>
         </FakturaZaliczkowa>
         <FaWiersz>
             <NrWierszaFa>1</NrWierszaFa>

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { tableRenderer } from '../../../src/pdf/template/blocks/table.js';
+import { eachRenderer } from '../../../src/pdf/template/blocks/each.js';
 import { imageRenderer } from '../../../src/pdf/template/blocks/image.js';
 import type { RenderContext } from '../../../src/pdf/template/interpret.js';
 import type { ImageBlock, TableBlock } from '../../../src/pdf/template/dsl.js';
@@ -129,10 +130,52 @@ describe('tableRenderer', () => {
     expect(body[0][0]).toEqual({ text: 'Item A' });
   });
 
+  it('narrows a repeater to the rows that carry, or lack, an element', () => {
+    const ctx = makeCtx({ Fa: { FaWiersz: [{ P_7: 'was', StanPrzed: '1' }, { P_7: 'is' }] } });
+    const names = (block: TableBlock) =>
+      (asRecord(asRecord(tableRenderer(block, ctx, noRender)).table).body as Array<Array<{ text: string }>>)
+        .map((row) => row[0]!.text);
+    expect(names({ type: 'table', from: 'Fa.FaWiersz', where: 'StanPrzed', headers: false, columns: COLS.slice(0, 1) }))
+      .toEqual(['was']);
+    expect(names({ type: 'table', from: 'Fa.FaWiersz', whereNot: 'StanPrzed', headers: false, columns: COLS.slice(0, 1) }))
+      .toEqual(['is']);
+    // Headers off and nothing left after the filter: no table at all.
+    expect(tableRenderer({ type: 'table', from: 'Fa.FaWiersz', where: 'Nope', headers: false, columns: COLS }, ctx, noRender))
+      .toBeNull();
+  });
+
   it('attaches a style when set', () => {
     const block: TableBlock = { type: 'table', from: 'Fa.FaWiersz', columns: COLS, style: 'lines' };
     const node = asRecord(tableRenderer(block, makeCtx(ROOT), noRender));
     expect(node.style).toBe('lines');
+  });
+});
+
+describe('eachRenderer', () => {
+  const ctx = makeCtx({ Fa: { FaWiersz: [{ P_7: 'was', StanPrzed: '1' }, { P_7: 'is' }] } });
+  // Each child renders as the entry's own name, so the stack reads back as
+  // the entries the filter let through.
+  const render = (_child: unknown, over?: RenderContext) => ({ text: (over!.root as { P_7: string }).P_7 });
+  const names = (where?: string, whereNot?: string): string[] => {
+    const node = eachRenderer(
+      { type: 'each', from: 'Fa.FaWiersz', where, whereNot, blocks: [{ type: 'text', path: 'P_7' }] },
+      ctx,
+      render,
+    );
+    return ((asRecord(node).stack as Array<{ text: string }>) ?? []).map((n) => n.text);
+  };
+
+  it('repeats over every entry when unfiltered', () => {
+    expect(names()).toEqual(['was', 'is']);
+  });
+
+  it('keeps only the entries that carry, or lack, an element', () => {
+    expect(names('StanPrzed')).toEqual(['was']);
+    expect(names(undefined, 'StanPrzed')).toEqual(['is']);
+  });
+
+  it('renders nothing when the filter leaves no entry', () => {
+    expect(eachRenderer({ type: 'each', from: 'Fa.FaWiersz', where: 'Nope', blocks: [] }, ctx, render)).toBeNull();
   });
 });
 

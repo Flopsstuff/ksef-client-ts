@@ -20,6 +20,9 @@ const fx = (name: string) => readFileSync(new URL(`../../fixtures/pdf/${name}`, 
 
 const DOCUMENTS = [
   'fa3.xml',
+  'fa3-kor.xml',
+  'fa3-kor-zal.xml',
+  'fa3-kor-roz.xml',
   'e2e-vat-multi.xml',
   'e2e-services-np.xml',
   'e2e-buyer-no-id.xml',
@@ -139,7 +142,9 @@ describe('strict mode still catches a typo in a required binding', () => {
 
   it('throws when a required line column is misspelled', async () => {
     const template = fa3Default();
-    const lines = template.blocks.find((b) => b.type === 'lines') as LinesBlock;
+    // The unfiltered item table: the one before it shows only the rows a
+    // correction marks as "before", and an ordinary invoice has none.
+    const lines = template.blocks.find((b) => b.type === 'lines' && b.where === undefined) as LinesBlock;
     lines.columns.find((c) => c.label === 'lp')!.path = 'NrWierszaFaa';
     await expect(
       renderInvoicePdfFromTemplate(fx('fa3.xml'), template, { strict: true }),

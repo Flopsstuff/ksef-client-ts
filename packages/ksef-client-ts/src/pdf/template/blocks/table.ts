@@ -1,4 +1,4 @@
-import { get, list } from '../../accessor.js';
+import { get, listWhere } from '../../accessor.js';
 import type { TableBlock } from '../dsl.js';
 import { resolveBinding, type BlockRenderer, type PdfNode } from '../interpret.js';
 import { buildCell, buildHeaderCell } from './cell.js';
@@ -7,8 +7,9 @@ import { buildCell, buildHeaderCell } from './cell.js';
  * Generic pdfmake `table`. Two modes:
  *
  * - **Repeater** (`from` set): body rows come from `list(root, from)` — always an
- *   array, so a single collapsed row iterates like many — and each cell reads a
- *   row-relative binding via `get(row, col.path)`.
+ *   array, so a single collapsed row iterates like many — narrowed by `where` /
+ *   `whereNot` when given, and each cell reads a row-relative binding via
+ *   `get(row, col.path)`.
  * - **Single row** (`from` absent): one body row read against the document root
  *   via `resolveBinding(col.path)`.
  *
@@ -28,7 +29,7 @@ export const tableRenderer: BlockRenderer<TableBlock> = (block, ctx) => {
   }
 
   if (block.from !== undefined) {
-    for (const row of list(ctx.root, block.from)) {
+    for (const row of listWhere(ctx.root, block.from, block.where, block.whereNot)) {
       body.push(columns.map((col) => buildCell(col, (path, optional) => get(row, path, optional ? false : ctx.strict), ctx)));
     }
   } else {

@@ -30,7 +30,7 @@ export const totalsRenderer: BlockRenderer<TotalsBlock> = (block, ctx) => {
     else if (row.sumFrom) base = repeatedSum(row.sumFrom, ctx.root);
     else base = resolveBinding(row.path ?? '', row.optional ? lenient : ctx);
     const raw = row.less ? lessRepeatedSum(base, row.less, ctx.root) : base;
-    const value = applyFormat(raw, row.format);
+    const value = applyFormat(raw, row.format, ctx.label);
     // A row that resolves empty is skipped, as in `payment` and `parties`: a
     // template listing every rate bucket must not print a dangling label for
     // each one an invoice does not use.

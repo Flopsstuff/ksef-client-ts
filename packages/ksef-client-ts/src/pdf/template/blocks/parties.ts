@@ -1,6 +1,6 @@
 import { list } from '../../accessor.js';
 import type { PartiesBlock, PartyAlternative, PartyColumn, PartyField, PartyGroup } from '../dsl.js';
-import { resolveBinding, type BlockRenderer, type PdfNode, type RenderContext } from '../interpret.js';
+import { evalWhen, resolveBinding, type BlockRenderer, type PdfNode, type RenderContext } from '../interpret.js';
 
 /**
  * The panel's own heading — `Sprzedawca` / `Nabywca` — takes the block's
@@ -37,12 +37,19 @@ function isGroup(field: PartyField): field is PartyGroup {
  *
  * An entry may also be a labelled group — the address, the contact details —
  * rendered as a sub-heading over its own lines, and repeated per entry when it
- * carries `from`. An entirely unresolved group is dropped with its heading, so
- * no counterparty gets a label with nothing under it.
+ * carries `from`: one heading over all the entries, or with `headingPerEntry`
+ * one over each, for a collection of parties rather than of details. An
+ * entirely unresolved group is dropped with its heading, so no counterparty
+ * gets a label with nothing under it.
  *
  * Value lines take {@link PartyColumn.style}; a group may override it for its
  * own lines with {@link PartyGroup.style}. The panel heading takes the block's
  * `headingStyle`; a group's own label stays at {@link SUBHEADING_STYLE}.
+ *
+ * A panel may carry `when` and is then left out — its fields never read, so
+ * strict mode does not police a party the document does not restate — while
+ * its lane stays empty, so the other panel keeps its side of the page. With
+ * both panels out the block renders nothing.
  */
 export const partiesRenderer: BlockRenderer<PartiesBlock> = (block, ctx) => {
   const heading = block.headingStyle ?? DEFAULT_HEADING_STYLE;
@@ -76,12 +83,24 @@ export const partiesRenderer: BlockRenderer<PartiesBlock> = (block, ctx) => {
     for (const field of fields) {
       if (isGroup(field)) {
         const inherited = field.style ?? style;
+        // A fresh node per heading: pdfmake writes layout state onto the nodes
+        // it lays out, so one object placed twice is drawn once.
+        const heading = (): PdfNode => ({ text: ctx.label(field.label), style: SUBHEADING_STYLE });
+        if (field.from && field.headingPerEntry) {
+          // Each entry is a party of its own and gets the heading; an entry
+          // that resolves to nothing gets neither.
+          for (const item of list(root, field.from)) {
+            const lines = renderFields(field.fields, item, false, inherited);
+            if (lines.length > 0) out.push(heading(), ...lines);
+          }
+          continue;
+        }
         // A repeater's entries carry optional fields, so they are read leniently.
         const inner = field.from
           ? list(root, field.from).flatMap((item) => renderFields(field.fields, item, false, inherited))
           : renderFields(field.fields, root, strict, inherited);
         if (inner.length === 0) continue; // no heading without content
-        out.push({ text: ctx.label(field.label), style: SUBHEADING_STYLE });
+        out.push(heading());
         out.push(...inner);
         continue;
       }
@@ -92,16 +111,24 @@ export const partiesRenderer: BlockRenderer<PartiesBlock> = (block, ctx) => {
     return out;
   };
 
-  const side = (col: PartyColumn): PdfNode => ({
-    width: '*',
-    stack: [
-      { text: ctx.label(col.label), style: heading },
-      ...renderFields(col.fields, ctx.root, ctx.strict, col.style),
-    ],
-  });
+  const side = (col: PartyColumn): PdfNode | null => {
+    if (!evalWhen(col.when, ctx)) return null;
+    return {
+      width: '*',
+      stack: [
+        { text: ctx.label(col.label), style: heading },
+        ...renderFields(col.fields, ctx.root, ctx.strict, col.style),
+      ],
+    };
+  };
+
+  const left = side(block.left);
+  const right = side(block.right);
+  if (left === null && right === null) return null;
+  const lane: PdfNode = { width: '*', text: '' };
 
   return {
-    columns: [side(block.left), side(block.right)],
+    columns: [left ?? lane, right ?? lane],
     margin: [0, 0, 0, 12],
     ...(block.style ? { style: block.style } : {}),
   };

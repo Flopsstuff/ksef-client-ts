@@ -17,7 +17,7 @@ Supported documents:
 
 | Document | Versions | Default built-in template |
 |----------|----------|---------------------------|
-| Standard invoice | `FA(2)`, `FA(3)` | `fa2-default`, `fa3-default` (plus `fa3-showcase`, a demo of the DSL) |
+| Invoice — ordinary, advance, settlement and their corrections (`VAT`, `ZAL`, `ROZ`, `KOR`, `KOR_ZAL`, `KOR_ROZ`, …) | `FA(2)`, `FA(3)` | `fa2-default`, `fa3-default` (plus `fa3-showcase`, a demo of the DSL) |
 | UPO receipt | `UPO(4.2)`, `UPO(4.3)` | `upo-4_2`, `upo-4_3` |
 
 `FA(1)` is not supported.
@@ -185,11 +185,11 @@ The `schema` field binds a template to a single document kind. If you render an 
 | Block | Renders |
 |-------|---------|
 | `header` | Title and optional logo on the left; invoice number, issue date and KSeF number stacked on the right. With `offlineStyle` set, the OFFLINE marker takes the KSeF number's place when the document carries none |
-| `parties` | Seller / buyer two-column panel; a line that resolves empty is skipped. A labelled group reads `from` an optional parent element — the buyer's address, say — and is dropped whole when the document carries none |
-| `lines` | Invoice line-item table. Takes `when`, because an invoice does not always carry its items in the same place — see below |
+| `parties` | Seller / buyer two-column panel; a line that resolves empty is skipped. A labelled group reads `from` an optional parent element — the buyer's address, say — and is dropped whole when the document carries none; over a collection it prints one heading, or one per entry with `headingPerEntry`. The block and each of its panels take `when`, so a panel over a party the document does not restate leaves its lane empty rather than a heading over nothing |
+| `lines` | Invoice line-item table. Takes `when`, because an invoice does not always carry its items in the same place — see below — and `where` / `whereNot`, to show only the rows that carry or lack an element |
 | `totals` | Net / VAT / gross summary rows (a row reads one path or sums several) |
 | `payment` | Payment details (status, dates, method, amounts), then the repeating sections of `groups` — the part payments and the bank accounts. A row takes `when`, so one figure can be listed once per reading and only the applicable label prints, and `from`, so a repeated element prints one line per entry |
-| `annotations` | Miscellaneous labelled fields |
+| `annotations` | Labelled lines under a heading — `heading` names the label (default `Adnotacje`), a line that resolves empty is skipped, and the block disappears when none resolve |
 | `notes` | The caller's own sections, from `notes` — a heading over a body, each |
 | `qr` | One KSeF verification QR — `code: "invoice"` (Code I, the default) or `code: "certificate"` (Code II) |
 | `footer` | Footer note |
@@ -207,6 +207,8 @@ A `qr` block's `fit` is the printed side in points, quiet zone included, and it 
 **Primitive blocks** are layout building blocks: `text`, `columns`, `stack`, `each`, `table`, `image`, `divider`, `spacer`. A `divider` draws a hairline across the content width — whatever `page.size`, `page.orientation` and `page.margins` make that — and a `spacer` adds its `height` and nothing else; neither costs a line of leading.
 
 `each` repeats a group of blocks once per entry of a collection, with the entry as the binding root, so its children use item-relative paths. Use it where a table cannot fit a record on one row — the built-in UPO templates lay out each confirmed document this way, because a 35-character KSeF number beside a 44-character hash will not share a page-wide row.
+
+`lines`, `table` and `each` all take `where` and `whereNot`: an item-relative path that an entry must carry, or must lack, to be shown. A `when` tests the document, not each entry, so this is the only way to split one collection by what its entries contain — which is how a correction's line items come out as two tables, before and after.
 
 ### How much has been paid
 
@@ -231,13 +233,14 @@ The two are easy to confuse and read very differently on the page, so the built-
 
 ### What `P_15` is called
 
-`P_15` does not mean the same thing on every document, so a template cannot give it one fixed label. The FA schemas define it as the total receivable, with three exceptions:
+`P_15` does not mean the same thing on every document, so a template cannot give it one fixed label. The FA schemas define it as the total receivable, with four exceptions:
 
-- on an **advance invoice** (`RodzajFaktury` `ZAL` or `KOR_ZAL`) it is the payment the document records as *already received* — labelling it `Do zapłaty` tells the reader to pay it a second time;
+- on a **correcting invoice** (`KOR`, `KOR_ZAL`, `KOR_ROZ`) it is a *correction of* the amount on the invoice being corrected — a signed delta, often negative, and never an amount to pay. This reading outranks every other: a correction that also carries `Rozliczenie` or records a part payment is still a correction. See [Correcting invoices](#correcting-invoices);
+- on an **advance invoice** (`RodzajFaktury` `ZAL`) it is the payment the document records as *already received* — labelling it `Do zapłaty` tells the reader to pay it a second time;
 - on a **settlement invoice** (`ROZ`, art. 106f ust. 3) it is what remains to be paid after the advances. Its lines and VAT buckets state the *whole* order, so this is the page where a flat `Do zapłaty` reads as a contradiction: line items of 615,00 above a demand for 165,00. Such an invoice comes in two shapes — see below;
 - when the document states the figure itself — **`Fa.Rozliczenie.DoZaplaty`** (`P_15` plus surcharges minus deductions), **`Fa.Rozliczenie.DoRozliczenia`** (an overpayment to refund or carry forward), or a **part-payment marker** — that figure is what the reader acts on and `P_15` is only the total.
 
-Exactly one of the `p15IsAmountDue`, `p15IsAdvancePaid`, `p15IsRemainder` and `p15IsAmountTotal` context flags is true for a given document.
+Exactly one of the `p15IsCorrection`, `p15IsAmountDue`, `p15IsAdvancePaid`, `p15IsRemainder` and `p15IsAmountTotal` context flags is true for a given document.
 
 A settlement invoice is where this matters most on the page. Its **line items state the whole order**, but its **tax summary and `P_15` cover only what is left**: the advance invoice already declared the tax on its own share, and declaring the full amount again would tax the deal twice. So an FA(3) settlement of a 615,00 order against a 450,00 advance carries line items worth 500,00 net while `P_13_1` is 134,15, `P_14_1` is 30,85 and `P_15` is 165,00 — figures that look inconsistent until you know which base each one uses.
 
@@ -258,20 +261,35 @@ The schema defines the second outright: *«różnica kwoty w polu P_15 i sumy po
 
 The same applies to an invoice being paid down: nothing states what has been paid or what is left, so the built-in templates compute both with `sumFrom` and `less`, gated on `paidInPart`. The built-in templates list one row per reading and print the settled payable alongside it when the document states one; a custom template that binds `Fa.P_15` unconditionally should gate it the same way.
 
-> **Not yet covered:** the schema gives `P_15` a fourth reading on the correcting types (`KOR`, `KOR_ZAL`, `KOR_ROZ`), where it is a *correction of* the amount on the invoice being corrected rather than an absolute — possibly negative. The built-in templates currently label a correction's `P_15` as though it were an absolute figure. A template that renders corrections should say so in its own labels until this is handled.
+An advance invoice (`RodzajFaktury` `ZAL`) records the goods and services it covers under `Fa.Zamowienie`, and may carry no `Fa.FaWiersz` at all; so does the `KOR_ZAL` that corrects one, which is a correction rather than an advance invoice. A repeater with no entries still draws its header row, so a template that binds both gives each one a `when` — this is what the built-in templates do, and it is why an advance invoice shows its order rows under their own heading instead of an empty item table.
 
-An advance invoice (`RodzajFaktury` `ZAL` or `KOR_ZAL`) records the goods and services it covers under `Fa.Zamowienie`, and may carry no `Fa.FaWiersz` at all. A repeater with no entries still draws its header row, so a template that binds both gives each one a `when` — this is what the built-in templates do, and it is why an advance invoice shows its order rows under their own heading instead of an empty item table.
+### Correcting invoices
+
+A correction (`KOR`), a correction of an advance invoice (`KOR_ZAL`) or of a settlement invoice (`KOR_ROZ`) is a different document from the one it corrects, and the built-in templates render it as one:
+
+- **It is headed as a correction** — `Faktura korygująca`, `Korekta faktury zaliczkowej`, `Korekta faktury rozliczającej` — through the `isCorrection`, `isCorrectionOfAdvance` and `isCorrectionOfSettlement` flags. `KOR_ZAL` is not an advance invoice and is neither headed nor labelled as one.
+- **`P_15` is a correction amount.** The `correctionAmount` row (`Korekta kwoty`) prints under `p15IsCorrection` in the totals and again under the payment terms, sign included. Nothing on the page calls it an amount due, and no field states what is left to pay after the correction — the schema has none, so the page does not invent one.
+- **What it corrects.** A `Korekta` section (an `annotations` block with `heading: "correction"`, gated on `isCorrection`) prints the reason (`PrzyczynaKorekty`), the accounting effect (`TypKorekty`, decoded through the `correctionType` formatter into the reader's language), the period a periodic discount covers (`OkresFaKorygowanej`) and the proper number when the correction is of a wrong number (`NrFaKorygowany`). A table over `Fa.DaneFaKorygowanej` then lists every corrected invoice with its date and KSeF number; where the schema's choice went the other way (`NrKSeFN`, issued outside KSeF), the KSeF-number column prints the `issuedOutsideKsef` label instead of a hole — that is what `emptyLabel` is for.
+- **Line items before and after.** A correction may restate a line as a pair: the row as it was, marked `StanPrzed`, and the row as it now is, under separate numbering. One table would show them as duplicates, so the built-in templates draw two — `Stan przed korektą` over `where: "StanPrzed"` and `Stan po korekcie` over `whereNot: "StanPrzed"` — gated on the `linesBefore` flag, which is true when any row carries the marker. A correction that states plain delta rows keeps the one unheaded table. A correction of an advance invoice keeps its items under the order (`Fa.Zamowienie.ZamowienieWiersz`, marked `StanPrzedZ`), and the order table splits the same way under the `orderLinesBefore` flag.
+- **Parties before the correction.** `Podmiot1K` and `Podmiot2K` restate the seller and the buyer as they stood, each independently. A second `parties` block prints them under `Sprzedawca przed korektą` / `Nabywca przed korektą`, gated on `partiesBefore` with a `when` on each panel, so a document that restates only the buyer shows one panel in its own lane. `Podmiot2K` may hold up to 101 entries — the buyer and additional buyers — so the panel repeats a group over it with `headingPerEntry`, which puts the `Nabywca` sub-heading over each restated buyer instead of once over all of them.
+- **Figures before the correction.** `P_15ZK` prints as `Kwota zapłaty przed korektą` on `KOR_ZAL` and as `Pozostało do zapłaty przed korektą` on `KOR_ROZ`, and `KursWalutyZK` as the exchange rate before the correction.
+
+The settlement bridge (`Wartość zamówienia netto` / `Rozliczono zaliczkami`) is not drawn on a `KOR_ROZ`: it assumes the lines state the whole order, and a correction's lines are deltas or before/after states.
+
+Two things a correction commonly carries are printed for every invoice: the free-form `Fa.DodatkowyOpis` key/value pairs, under `Dodatkowe informacje` after the payment block — each led by the number of the invoice line it refers to (`NrWiersza`) when it refers to one — and, as before, the caller's own `notes`.
 
 ### Bindings, labels, conditions, and formats
 
 - **Binding paths** are dot-paths into the document body — e.g. `Fa.P_2` (invoice number), `Podmiot1.DaneIdentyfikacyjne.Nazwa` (seller name). Paths are relative to the body element, not the document wrapper.
 - **`label`** references an i18n label key resolved per locale; **`text`** is a literal string printed as-is.
-- **`when`** conditionally renders a block against a presence test. It accepts a binding path (e.g. `Fa.Platnosc`) or a context flag: `qr`, `offline`, `hasKsefNumber`, `notes`, `totalsBuckets`, `totalsSummary`, `p15IsAmountDue`, `p15IsAdvancePaid`, `p15IsRemainder`, `p15IsAmountTotal`, `paidInFull`, `paidInPart`. A `divider` and a `lines` table take it too, so a rule can disappear with whatever it separates — the built-in templates close their `notes` block with `{ "type": "divider", "when": "notes" }`, which leaves no stray line on an invoice that carries none.
+- **`when`** conditionally renders a block against a presence test. It accepts a binding path (e.g. `Fa.Platnosc`) or a context flag: `qr`, `offline`, `hasKsefNumber`, `notes`, `totalsBuckets`, `totalsSummary`, `settlementBreakdown`; the `P_15` readings `p15IsAmountDue`, `p15IsAdvancePaid`, `p15IsRemainder`, `p15IsAmountTotal`, `p15IsCorrection` and `settlementRemainder`; the payment status `paidInFull`, `paidInPart`, `paidInPartOfPayable`, `paidInPartOfTotal`; and the document kind `isAdvanceInvoice`, `isSettlementInvoice`, `isCorrection`, `isCorrectionOfAdvance`, `isCorrectionOfSettlement`, with `partiesBefore`, `linesBefore` and `orderLinesBefore` for what a correction restates. A `divider` and a `lines` table take it too, so a rule can disappear with whatever it separates — the built-in templates close their `notes` block with `{ "type": "divider", "when": "notes" }`, which leaves no stray line on an invoice that carries none.
+- **`where`** / **`whereNot`** (`lines`, `table` and `each`) keep only the entries of the collection that carry, or lack, an item-relative path. Both may be given.
 - **`less`** and **`sumFrom`** (totals and payment rows) compute a figure the document does not state: `sumFrom` takes the sum of one binding over every entry of a collection, and `less` subtracts such a sum from the row's own value. `sum` cannot do this — it adds a fixed list of paths, and the entries of a repeater are not known to the template. Both print blank rather than a wrong number when anything they read is unparseable. Like every computed figure here, they are only as sound as the document.
-- **`format`** names a value formatter: `money`, `date`, `number`, or `nip`.
+- **`format`** names a value formatter: `money`, `date`, `number`, `nip`, `paymentForm` (the `FormaPlatnosci` code, decoded to its Polish name in every locale) or `correctionType` (the `TypKorekty` code, decoded through the label bundle so it reads in the render locale).
 - **`optional`** marks a binding the document may legitimately omit, exempting it from `strict`. Mark exactly what the schema declares optional — everything left unmarked is a field the document must carry.
+- **`emptyLabel`** (any field or column) names a label to print in place of a value that resolves empty, and keeps the line where an empty one would otherwise be skipped. It exists for the schema's choices — a corrected invoice has either a KSeF number or the marker that it was issued outside KSeF, and the page should say the second thing rather than leave a hole. The suffix is not appended to it.
 - **Label overrides.** `RenderOptions.labels` rewords any label for one render — `{ invoiceSettlement: 'Faktura końcowa' }`. It outranks a template's own `labels`, which outrank the locale bundle, so neither has to be forked to change a word.
-- **The document titles itself.** A `header` block with no `title` heads the page by what the document *is* — `Faktura zaliczkowa` for an advance invoice (`ZAL`), `Faktura rozliczająca` for a settlement (`ROZ`), plain `Faktura` otherwise, corrections included: `KOR_ZAL` corrects an advance invoice, it is not one. A template that names its own `title` keeps it. The built-ins name none.
+- **The document titles itself.** A `header` block with no `title` heads the page by what the document *is* — `Faktura zaliczkowa` for an advance invoice (`ZAL`), `Faktura rozliczająca` for a settlement (`ROZ`), `Faktura korygująca` for a correction (`KOR`), `Korekta faktury zaliczkowej` / `Korekta faktury rozliczającej` for a correction of either (`KOR_ZAL` corrects an advance invoice, it is not one), plain `Faktura` otherwise. A template that names its own `title` keeps it. The built-ins name none.
 - **`headingStyle`** (`parties`, `payment`, `annotations`, `notes`) names the style for the heading those blocks print themselves — `Sprzedawca`, `Płatność`. It reaches that first line only: labels nested inside a block (`Adres`, `Dane kontaktowe`, `Rachunek bankowy`) are a level down and stay on `h2`, so section headings can be lifted without dragging every label along. Both default to `h2`; the built-in templates name `h1` for the block headings and leave the nested ones on `h2`. The `header` block's title works the same way through plain `style`, defaulting to `title`. A `styles` map that omits `h2` or `title` loses those headings with nothing in the JSON to point at.
 - **`style`** (party panels) names a style for a panel's value lines. A labelled group inherits it unless it declares its own, so the built-in templates set `partyIdentity` on the panel — the counterparty's name and tax number — and let the address and contact groups drop to the smaller `partyDetails`. Headings keep the panel's heading style either way.
 - **`firstOf`** (party fields only) prints the first of several paths that resolves. KSeF identifies a counterparty by exactly one of `NIP`, `NrVatUE` or `NrID` depending on where they are established, so the built-in templates bind the buyer's identifier this way; a panel bound to `NIP` alone has nothing to print for a foreign buyer. An alternative may be written as `{ "path": …, "prefixPath": … }` to keep the qualifier the schema pairs it with — `KodUE` before `NrVatUE`, `KodKraju` before `NrID` — so `DE 123456789` prints as one identifier. The prefix is read leniently and dropped when the document omits it.
@@ -376,7 +394,7 @@ Labels are localizable, driven by the `locale` option:
 
 Any two of the three languages combine, in either order. For a bilingual locale each label is the two texts joined by `bilingualSeparator` (default `' / '`), in the order the locale name spells out. A template can also override individual labels via its `labels` map — useful for company-specific wording; an override replaces **both** halves of a bilingual label.
 
-One thing stays Polish in every locale: the `FormaPlatnosci` payment forms. They decode from a Polish fiscal enum, and the official visualizations print them untranslated.
+One thing stays Polish in every locale: the `FormaPlatnosci` payment forms. They decode from a Polish fiscal enum, and the official visualizations print them untranslated. The `TypKorekty` correction types are the opposite case — a sentence about when a correction takes effect, not a fiscal term — and decode through the label bundle, so they read in the render locale.
 
 ```ts
 const pdf = await renderInvoicePdf(xml, 'fa3-default', {

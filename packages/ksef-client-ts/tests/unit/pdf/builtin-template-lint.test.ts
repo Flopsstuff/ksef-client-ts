@@ -32,14 +32,17 @@ const FIXTURES_BY_TEMPLATE: Record<string, string[]> = {
   'fa2-default': [
     'pdf/fa2.xml', 'pdf/fa2-zal.xml', 'pdf/fa2-rozliczenie.xml', 'pdf/fa2-czesciowa.xml',
     'pdf/fa2-roz.xml', 'pdf/fa2-zal-b.xml', 'pdf/fa2-roz-b.xml', 'pdf/fa2-nadplata.xml',
+    'pdf/fa2-kor.xml', 'pdf/fa2-kor-zal.xml', 'pdf/fa2-kor-roz.xml',
   ],
   'fa3-default': [
     'pdf/fa3.xml', 'pdf/fa3-zal.xml', 'pdf/fa3-rozliczenie.xml', 'pdf/fa3-czesciowa.xml',
     'pdf/fa3-roz.xml', 'pdf/fa3-zal-b.xml', 'pdf/fa3-roz-b.xml', 'pdf/fa3-nadplata.xml',
+    'pdf/fa3-kor.xml', 'pdf/fa3-kor-zal.xml', 'pdf/fa3-kor-roz.xml',
   ],
   'fa3-showcase': [
     'pdf/fa3.xml', 'pdf/fa3-rozliczenie.xml', 'pdf/fa3-czesciowa.xml', 'pdf/fa3-zal.xml',
     'pdf/fa3-roz.xml', 'pdf/fa3-zal-b.xml', 'pdf/fa3-roz-b.xml', 'pdf/fa3-nadplata.xml',
+    'pdf/fa3-kor.xml',
   ],
   'upo-4_2': ['pdf/upo-4_2.xml'],
   'upo-4_3': ['pdf/upo-4_3.xml'],
@@ -49,8 +52,11 @@ const FIXTURES_BY_TEMPLATE: Record<string, string[]> = {
 const CONTEXT_CONDITIONS = new Set([
   'qr', 'offline', 'hasKsefNumber', 'totalsBuckets', 'totalsSummary', 'notes',
   'opts.logo', 'opts.ksefNumber', 'opts.accent', 'qrUrl',
-  // Which of `P_15`'s three readings this document supports.
-  'p15IsAmountDue', 'p15IsAdvancePaid', 'p15IsAmountTotal', 'p15IsRemainder',
+  // Which of `P_15`'s readings this document supports.
+  'p15IsAmountDue', 'p15IsAdvancePaid', 'p15IsAmountTotal', 'p15IsRemainder', 'p15IsCorrection',
+  // What kind of correction this is, and what it restates: the parties as they
+  // stood, or its line items as before/after pairs.
+  'isCorrection', 'isCorrectionOfAdvance', 'isCorrectionOfSettlement', 'partiesBefore', 'linesBefore', 'orderLinesBefore',
   // Whether the remainder is a figure the schema defines as a difference.
   'settlementRemainder',
   // The settlement reconciliation, which is derived and so is gated on the
@@ -66,11 +72,23 @@ interface CollectedPaths {
   repeaters: string[];
   /** `firstOf` alternative sets, as paths — at least one member must resolve. */
   alternatives: string[][];
+  /**
+   * The same, inside a party group that repeats over a collection: the paths
+   * are entry-relative, so they resolve against the entries, not the root.
+   */
+  itemAlternatives: Array<{ from: string; paths: string[] }>;
+  /**
+   * `where` / `whereNot` filters on a repeater, as the collection, the
+   * item-relative path and the polarity — some entry of some fixture must
+   * carry the path (or lack it, for `whereNot`), or the filter matches nothing
+   * and a typo hides a whole table.
+   */
+  filters: Array<{ from: string; path: string; negate: boolean }>;
 }
 
 function collect(
   blocks: Block[],
-  acc: CollectedPaths = { conditions: [], repeaters: [], alternatives: [] },
+  acc: CollectedPaths = { conditions: [], repeaters: [], alternatives: [], filters: [], itemAlternatives: [] },
 ): CollectedPaths {
   for (const block of blocks) {
     const when = (block as { when?: string }).when;
@@ -92,21 +110,35 @@ function collect(
     if (block.type === 'lines') acc.repeaters.push(block.from);
     if (block.type === 'table' && block.from !== undefined) acc.repeaters.push(block.from);
     if (block.type === 'each') acc.repeaters.push(block.from);
+    if ((block.type === 'lines' || block.type === 'table' || block.type === 'each') && block.from !== undefined) {
+      if (block.where !== undefined) acc.filters.push({ from: block.from, path: block.where, negate: false });
+      if (block.whereNot !== undefined) acc.filters.push({ from: block.from, path: block.whereNot, negate: true });
+    }
     if (block.type === 'payment') {
       for (const group of block.groups ?? []) acc.repeaters.push(group.from);
       for (const row of block.rows) if (row.from !== undefined) acc.repeaters.push(row.from);
     }
     if (block.type === 'parties') {
-      const walkFields = (fields: PartyField[]): void => {
+      // A panel's own `when` gates the whole column, so it is a condition like
+      // any other.
+      for (const column of [block.left, block.right]) {
+        if (column.when !== undefined && !CONTEXT_CONDITIONS.has(column.when)) acc.conditions.push(column.when);
+      }
+      const walkFields = (fields: PartyField[], within?: string): void => {
         for (const field of fields) {
           if (typeof field === 'string') continue;
           if ('fields' in field) {
-            if (field.from !== undefined) acc.repeaters.push(field.from);
-            walkFields(field.fields);
+            // A group that repeats rebinds the root to one entry, so what it
+            // holds is entry-relative from here down; a nested `from` inside
+            // one is relative too and cannot be resolved against the root.
+            if (field.from !== undefined && within === undefined) acc.repeaters.push(field.from);
+            walkFields(field.fields, field.from !== undefined ? (within ?? field.from) : within);
           } else if ('firstOf' in field) {
             // An alternative may carry a `prefixPath` qualifier; the path is
             // what has to resolve for the alternative to apply at all.
-            acc.alternatives.push(field.firstOf.map((a) => (typeof a === 'string' ? a : a.path)));
+            const paths = field.firstOf.map((a) => (typeof a === 'string' ? a : a.path));
+            if (within === undefined) acc.alternatives.push(paths);
+            else acc.itemAlternatives.push({ from: within, paths });
           }
           // `{ path, optional }` is a plain binding; strict covers the ones that
           // are not marked, and an optional one is absent by design.
@@ -170,6 +202,28 @@ describe('built-in template lint', () => {
     },
   );
 
+  it.each(Object.keys(FIXTURES_BY_TEMPLATE))(
+    '%s: every `firstOf` set inside a repeated group resolves against some entry',
+    (name) => {
+      const roots = bodiesOf(name);
+      const { itemAlternatives } = collect(getBuiltinTemplate(name)!.blocks);
+      const dead = itemAlternatives.filter(
+        ({ from, paths }) => !roots.some((root) => list(root, from).some((entry) => paths.some((p) => has(entry, p)))),
+      );
+      expect(dead).toEqual([]);
+    },
+  );
+
+  it.each(Object.keys(FIXTURES_BY_TEMPLATE))('%s: every repeater filter matches some entry', (name) => {
+    const roots = bodiesOf(name);
+    const { filters } = collect(getBuiltinTemplate(name)!.blocks);
+    const dead = filters.filter(
+      ({ from, path, negate }) =>
+        !roots.some((root) => list(root, from).some((entry) => (negate ? !has(entry, path) : has(entry, path)))),
+    );
+    expect(dead).toEqual([]);
+  });
+
   it.each(['fa2-default', 'fa3-default'])(
     '%s: the amount due and at least one rate bucket resolve',
     (name) => {
@@ -196,10 +250,23 @@ describe('built-in template lint', () => {
     expect(fa3.repeaters).toContain('Fa.FakturaZaliczkowa');
     expect(fa3.repeaters).toContain('Podmiot2.DaneKontaktowe');
     expect(fa3.conditions).toContain('Fa.Rozliczenie.DoZaplaty');
+    expect(fa3.repeaters).toContain('Fa.DaneFaKorygowanej');
     expect(collect(getBuiltinTemplate('upo-4_3')!.blocks).repeaters).toContain('Dokument');
     expect(collect(getBuiltinTemplate('upo-4_2')!.blocks).repeaters).toContain('Dokument');
     expect(fa3.alternatives).toHaveLength(1);
     expect(fa3.alternatives[0]).toContain('Podmiot2.DaneIdentyfikacyjne.NrID');
+    // The buyers as they stood before a correction repeat, so their
+    // identifier alternatives are entry-relative.
+    expect(fa3.itemAlternatives).toContainEqual({
+      from: 'Fa.Podmiot2K',
+      paths: ['DaneIdentyfikacyjne.NIP', 'DaneIdentyfikacyjne.NrVatUE', 'DaneIdentyfikacyjne.NrID'],
+    });
+    expect(fa3.repeaters).toContain('Fa.Podmiot2K');
+    expect(fa3.conditions).toContain('Fa.Podmiot2K');
+    expect(fa3.repeaters).toContain('Fa.DodatkowyOpis');
+    expect(fa3.filters).toContainEqual({ from: 'Fa.FaWiersz', path: 'StanPrzed', negate: false });
+    expect(fa3.filters).toContainEqual({ from: 'Fa.FaWiersz', path: 'StanPrzed', negate: true });
+    expect(fa3.filters).toContainEqual({ from: 'Fa.Zamowienie.ZamowienieWiersz', path: 'StanPrzedZ', negate: false });
   });
 
   it('fails a template whose `when` path is misspelled', () => {

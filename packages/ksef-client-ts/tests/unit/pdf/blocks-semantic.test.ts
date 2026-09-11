@@ -215,6 +215,34 @@ describe('partiesRenderer', () => {
     ]);
   });
 
+  it('heads every entry of a group when asked to, so parties do not run together', () => {
+    const buyers = {
+      label: 'buyer',
+      from: 'Fa.Podmiot2K',
+      headingPerEntry: true,
+      fields: ['DaneIdentyfikacyjne.Nazwa', { label: 'address', fields: ['Adres.AdresL1'] }],
+    };
+    const node = rec(
+      partiesRenderer(
+        { type: 'parties', left: { label: 'seller', fields: [] }, right: { label: 'buyerBefore', fields: [buyers] } },
+        makeCtx({
+          Fa: {
+            Podmiot2K: [
+              { DaneIdentyfikacyjne: { Nazwa: 'First' }, Adres: { AdresL1: 'ul. 1' } },
+              { DaneIdentyfikacyjne: {}, Adres: {} },
+              { DaneIdentyfikacyjne: { Nazwa: 'Third' }, Adres: { AdresL1: 'ul. 3' } },
+            ],
+          },
+        }),
+        noRender,
+      ),
+    );
+    // a heading over each entry that resolves to something, and none over the empty one
+    expect(node.columns[1].stack.map((n: { text: string }) => n.text)).toEqual([
+      'buyerBefore', 'buyer', 'First', 'address', 'ul. 1', 'buyer', 'Third', 'address', 'ul. 3',
+    ]);
+  });
+
   it('normalizes a single collapsed contact block to one entry', () => {
     const node = rec(
       partiesRenderer(
@@ -254,6 +282,28 @@ describe('partiesRenderer', () => {
       ),
     );
     expect(node.columns[1].stack.map((n: { text: string }) => n.text)).toEqual(['buyer', 'Nabywca']);
+  });
+
+  it('leaves a panel out on its own `when`, keeping its lane so the other stays put', () => {
+    const block = {
+      type: 'parties' as const,
+      left: { label: 'sellerBefore', when: 'Fa.Podmiot1K', fields: ['Fa.Podmiot1K.DaneIdentyfikacyjne.Nazwa'] },
+      right: { label: 'buyerBefore', when: 'Fa.Podmiot2K', fields: ['Fa.Podmiot2K.DaneIdentyfikacyjne.Nazwa'] },
+    };
+    // Only the buyer is restated: the seller's lane is empty, the buyer's
+    // panel is where it always is, and the seller's fields are never read —
+    // strict mode must not police a party the document does not restate.
+    const buyerOnly = rec(
+      partiesRenderer(block, makeCtx({ Fa: { Podmiot2K: { DaneIdentyfikacyjne: { Nazwa: 'Old Buyer' } } } }, { strict: true }), noRender),
+    );
+    expect(buyerOnly.columns[0]).toEqual({ width: '*', text: '' });
+    expect(buyerOnly.columns[1].stack.map((n: any) => n.text)).toEqual(['buyerBefore', 'Old Buyer']);
+    // Neither restated: nothing to draw, heading included.
+    expect(partiesRenderer(block, makeCtx({ Fa: {} }), noRender)).toBeNull();
+    // A context flag works on a panel as it does on a block.
+    const flagged = { ...block, right: { ...block.right, when: 'showBuyer' } };
+    const ctx = makeCtx({ Fa: { Podmiot2K: { DaneIdentyfikacyjne: { Nazwa: 'Old Buyer' } } } }, { flags: { showBuyer: false } });
+    expect(partiesRenderer(flagged, ctx, noRender)).toBeNull();
   });
 
   it('reads repeater entries leniently even in strict mode', () => {
@@ -392,7 +442,7 @@ describe('headerRenderer', () => {
   it('stacks the KSeF number under the date, in the same body font', () => {
     const ctx = makeCtx(
       { Fa: { P_2: 'FV/2025/01', P_1: '2025-01-15' } },
-      { bindings: { 'opts.ksefNumber': '1111111111-20250115-010000000000-00' } },
+      { bindings: { 'opts.ksefNumber': '1111111111-20250115-010000000000-AD' } },
     );
     const node = rec(
       headerRenderer(
@@ -403,7 +453,7 @@ describe('headerRenderer', () => {
     );
     const [, right] = node.columns;
     expect(right.stack).toHaveLength(3);
-    expect(right.stack[2].text).toBe('ksefNumber: 1111111111-20250115-010000000000-00');
+    expect(right.stack[2].text).toBe('ksefNumber: 1111111111-20250115-010000000000-AD');
     // no style of its own — it inherits the document font like the two above it
     expect(right.stack[2].style).toBeUndefined();
   });
@@ -444,7 +494,7 @@ describe('headerRenderer', () => {
   it('drops the marker once the invoice carries a KSeF number', () => {
     const ctx = makeCtx(
       { Fa: { P_2: 'FV/2025/01', P_1: '2025-01-15' } },
-      { bindings: { 'opts.ksefNumber': '1111111111-20250115-010000000000-00' } },
+      { bindings: { 'opts.ksefNumber': '1111111111-20250115-010000000000-AD' } },
     );
     const node = rec(
       headerRenderer(
@@ -462,7 +512,7 @@ describe('headerRenderer', () => {
     const [, right] = node.columns;
     expect(right.stack).toHaveLength(3);
     expect(right.stack[2].style).toBeUndefined();
-    expect(right.stack[2].text).toContain('1111111111-20250115-010000000000-00');
+    expect(right.stack[2].text).toContain('1111111111-20250115-010000000000-AD');
   });
 
   // The marker stands in for the KSeF number, so a header that prints no such
@@ -594,6 +644,22 @@ describe('linesRenderer', () => {
     expect(row[2].text).toBe(applyFormat('2', 'number'));
     expect(row[3].text).toBe(applyFormat('10.00', 'money')); // '10,00'
     expect(node.style).toBeUndefined();
+  });
+
+  it('keeps only the rows that carry, or lack, a marker element', () => {
+    const ctx = makeCtx({
+      Fa: { FaWiersz: [{ P_7: 'was', StanPrzed: '1' }, { P_7: 'is' }, { P_7: 'was too', StanPrzed: '1' }] },
+    });
+    const columns = [{ label: 'name', path: 'P_7' }];
+    const names = (node: any): string[] => node.table.body.slice(1).map((row: any) => row[0].text);
+    expect(names(rec(linesRenderer({ type: 'lines', from: 'Fa.FaWiersz', where: 'StanPrzed', columns }, ctx, noRender))))
+      .toEqual(['was', 'was too']);
+    expect(names(rec(linesRenderer({ type: 'lines', from: 'Fa.FaWiersz', whereNot: 'StanPrzed', columns }, ctx, noRender))))
+      .toEqual(['is']);
+    // A row is what the interpreter drops on `when`; the table itself still
+    // draws its header when the filter leaves nothing, as an empty repeater does.
+    expect(rec(linesRenderer({ type: 'lines', from: 'Fa.FaWiersz', where: 'Nope', columns }, ctx, noRender)).table.body)
+      .toHaveLength(1);
   });
 
   it('renders one body row per element for an expanded array of lines (+ style)', () => {
@@ -887,10 +953,71 @@ describe('annotationsRenderer', () => {
     expect(node.style).toBe('astyle');
   });
 
-  it('renders only the heading for no fields and omits style', () => {
-    const node = rec(annotationsRenderer({ type: 'annotations', fields: [] }, makeCtx({}), noRender));
-    expect(node.stack).toHaveLength(1);
+  it('renders nothing at all when no field resolves — no heading over nothing', () => {
+    expect(annotationsRenderer({ type: 'annotations', fields: [] }, makeCtx({}), noRender)).toBeNull();
+    const ctx = makeCtx({ Fa: {} });
+    expect(
+      annotationsRenderer(
+        { type: 'annotations', fields: [{ label: 'x', path: 'Fa.Missing', optional: true }] },
+        ctx,
+        noRender,
+      ),
+    ).toBeNull();
+  });
+
+  it('skips a field that resolves empty instead of printing a bare label', () => {
+    const ctx = makeCtx({ Fa: { PrzyczynaKorekty: 'Zwrot' } });
+    const node = rec(
+      annotationsRenderer(
+        {
+          type: 'annotations',
+          fields: [
+            { label: 'correctionReason', path: 'Fa.PrzyczynaKorekty' },
+            { label: 'correctedPeriod', path: 'Fa.OkresFaKorygowanej', optional: true },
+          ],
+        },
+        ctx,
+        noRender,
+      ),
+    );
+    expect(node.stack.map((n: { text: string }) => n.text)).toEqual(['annotations', 'correctionReason: Zwrot']);
     expect('style' in node).toBe(false);
+  });
+
+  it('takes another heading and decodes a value through the label resolver', () => {
+    const ctx = makeCtx({ Fa: { TypKorekty: '1' } }, { label: (k) => `<${k}>` });
+    const node = rec(
+      annotationsRenderer(
+        {
+          type: 'annotations',
+          heading: 'correction',
+          headingStyle: 'h1',
+          fields: [{ label: 'correctionType', path: 'Fa.TypKorekty', format: 'correctionType' }],
+        },
+        ctx,
+        noRender,
+      ),
+    );
+    expect(node.stack[0]).toEqual({ text: '<correction>', style: 'h1' });
+    expect(node.stack[1].text).toBe('<correctionType>: <correctionType1>');
+  });
+
+  it('prints the emptyLabel in place of a value that resolves empty', () => {
+    const ctx = makeCtx({ Fa: { NrKSeFN: '1' } });
+    const node = rec(
+      annotationsRenderer(
+        {
+          type: 'annotations',
+          fields: [
+            { label: 'ksefNumber', path: 'Fa.NrKSeFFaKorygowanej', optional: true, emptyLabel: 'issuedOutsideKsef', suffixPath: 'Fa.NrKSeFN' },
+          ],
+        },
+        ctx,
+        noRender,
+      ),
+    );
+    // The label stands in for the value, and no suffix is glued onto it.
+    expect(node.stack[1].text).toBe('ksefNumber: issuedOutsideKsef');
   });
 });
 

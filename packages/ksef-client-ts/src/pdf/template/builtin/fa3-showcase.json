@@ -171,6 +171,7 @@
           "less": { "sum": ["Fa.P_13_1", "Fa.P_13_2", "Fa.P_13_3", "Fa.P_13_4", "Fa.P_13_5", "Fa.P_13_6_1", "Fa.P_13_6_2", "Fa.P_13_6_3", "Fa.P_13_7", "Fa.P_13_8", "Fa.P_13_9", "Fa.P_13_10", "Fa.P_13_11"] },
           "format": "money"
         },
+        { "label": "correctionAmount", "path": "Fa.P_15", "when": "p15IsCorrection", "format": "money", "style": "strong" },
         { "label": "totalDue", "path": "Fa.P_15", "when": "p15IsAmountDue", "format": "money", "style": "strong" },
         { "label": "advancePaid", "path": "Fa.P_15", "when": "p15IsAdvancePaid", "format": "money", "style": "strong" },
         { "label": "amountTotal", "path": "Fa.P_15", "when": "p15IsAmountTotal", "format": "money", "style": "strong" },
@@ -262,6 +263,14 @@
           "label": "remainingDue",
           "path": "Fa.P_15",
           "when": "p15IsRemainder",
+          "format": "money",
+          "suffixPath": "Fa.KodWaluty",
+          "style": "strong"
+        },
+        {
+          "label": "correctionAmount",
+          "path": "Fa.P_15",
+          "when": "p15IsCorrection",
           "format": "money",
           "suffixPath": "Fa.KodWaluty",
           "style": "strong"

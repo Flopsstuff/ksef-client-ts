@@ -223,3 +223,74 @@ describe('a payment row is either read or computed, never both', () => {
     }
   });
 });
+
+describe('correction-era additions stay strict', () => {
+  const template = (blocks: unknown[]): unknown => ({ schema: 'FA(3)', blocks });
+
+  it('accepts emptyLabel on a field and on a column', () => {
+    expect(() =>
+      validateTemplate(
+        template([
+          { type: 'annotations', heading: 'correction', when: 'isCorrection', fields: [
+            { label: 'ksefNumber', path: 'Fa.X', optional: true, emptyLabel: 'issuedOutsideKsef' },
+          ] },
+          { type: 'table', from: 'Fa.DaneFaKorygowanej', columns: [
+            { label: 'ksefNumber', path: 'NrKSeFFaKorygowanej', optional: true, emptyLabel: 'issuedOutsideKsef' },
+          ] },
+        ]),
+      ),
+    ).not.toThrow();
+  });
+
+  it('accepts the correctionType formatter', () => {
+    expect(() =>
+      validateTemplate(template([{ type: 'text', path: 'Fa.TypKorekty', format: 'correctionType' }])),
+    ).not.toThrow();
+  });
+
+  it('accepts where / whereNot on the three repeaters, and when on a party panel', () => {
+    expect(() =>
+      validateTemplate(
+        template([
+          { type: 'lines', from: 'Fa.FaWiersz', where: 'StanPrzed', columns: [{ label: 'lp', path: 'NrWierszaFa' }] },
+          { type: 'lines', from: 'Fa.FaWiersz', whereNot: 'StanPrzed', columns: [{ label: 'lp', path: 'NrWierszaFa' }] },
+          { type: 'table', from: 'Fa.X', where: 'A', whereNot: 'B', columns: [{ label: 'x', path: 'X' }] },
+          { type: 'each', from: 'Fa.X', whereNot: 'B', blocks: [{ type: 'text', path: 'X' }] },
+          {
+            type: 'parties',
+            when: 'partiesBefore',
+            left: { label: 'sellerBefore', when: 'Fa.Podmiot1K', fields: ['Fa.Podmiot1K.DaneIdentyfikacyjne.Nazwa'] },
+            right: {
+              label: 'buyerBefore',
+              when: 'Fa.Podmiot2K',
+              fields: [{ label: 'buyer', from: 'Fa.Podmiot2K', headingPerEntry: true, fields: ['DaneIdentyfikacyjne.Nazwa'] }],
+            },
+          },
+        ]),
+      ),
+    ).not.toThrow();
+  });
+
+  it('keeps a filter off the blocks that do not repeat', () => {
+    expect(() =>
+      validateTemplate(template([{ type: 'totals', where: 'StanPrzed', rows: [] }])),
+    ).toThrow(KSeFValidationError);
+  });
+
+  it('refuses a filter on a table that reads a single row — nothing to filter there', () => {
+    for (const filter of [{ where: 'X' }, { whereNot: 'X' }]) {
+      expect(() =>
+        validateTemplate(template([{ type: 'table', ...filter, columns: [{ label: 'x', path: 'Fa.X' }] }])),
+      ).toThrow(/need "from"/);
+    }
+  });
+
+  it('still rejects an unknown key next to the new ones', () => {
+    expect(() =>
+      validateTemplate(template([{ type: 'annotations', heading: 'correction', bogus: 1, fields: [] }])),
+    ).toThrow(KSeFValidationError);
+    expect(() =>
+      validateTemplate(template([{ type: 'text', path: 'Fa.X', format: 'correctionTypes' }])),
+    ).toThrow(KSeFValidationError);
+  });
+});

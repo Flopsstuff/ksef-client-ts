@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chain B, correction of fa3-zal-b.xml (KOR_ZAL), issued between the advance and
+     its settlement. Nothing about the money changes — every amount is 0,00 and
+     P_15ZK restates the 800,00 received — both addresses were wrong: the seller had
+     already moved and the buyer's was mistyped. Podmiot1/Podmiot2 carry the
+     corrected ones, Podmiot1K/Podmiot2K the addresses as they stood on the advance
+     invoice; the settlement that closes chain B carries the corrected seller address. The order item is restated as a before/after pair with
+     identical values (StanPrzedZ), which is how the schema confirms an item did
+     not change. No FaWiersz: a data-only correction.
+     Synthetic, fully anonymous FA(3) fixture. No real taxpayer data. -->
+<Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/"
+         xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Naglowek>
+        <KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+        <WariantFormularza>3</WariantFormularza>
+        <DataWytworzeniaFa>2025-03-20T10:00:00Z</DataWytworzeniaFa>
+        <SystemInfo>anonymous test fixture</SystemInfo>
+    </Naglowek>
+    <Podmiot1>
+        <DaneIdentyfikacyjne>
+            <NIP>1111111111</NIP>
+            <Nazwa>Sprzedawca Przykładowy Sp. z o.o.</Nazwa>
+        </DaneIdentyfikacyjne>
+        <Adres>
+            <KodKraju>PL</KodKraju>
+            <AdresL1>ul. Nowa 8</AdresL1>
+            <AdresL2>00-003 Warszawa</AdresL2>
+        </Adres>
+        <DaneKontaktowe>
+            <Email>kontakt@sprzedawca.example</Email>
+            <Telefon>+48000000001</Telefon>
+        </DaneKontaktowe>
+    </Podmiot1>
+    <Podmiot2>
+        <DaneIdentyfikacyjne>
+            <NIP>5555555555</NIP>
+            <Nazwa>Odbiorca Handlowy Sp. z o.o.</Nazwa>
+        </DaneIdentyfikacyjne>
+        <Adres>
+            <KodKraju>PL</KodKraju>
+            <AdresL1>ul. Portowa 5</AdresL1>
+            <AdresL2>81-002 Gdynia</AdresL2>
+        </Adres>
+        <DaneKontaktowe>
+            <Email>zakupy@odbiorca.example</Email>
+            <Telefon>+48000000005</Telefon>
+            <NrKlienta>KL-0042</NrKlienta>
+        </DaneKontaktowe>
+    </Podmiot2>
+    <Fa>
+        <KodWaluty>PLN</KodWaluty>
+        <P_1>2025-03-20</P_1>
+        <P_1M>Warszawa</P_1M>
+        <P_2>KOR/2025/03/002</P_2>
+        <P_6>2025-03-12</P_6>
+        <P_13_1>0.00</P_13_1>
+        <P_14_1>0.00</P_14_1>
+        <P_15>0.00</P_15>
+        <Adnotacje>
+            <P_16>2</P_16>
+            <P_17>2</P_17>
+            <P_18>2</P_18>
+            <P_18A>2</P_18A>
+            <Zwolnienie>
+                <P_19N>1</P_19N>
+            </Zwolnienie>
+            <NoweSrodkiTransportu>
+                <P_22N>1</P_22N>
+            </NoweSrodkiTransportu>
+            <P_23>2</P_23>
+            <PMarzy>
+                <P_PMarzyN>1</P_PMarzyN>
+            </PMarzy>
+        </Adnotacje>
+        <RodzajFaktury>KOR_ZAL</RodzajFaktury>
+        <PrzyczynaKorekty>Błędne adresy stron</PrzyczynaKorekty>
+        <TypKorekty>1</TypKorekty>
+        <DaneFaKorygowanej>
+            <DataWystFaKorygowanej>2025-03-12</DataWystFaKorygowanej>
+            <NrFaKorygowanej>ZAL/2025/03/007</NrFaKorygowanej>
+            <NrKSeF>1</NrKSeF>
+            <NrKSeFFaKorygowanej>1111111111-20250312-0200000000B2-BB</NrKSeFFaKorygowanej>
+        </DaneFaKorygowanej>
+        <Podmiot1K>
+            <DaneIdentyfikacyjne>
+                <NIP>1111111111</NIP>
+                <Nazwa>Sprzedawca Przykładowy Sp. z o.o.</Nazwa>
+            </DaneIdentyfikacyjne>
+            <Adres>
+                <KodKraju>PL</KodKraju>
+                <AdresL1>ul. Przykładowa 1</AdresL1>
+                <AdresL2>00-001 Warszawa</AdresL2>
+            </Adres>
+        </Podmiot1K>
+        <Podmiot2K>
+            <DaneIdentyfikacyjne>
+                <NIP>5555555555</NIP>
+                <Nazwa>Odbiorca Handlowy Sp. z o.o.</Nazwa>
+            </DaneIdentyfikacyjne>
+            <Adres>
+                <KodKraju>PL</KodKraju>
+                <AdresL1>ul. Morska 17</AdresL1>
+                <AdresL2>81-001 Gdynia</AdresL2>
+            </Adres>
+        </Podmiot2K>
+        <P_15ZK>800.00</P_15ZK>
+        <Zamowienie>
+            <WartoscZamowienia>1230.00</WartoscZamowienia>
+            <ZamowienieWiersz>
+                <NrWierszaZam>1</NrWierszaZam>
+                <P_7Z>Dostawa towaru — zaliczka</P_7Z>
+                <IndeksZ>IDX-0042</IndeksZ>
+                <P_8AZ>szt.</P_8AZ>
+                <P_8BZ>10</P_8BZ>
+                <P_9AZ>100.00</P_9AZ>
+                <P_11NettoZ>1000.00</P_11NettoZ>
+                <P_11VatZ>230.00</P_11VatZ>
+                <P_12Z>23</P_12Z>
+                <StanPrzedZ>1</StanPrzedZ>
+            </ZamowienieWiersz>
+            <ZamowienieWiersz>
+                <NrWierszaZam>1</NrWierszaZam>
+                <P_7Z>Dostawa towaru — zaliczka</P_7Z>
+                <IndeksZ>IDX-0042</IndeksZ>
+                <P_8AZ>szt.</P_8AZ>
+                <P_8BZ>10</P_8BZ>
+                <P_9AZ>100.00</P_9AZ>
+                <P_11NettoZ>1000.00</P_11NettoZ>
+                <P_11VatZ>230.00</P_11VatZ>
+                <P_12Z>23</P_12Z>
+            </ZamowienieWiersz>
+        </Zamowienie>
+    </Fa>
+</Faktura>

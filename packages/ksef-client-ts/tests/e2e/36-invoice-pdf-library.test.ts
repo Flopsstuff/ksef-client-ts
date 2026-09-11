@@ -56,7 +56,7 @@ const fx = (name: string) => join(fixtures, name);
 const bytes = (name: string) => new Uint8Array(readFileSync(fx(name)));
 const text = (name: string) => readFileSync(fx(name), 'utf-8');
 
-const KSEF_NUMBER = '1111111111-20260115-010000000000-00';
+const KSEF_NUMBER = '1111111111-20260115-010000000000-D3';
 const LOGO = `data:image/png;base64,${readFileSync(fx('e2e-logo.png')).toString('base64')}`;
 
 function isCompletePdf(file: string): boolean {
