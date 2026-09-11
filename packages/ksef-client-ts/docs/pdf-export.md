@@ -261,7 +261,7 @@ The schema defines the second outright: *«różnica kwoty w polu P_15 i sumy po
 
 The same applies to an invoice being paid down: nothing states what has been paid or what is left, so the built-in templates compute both with `sumFrom` and `less`, gated on `paidInPart`. The built-in templates list one row per reading and print the settled payable alongside it when the document states one; a custom template that binds `Fa.P_15` unconditionally should gate it the same way.
 
-An advance invoice (`RodzajFaktury` `ZAL`, and the `KOR_ZAL` that corrects one) records the goods and services it covers under `Fa.Zamowienie`, and may carry no `Fa.FaWiersz` at all. A repeater with no entries still draws its header row, so a template that binds both gives each one a `when` — this is what the built-in templates do, and it is why an advance invoice shows its order rows under their own heading instead of an empty item table.
+An advance invoice (`RodzajFaktury` `ZAL`) records the goods and services it covers under `Fa.Zamowienie`, and may carry no `Fa.FaWiersz` at all; so does the `KOR_ZAL` that corrects one, which is a correction rather than an advance invoice. A repeater with no entries still draws its header row, so a template that binds both gives each one a `when` — this is what the built-in templates do, and it is why an advance invoice shows its order rows under their own heading instead of an empty item table.
 
 ### Correcting invoices
 
