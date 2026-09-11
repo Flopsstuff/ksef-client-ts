@@ -37,13 +37,16 @@ const KSEF_NUMBER = '1111111111-20260115-010000000000-00';
 
 /**
  * The chain pages carry their own numbers: 07 names 06's in
- * `FakturaZaliczkowa`, and 09 names 08's, so the link between two pages of one
+ * `FakturaZaliczkowa`, and 11 names 09's, so the link between two pages of one
  * deal is visible on paper rather than asserted only in a fixture comment.
  */
 const KSEF_ZAL_A = '1111111111-20250115-010000000000-A1';
 const KSEF_ROZ_A = '1111111111-20250210-010000000000-A2';
 const KSEF_ZAL_B = '1111111111-20250312-020000000000-B2';
 const KSEF_ROZ_B = '1111111111-20250408-020000000000-B3';
+const KSEF_KOR_ROZ_A = '1111111111-20250220-010000000000-A3';
+const KSEF_KOR_ZAL_B = '1111111111-20250320-020000000000-B4';
+const KSEF_KOR_C = '1111111111-20250203-030000000000-C1';
 
 /**
  * The QR group renders against TEST — the environment the rest of this suite
@@ -214,20 +217,21 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
       '--notes', notesFile, '--template-file', oldTotalsTemplate,
     ]],
     // Beyond the grid the pages come in *chains*, numbered so one deal runs from
-    // page to page. Each chain is two documents and no more: an advance invoice
-    // and the settlement that closes it, for a different buyer and a different
-    // amount each time, with dates that only ever move forward.
+    // page to page. Each chain is an advance invoice, the settlement that closes
+    // it and a correction of one of the two, for a different buyer and a
+    // different amount each time, with dates that only ever move forward.
     //
-    //   06 → 07   Nabywca Przykładowy S.A.      order 615,00    remainder STATED
-    //   08 → 09   Odbiorca Handlowy Sp. z o.o.  order 1 230,00  remainder COMPUTED
+    //   06 → 07 → 08   Nabywca Przykładowy S.A.      order 615,00    remainder STATED,   then a discount
+    //   09 → 10 → 11   Odbiorca Handlowy Sp. z o.o.  order 1 230,00  addresses corrected, remainder COMPUTED
+    //   02 → 12        Nabywca Przykładowy S.A.      one item of five returned
     //
     // Chain B renders in English. The document data stays Polish — labels are
-    // what a locale switches — so the pair doubles as proof that every label
+    // what a locale switches — so the trio doubles as proof that every label
     // this story added has an English word behind it, not only a Polish one.
     //
     // The two chains exist because the FA schemas let a settlement invoice
     // state what is left in either of two ways, and the pages have to be right
-    // for both. 10, 11 and 12 then stand alone: an ordinary invoice being paid
+    // for both. 13, 14 and 15 then stand alone: an ordinary invoice being paid
     // down, one that has been overpaid, and one whose notes each carry only
     // half of what a note can carry.
 
@@ -251,58 +255,85 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
       fx('fa3-roz.xml'), '--ksef-number', KSEF_ROZ_A,
       '--env', 'test', '--qr', '--totals', 'both',
     ]],
-    // 08 — chain B, a different buyer and a different deal: order 1 230,00,
+    // 08 — chain A, a correction of 07 (KOR_ROZ): a 10% post-sale discount as
+    // one delta line. `P_15` is -61,50 and is labelled a correction amount,
+    // not an amount due; `P_15ZK` restates the 165,00 that was left before it.
+    // Rendered with `--totals both` like 07, to show that the settlement
+    // bridge is *not* drawn on a correction: its lines are deltas, not the
+    // whole order.
+    [`${PREFIX}-08-chain-a-settlement-correction`, () => [
+      fx('fa3-kor-roz.xml'), '--ksef-number', KSEF_KOR_ROZ_A,
+      '--env', 'test', '--qr', '--totals', 'both',
+    ]],
+    // 09 — chain B, a different buyer and a different deal: order 1 230,00,
     // advance 800,00 received in March.
-    [`${PREFIX}-08-chain-b-advance`, () => [
+    [`${PREFIX}-09-chain-b-advance`, () => [
       fx('fa3-zal-b.xml'), '--ksef-number', KSEF_ZAL_B, '--locale', 'en',
       '--env', 'test', '--qr', '--totals', 'buckets',
     ]],
-    // 09 — chain B's settlement, which states the payments it received instead
-    // of leaving them on 08. So `P_15` is the whole 1 230,00 and what is owed is
+    // 10 — chain B, a correction of 09 (KOR_ZAL) that changes nothing about the
+    // money: both addresses were wrong. The page shows the parties as they
+    // stood beside the parties as corrected, a zero correction amount, and the
+    // 800,00 received before it. No line items and no order table.
+    [`${PREFIX}-10-chain-b-advance-correction`, () => [
+      fx('fa3-kor-zal.xml'), '--ksef-number', KSEF_KOR_ZAL_B, '--locale', 'en',
+      '--env', 'test', '--qr', '--totals', 'buckets',
+    ]],
+    // 11 — chain B's settlement, which states the payments it received instead
+    // of leaving them on 09. So `P_15` is the whole 1 230,00 and what is owed is
     // the difference the schema defines: `P_15` less the sum of the `P_15Z`
     // fields, 430,00. No field carries that number.
-    [`${PREFIX}-09-chain-b-settlement-computed`, () => [
+    [`${PREFIX}-11-chain-b-settlement-computed`, () => [
       fx('fa3-roz-b.xml'), '--ksef-number', KSEF_ROZ_B, '--locale', 'en',
       '--env', 'test', '--qr', '--totals', 'both',
     ]],
-    // 10 — standalone: an ordinary invoice being paid down, which is a
+    // 12 — a correction (KOR) of the ordinary invoice on page 02: one item of
+    // five returned, stated as a before/after pair of rows, so the page draws
+    // two item tables under their own headings. Bilingual, so the correction
+    // labels are checked in both languages on one page, and `--totals summary`
+    // so the negative net and VAT totals are on it too.
+    [`${PREFIX}-12-invoice-correction-bilingual`, () => [
+      fx('fa3-kor.xml'), '--ksef-number', KSEF_KOR_C, '--locale', 'pl+en',
+      '--env', 'test', '--qr', '--totals', 'summary',
+    ]],
+    // 13 — standalone: an ordinary invoice being paid down, which is a
     // different thing from an advance and reads differently. `Platnosc` takes
     // the branch no other page reaches (no `Zaplacono`, a partial marker, one
     // `ZaplataCzesciowa` per instalment), and the parts deliberately do *not*
     // add up to the total — that is what "paid in part" means.
-    [`${PREFIX}-10-partial-payments`, () => [
+    [`${PREFIX}-13-partial-payments`, () => [
       fx('fa3-czesciowa.xml'), '--ksef-number', KSEF_NUMBER,
       '--env', 'test', '--qr', '--totals', 'buckets',
     ]],
-    // 11 — standalone, the opposite end of the same branch: `Rozliczenie`
+    // 14 — standalone, the opposite end of the same branch: `Rozliczenie`
     // states a `DoRozliczenia` overpayment rather than a `DoZaplaty`. Nothing
     // is owed, so nothing on the page may ask for payment.
-    [`${PREFIX}-11-overpayment`, () => [
+    [`${PREFIX}-14-overpayment`, () => [
       fx('fa3-nadplata.xml'), '--ksef-number', KSEF_NUMBER,
       '--env', 'test', '--qr', '--totals', 'buckets',
     ]],
-    // 12 — the notes flag, given a note with only a head and one with only a
+    // 15 — the notes flag, given a note with only a head and one with only a
     // body. The renderer prints whichever half a note carries, and the docs say
     // so, so the flag has to accept the same shape the library does: a CLI
     // stricter than the API it fronts rejects input the user was told was
     // valid. It is a page rather than an assertion because what a half-note
     // looks like — a heading with nothing under it, a paragraph with nothing
     // over it — is a layout question, and those are settled by eye here.
-    [`${PREFIX}-12-notes-one-sided`, () => [fx('fa3.xml'), '--notes', oneSidedNotes]],
-    // 13 — not a document shape but a template: `fa3-showcase` exists to
+    [`${PREFIX}-15-notes-one-sided`, () => [fx('fa3.xml'), '--notes', oneSidedNotes]],
+    // 16 — not a document shape but a template: `fa3-showcase` exists to
     // exercise the DSL (palette, letter spacing, highlighted text, colour bars
     // drawn as data-URI images), rendered with everything switched on so a DSL
     // change that breaks it is visible rather than discovered by a reader. It
     // carries the accent in its short hex form, and so is the page that shows
     // whether an accent wins over a template's own palette.
-    [`${PREFIX}-13-showcase-template-accent`, () => [
+    [`${PREFIX}-16-showcase-template-accent`, () => [
       fx('e2e-vat-multi.xml'), '--template', 'fa3-showcase', ...LOGO(),
       '--env', 'test', '--qr', '--qr-cert-url', certificateQrUrl, '--qr-links',
       '--totals', 'summary', '--notes', notesFile, '--accent', ACCENT_SHORT,
     ]],
     // Receipts last: they are a different document and read as their own group.
-    [`${PREFIX}-14-upo-pl`, () => [fx('upo-4_3.xml')]],
-    [`${PREFIX}-15-upo-five-documents-bilingual`, () => [multiDocumentUpo, '--locale', 'en+pl']],
+    [`${PREFIX}-17-upo-pl`, () => [fx('upo-4_3.xml')]],
+    [`${PREFIX}-18-upo-five-documents-bilingual`, () => [multiDocumentUpo, '--locale', 'en+pl']],
   ];
 
   /**
@@ -321,10 +352,13 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
       // So does an invoice settled in instalments.
       'fa3-zal.xml', 'fa3-roz.xml', 'fa3-zal-b.xml', 'fa3-roz-b.xml',
       'fa3-czesciowa.xml', 'fa3-nadplata.xml', 'upo-4_3.xml',
+      // A correction reaches the branches no other kind does — the corrected
+      // invoices, the before/after tables, the parties before — one per kind.
+      'fa3-kor.xml', 'fa3-kor-zal.xml', 'fa3-kor-roz.xml',
     ]) {
       expect(covered(doc), `no variant renders ${doc}`).toBe(true);
     }
-    for (const locale of ['en', 'uk', 'en+pl', 'pl+uk']) {
+    for (const locale of ['en', 'uk', 'en+pl', 'pl+en', 'pl+uk']) {
       expect(covered(`--locale ${locale}`), `no variant renders in ${locale}`).toBe(true);
     }
     for (const totals of ['none', 'buckets', 'summary', 'both']) {
@@ -364,7 +398,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
   it('renders every variant of the set', () => {
     // Guards against a variant being silently dropped from the table above:
     // the count is stated here so removing a row has to be deliberate.
-    expect(variants).toHaveLength(15);
+    expect(variants).toHaveLength(18);
     for (const [name] of variants) {
       expect(existsSync(join(outDir, `${name}.pdf`)), `${name}.pdf missing`).toBe(true);
     }
@@ -384,7 +418,7 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     expect(existsSync(out)).toBe(false);
   });
 
-  // Page 12 renders the note shapes the flag accepts; these two pin what it
+  // Page 15 renders the note shapes the flag accepts; these two pin what it
   // still refuses, which writes no file at all.
   it('still refuses a note entry that carries neither half', () => {
     const empty = join(inputsDir, `${PREFIX}-notes-empty-entry.json`);
