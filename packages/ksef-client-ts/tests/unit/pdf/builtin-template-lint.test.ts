@@ -78,11 +78,12 @@ interface CollectedPaths {
    */
   itemAlternatives: Array<{ from: string; paths: string[] }>;
   /**
-   * `where` / `whereNot` filters on a repeater, as the collection and the
-   * item-relative path — some entry of some fixture must carry the path, or the
-   * filter matches nothing and a typo hides a whole table.
+   * `where` / `whereNot` filters on a repeater, as the collection, the
+   * item-relative path and the polarity — some entry of some fixture must
+   * carry the path (or lack it, for `whereNot`), or the filter matches nothing
+   * and a typo hides a whole table.
    */
-  filters: Array<{ from: string; path: string }>;
+  filters: Array<{ from: string; path: string; negate: boolean }>;
 }
 
 function collect(
@@ -110,9 +111,8 @@ function collect(
     if (block.type === 'table' && block.from !== undefined) acc.repeaters.push(block.from);
     if (block.type === 'each') acc.repeaters.push(block.from);
     if ((block.type === 'lines' || block.type === 'table' || block.type === 'each') && block.from !== undefined) {
-      for (const path of [block.where, block.whereNot]) {
-        if (path !== undefined) acc.filters.push({ from: block.from, path });
-      }
+      if (block.where !== undefined) acc.filters.push({ from: block.from, path: block.where, negate: false });
+      if (block.whereNot !== undefined) acc.filters.push({ from: block.from, path: block.whereNot, negate: true });
     }
     if (block.type === 'payment') {
       for (const group of block.groups ?? []) acc.repeaters.push(group.from);
@@ -218,7 +218,8 @@ describe('built-in template lint', () => {
     const roots = bodiesOf(name);
     const { filters } = collect(getBuiltinTemplate(name)!.blocks);
     const dead = filters.filter(
-      ({ from, path }) => !roots.some((root) => list(root, from).some((entry) => has(entry, path))),
+      ({ from, path, negate }) =>
+        !roots.some((root) => list(root, from).some((entry) => (negate ? !has(entry, path) : has(entry, path)))),
     );
     expect(dead).toEqual([]);
   });
@@ -263,8 +264,9 @@ describe('built-in template lint', () => {
     expect(fa3.repeaters).toContain('Fa.Podmiot2K');
     expect(fa3.conditions).toContain('Fa.Podmiot2K');
     expect(fa3.repeaters).toContain('Fa.DodatkowyOpis');
-    expect(fa3.filters).toContainEqual({ from: 'Fa.FaWiersz', path: 'StanPrzed' });
-    expect(fa3.filters).toContainEqual({ from: 'Fa.Zamowienie.ZamowienieWiersz', path: 'StanPrzedZ' });
+    expect(fa3.filters).toContainEqual({ from: 'Fa.FaWiersz', path: 'StanPrzed', negate: false });
+    expect(fa3.filters).toContainEqual({ from: 'Fa.FaWiersz', path: 'StanPrzed', negate: true });
+    expect(fa3.filters).toContainEqual({ from: 'Fa.Zamowienie.ZamowienieWiersz', path: 'StanPrzedZ', negate: false });
   });
 
   it('fails a template whose `when` path is misspelled', () => {
