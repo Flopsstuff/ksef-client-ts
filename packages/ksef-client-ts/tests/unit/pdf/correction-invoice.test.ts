@@ -255,11 +255,30 @@ describe.each(['fa2-default', 'fa3-default'])('%s prints what a correction chang
     expect(out).toContain('4,25');
   });
 
-  it('prints the additional key/value notes the invoice carries', () => {
-    const out = render(name, fx(`${fa}-kor.xml`));
+  it('prints the additional key/value notes the invoice carries, with the line they refer to', () => {
+    const doc = docOf(name, fx(`${fa}-kor.xml`));
+    const out = texts(doc);
     expect(out).toContain('Dodatkowe informacje');
     expect(out).toContain('Numer zgłoszenia zwrotu');
     expect(out).toContain('RMA/2025/0007');
+    // A note may refer to one invoice line (NrWiersza); the number leads the
+    // row, and a document-wide note leaves that cell empty.
+    const rows: Array<Array<{ text?: string }>> = [];
+    const walk = (value: unknown): void => {
+      if (Array.isArray(value)) return value.forEach(walk);
+      if (value === null || typeof value !== 'object') return;
+      const node = value as Record<string, unknown>;
+      const table = node.table as { body?: Array<Array<{ text?: string }>> } | undefined;
+      if (table?.body) rows.push(...table.body);
+      Object.values(node).forEach(walk);
+    };
+    walk(doc.content);
+    const note = rows.find((row) => row.some((cell) => cell.text === 'Numer zgłoszenia zwrotu'))!;
+    expect(note[0]!.text).toBe('1');
+    const general = docOf(name, fx(`${fa}-kor.xml`).replace('<NrWiersza>1</NrWiersza>\n', ''));
+    rows.length = 0;
+    walk(general.content);
+    expect(rows.find((row) => row.some((cell) => cell.text === 'Numer zgłoszenia zwrotu'))![0]!.text).toBe('');
     expect(render(name, fx(`${fa}.xml`))).not.toContain('Dodatkowe informacje');
   });
 });

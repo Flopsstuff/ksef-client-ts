@@ -599,6 +599,7 @@
           "from": "Fa.DodatkowyOpis",
           "headers": false,
           "columns": [
+            { "label": "lp", "path": "NrWiersza", "optional": true, "width": 24 },
             { "label": "key", "path": "Klucz", "width": "auto" },
             { "label": "value", "path": "Wartosc", "width": "*" }
           ]

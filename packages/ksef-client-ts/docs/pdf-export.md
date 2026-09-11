@@ -276,7 +276,7 @@ A correction (`KOR`), a correction of an advance invoice (`KOR_ZAL`) or of a set
 
 The settlement bridge (`Wartość zamówienia netto` / `Rozliczono zaliczkami`) is not drawn on a `KOR_ROZ`: it assumes the lines state the whole order, and a correction's lines are deltas or before/after states.
 
-Two things a correction commonly carries are printed for every invoice: the free-form `Fa.DodatkowyOpis` key/value pairs, under `Dodatkowe informacje` after the payment block, and — as before — the caller's own `notes`.
+Two things a correction commonly carries are printed for every invoice: the free-form `Fa.DodatkowyOpis` key/value pairs, under `Dodatkowe informacje` after the payment block — each led by the number of the invoice line it refers to (`NrWiersza`) when it refers to one — and, as before, the caller's own `notes`.
 
 ### Bindings, labels, conditions, and formats
 
