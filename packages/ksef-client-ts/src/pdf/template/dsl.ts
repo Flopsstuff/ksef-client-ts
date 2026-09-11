@@ -195,6 +195,14 @@ export interface PartyGroup {
 export interface PartyColumn {
   label: string;
   /**
+   * Hide this panel when the condition does not hold. The two panels of a
+   * block are otherwise always drawn; a correction restates the seller or the
+   * buyer as they stood, and either one independently, so a panel over a
+   * party the document does not restate would be a heading over nothing. A
+   * hidden panel keeps its lane empty so the other stays in place.
+   */
+  when?: string;
+  /**
    * Style for the panel's own value lines — the counterparty's identity, since
    * everything below it lives in a labelled group. A group without a `style` of
    * its own inherits this one, so a panel styles uniformly by default and a
@@ -206,6 +214,7 @@ export interface PartyColumn {
 
 export interface PartiesBlock {
   type: 'parties';
+  when?: string;
   left: PartyColumn;
   right: PartyColumn;
   /** See {@link HEADING_STYLE_DOC}. The panel labels only, not the group labels. */
@@ -224,6 +233,16 @@ export interface LinesBlock {
    * disappear when the document does not use it.
    */
   when?: string;
+  /**
+   * Keep only the entries where this item-relative path is present (`where`)
+   * or absent (`whereNot`); both may be given. A correction may list its line
+   * items as before/after pairs, the rows as they were marked `StanPrzed`, and
+   * one table cannot show both states without reading as duplicates — so the
+   * built-in templates draw two, one filtered each way, under their own
+   * headings.
+   */
+  where?: string;
+  whereNot?: string;
   columns: ColumnDef[];
   style?: string;
 }
@@ -479,6 +498,9 @@ export interface StackBlock {
 export interface EachBlock {
   type: 'each';
   from: string;
+  /** See {@link LinesBlock.where}. */
+  where?: string;
+  whereNot?: string;
   blocks: Block[];
   separator?: boolean;
   when?: string;
@@ -488,6 +510,9 @@ export interface EachBlock {
 export interface TableBlock {
   type: 'table';
   from?: string;
+  /** See {@link LinesBlock.where}. Only meaningful with `from`. */
+  where?: string;
+  whereNot?: string;
   columns: ColumnDef[];
   headers?: boolean;
   when?: string;
@@ -582,7 +607,7 @@ const partyField: z.ZodType<PartyField> = z.lazy(() =>
   ]),
 );
 const partyColumn = z
-  .object({ label: z.string(), style: z.string().optional(), fields: z.array(partyField) })
+  .object({ label: z.string(), when: z.string().optional(), style: z.string().optional(), fields: z.array(partyField) })
   .strict();
 const fieldDef = z
   .object({
@@ -654,6 +679,7 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
     }).strict(),
     z.object({
       type: z.literal('parties'),
+      when: z.string().optional(),
       left: partyColumn,
       right: partyColumn,
       headingStyle: z.string().optional(),
@@ -663,6 +689,8 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
       type: z.literal('lines'),
       from: z.string(),
       when: z.string().optional(),
+      where: z.string().optional(),
+      whereNot: z.string().optional(),
       columns: z.array(columnDef),
       style: z.string().optional(),
     }).strict(),
@@ -757,6 +785,8 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({
       type: z.literal('each'),
       from: z.string(),
+      where: z.string().optional(),
+      whereNot: z.string().optional(),
       blocks: z.array(blockSchema),
       separator: z.boolean().optional(),
       when: z.string().optional(),
@@ -765,6 +795,8 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({
       type: z.literal('table'),
       from: z.string().optional(),
+      where: z.string().optional(),
+      whereNot: z.string().optional(),
       columns: z.array(columnDef),
       headers: z.boolean().optional(),
       when: z.string().optional(),

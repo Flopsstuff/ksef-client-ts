@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Chain B, step 2 of 2. Synthetic, fully anonymous FA(2) settlement invoice (ROZ, art. 106f ust. 3),
-     closing fa2-zal-b.xml, which had invoiced 800,00 of a 1 230,00 order.
-     This one covers the remaining 430,00 (349,59 net + 80,41 VAT) and *itself* documents one
-     further payment received before delivery — 250,00 on 01.04. So what is still owed is the
-     difference the schema defines, P_15 less the sum of the P_15Z fields: 180,00.
-     The seller's address is the one the correction of the advance invoice
-     (fa2-kor-zal.xml) put right. Remainder COMPUTED. No real taxpayer data. -->
+<!-- Chain A, correction of fa2-roz.xml (KOR_ROZ): a 10% post-sale discount on the
+     500,00 net order, stated as one delta line (-50,00 net, 23%). The tax summary
+     and P_15 carry the difference only: -50,00 net, -11,50 VAT, -61,50 in all.
+     P_15ZK restates the 165,00 that was left to pay before this correction; what
+     is left after it (103,50) is stated nowhere — the schema has no field for it.
+     Synthetic, fully anonymous FA(2) fixture. No real taxpayer data. -->
 <Faktura xmlns="http://crd.gov.pl/wzor/2023/06/29/12648/"
          xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <Naglowek>
         <KodFormularza kodSystemowy="FA (2)" wersjaSchemy="1-0E">FA</KodFormularza>
         <WariantFormularza>2</WariantFormularza>
-        <DataWytworzeniaFa>2025-04-08T10:00:00Z</DataWytworzeniaFa>
+        <DataWytworzeniaFa>2025-02-20T10:00:00Z</DataWytworzeniaFa>
         <SystemInfo>anonymous test fixture</SystemInfo>
     </Naglowek>
     <Podmiot1>
@@ -22,8 +21,8 @@
         </DaneIdentyfikacyjne>
         <Adres>
             <KodKraju>PL</KodKraju>
-            <AdresL1>ul. Nowa 8</AdresL1>
-            <AdresL2>00-003 Warszawa</AdresL2>
+            <AdresL1>ul. Przykładowa 1</AdresL1>
+            <AdresL2>00-001 Warszawa</AdresL2>
         </Adres>
         <DaneKontaktowe>
             <Email>kontakt@sprzedawca.example</Email>
@@ -32,29 +31,29 @@
     </Podmiot1>
     <Podmiot2>
         <DaneIdentyfikacyjne>
-            <NIP>5555555555</NIP>
-            <Nazwa>Odbiorca Handlowy Sp. z o.o.</Nazwa>
+            <NIP>2222222222</NIP>
+            <Nazwa>Nabywca Przykładowy S.A.</Nazwa>
         </DaneIdentyfikacyjne>
         <Adres>
             <KodKraju>PL</KodKraju>
-            <AdresL1>ul. Morska 17</AdresL1>
-            <AdresL2>81-001 Gdynia</AdresL2>
+            <AdresL1>ul. Testowa 2</AdresL1>
+            <AdresL2>00-002 Kraków</AdresL2>
         </Adres>
         <DaneKontaktowe>
-            <Email>zakupy@odbiorca.example</Email>
-            <Telefon>+48000000005</Telefon>
-            <NrKlienta>KL-0042</NrKlienta>
+            <Email>kontakt@nabywca.example</Email>
+            <Telefon>+48000000002</Telefon>
+            <NrKlienta>KL-0001</NrKlienta>
         </DaneKontaktowe>
     </Podmiot2>
     <Fa>
         <KodWaluty>PLN</KodWaluty>
-        <P_1>2025-04-08</P_1>
+        <P_1>2025-02-20</P_1>
         <P_1M>Warszawa</P_1M>
-        <P_2>ROZ/2025/04/007</P_2>
-        <P_6>2025-04-02</P_6>
-        <P_13_1>349.59</P_13_1>
-        <P_14_1>80.41</P_14_1>
-        <P_15>430.00</P_15>
+        <P_2>KOR/2025/02/003</P_2>
+        <P_6>2025-02-05</P_6>
+        <P_13_1>-50.00</P_13_1>
+        <P_14_1>-11.50</P_14_1>
+        <P_15>-61.50</P_15>
         <Adnotacje>
             <P_16>2</P_16>
             <P_17>2</P_17>
@@ -71,26 +70,31 @@
                 <P_PMarzyN>1</P_PMarzyN>
             </PMarzy>
         </Adnotacje>
-        <RodzajFaktury>ROZ</RodzajFaktury>
-        <ZaliczkaCzesciowa>
-            <P_6Z>2025-04-01</P_6Z>
-            <P_15Z>250.00</P_15Z>
-        </ZaliczkaCzesciowa>
+        <RodzajFaktury>KOR_ROZ</RodzajFaktury>
+        <PrzyczynaKorekty>Rabat posprzedażowy 10% wartości zamówienia netto</PrzyczynaKorekty>
+        <TypKorekty>2</TypKorekty>
+        <DaneFaKorygowanej>
+            <DataWystFaKorygowanej>2025-02-10</DataWystFaKorygowanej>
+            <NrFaKorygowanej>ROZ/2025/02/001</NrFaKorygowanej>
+            <NrKSeF>1</NrKSeF>
+            <NrKSeFFaKorygowanej>1111111111-20250210-010000000000-A2</NrKSeFFaKorygowanej>
+        </DaneFaKorygowanej>
+        <P_15ZK>165.00</P_15ZK>
         <FakturaZaliczkowa>
-            <NrKSeFFaZaliczkowej>1111111111-20250312-020000000000-B2</NrKSeFFaZaliczkowej>
+            <NrKSeFFaZaliczkowej>1111111111-20250115-010000000000-A1</NrKSeFFaZaliczkowej>
         </FakturaZaliczkowa>
         <FaWiersz>
             <NrWierszaFa>1</NrWierszaFa>
-            <P_7>Dostawa towaru</P_7>
+            <P_7>Rabat 10% — Usługa przykładowa</P_7>
             <P_8A>szt.</P_8A>
-            <P_8B>10</P_8B>
-            <P_9A>100.00</P_9A>
-            <P_11>1000.00</P_11>
+            <P_8B>1</P_8B>
+            <P_9A>-50.00</P_9A>
+            <P_11>-50.00</P_11>
             <P_12>23</P_12>
         </FaWiersz>
         <Platnosc>
             <TerminPlatnosci>
-                <Termin>2025-04-22</Termin>
+                <Termin>2025-03-06</Termin>
             </TerminPlatnosci>
             <FormaPlatnosci>6</FormaPlatnosci>
             <RachunekBankowy>

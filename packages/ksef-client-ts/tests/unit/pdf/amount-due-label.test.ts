@@ -164,8 +164,12 @@ describe('which reading of P_15 a document supports', () => {
     const flags = p15Flags((parseXmlForPdf(settled) as Record<string, unknown>).Faktura);
     expect(flags.p15IsCorrection).toBe(true);
     expect(flags.p15IsAmountTotal).toBe(false);
-    const korZal = fx('fa3-zal.xml').replace('<RodzajFaktury>ZAL<', '<RodzajFaktury>KOR_ZAL<');
-    expect(p15Flags((parseXmlForPdf(korZal) as Record<string, unknown>).Faktura).p15IsAdvancePaid).toBe(false);
+    for (const fixture of ['fa3-kor-zal.xml', 'fa3-kor-roz.xml']) {
+      const flags = p15Flags((parseXmlForPdf(fx(fixture)) as Record<string, unknown>).Faktura);
+      expect(flags.p15IsCorrection, fixture).toBe(true);
+      expect(flags.p15IsAdvancePaid, fixture).toBe(false);
+      expect(flags.p15IsRemainder, fixture).toBe(false);
+    }
   });
 });
 
@@ -189,13 +193,11 @@ describe.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s names the docu
     expect(render(name, fx(`${fa}-kor.xml`))).toContain('Faktura korygująca');
     // KOR_ZAL corrects an advance invoice; it is not one, and the heading
     // must say neither "Faktura" nor "Faktura zaliczkowa".
-    const korZal = fx(`${fa}-zal.xml`).replace('<RodzajFaktury>ZAL<', '<RodzajFaktury>KOR_ZAL<');
-    const out = render(name, korZal);
+    const out = render(name, fx(`${fa}-kor-zal.xml`));
     expect(out).toContain('Korekta faktury zaliczkowej');
     expect(out).not.toContain('Faktura');
     expect(out).not.toContain('Faktura zaliczkowa');
-    const korRoz = fx(`${fa}-roz.xml`).replace('<RodzajFaktury>ROZ<', '<RodzajFaktury>KOR_ROZ<');
-    expect(render(name, korRoz)).toContain('Korekta faktury rozliczającej');
+    expect(render(name, fx(`${fa}-kor-roz.xml`))).toContain('Korekta faktury rozliczającej');
   });
 });
 

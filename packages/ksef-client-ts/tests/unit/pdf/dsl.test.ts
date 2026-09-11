@@ -248,6 +248,31 @@ describe('correction-era additions stay strict', () => {
     ).not.toThrow();
   });
 
+  it('accepts where / whereNot on the three repeaters, and when on a party panel', () => {
+    expect(() =>
+      validateTemplate(
+        template([
+          { type: 'lines', from: 'Fa.FaWiersz', where: 'StanPrzed', columns: [{ label: 'lp', path: 'NrWierszaFa' }] },
+          { type: 'lines', from: 'Fa.FaWiersz', whereNot: 'StanPrzed', columns: [{ label: 'lp', path: 'NrWierszaFa' }] },
+          { type: 'table', from: 'Fa.X', where: 'A', whereNot: 'B', columns: [{ label: 'x', path: 'X' }] },
+          { type: 'each', from: 'Fa.X', whereNot: 'B', blocks: [{ type: 'text', path: 'X' }] },
+          {
+            type: 'parties',
+            when: 'partiesBefore',
+            left: { label: 'sellerBefore', when: 'Fa.Podmiot1K', fields: ['Fa.Podmiot1K.DaneIdentyfikacyjne.Nazwa'] },
+            right: { label: 'buyerBefore', when: 'Fa.Podmiot2K', fields: [] },
+          },
+        ]),
+      ),
+    ).not.toThrow();
+  });
+
+  it('keeps a filter off the blocks that do not repeat', () => {
+    expect(() =>
+      validateTemplate(template([{ type: 'totals', where: 'StanPrzed', rows: [] }])),
+    ).toThrow(KSeFValidationError);
+  });
+
   it('still rejects an unknown key next to the new ones', () => {
     expect(() =>
       validateTemplate(template([{ type: 'annotations', heading: 'correction', bogus: 1, fields: [] }])),

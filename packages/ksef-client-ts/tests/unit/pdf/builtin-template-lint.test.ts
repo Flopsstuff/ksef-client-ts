@@ -32,12 +32,12 @@ const FIXTURES_BY_TEMPLATE: Record<string, string[]> = {
   'fa2-default': [
     'pdf/fa2.xml', 'pdf/fa2-zal.xml', 'pdf/fa2-rozliczenie.xml', 'pdf/fa2-czesciowa.xml',
     'pdf/fa2-roz.xml', 'pdf/fa2-zal-b.xml', 'pdf/fa2-roz-b.xml', 'pdf/fa2-nadplata.xml',
-    'pdf/fa2-kor.xml',
+    'pdf/fa2-kor.xml', 'pdf/fa2-kor-zal.xml', 'pdf/fa2-kor-roz.xml',
   ],
   'fa3-default': [
     'pdf/fa3.xml', 'pdf/fa3-zal.xml', 'pdf/fa3-rozliczenie.xml', 'pdf/fa3-czesciowa.xml',
     'pdf/fa3-roz.xml', 'pdf/fa3-zal-b.xml', 'pdf/fa3-roz-b.xml', 'pdf/fa3-nadplata.xml',
-    'pdf/fa3-kor.xml',
+    'pdf/fa3-kor.xml', 'pdf/fa3-kor-zal.xml', 'pdf/fa3-kor-roz.xml',
   ],
   'fa3-showcase': [
     'pdf/fa3.xml', 'pdf/fa3-rozliczenie.xml', 'pdf/fa3-czesciowa.xml', 'pdf/fa3-zal.xml',
@@ -72,11 +72,17 @@ interface CollectedPaths {
   repeaters: string[];
   /** `firstOf` alternative sets, as paths — at least one member must resolve. */
   alternatives: string[][];
+  /**
+   * `where` / `whereNot` filters on a repeater, as the collection and the
+   * item-relative path — some entry of some fixture must carry the path, or the
+   * filter matches nothing and a typo hides a whole table.
+   */
+  filters: Array<{ from: string; path: string }>;
 }
 
 function collect(
   blocks: Block[],
-  acc: CollectedPaths = { conditions: [], repeaters: [], alternatives: [] },
+  acc: CollectedPaths = { conditions: [], repeaters: [], alternatives: [], filters: [] },
 ): CollectedPaths {
   for (const block of blocks) {
     const when = (block as { when?: string }).when;
@@ -98,11 +104,21 @@ function collect(
     if (block.type === 'lines') acc.repeaters.push(block.from);
     if (block.type === 'table' && block.from !== undefined) acc.repeaters.push(block.from);
     if (block.type === 'each') acc.repeaters.push(block.from);
+    if ((block.type === 'lines' || block.type === 'table' || block.type === 'each') && block.from !== undefined) {
+      for (const path of [block.where, block.whereNot]) {
+        if (path !== undefined) acc.filters.push({ from: block.from, path });
+      }
+    }
     if (block.type === 'payment') {
       for (const group of block.groups ?? []) acc.repeaters.push(group.from);
       for (const row of block.rows) if (row.from !== undefined) acc.repeaters.push(row.from);
     }
     if (block.type === 'parties') {
+      // A panel's own `when` gates the whole column, so it is a condition like
+      // any other.
+      for (const column of [block.left, block.right]) {
+        if (column.when !== undefined && !CONTEXT_CONDITIONS.has(column.when)) acc.conditions.push(column.when);
+      }
       const walkFields = (fields: PartyField[]): void => {
         for (const field of fields) {
           if (typeof field === 'string') continue;
@@ -176,6 +192,15 @@ describe('built-in template lint', () => {
     },
   );
 
+  it.each(Object.keys(FIXTURES_BY_TEMPLATE))('%s: every repeater filter matches some entry', (name) => {
+    const roots = bodiesOf(name);
+    const { filters } = collect(getBuiltinTemplate(name)!.blocks);
+    const dead = filters.filter(
+      ({ from, path }) => !roots.some((root) => list(root, from).some((entry) => has(entry, path))),
+    );
+    expect(dead).toEqual([]);
+  });
+
   it.each(['fa2-default', 'fa3-default'])(
     '%s: the amount due and at least one rate bucket resolve',
     (name) => {
@@ -205,8 +230,13 @@ describe('built-in template lint', () => {
     expect(fa3.repeaters).toContain('Fa.DaneFaKorygowanej');
     expect(collect(getBuiltinTemplate('upo-4_3')!.blocks).repeaters).toContain('Dokument');
     expect(collect(getBuiltinTemplate('upo-4_2')!.blocks).repeaters).toContain('Dokument');
-    expect(fa3.alternatives).toHaveLength(1);
+    // The buyer, and the buyer as they stood before a correction.
+    expect(fa3.alternatives).toHaveLength(2);
     expect(fa3.alternatives[0]).toContain('Podmiot2.DaneIdentyfikacyjne.NrID');
+    expect(fa3.alternatives[1]).toContain('Fa.Podmiot2K.DaneIdentyfikacyjne.NrID');
+    expect(fa3.conditions).toContain('Fa.Podmiot2K');
+    expect(fa3.repeaters).toContain('Fa.DodatkowyOpis');
+    expect(fa3.filters).toContainEqual({ from: 'Fa.FaWiersz', path: 'StanPrzed' });
   });
 
   it('fails a template whose `when` path is misspelled', () => {

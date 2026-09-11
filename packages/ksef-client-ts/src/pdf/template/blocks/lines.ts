@@ -1,4 +1,4 @@
-import { get, list } from '../../accessor.js';
+import { get, listWhere } from '../../accessor.js';
 import type { LinesBlock } from '../dsl.js';
 import { type BlockRenderer, type PdfNode } from '../interpret.js';
 import { buildCell, buildHeaderCell } from './cell.js';
@@ -11,7 +11,9 @@ import { buildCell, buildHeaderCell } from './cell.js';
  * reads its column path row-relative with {@link get} and applies the column's
  * formatter. With no entries only the header row is emitted. A column may also
  * carry `sub` fields, printed as one smaller line under the cell's value — see
- * {@link buildCell}.
+ * {@link buildCell}. `where` / `whereNot` narrow the entries to the ones that
+ * carry, or lack, an item-relative element — the before/after rows of a
+ * correction.
  *
  * Column widths come from the template (`'*'` when unset). Leaving them all
  * `'*'` is rarely right: pdfmake sizes star columns identically and never below
@@ -20,7 +22,7 @@ import { buildCell, buildHeaderCell } from './cell.js';
  */
 export const linesRenderer: BlockRenderer<LinesBlock> = (block, ctx) => {
   const headerRow: PdfNode[] = block.columns.map((c) => buildHeaderCell(c, ctx));
-  const bodyRows: PdfNode[][] = list(ctx.root, block.from).map((row) =>
+  const bodyRows: PdfNode[][] = listWhere(ctx.root, block.from, block.where, block.whereNot).map((row) =>
     block.columns.map((c) =>
       buildCell(c, (path, optional) => get(row, path, optional ? false : ctx.strict), ctx),
     ),

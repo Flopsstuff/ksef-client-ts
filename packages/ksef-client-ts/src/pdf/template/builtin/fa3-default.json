@@ -86,6 +86,56 @@
         ]
       }
     },
+    {
+      "type": "parties",
+      "when": "partiesBefore",
+      "headingStyle": "h1",
+      "left": {
+        "label": "sellerBefore",
+        "when": "Fa.Podmiot1K",
+        "style": "partyIdentity",
+        "fields": [
+          "Fa.Podmiot1K.DaneIdentyfikacyjne.Nazwa",
+          "Fa.Podmiot1K.DaneIdentyfikacyjne.NIP",
+          {
+            "label": "address",
+            "style": "partyDetails",
+            "fields": [
+              "Fa.Podmiot1K.Adres.AdresL1",
+              { "path": "Fa.Podmiot1K.Adres.AdresL2", "optional": true },
+              "Fa.Podmiot1K.Adres.KodKraju"
+            ]
+          }
+        ]
+      },
+      "right": {
+        "label": "buyerBefore",
+        "when": "Fa.Podmiot2K",
+        "style": "partyIdentity",
+        "fields": [
+          { "path": "Fa.Podmiot2K.DaneIdentyfikacyjne.Nazwa", "optional": true },
+          {
+            "firstOf": [
+              "Fa.Podmiot2K.DaneIdentyfikacyjne.NIP",
+              {
+                "path": "Fa.Podmiot2K.DaneIdentyfikacyjne.NrVatUE",
+                "prefixPath": "Fa.Podmiot2K.DaneIdentyfikacyjne.KodUE"
+              },
+              {
+                "path": "Fa.Podmiot2K.DaneIdentyfikacyjne.NrID",
+                "prefixPath": "Fa.Podmiot2K.DaneIdentyfikacyjne.KodKraju"
+              }
+            ]
+          },
+          {
+            "label": "address",
+            "from": "Fa.Podmiot2K.Adres",
+            "style": "partyDetails",
+            "fields": ["AdresL1", { "path": "AdresL2", "optional": true }, "KodKraju"]
+          }
+        ]
+      }
+    },
     { "type": "spacer", "height": 9 },
     {
       "type": "annotations",
@@ -122,10 +172,41 @@
         { "type": "spacer", "height": 9 }
       ]
     },
+    { "type": "text", "label": "linesBefore", "style": "h1", "when": "linesBefore" },
+    {
+      "type": "lines",
+      "when": "linesBefore",
+      "from": "Fa.FaWiersz",
+      "where": "StanPrzed",
+      "columns": [
+        { "label": "lp", "path": "NrWierszaFa", "width": 24 },
+        {
+          "label": "name",
+          "path": "P_7",
+          "width": "*",
+          "optional": true,
+          "subStyle": "lineMeta",
+          "sub": [
+            { "label": "pkwiu", "path": "PKWiU", "optional": true },
+            { "label": "indeks", "path": "Indeks", "optional": true },
+            { "label": "gtin", "path": "GTIN", "optional": true },
+            { "label": "cn", "path": "CN", "optional": true },
+            { "label": "pkob", "path": "PKOB", "optional": true }
+          ]
+        },
+        { "label": "unit", "path": "P_8A", "width": 24, "optional": true },
+        { "label": "qty", "path": "P_8B", "format": "number", "width": 24, "optional": true },
+        { "label": "unitPrice", "path": "P_9A", "format": "money", "width": 50, "optional": true },
+        { "label": "vatRate", "path": "P_12", "width": 50, "optional": true },
+        { "label": "net", "path": "P_11", "format": "money", "width": 60, "optional": true }
+      ]
+    },
+    { "type": "text", "label": "linesAfter", "style": "h1", "when": "linesBefore" },
     {
       "type": "lines",
       "when": "Fa.FaWiersz",
       "from": "Fa.FaWiersz",
+      "whereNot": "StanPrzed",
       "columns": [
         { "label": "lp", "path": "NrWierszaFa", "width": 24 },
         {
@@ -268,6 +349,9 @@
           "less": { "sum": ["Fa.P_13_1", "Fa.P_13_2", "Fa.P_13_3", "Fa.P_13_4", "Fa.P_13_5", "Fa.P_13_6_1", "Fa.P_13_6_2", "Fa.P_13_6_3", "Fa.P_13_7", "Fa.P_13_8", "Fa.P_13_9", "Fa.P_13_10", "Fa.P_13_11"] },
           "format": "money"
         },
+        { "label": "advancePaidBefore", "path": "Fa.P_15ZK", "when": "isCorrectionOfAdvance", "format": "money", "optional": true },
+        { "label": "remainingDueBefore", "path": "Fa.P_15ZK", "when": "isCorrectionOfSettlement", "format": "money", "optional": true },
+        { "label": "exchangeRateBefore", "path": "Fa.KursWalutyZK", "when": "isCorrection", "format": "number", "optional": true },
         { "label": "correctionAmount", "path": "Fa.P_15", "when": "p15IsCorrection", "format": "money", "style": "strong" },
         { "label": "totalDue", "path": "Fa.P_15", "when": "p15IsAmountDue", "format": "money", "style": "strong" },
         { "label": "advancePaid", "path": "Fa.P_15", "when": "p15IsAdvancePaid", "format": "money", "style": "strong" },
@@ -473,6 +557,23 @@
       ]
     },
     { "type": "divider" },
+    {
+      "type": "stack",
+      "when": "Fa.DodatkowyOpis",
+      "stack": [
+        { "type": "text", "label": "additionalInfo", "style": "h1" },
+        {
+          "type": "table",
+          "from": "Fa.DodatkowyOpis",
+          "headers": false,
+          "columns": [
+            { "label": "key", "path": "Klucz", "width": "auto" },
+            { "label": "value", "path": "Wartosc", "width": "*" }
+          ]
+        },
+        { "type": "divider" }
+      ]
+    },
     { "type": "notes", "headingStyle": "h1" },
     { "type": "divider", "when": "notes" },
     {

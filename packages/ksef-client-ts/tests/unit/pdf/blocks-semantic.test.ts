@@ -256,6 +256,28 @@ describe('partiesRenderer', () => {
     expect(node.columns[1].stack.map((n: { text: string }) => n.text)).toEqual(['buyer', 'Nabywca']);
   });
 
+  it('leaves a panel out on its own `when`, keeping its lane so the other stays put', () => {
+    const block = {
+      type: 'parties' as const,
+      left: { label: 'sellerBefore', when: 'Fa.Podmiot1K', fields: ['Fa.Podmiot1K.DaneIdentyfikacyjne.Nazwa'] },
+      right: { label: 'buyerBefore', when: 'Fa.Podmiot2K', fields: ['Fa.Podmiot2K.DaneIdentyfikacyjne.Nazwa'] },
+    };
+    // Only the buyer is restated: the seller's lane is empty, the buyer's
+    // panel is where it always is, and the seller's fields are never read —
+    // strict mode must not police a party the document does not restate.
+    const buyerOnly = rec(
+      partiesRenderer(block, makeCtx({ Fa: { Podmiot2K: { DaneIdentyfikacyjne: { Nazwa: 'Old Buyer' } } } }, { strict: true }), noRender),
+    );
+    expect(buyerOnly.columns[0]).toEqual({ width: '*', text: '' });
+    expect(buyerOnly.columns[1].stack.map((n: any) => n.text)).toEqual(['buyerBefore', 'Old Buyer']);
+    // Neither restated: nothing to draw, heading included.
+    expect(partiesRenderer(block, makeCtx({ Fa: {} }), noRender)).toBeNull();
+    // A context flag works on a panel as it does on a block.
+    const flagged = { ...block, right: { ...block.right, when: 'showBuyer' } };
+    const ctx = makeCtx({ Fa: { Podmiot2K: { DaneIdentyfikacyjne: { Nazwa: 'Old Buyer' } } } }, { flags: { showBuyer: false } });
+    expect(partiesRenderer(flagged, ctx, noRender)).toBeNull();
+  });
+
   it('reads repeater entries leniently even in strict mode', () => {
     // Every field of a contact block is optional; a block without a phone number
     // must not make a strict render throw.
@@ -594,6 +616,22 @@ describe('linesRenderer', () => {
     expect(row[2].text).toBe(applyFormat('2', 'number'));
     expect(row[3].text).toBe(applyFormat('10.00', 'money')); // '10,00'
     expect(node.style).toBeUndefined();
+  });
+
+  it('keeps only the rows that carry, or lack, a marker element', () => {
+    const ctx = makeCtx({
+      Fa: { FaWiersz: [{ P_7: 'was', StanPrzed: '1' }, { P_7: 'is' }, { P_7: 'was too', StanPrzed: '1' }] },
+    });
+    const columns = [{ label: 'name', path: 'P_7' }];
+    const names = (node: any): string[] => node.table.body.slice(1).map((row: any) => row[0].text);
+    expect(names(rec(linesRenderer({ type: 'lines', from: 'Fa.FaWiersz', where: 'StanPrzed', columns }, ctx, noRender))))
+      .toEqual(['was', 'was too']);
+    expect(names(rec(linesRenderer({ type: 'lines', from: 'Fa.FaWiersz', whereNot: 'StanPrzed', columns }, ctx, noRender))))
+      .toEqual(['is']);
+    // A row is what the interpreter drops on `when`; the table itself still
+    // draws its header when the filter leaves nothing, as an empty repeater does.
+    expect(rec(linesRenderer({ type: 'lines', from: 'Fa.FaWiersz', where: 'Nope', columns }, ctx, noRender)).table.body)
+      .toHaveLength(1);
   });
 
   it('renders one body row per element for an expanded array of lines (+ style)', () => {

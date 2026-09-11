@@ -1,6 +1,6 @@
 import { list } from '../../accessor.js';
 import type { PartiesBlock, PartyAlternative, PartyColumn, PartyField, PartyGroup } from '../dsl.js';
-import { resolveBinding, type BlockRenderer, type PdfNode, type RenderContext } from '../interpret.js';
+import { evalWhen, resolveBinding, type BlockRenderer, type PdfNode, type RenderContext } from '../interpret.js';
 
 /**
  * The panel's own heading — `Sprzedawca` / `Nabywca` — takes the block's
@@ -43,6 +43,11 @@ function isGroup(field: PartyField): field is PartyGroup {
  * Value lines take {@link PartyColumn.style}; a group may override it for its
  * own lines with {@link PartyGroup.style}. The panel heading takes the block's
  * `headingStyle`; a group's own label stays at {@link SUBHEADING_STYLE}.
+ *
+ * A panel may carry `when` and is then left out — its fields never read, so
+ * strict mode does not police a party the document does not restate — while
+ * its lane stays empty, so the other panel keeps its side of the page. With
+ * both panels out the block renders nothing.
  */
 export const partiesRenderer: BlockRenderer<PartiesBlock> = (block, ctx) => {
   const heading = block.headingStyle ?? DEFAULT_HEADING_STYLE;
@@ -92,16 +97,24 @@ export const partiesRenderer: BlockRenderer<PartiesBlock> = (block, ctx) => {
     return out;
   };
 
-  const side = (col: PartyColumn): PdfNode => ({
-    width: '*',
-    stack: [
-      { text: ctx.label(col.label), style: heading },
-      ...renderFields(col.fields, ctx.root, ctx.strict, col.style),
-    ],
-  });
+  const side = (col: PartyColumn): PdfNode | null => {
+    if (!evalWhen(col.when, ctx)) return null;
+    return {
+      width: '*',
+      stack: [
+        { text: ctx.label(col.label), style: heading },
+        ...renderFields(col.fields, ctx.root, ctx.strict, col.style),
+      ],
+    };
+  };
+
+  const left = side(block.left);
+  const right = side(block.right);
+  if (left === null && right === null) return null;
+  const lane: PdfNode = { width: '*', text: '' };
 
   return {
-    columns: [side(block.left), side(block.right)],
+    columns: [left ?? lane, right ?? lane],
     margin: [0, 0, 0, 12],
     ...(block.style ? { style: block.style } : {}),
   };
