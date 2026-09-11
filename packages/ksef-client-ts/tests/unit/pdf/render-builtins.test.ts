@@ -5,6 +5,8 @@ import { renderInvoicePdf, renderUpoPdf } from '../../../src/pdf/index.js';
 const fx = (p: string) => readFileSync(new URL(`../../fixtures/${p}`, import.meta.url), 'utf8');
 const fa2 = fx('pdf/fa2.xml');
 const fa3 = fx('pdf/fa3.xml');
+const fa2Kor = fx('pdf/fa2-kor.xml');
+const fa3Kor = fx('pdf/fa3-kor.xml');
 const upo43 = fx('pdf/upo-4_3.xml');
 const upo42 = fx('pdf/upo-4_2.xml');
 
@@ -49,6 +51,13 @@ describe('built-in templates in strict mode against full fixtures', () => {
 
   it('fa3-default is strict-clean', async () => {
     expect(isPdf(await renderInvoicePdf(fa3, 'fa3-default', { strict: true }))).toBe(true);
+  });
+
+  it('both defaults are strict-clean on a correction', async () => {
+    // The correction section binds paths no ordinary invoice carries, so the
+    // ordinary fixture cannot police them.
+    expect(isPdf(await renderInvoicePdf(fa2Kor, 'fa2-default', { strict: true }))).toBe(true);
+    expect(isPdf(await renderInvoicePdf(fa3Kor, 'fa3-default', { strict: true }))).toBe(true);
   });
 });
 

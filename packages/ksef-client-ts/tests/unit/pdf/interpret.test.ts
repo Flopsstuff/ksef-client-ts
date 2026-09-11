@@ -130,6 +130,11 @@ describe('resolveText', () => {
     expect(resolveText({ path: 'Fa.P_2' }, makeCtx(ROOT))).toBe('FV/1/2025');
   });
 
+  it('hands the context label resolver to a formatter that decodes into words', () => {
+    const ctx = makeCtx({ Fa: { TypKorekty: '2' } }, { label: (k) => `[${k}]` });
+    expect(resolveText({ path: 'Fa.TypKorekty', format: 'correctionType' }, ctx)).toBe('[correctionType2]');
+  });
+
   it('returns "" for an undefined spec', () => {
     expect(resolveText(undefined, makeCtx(ROOT))).toBe('');
   });

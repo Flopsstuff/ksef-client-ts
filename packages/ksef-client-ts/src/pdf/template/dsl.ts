@@ -64,6 +64,15 @@ export interface FieldDef {
    * the same strictness as the value it follows.
    */
   suffixPath?: string;
+  /**
+   * A label printed in place of a value that resolves empty. It exists for the
+   * schema's choices: where an invoice states either a value or a marker that
+   * the value does not apply — the KSeF number of a corrected invoice, or the
+   * flag that it was issued outside KSeF — the page should say the second
+   * thing rather than leave a hole. The line, cell or row is then kept, not
+   * skipped as an empty one otherwise is.
+   */
+  emptyLabel?: string;
 }
 
 /**
@@ -382,9 +391,19 @@ export interface NotesBlock {
   style?: string;
 }
 
+/**
+ * Labelled lines under a heading — one `label: value` per field, with the
+ * lines that resolve empty left out and the whole block gone when none
+ * resolve, so a template may list every field a section can carry. The
+ * heading defaults to the `annotations` label; `heading` names another, which
+ * is how the same block prints the reason and effect of a correction.
+ */
 export interface AnnotationsBlock {
   type: 'annotations';
   fields: FieldDef[];
+  /** Label key for the heading. Default `annotations`. */
+  heading?: string;
+  when?: string;
   /** See {@link HEADING_STYLE_DOC}. */
   headingStyle?: string;
   style?: string;
@@ -535,7 +554,7 @@ export interface InvoiceTemplate {
 
 // ── zod validation ─────────────────────────────────────────────────────────
 
-const formatEnum = z.enum(['money', 'date', 'number', 'nip', 'paymentForm']);
+const formatEnum = z.enum(['money', 'date', 'number', 'nip', 'paymentForm', 'correctionType']);
 const styleValue = z.union([z.string(), z.number(), z.boolean(), z.array(z.number())]);
 const styleSchema = z.record(z.string(), styleValue);
 const labelRef = z.object({ label: z.string().optional(), text: z.string().optional() }).strict();
@@ -573,6 +592,7 @@ const fieldDef = z
     format: formatEnum.optional(),
     style: z.string().optional(),
     suffixPath: z.string().optional(),
+    emptyLabel: z.string().optional(),
   })
   .strict();
 
@@ -584,6 +604,7 @@ const columnDef = z
     format: formatEnum.optional(),
     style: z.string().optional(),
     suffixPath: z.string().optional(),
+    emptyLabel: z.string().optional(),
     width: z.union([z.number().positive(), z.literal('auto'), z.literal('*')]).optional(),
     sub: z.array(fieldDef).nonempty().optional(),
     subStyle: z.string().optional(),
@@ -694,6 +715,8 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
     z.object({
       type: z.literal('annotations'),
       fields: z.array(fieldDef),
+      heading: z.string().optional(),
+      when: z.string().optional(),
       headingStyle: z.string().optional(),
       style: z.string().optional(),
     }).strict(),

@@ -1,5 +1,5 @@
 import { get, list } from '../../accessor.js';
-import { applyFormat, sumDecimal } from '../../format.js';
+import { applyFormat, sumDecimal, type LabelLookup } from '../../format.js';
 import type { FieldDef, RepeatedSum } from '../dsl.js';
 
 /**
@@ -13,16 +13,24 @@ import type { FieldDef, RepeatedSum } from '../dsl.js';
  * resolves empty, and never read at all when the value does — an absent field
  * prints nothing, not a bare currency code.
  *
+ * A value that resolves empty prints the field's `emptyLabel` when it names
+ * one — the schema's "not applicable" marker put into words — and the suffix
+ * is not appended to it: a currency after "issued outside KSeF" would be
+ * nonsense.
+ *
  * Reading is left to the caller: the same definition resolves against the
- * document root in one block and row-relative in another.
+ * document root in one block and row-relative in another. The label resolver
+ * serves the formatter that decodes into words and the `emptyLabel`.
  */
 export function readField(
   field: FieldDef,
   read: (path: string, optional: boolean) => string,
+  label: LabelLookup,
 ): string {
   const optional = field.optional === true;
-  const value = applyFormat(read(field.path, optional), field.format);
-  if (value === '' || field.suffixPath === undefined) return value;
+  const value = applyFormat(read(field.path, optional), field.format, label);
+  if (value === '') return field.emptyLabel !== undefined ? label(field.emptyLabel) : '';
+  if (field.suffixPath === undefined) return value;
   const suffix = read(field.suffixPath, optional);
   return suffix === '' ? value : `${value} ${suffix}`;
 }

@@ -223,3 +223,37 @@ describe('a payment row is either read or computed, never both', () => {
     }
   });
 });
+
+describe('correction-era additions stay strict', () => {
+  const template = (blocks: unknown[]): unknown => ({ schema: 'FA(3)', blocks });
+
+  it('accepts emptyLabel on a field and on a column', () => {
+    expect(() =>
+      validateTemplate(
+        template([
+          { type: 'annotations', heading: 'correction', when: 'isCorrection', fields: [
+            { label: 'ksefNumber', path: 'Fa.X', optional: true, emptyLabel: 'issuedOutsideKsef' },
+          ] },
+          { type: 'table', from: 'Fa.DaneFaKorygowanej', columns: [
+            { label: 'ksefNumber', path: 'NrKSeFFaKorygowanej', optional: true, emptyLabel: 'issuedOutsideKsef' },
+          ] },
+        ]),
+      ),
+    ).not.toThrow();
+  });
+
+  it('accepts the correctionType formatter', () => {
+    expect(() =>
+      validateTemplate(template([{ type: 'text', path: 'Fa.TypKorekty', format: 'correctionType' }])),
+    ).not.toThrow();
+  });
+
+  it('still rejects an unknown key next to the new ones', () => {
+    expect(() =>
+      validateTemplate(template([{ type: 'annotations', heading: 'correction', bogus: 1, fields: [] }])),
+    ).toThrow(KSeFValidationError);
+    expect(() =>
+      validateTemplate(template([{ type: 'text', path: 'Fa.X', format: 'correctionTypes' }])),
+    ).toThrow(KSeFValidationError);
+  });
+});

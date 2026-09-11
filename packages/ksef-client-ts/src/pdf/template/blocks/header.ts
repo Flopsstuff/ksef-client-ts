@@ -12,14 +12,21 @@ import { resolveBinding, resolveText, type BlockRenderer, type PdfNode } from '.
  */
 export const headerRenderer: BlockRenderer<HeaderBlock> = (block, ctx) => {
   // A template may name its own title; otherwise the document names itself.
-  // An advance invoice and the one that settles it are the two a reader must
-  // not mistake for an ordinary invoice, and the heading is where that is
-  // cheapest to say.
-  const kind = ctx.flags.isAdvanceInvoice
-    ? 'invoiceAdvance'
-    : ctx.flags.isSettlementInvoice
-      ? 'invoiceSettlement'
-      : 'invoice';
+  // A correction, an advance invoice and the one that settles it are the ones
+  // a reader must not mistake for an ordinary invoice, and the heading is
+  // where that is cheapest to say. A correction of an advance or a settlement
+  // invoice names which, because neither is the document it corrects.
+  const kind = ctx.flags.isCorrectionOfAdvance
+    ? 'invoiceCorrectionAdvance'
+    : ctx.flags.isCorrectionOfSettlement
+      ? 'invoiceCorrectionSettlement'
+      : ctx.flags.isCorrection
+        ? 'invoiceCorrection'
+        : ctx.flags.isAdvanceInvoice
+          ? 'invoiceAdvance'
+          : ctx.flags.isSettlementInvoice
+            ? 'invoiceSettlement'
+            : 'invoice';
   const title = resolveText(block.title, ctx) || ctx.label(kind);
   const left: PdfNode[] = [{ text: title, style: block.style ?? 'title' }];
   if (block.logo) {

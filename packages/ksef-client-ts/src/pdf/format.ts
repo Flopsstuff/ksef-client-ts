@@ -1,9 +1,17 @@
 /**
  * Value formatters referenced by DSL bindings (`format: 'money' | 'date' |
- * 'number' | 'nip' | 'paymentForm'`). Each is total: on unparseable input it
- * returns the raw string unchanged, so a formatter never throws mid-render.
+ * 'number' | 'nip' | 'paymentForm' | 'correctionType'`). Each is total: on
+ * unparseable input it returns the raw string unchanged, so a formatter never
+ * throws mid-render.
  */
-export type FormatterName = 'money' | 'date' | 'number' | 'nip' | 'paymentForm';
+export type FormatterName = 'money' | 'date' | 'number' | 'nip' | 'paymentForm' | 'correctionType';
+
+/**
+ * Resolves a label key for the one formatter that decodes into words a reader
+ * should get in their own language. Passed through by the renderers from the
+ * render context; a formatter given none prints the raw value.
+ */
+export type LabelLookup = (key: string) => string;
 
 const NBSP = ' ';
 
@@ -100,6 +108,24 @@ export function formatPaymentForm(raw: string): string {
 }
 
 /**
+ * KSeF `TypKorekty` enum code → the label naming when the correction takes
+ * effect in the VAT ledger. Unlike a payment form this is a sentence, not a
+ * fiscal term, so it is localized through the label bundle: `1` is the date
+ * the original invoice was recorded, `2` the date the correction is issued,
+ * `3` another date. An unknown code — or no resolver — passes the code
+ * through.
+ */
+const CORRECTION_TYPES: Record<string, string> = {
+  '1': 'correctionType1',
+  '2': 'correctionType2',
+  '3': 'correctionType3',
+};
+export function formatCorrectionType(raw: string, label?: LabelLookup): string {
+  const key = CORRECTION_TYPES[raw.trim()];
+  return key !== undefined && label ? label(key) : raw;
+}
+
+/**
  * Decimal-safe sum of monetary strings, used by totals rows that aggregate
  * several VAT buckets (a KSeF invoice has no single "total net" field).
  *
@@ -134,17 +160,21 @@ export function sumDecimal(values: string[]): string {
   return scale === 0 ? `${sign}${intPart}` : `${sign}${intPart}.${fracPart}`;
 }
 
-const FORMATTERS: Record<FormatterName, (raw: string) => string> = {
+const FORMATTERS: Record<FormatterName, (raw: string, label?: LabelLookup) => string> = {
   money: formatMoney,
   date: formatDate,
   number: formatNumber,
   nip: formatNip,
   paymentForm: formatPaymentForm,
+  correctionType: formatCorrectionType,
 };
 
-/** Apply a named formatter; an unknown name returns the value unchanged. */
-export function applyFormat(value: string, format: FormatterName | undefined): string {
+/**
+ * Apply a named formatter; an unknown name returns the value unchanged. The
+ * label resolver is only consulted by formatters that decode into words.
+ */
+export function applyFormat(value: string, format: FormatterName | undefined, label?: LabelLookup): string {
   if (!format) return value;
   const fn = FORMATTERS[format];
-  return fn ? fn(value) : value;
+  return fn ? fn(value, label) : value;
 }

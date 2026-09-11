@@ -5,14 +5,16 @@
  * about the FA schema, not about layout, and because a test can then check the
  * reading without going through a PDF.
  */
-import { get, has } from './accessor.js';
+import { get, has, list } from './accessor.js';
 
 /**
  * Invoice kinds whose `P_15` is a payment already received rather than an
  * amount still owed (`TRodzajFaktury`): an advance invoice documents the
- * receipt of a payment made before the sale.
+ * receipt of a payment made before the sale. `KOR_ZAL` is not here: it
+ * corrects an advance invoice, and its `P_15` is the correction, not the
+ * payment.
  */
-const ADVANCE_INVOICE_TYPES = new Set(['ZAL', 'KOR_ZAL']);
+const ADVANCE_INVOICE_TYPES = new Set(['ZAL']);
 
 /**
  * The settlement invoice of art. 106f ust. 3 — the one issued after the goods
@@ -24,10 +26,22 @@ const ADVANCE_INVOICE_TYPES = new Set(['ZAL', 'KOR_ZAL']);
 const SETTLEMENT_INVOICE_TYPES = new Set(['ROZ']);
 
 /**
- * Which of `P_15`'s three readings this document supports. `P_15` does not mean
- * the same thing on every invoice, so a template cannot name it with one fixed
+ * The correcting kinds. On each of them the schema defines `P_15` as the
+ * *correction of* the amount on the invoice being corrected — a signed delta,
+ * often negative — so none of the other readings applies, whatever else the
+ * document states: a correction that also carries `Rozliczenie` or records a
+ * part payment is still a correction.
+ */
+const CORRECTION_INVOICE_TYPES = new Set(['KOR', 'KOR_ZAL', 'KOR_ROZ']);
+
+/**
+ * Which of `P_15`'s readings this document supports. `P_15` does not mean the
+ * same thing on every invoice, so a template cannot name it with one fixed
  * label:
  *
+ * - on a correcting invoice it is a signed correction of the amount on the
+ *   invoice being corrected, and a reader told to "pay" a negative figure is
+ *   left guessing;
  * - on an advance invoice it is the payment the document records as received,
  *   and telling that reader to pay it again is the worst thing an invoice PDF
  *   can do;
@@ -43,7 +57,8 @@ const SETTLEMENT_INVOICE_TYPES = new Set(['ROZ']);
  */
 export function p15Flags(root: unknown): Record<string, boolean> {
   const kind = get(root, 'Fa.RodzajFaktury');
-  const advance = ADVANCE_INVOICE_TYPES.has(kind);
+  const correction = CORRECTION_INVOICE_TYPES.has(kind);
+  const advance = !correction && ADVANCE_INVOICE_TYPES.has(kind);
   // `Rozliczenie` states the payable — or the overpayment — outright, so it
   // outranks the invoice type: whatever `P_15` means here, it is not the figure
   // the reader acts on.
@@ -51,6 +66,7 @@ export function p15Flags(root: unknown): Record<string, boolean> {
   // itself — the payable or the overpayment under `Rozliczenie` — or records
   // that part of it has already been paid, which leaves the remainder owed.
   const settled =
+    !correction &&
     !advance &&
     (has(root, 'Fa.Rozliczenie.DoZaplaty') ||
       has(root, 'Fa.Rozliczenie.DoRozliczenia') ||
@@ -61,14 +77,15 @@ export function p15Flags(root: unknown): Record<string, boolean> {
   // schema defines the remainder as `P_15` minus the sum of those `P_15Z`
   // fields — so `P_15` is then the whole amount, and the figure the reader owes
   // has to be computed.
-  const settlement = !advance && !settled && SETTLEMENT_INVOICE_TYPES.has(kind);
+  const settlement = !correction && !advance && !settled && SETTLEMENT_INVOICE_TYPES.has(kind);
   const documentsPayments = settlement && has(root, 'Fa.ZaliczkaCzesciowa');
 
   return {
+    p15IsCorrection: correction,
     p15IsAdvancePaid: advance,
     p15IsAmountTotal: settled || documentsPayments,
     p15IsRemainder: settlement && !documentsPayments,
-    p15IsAmountDue: !advance && !settled && !settlement,
+    p15IsAmountDue: !correction && !advance && !settled && !settlement,
     // Gates the computed row: the remainder exists only where the schema
     // defines it as a difference.
     settlementRemainder: documentsPayments,
@@ -112,18 +129,40 @@ export function paymentFlags(root: unknown): Record<string, boolean> {
  * than compute from it — the title above all. `ZAL` and `ROZ` are the two an
  * ordinary reader must not confuse: one records money taken before the sale,
  * the other closes the sale against it, and both would otherwise be headed
- * simply "Faktura". A correction of either keeps the plain heading: `KOR_ZAL`
- * is not an advance invoice, it is a correction of one.
+ * simply "Faktura". A correction is named as one too, and a correction of an
+ * advance or a settlement invoice says which — `KOR_ZAL` is not an advance
+ * invoice, it is a correction of one, and the heading is where that is
+ * cheapest to say.
  */
 export function kindFlags(root: unknown): Record<string, boolean> {
   const kind = get(root, 'Fa.RodzajFaktury');
   return {
     isAdvanceInvoice: kind === 'ZAL',
     isSettlementInvoice: kind === 'ROZ',
+    isCorrection: CORRECTION_INVOICE_TYPES.has(kind),
+    isCorrectionOfAdvance: kind === 'KOR_ZAL',
+    isCorrectionOfSettlement: kind === 'KOR_ROZ',
+  };
+}
+
+/**
+ * What a correction carries besides its own figures.
+ *
+ * A correction may restate the parties as they stood on the corrected invoice
+ * (`Podmiot1K` for the seller, `Podmiot2K` for a buyer), and it may list its
+ * line items as pairs — the row as it was, marked `StanPrzed`, and the row as
+ * it now is. Both are optional and independent, and a `when` can test one
+ * path only, so "either party restated" and "any row marked as before" are
+ * computed here rather than written into a template.
+ */
+export function correctionFlags(root: unknown): Record<string, boolean> {
+  return {
+    partiesBefore: has(root, 'Fa.Podmiot1K') || has(root, 'Fa.Podmiot2K'),
+    linesBefore: list(root, 'Fa.FaWiersz').some((row) => has(row, 'StanPrzed')),
   };
 }
 
 /** Every document-derived flag a template may gate on. */
 export function documentFlags(root: unknown): Record<string, boolean> {
-  return { ...p15Flags(root), ...paymentFlags(root), ...kindFlags(root) };
+  return { ...p15Flags(root), ...paymentFlags(root), ...kindFlags(root), ...correctionFlags(root) };
 }

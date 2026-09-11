@@ -9,10 +9,11 @@ import { makeLabelResolver } from '../../../src/pdf/i18n/index.js';
 
 /**
  * `P_15` is not one figure with one name. The FA schemas define it as the total
- * receivable, except on an advance invoice (`ZAL`/`KOR_ZAL`) where it is the
- * payment the document records as *already received*; and when the document
- * carries `Rozliczenie.DoZaplaty` — `P_15` plus surcharges minus deductions —
- * that is the figure the buyer actually pays.
+ * receivable, except on an advance invoice (`ZAL`) where it is the payment the
+ * document records as *already received*; on a correction (`KOR`, `KOR_ZAL`,
+ * `KOR_ROZ`) it is a signed correction of the corrected invoice's amount; and
+ * when the document carries `Rozliczenie.DoZaplaty` — `P_15` plus surcharges
+ * minus deductions — that is the figure the buyer actually pays.
  *
  * Printing `P_15` under a flat `Do zapłaty` therefore told the reader of an
  * advance invoice to pay the amount they had already paid, and the reader of a
@@ -52,6 +53,7 @@ function render(templateName: string, xml: string, extraFlags: Record<string, bo
 describe('which reading of P_15 a document supports', () => {
   it('an ordinary invoice: P_15 is the amount due', () => {
     expect(p15Flags((parseXmlForPdf(fx('fa3.xml')) as Record<string, unknown>).Faktura)).toEqual({
+      p15IsCorrection: false,
       p15IsAmountDue: true,
       p15IsAdvancePaid: false,
       p15IsAmountTotal: false,
@@ -62,6 +64,7 @@ describe('which reading of P_15 a document supports', () => {
 
   it('an advance invoice: P_15 is a payment already received', () => {
     expect(p15Flags((parseXmlForPdf(fx('fa3-zal.xml')) as Record<string, unknown>).Faktura)).toEqual({
+      p15IsCorrection: false,
       p15IsAmountDue: false,
       p15IsAdvancePaid: true,
       p15IsAmountTotal: false,
@@ -72,6 +75,7 @@ describe('which reading of P_15 a document supports', () => {
 
   it('a settled invoice: P_15 is only the total, DoZaplaty is the payable', () => {
     expect(p15Flags((parseXmlForPdf(fx('fa3-rozliczenie.xml')) as Record<string, unknown>).Faktura)).toEqual({
+      p15IsCorrection: false,
       p15IsAmountDue: false,
       p15IsAdvancePaid: false,
       p15IsAmountTotal: true,
@@ -85,6 +89,7 @@ describe('which reading of P_15 a document supports', () => {
     // `P_15` cover only the 165,00 remainder — the case where a flat
     // `Do zapłaty` reads as a contradiction.
     expect(p15Flags((parseXmlForPdf(fx('fa3-roz.xml')) as Record<string, unknown>).Faktura)).toEqual({
+      p15IsCorrection: false,
       p15IsAmountDue: false,
       p15IsAdvancePaid: false,
       p15IsAmountTotal: false,
@@ -95,6 +100,7 @@ describe('which reading of P_15 a document supports', () => {
 
   it('a part-paid invoice: P_15 is the total, the remainder is what is owed', () => {
     expect(p15Flags((parseXmlForPdf(fx('fa3-czesciowa.xml')) as Record<string, unknown>).Faktura)).toEqual({
+      p15IsCorrection: false,
       p15IsAmountDue: false,
       p15IsAdvancePaid: false,
       p15IsAmountTotal: true,
@@ -105,6 +111,7 @@ describe('which reading of P_15 a document supports', () => {
 
   it('an overpaid invoice asks for nothing', () => {
     expect(p15Flags((parseXmlForPdf(fx('fa3-nadplata.xml')) as Record<string, unknown>).Faktura)).toEqual({
+      p15IsCorrection: false,
       p15IsAmountDue: false,
       p15IsAdvancePaid: false,
       p15IsAmountTotal: true,
@@ -119,6 +126,7 @@ describe('which reading of P_15 a document supports', () => {
     // difference the schema defines — `P_15` must not be labelled as what is
     // left.
     expect(p15Flags((parseXmlForPdf(fx('fa3-roz-b.xml')) as Record<string, unknown>).Faktura)).toEqual({
+      p15IsCorrection: false,
       p15IsAmountDue: false,
       p15IsAdvancePaid: false,
       p15IsAmountTotal: true,
@@ -134,6 +142,31 @@ describe('which reading of P_15 a document supports', () => {
     );
     expect(p15Flags((parseXmlForPdf(xml) as Record<string, unknown>).Faktura).p15IsAdvancePaid).toBe(true);
   });
+
+  it('a correction: P_15 is a signed correction of the corrected amount', () => {
+    expect(p15Flags((parseXmlForPdf(fx('fa3-kor.xml')) as Record<string, unknown>).Faktura)).toEqual({
+      p15IsCorrection: true,
+      p15IsAmountDue: false,
+      p15IsAdvancePaid: false,
+      p15IsAmountTotal: false,
+      p15IsRemainder: false,
+      settlementRemainder: false,
+    });
+  });
+
+  it('a correction stays a correction whatever else it states', () => {
+    // A correction may carry `Rozliczenie` or record a part payment; its
+    // `P_15` is still the delta the schema defines, not a total to settle.
+    const settled = fx('fa3-rozliczenie.xml').replace(
+      '<RodzajFaktury>VAT</RodzajFaktury>',
+      '<RodzajFaktury>KOR</RodzajFaktury>',
+    );
+    const flags = p15Flags((parseXmlForPdf(settled) as Record<string, unknown>).Faktura);
+    expect(flags.p15IsCorrection).toBe(true);
+    expect(flags.p15IsAmountTotal).toBe(false);
+    const korZal = fx('fa3-zal.xml').replace('<RodzajFaktury>ZAL<', '<RodzajFaktury>KOR_ZAL<');
+    expect(p15Flags((parseXmlForPdf(korZal) as Record<string, unknown>).Faktura).p15IsAdvancePaid).toBe(false);
+  });
 });
 
 describe.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s names the document itself', (name) => {
@@ -148,13 +181,21 @@ describe.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s names the docu
     expect(render(name, fx(`${fa}-roz-b.xml`))).toContain('Faktura rozliczająca');
   });
 
-  it('leaves an ordinary invoice, and a correction of an advance, plainly headed', () => {
+  it('leaves an ordinary invoice plainly headed', () => {
     expect(render(name, fx(`${fa}.xml`))).toContain('Faktura');
-    // KOR_ZAL corrects an advance invoice; it is not one.
+  });
+
+  it('heads a correction as one, and says what it corrects', () => {
+    expect(render(name, fx(`${fa}-kor.xml`))).toContain('Faktura korygująca');
+    // KOR_ZAL corrects an advance invoice; it is not one, and the heading
+    // must say neither "Faktura" nor "Faktura zaliczkowa".
     const korZal = fx(`${fa}-zal.xml`).replace('<RodzajFaktury>ZAL<', '<RodzajFaktury>KOR_ZAL<');
     const out = render(name, korZal);
-    expect(out).toContain('Faktura');
+    expect(out).toContain('Korekta faktury zaliczkowej');
+    expect(out).not.toContain('Faktura');
     expect(out).not.toContain('Faktura zaliczkowa');
+    const korRoz = fx(`${fa}-roz.xml`).replace('<RodzajFaktury>ROZ<', '<RodzajFaktury>KOR_ROZ<');
+    expect(render(name, korRoz)).toContain('Korekta faktury rozliczającej');
   });
 });
 
@@ -165,6 +206,16 @@ describe.each(['fa2-default', 'fa3-default', 'fa3-showcase'])('%s names the figu
     const out = render(name, fx(`${fa}.xml`));
     expect(out.some((t) => /Do zap[łl]aty/i.test(t))).toBe(true);
     expect(out.some((t) => t.includes('Kwota zapłaty'))).toBe(false);
+  });
+
+  it('calls P_15 a correction amount on a correction, sign and all', () => {
+    const out = render(name, fx(`${fa}-kor.xml`));
+    expect(out.some((t) => t.startsWith('Korekta kwoty'))).toBe(true);
+    expect(out).toContain('-123,00');
+    // The delta is not an amount due, a payment received, or a remainder.
+    expect(out.some((t) => /Do zap[łl]aty/i.test(t))).toBe(false);
+    expect(out.some((t) => t === 'Kwota zapłaty')).toBe(false);
+    expect(out.some((t) => t.startsWith('Pozostało do zapłaty'))).toBe(false);
   });
 
   it('never demands payment of an advance already received', () => {

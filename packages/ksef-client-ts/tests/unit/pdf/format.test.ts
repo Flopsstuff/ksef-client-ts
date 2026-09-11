@@ -5,6 +5,7 @@ import {
   formatDate,
   formatNip,
   formatPaymentForm,
+  formatCorrectionType,
   applyFormat,
 } from '../../../src/pdf/format.js';
 
@@ -179,5 +180,27 @@ describe('applyFormat', () => {
 
   it('routes to the paymentForm formatter', () => {
     expect(applyFormat('6', 'paymentForm')).toBe('Przelew');
+  });
+
+  it('routes to the correctionType formatter, handing it the label resolver', () => {
+    expect(applyFormat('1', 'correctionType', (k) => `<${k}>`)).toBe('<correctionType1>');
+  });
+});
+
+describe('formatCorrectionType', () => {
+  const label = (k: string) => k.toUpperCase();
+
+  it('decodes each TypKorekty code through the label bundle', () => {
+    expect(formatCorrectionType('1', label)).toBe('CORRECTIONTYPE1');
+    expect(formatCorrectionType('2', label)).toBe('CORRECTIONTYPE2');
+    expect(formatCorrectionType(' 3 ', label)).toBe('CORRECTIONTYPE3');
+  });
+
+  it('passes an unknown code through', () => {
+    expect(formatCorrectionType('9', label)).toBe('9');
+  });
+
+  it('prints the raw code when no label resolver is given', () => {
+    expect(formatCorrectionType('2')).toBe('2');
   });
 });

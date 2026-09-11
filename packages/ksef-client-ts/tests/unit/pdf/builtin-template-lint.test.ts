@@ -32,14 +32,17 @@ const FIXTURES_BY_TEMPLATE: Record<string, string[]> = {
   'fa2-default': [
     'pdf/fa2.xml', 'pdf/fa2-zal.xml', 'pdf/fa2-rozliczenie.xml', 'pdf/fa2-czesciowa.xml',
     'pdf/fa2-roz.xml', 'pdf/fa2-zal-b.xml', 'pdf/fa2-roz-b.xml', 'pdf/fa2-nadplata.xml',
+    'pdf/fa2-kor.xml',
   ],
   'fa3-default': [
     'pdf/fa3.xml', 'pdf/fa3-zal.xml', 'pdf/fa3-rozliczenie.xml', 'pdf/fa3-czesciowa.xml',
     'pdf/fa3-roz.xml', 'pdf/fa3-zal-b.xml', 'pdf/fa3-roz-b.xml', 'pdf/fa3-nadplata.xml',
+    'pdf/fa3-kor.xml',
   ],
   'fa3-showcase': [
     'pdf/fa3.xml', 'pdf/fa3-rozliczenie.xml', 'pdf/fa3-czesciowa.xml', 'pdf/fa3-zal.xml',
     'pdf/fa3-roz.xml', 'pdf/fa3-zal-b.xml', 'pdf/fa3-roz-b.xml', 'pdf/fa3-nadplata.xml',
+    'pdf/fa3-kor.xml',
   ],
   'upo-4_2': ['pdf/upo-4_2.xml'],
   'upo-4_3': ['pdf/upo-4_3.xml'],
@@ -49,8 +52,11 @@ const FIXTURES_BY_TEMPLATE: Record<string, string[]> = {
 const CONTEXT_CONDITIONS = new Set([
   'qr', 'offline', 'hasKsefNumber', 'totalsBuckets', 'totalsSummary', 'notes',
   'opts.logo', 'opts.ksefNumber', 'opts.accent', 'qrUrl',
-  // Which of `P_15`'s three readings this document supports.
-  'p15IsAmountDue', 'p15IsAdvancePaid', 'p15IsAmountTotal', 'p15IsRemainder',
+  // Which of `P_15`'s readings this document supports.
+  'p15IsAmountDue', 'p15IsAdvancePaid', 'p15IsAmountTotal', 'p15IsRemainder', 'p15IsCorrection',
+  // What kind of correction this is, and what it restates: the parties as they
+  // stood, or its line items as before/after pairs.
+  'isCorrection', 'isCorrectionOfAdvance', 'isCorrectionOfSettlement', 'partiesBefore', 'linesBefore',
   // Whether the remainder is a figure the schema defines as a difference.
   'settlementRemainder',
   // The settlement reconciliation, which is derived and so is gated on the
@@ -196,6 +202,7 @@ describe('built-in template lint', () => {
     expect(fa3.repeaters).toContain('Fa.FakturaZaliczkowa');
     expect(fa3.repeaters).toContain('Podmiot2.DaneKontaktowe');
     expect(fa3.conditions).toContain('Fa.Rozliczenie.DoZaplaty');
+    expect(fa3.repeaters).toContain('Fa.DaneFaKorygowanej');
     expect(collect(getBuiltinTemplate('upo-4_3')!.blocks).repeaters).toContain('Dokument');
     expect(collect(getBuiltinTemplate('upo-4_2')!.blocks).repeaters).toContain('Dokument');
     expect(fa3.alternatives).toHaveLength(1);

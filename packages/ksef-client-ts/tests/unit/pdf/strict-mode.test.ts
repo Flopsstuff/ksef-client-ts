@@ -20,6 +20,7 @@ const fx = (name: string) => readFileSync(new URL(`../../fixtures/pdf/${name}`, 
 
 const DOCUMENTS = [
   'fa3.xml',
+  'fa3-kor.xml',
   'e2e-vat-multi.xml',
   'e2e-services-np.xml',
   'e2e-buyer-no-id.xml',

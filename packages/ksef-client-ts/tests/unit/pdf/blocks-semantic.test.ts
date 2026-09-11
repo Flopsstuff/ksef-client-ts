@@ -887,10 +887,71 @@ describe('annotationsRenderer', () => {
     expect(node.style).toBe('astyle');
   });
 
-  it('renders only the heading for no fields and omits style', () => {
-    const node = rec(annotationsRenderer({ type: 'annotations', fields: [] }, makeCtx({}), noRender));
-    expect(node.stack).toHaveLength(1);
+  it('renders nothing at all when no field resolves — no heading over nothing', () => {
+    expect(annotationsRenderer({ type: 'annotations', fields: [] }, makeCtx({}), noRender)).toBeNull();
+    const ctx = makeCtx({ Fa: {} });
+    expect(
+      annotationsRenderer(
+        { type: 'annotations', fields: [{ label: 'x', path: 'Fa.Missing', optional: true }] },
+        ctx,
+        noRender,
+      ),
+    ).toBeNull();
+  });
+
+  it('skips a field that resolves empty instead of printing a bare label', () => {
+    const ctx = makeCtx({ Fa: { PrzyczynaKorekty: 'Zwrot' } });
+    const node = rec(
+      annotationsRenderer(
+        {
+          type: 'annotations',
+          fields: [
+            { label: 'correctionReason', path: 'Fa.PrzyczynaKorekty' },
+            { label: 'correctedPeriod', path: 'Fa.OkresFaKorygowanej', optional: true },
+          ],
+        },
+        ctx,
+        noRender,
+      ),
+    );
+    expect(node.stack.map((n: { text: string }) => n.text)).toEqual(['annotations', 'correctionReason: Zwrot']);
     expect('style' in node).toBe(false);
+  });
+
+  it('takes another heading and decodes a value through the label resolver', () => {
+    const ctx = makeCtx({ Fa: { TypKorekty: '1' } }, { label: (k) => `<${k}>` });
+    const node = rec(
+      annotationsRenderer(
+        {
+          type: 'annotations',
+          heading: 'correction',
+          headingStyle: 'h1',
+          fields: [{ label: 'correctionType', path: 'Fa.TypKorekty', format: 'correctionType' }],
+        },
+        ctx,
+        noRender,
+      ),
+    );
+    expect(node.stack[0]).toEqual({ text: '<correction>', style: 'h1' });
+    expect(node.stack[1].text).toBe('<correctionType>: <correctionType1>');
+  });
+
+  it('prints the emptyLabel in place of a value that resolves empty', () => {
+    const ctx = makeCtx({ Fa: { NrKSeFN: '1' } });
+    const node = rec(
+      annotationsRenderer(
+        {
+          type: 'annotations',
+          fields: [
+            { label: 'ksefNumber', path: 'Fa.NrKSeFFaKorygowanej', optional: true, emptyLabel: 'issuedOutsideKsef', suffixPath: 'Fa.NrKSeFN' },
+          ],
+        },
+        ctx,
+        noRender,
+      ),
+    );
+    // The label stands in for the value, and no suffix is glued onto it.
+    expect(node.stack[1].text).toBe('ksefNumber: issuedOutsideKsef');
   });
 });
 
