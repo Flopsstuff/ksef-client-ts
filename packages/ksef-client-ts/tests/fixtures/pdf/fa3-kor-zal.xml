@@ -4,7 +4,9 @@
      P_15ZK restates the 800,00 received — both addresses were wrong: the seller had
      already moved and the buyer's was mistyped. Podmiot1/Podmiot2 carry the
      corrected ones, Podmiot1K/Podmiot2K the addresses as they stood on the advance
-     invoice; the settlement that closes chain B carries the corrected seller address. No line items and no order block: a data-only correction.
+     invoice; the settlement that closes chain B carries the corrected seller address. The order item is restated as a before/after pair with
+     identical values (StanPrzedZ), which is how the schema confirms an item did
+     not change. No FaWiersz: a data-only correction.
      Synthetic, fully anonymous FA(3) fixture. No real taxpayer data. -->
 <Faktura xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/"
          xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/"
@@ -103,5 +105,31 @@
             </Adres>
         </Podmiot2K>
         <P_15ZK>800.00</P_15ZK>
+        <Zamowienie>
+            <WartoscZamowienia>1230.00</WartoscZamowienia>
+            <ZamowienieWiersz>
+                <NrWierszaZam>1</NrWierszaZam>
+                <P_7Z>Dostawa towaru — zaliczka</P_7Z>
+                <IndeksZ>IDX-0042</IndeksZ>
+                <P_8AZ>szt.</P_8AZ>
+                <P_8BZ>10</P_8BZ>
+                <P_9AZ>100.00</P_9AZ>
+                <P_11NettoZ>1000.00</P_11NettoZ>
+                <P_11VatZ>230.00</P_11VatZ>
+                <P_12Z>23</P_12Z>
+                <StanPrzedZ>1</StanPrzedZ>
+            </ZamowienieWiersz>
+            <ZamowienieWiersz>
+                <NrWierszaZam>1</NrWierszaZam>
+                <P_7Z>Dostawa towaru — zaliczka</P_7Z>
+                <IndeksZ>IDX-0042</IndeksZ>
+                <P_8AZ>szt.</P_8AZ>
+                <P_8BZ>10</P_8BZ>
+                <P_9AZ>100.00</P_9AZ>
+                <P_11NettoZ>1000.00</P_11NettoZ>
+                <P_11VatZ>230.00</P_11VatZ>
+                <P_12Z>23</P_12Z>
+            </ZamowienieWiersz>
+        </Zamowienie>
     </Fa>
 </Faktura>

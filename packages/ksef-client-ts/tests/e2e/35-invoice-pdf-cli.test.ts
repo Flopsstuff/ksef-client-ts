@@ -274,7 +274,9 @@ describe('35 - `ksef invoice pdf` renders the preview set', () => {
     // 10 — chain B, a correction of 09 (KOR_ZAL) that changes nothing about the
     // money: both addresses were wrong. The page shows the parties as they
     // stood beside the parties as corrected, a zero correction amount, and the
-    // 800,00 received before it. No line items and no order table.
+    // 800,00 received before it. The order item is restated as an unchanged
+    // before/after pair, so the order table splits in two like the item table
+    // of page 12 does.
     [`${PREFIX}-10-chain-b-advance-correction`, () => [
       fx('fa3-kor-zal.xml'), '--ksef-number', KSEF_KOR_ZAL_B, '--locale', 'en',
       '--env', 'test', '--qr', '--totals', 'buckets',

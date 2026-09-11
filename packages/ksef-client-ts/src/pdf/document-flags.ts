@@ -150,15 +150,19 @@ export function kindFlags(root: unknown): Record<string, boolean> {
  *
  * A correction may restate the parties as they stood on the corrected invoice
  * (`Podmiot1K` for the seller, `Podmiot2K` for a buyer), and it may list its
- * line items as pairs — the row as it was, marked `StanPrzed`, and the row as
- * it now is. Both are optional and independent, and a `when` can test one
- * path only, so "either party restated" and "any row marked as before" are
- * computed here rather than written into a template.
+ * items as pairs — the row as it was, marked as before, and the row as it now
+ * is. A correction of an advance invoice keeps its items under the order
+ * (`Fa.Zamowienie.ZamowienieWiersz`, marked `StanPrzedZ`) rather than under
+ * `Fa.FaWiersz` (marked `StanPrzed`), so the two collections get a flag each.
+ * All are optional and independent, and a `when` can test one path only, so
+ * "either party restated" and "any row marked as before" are computed here
+ * rather than written into a template.
  */
 export function correctionFlags(root: unknown): Record<string, boolean> {
   return {
     partiesBefore: has(root, 'Fa.Podmiot1K') || has(root, 'Fa.Podmiot2K'),
     linesBefore: list(root, 'Fa.FaWiersz').some((row) => has(row, 'StanPrzed')),
+    orderLinesBefore: list(root, 'Fa.Zamowienie.ZamowienieWiersz').some((row) => has(row, 'StanPrzedZ')),
   };
 }
 

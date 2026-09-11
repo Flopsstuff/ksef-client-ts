@@ -97,6 +97,16 @@ describe('what kind of document a correction is', () => {
 
   it('sees the line items restated as before/after pairs', () => {
     expect(documentFlags(rootOf(fx('fa3-kor.xml'))).linesBefore).toBe(true);
+    expect(documentFlags(rootOf(fx('fa3-kor.xml'))).orderLinesBefore).toBe(false);
+  });
+
+  it('sees the order items of an advance correction restated as pairs', () => {
+    // A correction of an advance invoice keeps its items under the order,
+    // marked StanPrzedZ, not under FaWiersz.
+    const flags = documentFlags(rootOf(fx('fa3-kor-zal.xml')));
+    expect(flags.orderLinesBefore).toBe(true);
+    expect(flags.linesBefore).toBe(false);
+    expect(documentFlags(rootOf(fx('fa3-zal-b.xml'))).orderLinesBefore).toBe(false);
   });
 });
 
@@ -157,6 +167,21 @@ describe.each(['fa2-default', 'fa3-default'])('%s prints what a correction chang
     expect(before).not.toContain('400,00');
     expect(after).toContain('400,00');
     expect(after).not.toContain('500,00');
+  });
+
+  it('splits the order items of an advance correction the same way', () => {
+    const doc = docOf(name, fx(`${fa}-kor-zal.xml`));
+    const out = texts(doc);
+    expect(out).toContain('Pozycje zamówienia lub umowy');
+    expect(out).toContain('Stan przed korektą');
+    expect(out).toContain('Stan po korekcie');
+    // Both states of the one order item, each in its own table.
+    expect(itemTables(doc)).toHaveLength(2);
+    for (const table of itemTables(doc)) expect(table).toContain('1 000,00'.replace(' ', '\u00a0'));
+    // The advance invoice it corrects has one order table and no state headings.
+    const advance = docOf(name, fx(`${fa}-zal-b.xml`));
+    expect(itemTables(advance)).toHaveLength(1);
+    expect(texts(advance)).not.toContain('Stan przed korektą');
   });
 
   it('draws one item table and no state headings on an ordinary invoice', () => {

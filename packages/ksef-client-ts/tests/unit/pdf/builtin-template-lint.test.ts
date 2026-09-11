@@ -56,7 +56,7 @@ const CONTEXT_CONDITIONS = new Set([
   'p15IsAmountDue', 'p15IsAdvancePaid', 'p15IsAmountTotal', 'p15IsRemainder', 'p15IsCorrection',
   // What kind of correction this is, and what it restates: the parties as they
   // stood, or its line items as before/after pairs.
-  'isCorrection', 'isCorrectionOfAdvance', 'isCorrectionOfSettlement', 'partiesBefore', 'linesBefore',
+  'isCorrection', 'isCorrectionOfAdvance', 'isCorrectionOfSettlement', 'partiesBefore', 'linesBefore', 'orderLinesBefore',
   // Whether the remainder is a figure the schema defines as a difference.
   'settlementRemainder',
   // The settlement reconciliation, which is derived and so is gated on the
@@ -237,6 +237,7 @@ describe('built-in template lint', () => {
     expect(fa3.conditions).toContain('Fa.Podmiot2K');
     expect(fa3.repeaters).toContain('Fa.DodatkowyOpis');
     expect(fa3.filters).toContainEqual({ from: 'Fa.FaWiersz', path: 'StanPrzed' });
+    expect(fa3.filters).toContainEqual({ from: 'Fa.Zamowienie.ZamowienieWiersz', path: 'StanPrzedZ' });
   });
 
   it('fails a template whose `when` path is misspelled', () => {
