@@ -113,25 +113,25 @@
         "when": "Fa.Podmiot2K",
         "style": "partyIdentity",
         "fields": [
-          { "path": "Fa.Podmiot2K.DaneIdentyfikacyjne.Nazwa", "optional": true },
           {
-            "firstOf": [
-              "Fa.Podmiot2K.DaneIdentyfikacyjne.NIP",
+            "label": "buyer",
+            "from": "Fa.Podmiot2K",
+            "headingPerEntry": true,
+            "fields": [
+              { "path": "DaneIdentyfikacyjne.Nazwa", "optional": true },
               {
-                "path": "Fa.Podmiot2K.DaneIdentyfikacyjne.NrVatUE",
-                "prefixPath": "Fa.Podmiot2K.DaneIdentyfikacyjne.KodUE"
+                "firstOf": [
+                  "DaneIdentyfikacyjne.NIP",
+                  { "path": "DaneIdentyfikacyjne.NrVatUE", "prefixPath": "DaneIdentyfikacyjne.KodUE" },
+                  { "path": "DaneIdentyfikacyjne.NrID", "prefixPath": "DaneIdentyfikacyjne.KodKraju" }
+                ]
               },
               {
-                "path": "Fa.Podmiot2K.DaneIdentyfikacyjne.NrID",
-                "prefixPath": "Fa.Podmiot2K.DaneIdentyfikacyjne.KodKraju"
+                "label": "address",
+                "style": "partyDetails",
+                "fields": ["Adres.AdresL1", { "path": "Adres.AdresL2", "optional": true }, "Adres.KodKraju"]
               }
             ]
-          },
-          {
-            "label": "address",
-            "from": "Fa.Podmiot2K.Adres",
-            "style": "partyDetails",
-            "fields": ["AdresL1", { "path": "AdresL2", "optional": true }, "KodKraju"]
           }
         ]
       }

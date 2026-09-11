@@ -73,6 +73,11 @@ interface CollectedPaths {
   /** `firstOf` alternative sets, as paths — at least one member must resolve. */
   alternatives: string[][];
   /**
+   * The same, inside a party group that repeats over a collection: the paths
+   * are entry-relative, so they resolve against the entries, not the root.
+   */
+  itemAlternatives: Array<{ from: string; paths: string[] }>;
+  /**
    * `where` / `whereNot` filters on a repeater, as the collection and the
    * item-relative path — some entry of some fixture must carry the path, or the
    * filter matches nothing and a typo hides a whole table.
@@ -82,7 +87,7 @@ interface CollectedPaths {
 
 function collect(
   blocks: Block[],
-  acc: CollectedPaths = { conditions: [], repeaters: [], alternatives: [], filters: [] },
+  acc: CollectedPaths = { conditions: [], repeaters: [], alternatives: [], filters: [], itemAlternatives: [] },
 ): CollectedPaths {
   for (const block of blocks) {
     const when = (block as { when?: string }).when;
@@ -119,16 +124,21 @@ function collect(
       for (const column of [block.left, block.right]) {
         if (column.when !== undefined && !CONTEXT_CONDITIONS.has(column.when)) acc.conditions.push(column.when);
       }
-      const walkFields = (fields: PartyField[]): void => {
+      const walkFields = (fields: PartyField[], within?: string): void => {
         for (const field of fields) {
           if (typeof field === 'string') continue;
           if ('fields' in field) {
-            if (field.from !== undefined) acc.repeaters.push(field.from);
-            walkFields(field.fields);
+            // A group that repeats rebinds the root to one entry, so what it
+            // holds is entry-relative from here down; a nested `from` inside
+            // one is relative too and cannot be resolved against the root.
+            if (field.from !== undefined && within === undefined) acc.repeaters.push(field.from);
+            walkFields(field.fields, field.from !== undefined ? (within ?? field.from) : within);
           } else if ('firstOf' in field) {
             // An alternative may carry a `prefixPath` qualifier; the path is
             // what has to resolve for the alternative to apply at all.
-            acc.alternatives.push(field.firstOf.map((a) => (typeof a === 'string' ? a : a.path)));
+            const paths = field.firstOf.map((a) => (typeof a === 'string' ? a : a.path));
+            if (within === undefined) acc.alternatives.push(paths);
+            else acc.itemAlternatives.push({ from: within, paths });
           }
           // `{ path, optional }` is a plain binding; strict covers the ones that
           // are not marked, and an optional one is absent by design.
@@ -192,6 +202,18 @@ describe('built-in template lint', () => {
     },
   );
 
+  it.each(Object.keys(FIXTURES_BY_TEMPLATE))(
+    '%s: every `firstOf` set inside a repeated group resolves against some entry',
+    (name) => {
+      const roots = bodiesOf(name);
+      const { itemAlternatives } = collect(getBuiltinTemplate(name)!.blocks);
+      const dead = itemAlternatives.filter(
+        ({ from, paths }) => !roots.some((root) => list(root, from).some((entry) => paths.some((p) => has(entry, p)))),
+      );
+      expect(dead).toEqual([]);
+    },
+  );
+
   it.each(Object.keys(FIXTURES_BY_TEMPLATE))('%s: every repeater filter matches some entry', (name) => {
     const roots = bodiesOf(name);
     const { filters } = collect(getBuiltinTemplate(name)!.blocks);
@@ -230,10 +252,15 @@ describe('built-in template lint', () => {
     expect(fa3.repeaters).toContain('Fa.DaneFaKorygowanej');
     expect(collect(getBuiltinTemplate('upo-4_3')!.blocks).repeaters).toContain('Dokument');
     expect(collect(getBuiltinTemplate('upo-4_2')!.blocks).repeaters).toContain('Dokument');
-    // The buyer, and the buyer as they stood before a correction.
-    expect(fa3.alternatives).toHaveLength(2);
+    expect(fa3.alternatives).toHaveLength(1);
     expect(fa3.alternatives[0]).toContain('Podmiot2.DaneIdentyfikacyjne.NrID');
-    expect(fa3.alternatives[1]).toContain('Fa.Podmiot2K.DaneIdentyfikacyjne.NrID');
+    // The buyers as they stood before a correction repeat, so their
+    // identifier alternatives are entry-relative.
+    expect(fa3.itemAlternatives).toContainEqual({
+      from: 'Fa.Podmiot2K',
+      paths: ['DaneIdentyfikacyjne.NIP', 'DaneIdentyfikacyjne.NrVatUE', 'DaneIdentyfikacyjne.NrID'],
+    });
+    expect(fa3.repeaters).toContain('Fa.Podmiot2K');
     expect(fa3.conditions).toContain('Fa.Podmiot2K');
     expect(fa3.repeaters).toContain('Fa.DodatkowyOpis');
     expect(fa3.filters).toContainEqual({ from: 'Fa.FaWiersz', path: 'StanPrzed' });

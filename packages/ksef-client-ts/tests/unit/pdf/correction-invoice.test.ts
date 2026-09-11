@@ -202,6 +202,22 @@ describe.each(['fa2-default', 'fa3-default'])('%s prints what a correction chang
     expect(out).toContain('ul. Portowa 5');
   });
 
+  it('prints every buyer the correction restates, not only the first', () => {
+    // The schema allows up to 101 Podmiot2K entries — a buyer and additional
+    // buyers — and a scalar path would silently show the first alone.
+    const second = `<Podmiot2K>
+            <DaneIdentyfikacyjne><NIP>6666666666</NIP><Nazwa>Drugi Odbiorca S.A.</Nazwa></DaneIdentyfikacyjne>
+            <Adres><KodKraju>PL</KodKraju><AdresL1>ul. Druga 2</AdresL1><AdresL2>80-001 Gdańsk</AdresL2></Adres>
+        </Podmiot2K>
+        <P_15ZK>`;
+    const twoBuyers = fx(`${fa}-kor-zal.xml`).replace('<P_15ZK>', second);
+    const out = render(name, twoBuyers);
+    expect(out).toContain('Odbiorca Handlowy Sp. z o.o.');
+    expect(out).toContain('Drugi Odbiorca S.A.');
+    expect(out).toContain('6666666666');
+    expect(out).toContain('ul. Druga 2');
+  });
+
   it('leaves a party out of the "before" panel when only the other was restated', () => {
     const buyerOnly = fx(`${fa}-kor-zal.xml`).replace(/<Podmiot1K>.*?<\/Podmiot1K>\s*/s, '');
     const out = render(name, buyerOnly);

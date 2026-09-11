@@ -215,6 +215,34 @@ describe('partiesRenderer', () => {
     ]);
   });
 
+  it('heads every entry of a group when asked to, so parties do not run together', () => {
+    const buyers = {
+      label: 'buyer',
+      from: 'Fa.Podmiot2K',
+      headingPerEntry: true,
+      fields: ['DaneIdentyfikacyjne.Nazwa', { label: 'address', fields: ['Adres.AdresL1'] }],
+    };
+    const node = rec(
+      partiesRenderer(
+        { type: 'parties', left: { label: 'seller', fields: [] }, right: { label: 'buyerBefore', fields: [buyers] } },
+        makeCtx({
+          Fa: {
+            Podmiot2K: [
+              { DaneIdentyfikacyjne: { Nazwa: 'First' }, Adres: { AdresL1: 'ul. 1' } },
+              { DaneIdentyfikacyjne: {}, Adres: {} },
+              { DaneIdentyfikacyjne: { Nazwa: 'Third' }, Adres: { AdresL1: 'ul. 3' } },
+            ],
+          },
+        }),
+        noRender,
+      ),
+    );
+    // a heading over each entry that resolves to something, and none over the empty one
+    expect(node.columns[1].stack.map((n: { text: string }) => n.text)).toEqual([
+      'buyerBefore', 'buyer', 'First', 'address', 'ul. 1', 'buyer', 'Third', 'address', 'ul. 3',
+    ]);
+  });
+
   it('normalizes a single collapsed contact block to one entry', () => {
     const node = rec(
       partiesRenderer(

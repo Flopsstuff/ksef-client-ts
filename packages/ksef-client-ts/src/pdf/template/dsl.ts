@@ -188,6 +188,14 @@ export interface PartyGroup {
    * block is optional, so an absent one is by design, not a typo.
    */
   from?: string;
+  /**
+   * With `from`, print the group's label over each entry rather than once
+   * over all of them. Three contact blocks read fine under one `Dane
+   * kontaktowe`; three buyers restated before a correction do not — each is a
+   * party of its own, and without a heading between them the second one's
+   * name reads as one more line of the first one's address.
+   */
+  headingPerEntry?: boolean;
   fields: PartyField[];
   style?: string;
 }
@@ -600,6 +608,7 @@ const partyField: z.ZodType<PartyField> = z.lazy(() =>
       .object({
         label: z.string(),
         from: z.string().optional(),
+        headingPerEntry: z.boolean().optional(),
         fields: z.array(partyField),
         style: z.string().optional(),
       })

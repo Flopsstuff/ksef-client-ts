@@ -260,7 +260,11 @@ describe('correction-era additions stay strict', () => {
             type: 'parties',
             when: 'partiesBefore',
             left: { label: 'sellerBefore', when: 'Fa.Podmiot1K', fields: ['Fa.Podmiot1K.DaneIdentyfikacyjne.Nazwa'] },
-            right: { label: 'buyerBefore', when: 'Fa.Podmiot2K', fields: [] },
+            right: {
+              label: 'buyerBefore',
+              when: 'Fa.Podmiot2K',
+              fields: [{ label: 'buyer', from: 'Fa.Podmiot2K', headingPerEntry: true, fields: ['DaneIdentyfikacyjne.Nazwa'] }],
+            },
           },
         ]),
       ),
