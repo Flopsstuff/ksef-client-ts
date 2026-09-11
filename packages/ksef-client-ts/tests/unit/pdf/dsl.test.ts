@@ -277,6 +277,14 @@ describe('correction-era additions stay strict', () => {
     ).toThrow(KSeFValidationError);
   });
 
+  it('refuses a filter on a table that reads a single row — nothing to filter there', () => {
+    for (const filter of [{ where: 'X' }, { whereNot: 'X' }]) {
+      expect(() =>
+        validateTemplate(template([{ type: 'table', ...filter, columns: [{ label: 'x', path: 'Fa.X' }] }])),
+      ).toThrow(/need "from"/);
+    }
+  });
+
   it('still rejects an unknown key next to the new ones', () => {
     expect(() =>
       validateTemplate(template([{ type: 'annotations', heading: 'correction', bogus: 1, fields: [] }])),

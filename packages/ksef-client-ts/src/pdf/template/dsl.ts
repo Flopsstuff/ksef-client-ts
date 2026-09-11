@@ -810,7 +810,13 @@ const blockSchema: z.ZodType<Block> = z.lazy(() =>
       headers: z.boolean().optional(),
       when: z.string().optional(),
       style: z.string().optional(),
-    }).strict(),
+    })
+      .strict()
+      // A filter narrows the entries of a collection; a single-row table has
+      // none, and a filter it would silently ignore is a template mistake.
+      .refine((b) => b.from !== undefined || (b.where === undefined && b.whereNot === undefined), {
+        message: '"where" and "whereNot" need "from": a single-row table has no entries to filter',
+      }),
     z.object({
       type: z.literal('image'),
       src: z.string().optional(),
