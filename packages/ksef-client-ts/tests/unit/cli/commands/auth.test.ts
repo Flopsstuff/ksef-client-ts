@@ -156,6 +156,26 @@ describe('auth', () => {
       expect(mockClient.loginWithToken).toHaveBeenCalledWith('stored-tok', '1234567890');
     });
 
+    it('explicit --cert/--key take precedence over a stored token', async () => {
+      const { loadCredentials } = await import('../../../../src/cli/credentials-store.js');
+      vi.mocked(loadCredentials).mockReturnValue({ token: 'stored-tok' });
+      const fs = await import('node:fs');
+      vi.mocked(fs.readFileSync).mockReturnValueOnce('CERT-PEM' as any).mockReturnValueOnce('KEY-PEM' as any);
+      await runLogin({ cert: '/cert.pem', key: '/key.pem', nip: '1234567890' });
+      expect(mockClient.loginWithCertificate).toHaveBeenCalledWith('CERT-PEM', 'KEY-PEM', '1234567890', undefined);
+      expect(mockClient.loginWithToken).not.toHaveBeenCalled();
+    });
+
+    it('explicit --p12 takes precedence over a stored token', async () => {
+      const { loadCredentials } = await import('../../../../src/cli/credentials-store.js');
+      vi.mocked(loadCredentials).mockReturnValue({ token: 'stored-tok' });
+      const fs = await import('node:fs');
+      vi.mocked(fs.readFileSync).mockReturnValueOnce(Buffer.from('p12') as any);
+      await runLogin({ p12: '/cert.p12', nip: '1234567890' });
+      expect(mockClient.loginWithPkcs12).toHaveBeenCalled();
+      expect(mockClient.loginWithToken).not.toHaveBeenCalled();
+    });
+
     it('explicit --token takes precedence over credentials store', async () => {
       const { loadCredentials } = await import('../../../../src/cli/credentials-store.js');
       vi.mocked(loadCredentials).mockReturnValue({ token: 'stored-tok' });

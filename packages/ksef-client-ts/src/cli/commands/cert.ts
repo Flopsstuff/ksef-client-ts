@@ -95,7 +95,9 @@ const generate = defineCommand({
       }
 
       fs.writeFileSync(certPath, result.certificatePem, 'utf-8');
-      fs.writeFileSync(keyPath, result.privateKeyPem, 'utf-8');
+      fs.writeFileSync(keyPath, result.privateKeyPem, { encoding: 'utf-8', mode: 0o600 });
+      // `mode` only applies when the file is created; --force may overwrite an existing one.
+      fs.chmodSync(keyPath, 0o600);
 
       if (args.json) {
         outputResult({ certPath, keyPath, fingerprint: result.fingerprint }, { json: true });
