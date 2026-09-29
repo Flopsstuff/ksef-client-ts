@@ -110,7 +110,7 @@ describe('incrementalExportAndDownload', () => {
 
       expect(result.decryptedParts[0]).toEqual(new Uint8Array([0x50, 0x4b]));
       expect(client.crypto.decryptAES256).toHaveBeenCalledTimes(1);
-      expect(mockTransport).toHaveBeenCalledWith('https://dl.example.com/1', { method: 'GET' });
+      expect(mockTransport).toHaveBeenCalledWith('https://dl.example.com/1', expect.objectContaining({ method: 'GET' }));
     });
   });
 
@@ -518,8 +518,8 @@ describe('incrementalExportAndDownload', () => {
       expect(result.referenceNumbers).toEqual(['ref-a', 'ref-b']);
       expect(result.decryptedParts).toHaveLength(2);
       expect(mockTransport).toHaveBeenCalledTimes(2);
-      expect(mockTransport).toHaveBeenCalledWith('https://dl.example.com/a1', { method: 'GET' });
-      expect(mockTransport).toHaveBeenCalledWith('https://dl.example.com/b1', { method: 'GET' });
+      expect(mockTransport).toHaveBeenCalledWith('https://dl.example.com/a1', expect.objectContaining({ method: 'GET' }));
+      expect(mockTransport).toHaveBeenCalledWith('https://dl.example.com/b1', expect.objectContaining({ method: 'GET' }));
     });
 
     it('handles multiple parts per iteration', async () => {
@@ -943,6 +943,27 @@ describe('incrementalExportAndDownload', () => {
           transport: failTransport,
         }),
       ).rejects.toThrow('Download failed for part 1: HTTP 404');
+    });
+
+    it('retries a part download after a 503 and sends each attempt with a timeout', async () => {
+      mockDoExport.mockResolvedValueOnce(mockExportResult({ isTruncated: false }));
+
+      const flakyTransport = vi.fn()
+        .mockResolvedValueOnce(new Response('busy', { status: 503 }))
+        .mockResolvedValueOnce(new Response(new Uint8Array([99, 99]).buffer, { status: 200 }));
+
+      const result = await incrementalExportAndDownload(client, {
+        subjectType: 'Subject1',
+        windowFrom: '2026-01-01',
+        windowTo: '2026-03-01',
+        continuationPoints: {},
+        pollOptions: { intervalMs: 1 },
+        transport: flakyTransport,
+      });
+
+      expect(flakyTransport).toHaveBeenCalledTimes(2);
+      expect(flakyTransport.mock.calls[0]![1].signal).toBeInstanceOf(AbortSignal);
+      expect(result.decryptedParts).toHaveLength(1);
     });
   });
 

@@ -9,6 +9,7 @@ import { extractTarGz } from '../utils/targz.js';
 import { pollUntil } from './polling.js';
 import { withKeyRotationRetry } from '../crypto/with-key-rotation-retry.js';
 import { verifyHash } from '../utils/hash.js';
+import { downloadWithRetry, DEFAULT_PART_DOWNLOAD_TIMEOUT_MS } from '../http/download-with-retry.js';
 
 export interface ExportOptions {
   onlyMetadata?: boolean;
@@ -20,6 +21,8 @@ export interface ExportOptions {
 export interface ExportAndDownloadOptions extends ExportOptions {
   /** Custom fetch function for downloading parts (defaults to global fetch). */
   transport?: typeof fetch;
+  /** Per-attempt timeout for each part download, in ms. Default: 120000. */
+  downloadTimeoutMs?: number;
   /** When true, concatenate and extract the ZIP, returning named files. */
   extract?: boolean;
   /** Options for ZIP extraction safety limits (only used when extract is true). */
@@ -108,15 +111,14 @@ export async function exportAndDownload(
 ): Promise<ExportDownloadResult | ExportExtractedResult> {
   const { result: exportResult, encData } = await doExport(client, filters, options);
 
-  const download = options?.transport ?? fetch;
   const decryptedParts: Uint8Array[] = [];
 
   for (const part of exportResult.parts) {
-    const resp = await download(part.url, { method: part.method });
-    if (!resp.ok) {
-      throw new Error(`Download failed for part ${part.ordinalNumber}: HTTP ${resp.status}`);
-    }
-    const encryptedData = new Uint8Array(await resp.arrayBuffer());
+    const encryptedData = await downloadWithRetry(part.url, { method: part.method }, {
+      transport: options?.transport,
+      timeoutMs: options?.downloadTimeoutMs ?? DEFAULT_PART_DOWNLOAD_TIMEOUT_MS,
+      label: `part ${part.ordinalNumber}`,
+    });
     if (options?.verifyHash !== false && !verifyHash(encryptedData, part.encryptedPartHash)) {
       throw new Error(`Hash mismatch for export part ${part.ordinalNumber}`);
     }
