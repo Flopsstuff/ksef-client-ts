@@ -522,7 +522,7 @@ console.log(`Downloaded ${result.decryptedParts.length} parts`);
 | `windowTo` | `string` | required | ISO 8601 end of the export window |
 | `continuationPoints` | `ContinuationPoints` | required | `Record<string, string \| undefined>` — subject type → last processed date |
 | `maxIterations` | `number` | `20` | Maximum number of export iterations (prevents infinite loops) |
-| `filtersFactory` | `(from, to) => InvoiceQueryFilters` | — | Custom filter builder; default uses `PermanentStorage` date type |
+| `filtersFactory` | `(from, to) => InvoiceQueryFilters` | — | Custom filter builder; default uses `PermanentStorage` date type with `restrictToPermanentStorageHwmDate: true` (a custom builder should set it too) |
 | `store` | `HwmStore` | — | Optional persistent storage for continuation points |
 | `onIterationComplete` | `(iteration, result) => void` | — | Progress callback after each iteration |
 | `pollOptions` | `PollOptions` | — | Polling configuration for each export |

@@ -126,6 +126,9 @@ function buildDefaultFilters(
       dateType: 'PermanentStorage',
       from,
       to,
+      // Enables the HWM mechanism: KSeF caps the range at PermanentStorageHwmDate,
+      // the point the next window resumes from, so windows stay adjacent.
+      restrictToPermanentStorageHwmDate: true,
     },
   };
 }

@@ -38,19 +38,21 @@ describe('23 - Incremental Export Workflow', { timeout: 300_000 }, () => {
       pollOptions: { intervalMs: 5000, maxAttempts: 30 },
     });
 
-    // Wait for invoices to reach PermanentStorage index (used by incremental export)
+    // Wait for invoices to fall below the permanent-storage HWM: the incremental
+    // export restricts its range to the HWM, which lags wall clock on TEST by a
+    // few minutes. Poll slowly — the metadata query allows only 20 calls per hour.
     const yesterday = dateInCET(-1);
     const permStorageFilters = new InvoiceQueryFilterBuilder()
       .withSubjectType('Subject1')
-      .withDateRange('PermanentStorage', yesterday)
+      .withDateRangeRestricted('PermanentStorage', yesterday)
       .build();
 
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 16; i++) {
       const meta = await client.invoices.queryInvoiceMetadata(permStorageFilters);
       if (meta.invoices.length > 0) break;
-      await new Promise((r) => setTimeout(r, 3000));
+      await new Promise((r) => setTimeout(r, 15_000));
     }
-  }, 180_000);
+  }, 420_000);
 
   it('should perform incremental export and return results', async () => {
     const yesterday = dateInCET(-1);

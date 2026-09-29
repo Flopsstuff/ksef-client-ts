@@ -432,6 +432,7 @@ describe('incrementalExportAndDownload', () => {
             dateType: 'PermanentStorage',
             from: '2026-01-01',
             to: '2026-03-01',
+            restrictToPermanentStorageHwmDate: true,
           },
         },
         expect.any(Object),
@@ -458,10 +459,31 @@ describe('incrementalExportAndDownload', () => {
             dateType: 'PermanentStorage',
             from: '2026-06-01',
             to: '2026-09-30',
+            restrictToPermanentStorageHwmDate: true,
           },
         },
         expect.any(Object),
       );
+    });
+    it('keeps the HWM restriction when resuming from a stored continuation point', async () => {
+      mockDoExport.mockResolvedValueOnce(mockExportResult({ isTruncated: false }));
+
+      await incrementalExportAndDownload(client, {
+        subjectType: 'Subject2',
+        windowFrom: '2026-01-01',
+        windowTo: '2026-03-01',
+        continuationPoints: { Subject2: '2026-02-10T08:00:00Z' },
+        pollOptions: { intervalMs: 1 },
+        transport: mockTransport,
+      });
+
+      const filters = mockDoExport.mock.calls[0]![1];
+      expect(filters.dateRange).toEqual({
+        dateType: 'PermanentStorage',
+        from: '2026-02-10T08:00:00Z',
+        to: '2026-03-01',
+        restrictToPermanentStorageHwmDate: true,
+      });
     });
   });
 
