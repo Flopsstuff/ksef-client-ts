@@ -45,20 +45,53 @@ const RETRYABLE_ERROR_CODES = new Set([
   'UND_ERR_CONNECT_TIMEOUT',
 ]);
 
-export function isRetryableError(error: unknown, policy: RetryPolicy): boolean {
+/** Failures raised before any byte of the request reached the server. */
+const NOT_SENT_ERROR_CODES = new Set([
+  'ECONNREFUSED',
+  'UND_ERR_CONNECT_TIMEOUT',
+]);
+
+const NON_IDEMPOTENT_METHODS = new Set(['POST', 'PATCH']);
+
+function isNonIdempotent(method?: string): boolean {
+  return method !== undefined && NON_IDEMPOTENT_METHODS.has(method.toUpperCase());
+}
+
+/**
+ * Whether a thrown transport error may be retried.
+ *
+ * For a non-idempotent `method` (POST, PATCH) only errors raised before the
+ * request was sent qualify: after a timeout or a dropped connection the server
+ * may already have acted on it, and a retry could repeat the side effect.
+ * Omitting `method` treats the request as idempotent.
+ */
+export function isRetryableError(error: unknown, policy: RetryPolicy, method?: string): boolean {
   if (!policy.retryNetworkErrors) return false;
   if (!(error instanceof Error)) return false;
 
+  const code = (error as NodeJS.ErrnoException).code;
+  if (isNonIdempotent(method)) {
+    return code !== undefined && NOT_SENT_ERROR_CODES.has(code);
+  }
+
   if (error.name === 'AbortError') return true;
 
-  const code = (error as NodeJS.ErrnoException).code;
   if (code && RETRYABLE_ERROR_CODES.has(code)) return true;
 
   return false;
 }
 
-export function isRetryableStatus(status: number, policy: RetryPolicy): boolean {
-  return policy.retryableStatusCodes.includes(status);
+/**
+ * Whether a response status may be retried.
+ *
+ * For a non-idempotent `method` (POST, PATCH) only `429` qualifies: the server
+ * rejected the request without acting on it. A `5xx` may arrive after the
+ * server already processed the request, so retrying could repeat its effect.
+ * Omitting `method` treats the request as idempotent.
+ */
+export function isRetryableStatus(status: number, policy: RetryPolicy, method?: string): boolean {
+  if (!policy.retryableStatusCodes.includes(status)) return false;
+  return !isNonIdempotent(method) || status === 429;
 }
 
 export function sleep(ms: number): Promise<void> {

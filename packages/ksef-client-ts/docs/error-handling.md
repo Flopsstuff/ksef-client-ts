@@ -324,9 +324,9 @@ Response not OK?
 
 The retry loop in `sendRequest()` (lines 71-131) handles certain errors transparently before they reach `ensureSuccess()`:
 
-1. **429 / 5xx responses** are retried up to `maxRetries` times with exponential backoff.
+1. **429 / 5xx responses** are retried up to `maxRetries` times with exponential backoff. POST requests are retried on 429 only.
 2. **401 on first attempt** triggers an auth token refresh via `AuthManager.onUnauthorized()`. If refresh succeeds, the request is retried once with the new token.
-3. **Network errors** (`ECONNRESET`, `ETIMEDOUT`, etc.) are retried with backoff.
+3. **Network errors** (`ECONNRESET`, `ETIMEDOUT`, etc.) are retried with backoff. POST requests are retried only if the connection was never established, because the server may already have processed them.
 
 Only after all retries are exhausted does the response reach `ensureSuccess()`. This means callers only see errors that could not be recovered automatically.
 
@@ -1005,7 +1005,7 @@ The `RestClient` handles several error types transparently before they reach you
 
 ### Retry on 429 / 5xx / network errors
 
-Retryable responses (429, 500, 502, 503, 504) and network errors (`ECONNRESET`, `ECONNREFUSED`, `ETIMEDOUT`, `AbortError`) are retried up to `maxRetries` times (default: 3) with exponential backoff and jitter.
+Retryable responses (429, 500, 502, 503, 504; for POST only 429) and network errors (`ECONNRESET`, `ECONNREFUSED`, `ETIMEDOUT`, `AbortError`; for POST only `ECONNREFUSED` and `UND_ERR_CONNECT_TIMEOUT`) are retried up to `maxRetries` times (default: 3) with exponential backoff and jitter.
 
 For 429 responses, the `Retry-After` header is respected -- if present, its value overrides the calculated backoff delay.
 

@@ -181,7 +181,8 @@ export class RestClient {
         }
 
         // Retryable status + budget left → defer outcome to a later iteration.
-        if (isRetryableStatus(response.status, this.retryPolicy) && attempt < this.retryPolicy.maxRetries) {
+        // Non-idempotent requests are retried on 429 only (see isRetryableStatus).
+        if (isRetryableStatus(response.status, this.retryPolicy, request.method) && attempt < this.retryPolicy.maxRetries) {
           const is429 = response.status === 429;
           const retryAfterMs = is429 ? parseRetryAfter(response.headers.get('Retry-After')) : null;
           const delayMs = retryAfterMs ?? calculateBackoff(attempt, this.retryPolicy);
@@ -216,7 +217,9 @@ export class RestClient {
       } catch (error) {
         lastError = error;
 
-        if (isRetryableError(error, this.retryPolicy) && attempt < this.retryPolicy.maxRetries) {
+        // A non-idempotent request is only retried when it provably never
+        // reached the server (see isRetryableError).
+        if (isRetryableError(error, this.retryPolicy, request.method) && attempt < this.retryPolicy.maxRetries) {
           const delayMs = calculateBackoff(attempt, this.retryPolicy);
           consola.debug(`Network error, attempt ${attempt + 1}/${this.retryPolicy.maxRetries}, waiting ${Math.round(delayMs)}ms`);
           await sleep(delayMs);

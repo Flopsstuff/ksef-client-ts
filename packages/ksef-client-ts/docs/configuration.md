@@ -50,11 +50,11 @@ Failed requests are automatically retried with exponential backoff. The retry po
 
 ### What gets retried
 
-**HTTP status codes** (default): `429`, `500`, `502`, `503`, `504`
+**HTTP status codes** (default): `429`, `500`, `502`, `503`, `504`. POST: `429` only.
 
 **Network errors** (when `retryNetworkErrors: true`): `ECONNRESET`, `ECONNREFUSED`, `ETIMEDOUT`, `UND_ERR_CONNECT_TIMEOUT`, and `AbortError` (fetch timeout).
 
-All HTTP methods are retried, including POST. This is safe because KSeF API operations are idempotent by design — for example, submitting the same invoice returns the same KSeF number.
+POST requests are retried on a `429` response, because the server rejected them without acting on them. They are not retried on `5xx`, because the server may already have processed a request that ends in `500`, `502`, `503` or `504`. After a thrown network error or timeout they are retried only when the connection was never established (`ECONNREFUSED`, `UND_ERR_CONNECT_TIMEOUT`). After `ECONNRESET`, `ETIMEDOUT` or `AbortError` the server may already have processed the request, so a retry could repeat its effect (open a second session, generate a second token, or get a duplicate-invoice error for an invoice that was accepted). Those errors are thrown to the caller instead. GET, PUT and DELETE are retried on every listed network error.
 
 ### Backoff formula
 

@@ -138,18 +138,76 @@ describe('RestClient', () => {
       expect(transport).toHaveBeenCalledTimes(1);
     });
 
-    it('retries POST requests on 503', async () => {
+    it.each([500, 502, 503, 504])('does not retry POST requests on %i, since the server may have processed them', async (status) => {
       const transport = vi.fn<TransportFn>()
-        .mockResolvedValueOnce(mockResponse(503))
+        .mockResolvedValueOnce(mockResponse(status))
         .mockResolvedValueOnce(mockResponse(200, { created: true }));
 
       const client = createClient(transport);
-      const result = await client.execute<{ created: boolean }>(RestRequest.post('/invoices').body({ xml: '<invoice/>' }));
-
-      expect(result.body).toEqual({ created: true });
-      expect(transport).toHaveBeenCalledTimes(2);
+      await expect(
+        client.execute(RestRequest.post('/invoices').body({ xml: '<invoice/>' })),
+      ).rejects.toThrow(KSeFApiError);
+      expect(transport).toHaveBeenCalledTimes(1);
       expect(transport.mock.calls[0]![1].method).toBe('POST');
-      expect(transport.mock.calls[1]![1].method).toBe('POST');
+    });
+
+    describe('non-idempotent POST', () => {
+      const post = () => RestRequest.post('/sessions/online').body({ formCode: 'FA' });
+
+      function timeoutError(): Error {
+        const err = new Error('The operation was aborted');
+        err.name = 'AbortError';
+        return err;
+      }
+
+      it.each([
+        ['a timeout (AbortError)', timeoutError()],
+        ['ECONNRESET', Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' })],
+        ['ETIMEDOUT', Object.assign(new Error('read timed out'), { code: 'ETIMEDOUT' })],
+      ])('is not retried after %s, since the request may have been sent', async (_label, error) => {
+        const transport = vi.fn<TransportFn>()
+          .mockRejectedValueOnce(error)
+          .mockResolvedValueOnce(mockResponse(200, { created: true }));
+
+        const client = createClient(transport);
+        await expect(client.execute(post())).rejects.toBe(error);
+        expect(transport).toHaveBeenCalledTimes(1);
+      });
+
+      it('is retried when the connection was refused, since nothing was sent', async () => {
+        const error = Object.assign(new Error('connect refused'), { code: 'ECONNREFUSED' });
+        const transport = vi.fn<TransportFn>()
+          .mockRejectedValueOnce(error)
+          .mockResolvedValueOnce(mockResponse(200, { created: true }));
+
+        const client = createClient(transport);
+        const result = await client.execute<{ created: boolean }>(post());
+
+        expect(result.body).toEqual({ created: true });
+        expect(transport).toHaveBeenCalledTimes(2);
+      });
+
+      it('is retried on 429, since the server rejected it', async () => {
+        const transport = vi.fn<TransportFn>()
+          .mockResolvedValueOnce(mockResponse(429, {}, { 'Retry-After': '0' }))
+          .mockResolvedValueOnce(mockResponse(200, { created: true }));
+
+        const client = createClient(transport);
+        const result = await client.execute<{ created: boolean }>(post());
+
+        expect(result.body).toEqual({ created: true });
+        expect(transport).toHaveBeenCalledTimes(2);
+      });
+
+      it('GET is still retried after a timeout', async () => {
+        const transport = vi.fn<TransportFn>()
+          .mockRejectedValueOnce(timeoutError())
+          .mockResolvedValueOnce(mockResponse(200, { ok: true }));
+
+        const client = createClient(transport);
+        await client.execute(RestRequest.get('/test'));
+        expect(transport).toHaveBeenCalledTimes(2);
+      });
     });
 
     it('retries DELETE requests on 500', async () => {
