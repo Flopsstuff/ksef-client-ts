@@ -152,7 +152,7 @@ beforeEach(() => {
     referenceNumber: 'tok-ref-1',
   });
 
-  mockClient.loginWithToken.mockResolvedValue(undefined);
+  mockClient.loginWithToken.mockResolvedValue({ clientIp: '127.0.0.1', accessTokenValidUntil: '2026-09-29T12:30:00Z' });
   mockClient.authManager.getAccessToken.mockReturnValue('new-access-token');
   mockClient.authManager.getRefreshToken.mockReturnValue('new-refresh-token');
 });
@@ -221,6 +221,9 @@ describe('setup', () => {
 
     // Verify re-login with token
     expect(mockClient.loginWithToken).toHaveBeenCalledWith('generated-token-123', '1234567890');
+    expect(mockSaveSession).toHaveBeenLastCalledWith(
+      expect.objectContaining({ accessToken: 'new-access-token', expiresAt: '2026-09-29T12:30:00Z' }),
+    );
 
     // Verify success output
     expect(mockOutputSuccess).toHaveBeenCalledWith(
@@ -415,7 +418,7 @@ describe('setup', () => {
   });
 
   it('test env - self-signed cert quick auth', async () => {
-    mockClient.loginWithCertificate.mockResolvedValue(undefined);
+    mockClient.loginWithCertificate.mockResolvedValue({ clientIp: '127.0.0.1', accessTokenValidUntil: '2026-09-29T12:15:00Z' });
 
     mockConsolaPrompt
       .mockResolvedValueOnce('1234567890') // NIP
@@ -436,6 +439,7 @@ describe('setup', () => {
       expect.objectContaining({
         accessToken: 'new-access-token',
         refreshToken: 'new-refresh-token',
+        expiresAt: '2026-09-29T12:15:00Z',
         environment: 'test',
       }),
     );
@@ -450,7 +454,7 @@ describe('setup', () => {
   });
 
   it('test env - self-signed cert with Phase 2 token generation', async () => {
-    mockClient.loginWithCertificate.mockResolvedValue(undefined);
+    mockClient.loginWithCertificate.mockResolvedValue({ clientIp: '127.0.0.1', accessTokenValidUntil: '2026-09-29T12:15:00Z' });
 
     mockConsolaPrompt
       .mockResolvedValueOnce('1234567890') // NIP

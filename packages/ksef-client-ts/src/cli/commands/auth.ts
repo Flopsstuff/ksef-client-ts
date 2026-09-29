@@ -100,7 +100,7 @@ const login = defineCommand({
       const session: SessionData = {
         accessToken: client.authManager.getAccessToken()!,
         refreshToken: client.authManager.getRefreshToken(),
-        expiresAt: undefined, // TODO: track from token response if needed
+        expiresAt: loginResult.accessTokenValidUntil,
         environment: (args.env ?? config.environment) as SessionData['environment'],
       };
       saveSession(session);

@@ -176,6 +176,17 @@ describe('auth', () => {
       );
     });
 
+    it('saves the access-token expiry so an expired session gets refreshed', async () => {
+      mockClient.loginWithToken.mockResolvedValue({
+        clientIp: '127.0.0.1',
+        accessTokenValidUntil: '2026-09-29T12:15:00Z',
+      });
+      await runLogin({ token: 'tok-123', nip: '1234567890' });
+      expect(mockSaveSession).toHaveBeenCalledWith(
+        expect.objectContaining({ expiresAt: '2026-09-29T12:15:00Z' }),
+      );
+    });
+
     it('uses NIP from config as fallback', async () => {
       mockLoadConfig.mockReturnValue({ ...defaultConfig, nip: '9999999999' });
       await runLogin({ token: 'tok-123' });

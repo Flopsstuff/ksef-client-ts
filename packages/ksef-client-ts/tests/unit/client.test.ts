@@ -173,7 +173,7 @@ describe('KSeFClient', () => {
 
     it('returns clientIp from challenge', async () => {
       const result = await client.loginWithToken(FIXTURES.token, FIXTURES.nip);
-      expect(result).toEqual({ clientIp: '192.168.1.1' });
+      expect(result).toEqual({ clientIp: '192.168.1.1', accessTokenValidUntil: '2025-01-15T12:30:00.000Z' });
     });
 
     it('calls crypto.init before encryptKsefToken', async () => {
@@ -271,7 +271,7 @@ describe('KSeFClient', () => {
 
     it('returns clientIp from challenge', async () => {
       const result = await client.loginWithCertificate(FIXTURES.certPem, FIXTURES.keyPem, FIXTURES.nip);
-      expect(result).toEqual({ clientIp: '192.168.1.1' });
+      expect(result).toEqual({ clientIp: '192.168.1.1', accessTokenValidUntil: '2025-01-15T12:30:00.000Z' });
     });
 
     it('generates auth request XML containing challenge and NIP', async () => {
@@ -402,7 +402,7 @@ describe('KSeFClient', () => {
 
     it('returns clientIp from challenge', async () => {
       const result = await client.loginWithPkcs12(Buffer.from('mock-p12'), 'pass', FIXTURES.nip);
-      expect(result).toEqual({ clientIp: '192.168.1.1' });
+      expect(result).toEqual({ clientIp: '192.168.1.1', accessTokenValidUntil: '2025-01-15T12:30:00.000Z' });
     });
 
     it('propagates Pkcs12Loader error', async () => {

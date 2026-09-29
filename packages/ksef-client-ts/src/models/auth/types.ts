@@ -10,6 +10,8 @@ export interface AuthChallengeResponse {
 export interface LoginResult {
   /** Client IP as seen by KSeF during the challenge — use to configure AuthorizationPolicy.allowedIps. */
   clientIp: string;
+  /** When the access token expires (ISO 8601), as reported by KSeF. */
+  accessTokenValidUntil: string;
 }
 
 export interface AuthenticationInitResponse {
