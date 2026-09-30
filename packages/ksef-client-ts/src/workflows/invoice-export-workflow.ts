@@ -128,6 +128,11 @@ export async function exportAndDownload(
 
   if (options?.extract) {
     const archiveBuffer = Buffer.concat(decryptedParts);
+    // An export window with no invoices can come back without parts (or with
+    // empty ones): there is no archive to open, so the result has no files.
+    if (archiveBuffer.length === 0) {
+      return { ...exportResult, files: new Map<string, Buffer>() };
+    }
     // Follow the format the package reports: since KSeF API v2.7.1 the export status
     // response states which archive it actually produced, so the extractor no longer
     // has to trust what the caller asked for. The requested type stays as a fallback
