@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.13.1] - Unreleased
+
+### Fixed
+
+- **Expired command-line sessions** — the command line now records when its access token expires, so an expired session is refreshed or re-established automatically instead of failing as unauthorized.
+- **Certificate login from the command line** — logging in with a certificate now uses that certificate even when a KSeF token is also stored, instead of silently falling back to the token.
+- **Private key file permissions** — a private key generated from the command line is now readable only by its owner.
+- **Re-downloaded invoices in incremental export** — each run now stops where KSeF has finished storing invoices, so the next run no longer downloads the same invoices again.
+- **Stalled or failed export downloads** — downloading export parts now times out and retries temporary failures instead of hanging or aborting the whole export.
+- **Exports of an empty period** — unpacking an export that contains no invoices now returns no files instead of failing.
+- **Repeated actions after a lost response** — requests that create or change something, such as sending an invoice, opening a session or generating a token, are no longer repeated after a timeout, a dropped connection or a server error, since KSeF may already have acted on them; read-only queries are still retried.
+
+Most of these fixes were contributed from the [Yis-company fork](https://github.com/Yis-company/ksef-client-ts) by Yi Tam.
+
 ## [0.13.0] - 2026-09-11
 
 ### Added
