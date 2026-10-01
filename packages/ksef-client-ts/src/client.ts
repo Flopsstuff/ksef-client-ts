@@ -117,7 +117,7 @@ export class KSeFClient {
     this.authManager.setAccessToken(tokens.accessToken.token);
     this.authManager.setRefreshToken(tokens.refreshToken.token);
 
-    return { clientIp: challenge.clientIp };
+    return { clientIp: challenge.clientIp, accessTokenValidUntil: tokens.accessToken.validUntil };
   }
 
   async loginWithCertificate(certPem: string, keyPem: string, nip: string, keyPassword?: string): Promise<LoginResult> {
@@ -135,7 +135,7 @@ export class KSeFClient {
     this.authManager.setAccessToken(tokens.accessToken.token);
     this.authManager.setRefreshToken(tokens.refreshToken.token);
 
-    return { clientIp: challenge.clientIp };
+    return { clientIp: challenge.clientIp, accessTokenValidUntil: tokens.accessToken.validUntil };
   }
 
   async loginWithPkcs12(p12: Buffer | Uint8Array, password: string, nip: string): Promise<LoginResult> {

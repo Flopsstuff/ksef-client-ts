@@ -431,6 +431,8 @@ The function has two overloads:
 - `extract: true` → returns `ExportExtractedResult` with `files: Map<string, Buffer>`
 - Default (no extract / `extract: false`) → returns `ExportDownloadResult` with `decryptedParts: Uint8Array[]`
 
+Each part download (here and in `incrementalExportAndDownload`) has a per-attempt timeout (`downloadTimeoutMs`, default 120000) and is retried with the default retry policy: `5xx`, `429` (honouring `Retry-After`) and network errors or timeouts.
+
 #### Which extractor runs
 
 `extract: true` unpacks the archive using the format the export package reports, so it always matches what the server actually produced — a TarGz package is untarred even when the request asked for nothing. `compressionType` in the options only *requests* a format for the export itself; it is consulted for extraction solely as a fallback, for responses from a KSeF build predating the reported field (KSeF API v2.7.1). Callers therefore no longer have to pass back the same `compressionType` they exported with.
@@ -520,12 +522,13 @@ console.log(`Downloaded ${result.decryptedParts.length} parts`);
 | `windowTo` | `string` | required | ISO 8601 end of the export window |
 | `continuationPoints` | `ContinuationPoints` | required | `Record<string, string \| undefined>` — subject type → last processed date |
 | `maxIterations` | `number` | `20` | Maximum number of export iterations (prevents infinite loops) |
-| `filtersFactory` | `(from, to) => InvoiceQueryFilters` | — | Custom filter builder; default uses `PermanentStorage` date type |
+| `filtersFactory` | `(from, to) => InvoiceQueryFilters` | — | Custom filter builder; default uses `PermanentStorage` date type with `restrictToPermanentStorageHwmDate: true` (a custom builder should set it too) |
 | `store` | `HwmStore` | — | Optional persistent storage for continuation points |
 | `onIterationComplete` | `(iteration, result) => void` | — | Progress callback after each iteration |
 | `pollOptions` | `PollOptions` | — | Polling configuration for each export |
 | `onlyMetadata` | `boolean` | — | Export metadata only |
 | `transport` | `typeof fetch` | — | Custom fetch for downloads |
+| `downloadTimeoutMs` | `number` | `120000` | Per-attempt timeout for each part download (retried on 5xx, 429, network errors) |
 
 ### Loop termination
 

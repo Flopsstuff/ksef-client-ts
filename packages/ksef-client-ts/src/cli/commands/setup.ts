@@ -138,11 +138,12 @@ export const setupCommand = defineCommand({
           'CLI Setup', `VATPL-${nip}`, `CLI Setup ${nip}`, 'RSA',
         );
         consola.info('Authenticating with self-signed certificate...');
-        await client.loginWithCertificate(cert.certificatePem, cert.privateKeyPem, nip);
+        const loginResult = await client.loginWithCertificate(cert.certificatePem, cert.privateKeyPem, nip);
 
         const session: SessionData = {
           accessToken: client.authManager.getAccessToken()!,
           refreshToken: client.authManager.getRefreshToken(),
+          expiresAt: loginResult.accessTokenValidUntil,
           environment: env,
         };
         saveSession(session);
@@ -270,10 +271,11 @@ export const setupCommand = defineCommand({
             // Re-login with token
             try {
               const freshClient = createClient({ env });
-              await freshClient.loginWithToken(tokenResult.token, nip);
+              const loginResult = await freshClient.loginWithToken(tokenResult.token, nip);
               const newSession: SessionData = {
                 accessToken: freshClient.authManager.getAccessToken()!,
                 refreshToken: freshClient.authManager.getRefreshToken(),
+                expiresAt: loginResult.accessTokenValidUntil,
                 environment: env,
               };
               saveSession(newSession);

@@ -8,6 +8,7 @@ export class RestRequest {
   private _query: [string, string][] = [];
   private _presigned = false;
   private _skipAuthRetry = false;
+  private _retrySafe = false;
 
   private constructor(method: HttpMethod, path: string) {
     this.method = method;
@@ -71,6 +72,21 @@ export class RestRequest {
 
   isSkipAuthRetry(): boolean {
     return this._skipAuthRetry;
+  }
+
+  /**
+   * Marks a POST that has no side effects (a query sent as POST because it
+   * carries a body), so it is retried like a GET after a timeout, a dropped
+   * connection or a 5xx. Other POSTs are retried only when the server
+   * provably did not act on them.
+   */
+  retrySafe(flag = true): this {
+    this._retrySafe = flag;
+    return this;
+  }
+
+  isRetrySafe(): boolean {
+    return this._retrySafe;
   }
 
   getBody(): unknown | undefined {

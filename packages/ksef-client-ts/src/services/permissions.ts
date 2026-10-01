@@ -120,7 +120,7 @@ export class PermissionsService {
     pageSize?: number,
   ): Promise<PagedPermissionsResponse<PersonalPermission>> {
     PermissionsService.validateContextIdentifier(options?.contextIdentifier);
-    const req = RestRequest.post(Routes.Permissions.Query.personalGrants)
+    const req = RestRequest.post(Routes.Permissions.Query.personalGrants).retrySafe()
       .body(options ?? {});
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
@@ -133,7 +133,7 @@ export class PermissionsService {
     pageOffset?: number,
     pageSize?: number,
   ): Promise<PagedPermissionsResponse<PersonPermission>> {
-    const req = RestRequest.post(Routes.Permissions.Query.personsGrants)
+    const req = RestRequest.post(Routes.Permissions.Query.personsGrants).retrySafe()
       .body(options);
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
@@ -146,7 +146,7 @@ export class PermissionsService {
     pageOffset?: number,
     pageSize?: number,
   ): Promise<PagedPermissionsResponse<SubunitPermission>> {
-    const req = RestRequest.post(Routes.Permissions.Query.subunitsGrants)
+    const req = RestRequest.post(Routes.Permissions.Query.subunitsGrants).retrySafe()
       .body(options ?? {});
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
@@ -170,7 +170,7 @@ export class PermissionsService {
     pageSize?: number,
   ): Promise<PagedPermissionsResponse<EntityPermissionItem>> {
     PermissionsService.validateContextIdentifier(options?.contextIdentifier);
-    const req = RestRequest.post(Routes.Permissions.Query.entitiesGrants)
+    const req = RestRequest.post(Routes.Permissions.Query.entitiesGrants).retrySafe()
       .body(options ?? {});
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
@@ -183,7 +183,7 @@ export class PermissionsService {
     pageOffset?: number,
     pageSize?: number,
   ): Promise<PagedRolesResponse<SubordinateEntityRole>> {
-    const req = RestRequest.post(Routes.Permissions.Query.subordinateEntitiesRoles)
+    const req = RestRequest.post(Routes.Permissions.Query.subordinateEntitiesRoles).retrySafe()
       .body(options ?? {});
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
@@ -196,7 +196,7 @@ export class PermissionsService {
     pageOffset?: number,
     pageSize?: number,
   ): Promise<PagedAuthorizationsResponse<EntityAuthorizationGrant>> {
-    const req = RestRequest.post(Routes.Permissions.Query.authorizationsGrants)
+    const req = RestRequest.post(Routes.Permissions.Query.authorizationsGrants).retrySafe()
       .body(options);
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
@@ -209,7 +209,7 @@ export class PermissionsService {
     pageOffset?: number,
     pageSize?: number,
   ): Promise<PagedPermissionsResponse<EuEntityPermission>> {
-    const req = RestRequest.post(Routes.Permissions.Query.euEntitiesGrants)
+    const req = RestRequest.post(Routes.Permissions.Query.euEntitiesGrants).retrySafe()
       .body(options ?? {});
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));

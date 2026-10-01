@@ -84,6 +84,8 @@ ksef auth login --cert cert.pem --key key.pem --nip <nip>
 
 Signs an AuthTokenRequest XML with XAdES and submits. `--cert`, `--key`, and `--nip` are all required.
 
+Explicit `--cert`/`--key` (or `--p12`) take precedence over a token stored in `~/.ksef/credentials.json`; the stored token is used only when no credential flag is given.
+
 ### Other Auth Commands
 
 ```bash

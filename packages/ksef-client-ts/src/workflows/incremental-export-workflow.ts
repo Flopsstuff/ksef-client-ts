@@ -6,6 +6,7 @@ import type { HwmStore } from './hwm-storage.js';
 import { doExport } from './invoice-export-workflow.js';
 import { updateContinuationPoint, getEffectiveStartDate } from './hwm-coordinator.js';
 import { verifyHash } from '../utils/hash.js';
+import { downloadWithRetry, DEFAULT_PART_DOWNLOAD_TIMEOUT_MS } from '../http/download-with-retry.js';
 
 export interface IncrementalExportOptions {
   subjectType: InvoiceSubjectType;
@@ -17,6 +18,8 @@ export interface IncrementalExportOptions {
   pollOptions?: PollOptions;
   onlyMetadata?: boolean;
   transport?: typeof fetch;
+  /** Per-attempt timeout for each part download, in ms. Default: 120000. */
+  downloadTimeoutMs?: number;
   /** Verify SHA-256 hash of encrypted parts after download. Defaults to true. */
   verifyHash?: boolean;
   store?: HwmStore;
@@ -72,13 +75,12 @@ export async function incrementalExportAndDownload(
 
     referenceNumbers.push(referenceNumber);
 
-    const download = options.transport ?? fetch;
     for (const part of result.parts) {
-      const resp = await download(part.url, { method: part.method });
-      if (!resp.ok) {
-        throw new Error(`Download failed for part ${part.ordinalNumber}: HTTP ${resp.status}`);
-      }
-      const encryptedData = new Uint8Array(await resp.arrayBuffer());
+      const encryptedData = await downloadWithRetry(part.url, { method: part.method }, {
+        transport: options.transport,
+        timeoutMs: options.downloadTimeoutMs ?? DEFAULT_PART_DOWNLOAD_TIMEOUT_MS,
+        label: `part ${part.ordinalNumber}`,
+      });
       if (options.verifyHash !== false && !verifyHash(encryptedData, part.encryptedPartHash)) {
         throw new Error(`Hash mismatch for export part ${part.ordinalNumber}`);
       }
@@ -124,6 +126,9 @@ function buildDefaultFilters(
       dateType: 'PermanentStorage',
       from,
       to,
+      // Enables the HWM mechanism: KSeF caps the range at PermanentStorageHwmDate,
+      // the point the next window resumes from, so windows stay adjacent.
+      restrictToPermanentStorageHwmDate: true,
     },
   };
 }

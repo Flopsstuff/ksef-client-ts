@@ -206,6 +206,7 @@ Returned by `client.loginWithToken()`, `client.loginWithCertificate()`, and `cli
 ```typescript
 interface LoginResult {
   clientIp: string;  // caller's IP as seen by KSeF during challenge
+  accessTokenValidUntil: string;  // access-token expiry (ISO 8601)
 }
 ```
 

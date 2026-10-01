@@ -29,11 +29,13 @@ vi.mock('../../../../src/cli/output.js', () => ({
 vi.mock('node:fs', () => ({
   existsSync: vi.fn(),
   writeFileSync: vi.fn(),
+  chmodSync: vi.fn(),
   readFileSync: vi.fn(),
   mkdirSync: vi.fn(),
   default: {
     existsSync: vi.fn(),
     writeFileSync: vi.fn(),
+    chmodSync: vi.fn(),
     readFileSync: vi.fn(),
     mkdirSync: vi.fn(),
   },
@@ -120,7 +122,7 @@ describe('cert', () => {
       });
       expect(CertificateService.generateCompanySeal).toHaveBeenCalledWith('ACME Corp', 'ORG-123', 'test', 'ECDSA');
       expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining('cert.pem'), 'COMPANY-CERT', 'utf-8');
-      expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining('key.pem'), 'COMPANY-KEY', 'utf-8');
+      expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining('key.pem'), 'COMPANY-KEY', { encoding: 'utf-8', mode: 0o600 });
     });
 
     it('outputs JSON when --json is set', async () => {
@@ -147,7 +149,19 @@ describe('cert', () => {
         'given-name': 'Jan', surname: 'Kowalski', 'serial-number': '123',
       });
       expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining('cert.pem'), 'CERT', 'utf-8');
-      expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining('key.pem'), 'KEY', 'utf-8');
+      expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining('key.pem'), 'KEY', { encoding: 'utf-8', mode: 0o600 });
+    });
+
+    it('restricts key.pem to the owner even when --force overwrites an existing file', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(CertificateService.generatePersonalCertificate).mockResolvedValue({
+        certificatePem: 'CERT', privateKeyPem: 'KEY', fingerprint: 'fp-123',
+      });
+      await runGenerate({
+        type: 'personal', method: 'RSA',
+        'given-name': 'Jan', surname: 'Kowalski', 'serial-number': '123', force: true,
+      });
+      expect(fs.chmodSync).toHaveBeenCalledWith(expect.stringContaining('key.pem'), 0o600);
     });
   });
 

@@ -63,4 +63,16 @@ describe('RestRequest', () => {
       expect(req.getQuery()).toEqual([['token', 'abc']]);
     });
   });
+
+  describe('retrySafe flag', () => {
+    it('defaults to false', () => {
+      expect(RestRequest.post('/query').isRetrySafe()).toBe(false);
+    });
+
+    it('is set via retrySafe() and can be cleared', () => {
+      const req = RestRequest.post('/query').retrySafe();
+      expect(req.isRetrySafe()).toBe(true);
+      expect(req.retrySafe(false).isRetrySafe()).toBe(false);
+    });
+  });
 });

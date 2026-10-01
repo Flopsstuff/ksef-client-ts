@@ -80,7 +80,9 @@ const login = defineCommand({
         throw new Error('NIP is required. Provide --nip or set it via `ksef config set --nip <nip>`.');
       }
 
-      const token = args.token ?? loadCredentials()?.token;
+      // A stored token is only a fallback: explicit certificate flags win over it.
+      const hasCertArgs = Boolean(args.p12 || args.cert || args.key);
+      const token = args.token ?? (hasCertArgs ? undefined : loadCredentials()?.token);
       let loginResult;
       if (token) {
         loginResult = await client.loginWithToken(token, nip);
@@ -100,7 +102,7 @@ const login = defineCommand({
       const session: SessionData = {
         accessToken: client.authManager.getAccessToken()!,
         refreshToken: client.authManager.getRefreshToken(),
-        expiresAt: undefined, // TODO: track from token response if needed
+        expiresAt: loginResult.accessTokenValidUntil,
         environment: (args.env ?? config.environment) as SessionData['environment'],
       };
       saveSession(session);

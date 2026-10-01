@@ -176,8 +176,8 @@ describe('exportAndDownload', () => {
     });
 
     expect(mockTransport).toHaveBeenCalledTimes(2);
-    expect(mockTransport).toHaveBeenCalledWith('https://download.example.com/1', { method: 'GET' });
-    expect(mockTransport).toHaveBeenCalledWith('https://download.example.com/2', { method: 'GET' });
+    expect(mockTransport).toHaveBeenCalledWith('https://download.example.com/1', expect.objectContaining({ method: 'GET' }));
+    expect(mockTransport).toHaveBeenCalledWith('https://download.example.com/2', expect.objectContaining({ method: 'GET' }));
     expect(client.crypto.decryptAES256).toHaveBeenCalledTimes(2);
     expect(result.decryptedParts).toHaveLength(2);
     expect(result.decryptedParts[0]).toEqual(new Uint8Array([0x50, 0x4b, 0x03, 0x04]));
@@ -196,6 +196,21 @@ describe('exportAndDownload', () => {
         transport: mockTransport,
       }),
     ).rejects.toThrow('Download failed for part 1: HTTP 404');
+  });
+
+  it('retries a part download after a network error', async () => {
+    const mockTransport = vi.fn()
+      .mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockImplementation(async () => new Response(new Uint8Array([99]).buffer, { status: 200 }));
+
+    const result = await exportAndDownload(client, filters, {
+      pollOptions: { intervalMs: 1 },
+      transport: mockTransport,
+      verifyHash: false,
+    });
+
+    expect(mockTransport).toHaveBeenCalledTimes(3);
+    expect(result.decryptedParts).toHaveLength(2);
   });
 
   it('passes encryption keys from getEncryptionData to decryptAES256', async () => {

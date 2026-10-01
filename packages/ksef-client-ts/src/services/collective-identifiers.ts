@@ -64,7 +64,7 @@ export class CollectiveIdentifiersService {
     pageSize?: number,
     continuationToken?: string,
   ): Promise<CollectiveIdentifiersQueryResponse> {
-    const req = RestRequest.post(Routes.CollectiveIdentifiers.query)
+    const req = RestRequest.post(Routes.CollectiveIdentifiers.query).retrySafe()
       .body(request);
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
     if (continuationToken !== undefined) req.header('x-continuation-token', continuationToken);
@@ -96,7 +96,7 @@ export class CollectiveIdentifiersService {
         `An invoice query accepts at most ${MAX_COLLECTIVE_IDENTIFIERS_PER_INVOICES_QUERY} collective identifiers, got ${count}`,
       );
     }
-    const req = RestRequest.post(Routes.CollectiveIdentifiers.invoices)
+    const req = RestRequest.post(Routes.CollectiveIdentifiers.invoices).retrySafe()
       .body(request);
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
     if (continuationToken !== undefined) req.header('x-continuation-token', continuationToken);

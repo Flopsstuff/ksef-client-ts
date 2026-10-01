@@ -12,7 +12,7 @@ export class AuthService {
   }
 
   async getChallenge(): Promise<AuthChallengeResponse> {
-    const request = RestRequest.post(Routes.Authorization.challenge);
+    const request = RestRequest.post(Routes.Authorization.challenge).retrySafe();
     const response = await this.restClient.execute<AuthChallengeResponse>(request);
     return response.body;
   }
@@ -54,7 +54,7 @@ export class AuthService {
   }
 
   async refreshAccessToken(refreshToken: string): Promise<AuthenticationTokenRefreshResponse> {
-    const request = RestRequest.post(Routes.Authorization.Token.refresh)
+    const request = RestRequest.post(Routes.Authorization.Token.refresh).retrySafe()
       .accessToken(refreshToken)
       .skipAuthRetry();
     const response = await this.restClient.execute<AuthenticationTokenRefreshResponse>(request);
