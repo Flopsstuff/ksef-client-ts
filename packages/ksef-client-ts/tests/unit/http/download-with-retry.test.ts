@@ -43,6 +43,14 @@ describe('downloadWithRetry', () => {
     expect(transport).toHaveBeenCalledTimes(2);
   });
 
+  it('releases the body of a response it does not retry', async () => {
+    const notFound = new Response('missing', { status: 404 });
+    const cancel = vi.spyOn(notFound.body!, 'cancel');
+    const transport = vi.fn<typeof fetch>().mockResolvedValueOnce(notFound);
+    await expect(download(transport)).rejects.toThrow('Download failed for part 1: HTTP 404');
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
   it('retries network errors', async () => {
     const transport = vi.fn<typeof fetch>()
       .mockRejectedValueOnce(new TypeError('fetch failed'))

@@ -50,11 +50,12 @@ export async function downloadWithRetry(
       continue;
     }
 
+    // Not ok: the body is never read, so release the connection either way.
+    await response.body?.cancel().catch(() => {});
     if (!canRetry || !isRetryableStatus(response.status, policy)) {
       throw new Error(`Download failed for ${options.label}: HTTP ${response.status}`);
     }
     const retryAfterMs = response.status === 429 ? parseRetryAfter(response.headers.get('Retry-After')) : null;
-    await response.body?.cancel().catch(() => {});
     await sleep(retryAfterMs ?? calculateBackoff(attempt, policy));
   }
 }
