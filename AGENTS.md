@@ -28,7 +28,7 @@ Run a single test file: `yarn workspace ksef-client-ts vitest run tests/unit/foo
 
 Tests live in `packages/ksef-client-ts/tests/**/*.test.ts` (vitest, globals enabled). Unit tests in `tests/unit/`, E2E tests in `tests/e2e/` (relative to the package).
 
-E2E specs drive the **live KSeF TEST API** (`environment: 'TEST'`, creds from `KSEF_TEST_TOKEN`/`KSEF_TEST_NIP`) — never DEMO or PROD. The PDF specs (35, 36) are the exception: no network at all, they render locally into `.pdf-preview/` (override with `KSEF_PDF_OUT`) and need `yarn build` first; `--env test` there only picks the host printed in the QR link, so keep it on TEST like everything else.
+E2E specs drive the **live KSeF TEST API** (`environment: 'TEST'`) — never DEMO or PROD. No secrets are needed: each spec logs in with a self-signed company-seal certificate for a random NIP (`authenticateWithCert` in `tests/e2e/helpers/auth.ts`), and the token specs mint their own token after that. The PDF specs (35, 36) are the exception: no network at all, they render locally into `.pdf-preview/` (override with `KSEF_PDF_OUT`) and need `yarn build` first; `--env test` there only picks the host printed in the QR link, so keep it on TEST like everything else.
 
 **Package manager is yarn 4.x** (Corepack). Do not use npm. The `.yarnrc.yml` sets `nodeLinker: node-modules`.
 
