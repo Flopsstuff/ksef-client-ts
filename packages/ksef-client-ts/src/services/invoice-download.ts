@@ -26,7 +26,7 @@ export class InvoiceDownloadService {
     pageSize?: number,
     sortOrder?: SortOrder,
   ): Promise<QueryInvoicesMetadataResponse> {
-    const req = RestRequest.post(Routes.Invoices.queryMetadata)
+    const req = RestRequest.post(Routes.Invoices.queryMetadata).retrySafe()
       .body(filters);
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));

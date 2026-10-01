@@ -56,6 +56,8 @@ Failed requests are automatically retried with exponential backoff. The retry po
 
 POST requests are retried on a `429` response, because the server rejected them without acting on them. They are not retried on `5xx`, because the server may already have processed a request that ends in `500`, `502`, `503` or `504`. After a thrown network error or timeout they are retried only when the connection was never established (`ECONNREFUSED`, `UND_ERR_CONNECT_TIMEOUT`). After `ECONNRESET`, `ETIMEDOUT` or `AbortError` the server may already have processed the request, so a retry could repeat its effect (open a second session, generate a second token, or get a duplicate-invoice error for an invoice that was accepted). Those errors are thrown to the caller instead. GET, PUT and DELETE are retried on every listed network error.
 
+The exception is a POST that only reads data and uses POST because it carries a filter body: invoice metadata queries, permission and certificate queries, collective-identifier queries, the auth challenge and access-token refresh. These are marked with `RestRequest.retrySafe()` and are retried like a GET.
+
 ### Backoff formula
 
 ```

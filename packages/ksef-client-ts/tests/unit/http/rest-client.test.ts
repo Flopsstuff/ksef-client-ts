@@ -210,6 +210,33 @@ describe('RestClient', () => {
       });
     });
 
+    describe('retry-safe POST', () => {
+      const query = () => RestRequest.post('/invoices/query/metadata').body({}).retrySafe();
+
+      it('is retried after a timeout', async () => {
+        const error = Object.assign(new Error('The operation was aborted'), { name: 'AbortError' });
+        const transport = vi.fn<TransportFn>()
+          .mockRejectedValueOnce(error)
+          .mockResolvedValueOnce(mockResponse(200, { invoices: [] }));
+
+        const client = createClient(transport);
+        const result = await client.execute<{ invoices: unknown[] }>(query());
+
+        expect(result.body).toEqual({ invoices: [] });
+        expect(transport).toHaveBeenCalledTimes(2);
+      });
+
+      it.each([500, 502, 503, 504])('is retried on %i', async (status) => {
+        const transport = vi.fn<TransportFn>()
+          .mockResolvedValueOnce(mockResponse(status))
+          .mockResolvedValueOnce(mockResponse(200, { invoices: [] }));
+
+        const client = createClient(transport);
+        await client.execute(query());
+        expect(transport).toHaveBeenCalledTimes(2);
+      });
+    });
+
     it('retries DELETE requests on 500', async () => {
       const transport = vi.fn<TransportFn>()
         .mockResolvedValueOnce(mockResponse(500))

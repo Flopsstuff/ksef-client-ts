@@ -57,7 +57,7 @@ export class CertificateApiService {
         );
       }
     }
-    const req = RestRequest.post(Routes.Certificates.retrieve)
+    const req = RestRequest.post(Routes.Certificates.retrieve).retrySafe()
       .body(request);
     const response = await this.restClient.execute<RetrieveCertificatesResponse>(req);
     return response.body;
@@ -70,7 +70,7 @@ export class CertificateApiService {
   }
 
   async query(request: QueryCertificatesRequest, pageSize?: number, pageOffset?: number): Promise<QueryCertificatesResponse> {
-    const req = RestRequest.post(Routes.Certificates.query)
+    const req = RestRequest.post(Routes.Certificates.query).retrySafe()
       .body(request);
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
