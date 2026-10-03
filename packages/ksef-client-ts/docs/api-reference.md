@@ -537,7 +537,7 @@ Get certificate limits for the current subject.
 getRateLimits(): Promise<EffectiveApiRateLimits>
 ```
 
-Get the effective API rate limits.
+Get the effective API rate limits, per group and time window. A window equal to `RATE_LIMIT_UNLIMITED` (`-1`) has no limit — check for it before treating a value as a request count. The `global` group (per-IP) is reserved and currently disabled.
 
 ---
 

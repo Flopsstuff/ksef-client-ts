@@ -378,6 +378,8 @@ ksef limits subject                              # Subject limits (max enrollmen
 ksef limits rate                                 # API rate limits (per-category table)
 ```
 
+`ksef limits rate` lists every group KSeF reports, including `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window KSeF reports as `-1` has no limit and is shown as `unlimited`; `--json` prints the raw `-1`. The `global` group (per-IP limits) is reserved and currently disabled, so all its windows read `unlimited`.
+
 ## Collective Identifiers
 
 Group invoices issued by one seller under a single settlement reference. Requires an active session and one of the `InvoiceRead`, `InvoiceWrite`, or `CollectiveIdentifierManage` permissions. See [Collective Identifiers](/collective-identifiers).
@@ -504,7 +506,7 @@ ksef test-data update-certificate --serial 0123456789ABCDEF --valid-to 2026-12-3
 
 ### Rate limits (requires session)
 
-Every category is required, and each takes `perSecond`, `perMinute`, and `perHour`. KSeF rejects the request if any category is missing. It also range-checks each category separately: `collectiveIdentifier` is capped at 10 per second, 60 per minute, and 120 per hour, well below the other categories.
+Every category is required, and each takes `perSecond`, `perMinute`, and `perHour`. KSeF rejects the request if any category is missing. The override covers the 13 categories below only: the groups added in KSeF API v2.8.0 (`onlineSessionClose`, `batchSessionClose`, `anonymous`, `global`) are reported by `ksef limits rate` but are not part of the override request. It also range-checks each category separately: `collectiveIdentifier` is capped at 10 per second, 60 per minute, and 120 per hour, well below the other categories.
 
 ```bash
 ksef test-data set-rate-limits --limits '{

@@ -3,6 +3,12 @@ import { requireSession } from '../client-factory.js';
 import { outputResult, outputKeyValue, outputTable } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
 import type { GlobalOptions } from '../types.js';
+import { RATE_LIMIT_UNLIMITED, type EffectiveApiRateLimitValues } from '../../models/limits/types.js';
+
+/** Renders one rate-limit window for the table; KSeF reports an unlimited window as `-1`. */
+function formatRateLimitWindow(value: number): number | string {
+  return value === RATE_LIMIT_UNLIMITED ? 'unlimited' : value;
+}
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -93,14 +99,14 @@ const rate = defineCommand({
         return;
       }
 
-      const categories = Object.entries(result) as [string, { perSecond: number; perMinute: number; perHour: number }][];
+      const categories = Object.entries(result) as [string, EffectiveApiRateLimitValues][];
 
       outputTable(
         categories.map(([category, values]) => ({
           category,
-          perSecond: values.perSecond,
-          perMinute: values.perMinute,
-          perHour: values.perHour,
+          perSecond: formatRateLimitWindow(values.perSecond),
+          perMinute: formatRateLimitWindow(values.perMinute),
+          perHour: formatRateLimitWindow(values.perHour),
         })),
         [
           { key: 'category', label: 'Category' },

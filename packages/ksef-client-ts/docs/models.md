@@ -756,7 +756,7 @@ Effective rate limits and session context limits, plus override types for the te
 
 Key types:
 
-- `EffectiveApiRateLimits` -- per-second/minute/hour limits for 13 endpoint categories
+- `EffectiveApiRateLimits` -- per-second/minute/hour limits for 17 groups: the 13 endpoint categories, plus `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window equal to `RATE_LIMIT_UNLIMITED` (`-1`) has no limit; `global` (per-IP) is reserved and currently disabled
 - `EffectiveContextLimits` -- max invoice size and count for online/batch sessions, and max invoices per collective identifier
 - `EffectiveSubjectLimits` -- enrollment and certificate limits per subject
 - `SetRateLimitsRequest`, `SetSessionLimitsRequest`, `SetSubjectLimitsRequest` -- override requests (test environment only)

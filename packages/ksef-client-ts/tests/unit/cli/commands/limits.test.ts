@@ -3,6 +3,7 @@ import { limitsCommand } from '../../../../src/cli/commands/limits.js';
 import * as clientFactory from '../../../../src/cli/client-factory.js';
 import * as output from '../../../../src/cli/output.js';
 import { createMockClient, validSession } from './_helpers.js';
+import { RATE_LIMIT_UNLIMITED } from '../../../../src/models/limits/types.js';
 
 vi.mock('consola', () => ({ consola: { level: 0 } }));
 vi.mock('../../../../src/cli/error-handler.js', () => ({
@@ -65,6 +66,44 @@ describe('limits', () => {
     await (limitsCommand.subCommands!.rate as any).run!({ args: {} });
     expect(mockClient.limits.getRateLimits).toHaveBeenCalled();
     expect(output.outputTable).toHaveBeenCalled();
+  });
+
+  it('rate — renders an unlimited (-1) window as "unlimited" and keeps every group', async () => {
+    mockClient.limits.getRateLimits.mockResolvedValue({
+      onlineSessionClose: { perSecond: 20, perMinute: 60, perHour: 240 },
+      anonymous: { perSecond: 60, perMinute: RATE_LIMIT_UNLIMITED, perHour: RATE_LIMIT_UNLIMITED },
+      global: { perSecond: -1, perMinute: -1, perHour: -1 },
+    });
+    await (limitsCommand.subCommands!.rate as any).run!({ args: {} });
+    expect(output.outputTable).toHaveBeenCalledWith(
+      [
+        { category: 'onlineSessionClose', perSecond: 20, perMinute: 60, perHour: 240 },
+        { category: 'anonymous', perSecond: 60, perMinute: 'unlimited', perHour: 'unlimited' },
+        { category: 'global', perSecond: 'unlimited', perMinute: 'unlimited', perHour: 'unlimited' },
+      ],
+      expect.any(Array),
+      { json: false },
+    );
+  });
+
+  it('rate — renders 0 as a number, not as "unlimited"', async () => {
+    mockClient.limits.getRateLimits.mockResolvedValue({
+      other: { perSecond: 0, perMinute: 0, perHour: 0 },
+    });
+    await (limitsCommand.subCommands!.rate as any).run!({ args: {} });
+    expect(output.outputTable).toHaveBeenCalledWith(
+      [{ category: 'other', perSecond: 0, perMinute: 0, perHour: 0 }],
+      expect.any(Array),
+      { json: false },
+    );
+  });
+
+  it('rate — json flag keeps the raw -1 values', async () => {
+    const result = { global: { perSecond: -1, perMinute: -1, perHour: -1 } };
+    mockClient.limits.getRateLimits.mockResolvedValue(result);
+    await (limitsCommand.subCommands!.rate as any).run!({ args: { json: true } });
+    expect(output.outputResult).toHaveBeenCalledWith(result, { json: true });
+    expect(output.outputTable).not.toHaveBeenCalled();
   });
 
   it('context — json flag outputs result as JSON', async () => {
