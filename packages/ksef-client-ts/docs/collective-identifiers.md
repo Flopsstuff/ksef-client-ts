@@ -29,6 +29,8 @@ The checksum uses CRC-8 with polynomial `0x07` and initial value `0x00`. The who
 - **Between 2 and 500 invoices** per collective identifier. Two is a hard minimum — an identifier that groups nothing is rejected by the API schema — while 500 is the default ceiling, which the session limits for a context can raise as far as 5000. The client rejects a list below the minimum or above 5000 with a `KSeFValidationError` before sending; between the two it defers to whatever limit the context actually has in force.
 - **At most 132 collective identifiers** per invoice within one context.
 - **Same seller only** — every invoice in one collective identifier must have been issued by the same seller.
+- **Each KSeF number once** — a number repeated in the list is refused.
+- A per-invoice `description` is **at most 512 characters**, and a `payment` needs both `amount` and `currency`.
 - The query date range (`dateCreatedFrom` to `dateCreatedTo`) spans **at most 100 days**.
 
 ## Generate an identifier
@@ -47,6 +49,21 @@ const { collectiveIdentifierNumber } = await client.collectiveIdentifiers.genera
   ],
 });
 ```
+
+### Checks before sending
+
+`generate` refuses, with a `KSeFValidationError` and without contacting KSeF, a list that KSeF would certainly reject. The error's `details[0].field` points at the offending entry, e.g. `invoices[3].ksefNumber`.
+
+| Check | KSeF would answer |
+| ----- | ----------------- |
+| Fewer than 2 or more than 5000 invoices | `21405`, or the context's invoice limit |
+| A `ksefNumber` that does not match the KSeF number format (`NIP-YYYYMMDD-XXXXXXXXXXXX-CC`, uppercase hex, 35 or 36 characters) | `21405` |
+| Invoices of different sellers — the seller is the NIP that opens every KSeF number | `71004` |
+| The same KSeF number more than once | `71005` |
+| A `description` longer than 512 characters | `21405` |
+| A `payment` without `amount` or without `currency` | `21405` |
+
+KSeF numbers are compared exactly as written. KSeF still accepts the 36-character form for compatibility with KSeF 1.0, but it looks each form up separately: the two forms of one number are not a repeat to KSeF, and the form the invoice was not issued under is simply not found (`71001`). The checksum and the currency code are left to KSeF.
 
 ## List identifiers in the context
 
@@ -165,6 +182,8 @@ When `--to` is omitted from `list`, the current time is used.
 | ---- | ------- |
 | `71001` | The invoice cannot be assigned to a collective identifier. |
 | `71002` | The invoice already belongs to the maximum number of collective identifiers (132). |
+| `71004` | The invoices have different sellers. The client catches this before sending. |
+| `71005` | A KSeF number is repeated in the request. The client catches this before sending. |
 | `21405` | Input validation failed. |
 
 Rate limits for this domain are 20 requests/second, 120/minute, 240/hour (`collectiveIdentifier` category — see `ksef limits rate`). Not to be confused with the much lower ceiling the same category has on test-data rate-limit *overrides* (10/60/120), which bounds what you may set, not what KSeF enforces.
