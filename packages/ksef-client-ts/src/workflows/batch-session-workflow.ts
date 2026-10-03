@@ -1,5 +1,5 @@
 import type { KSeFClient } from '../client.js';
-import type { UpoVersion } from '../http/ksef-feature.js';
+import { resolveSessionFeature, type UpoVersion } from '../http/ksef-feature.js';
 import type { CompressionType, FormCode } from '../models/common.js';
 import { DEFAULT_FORM_CODE } from '../models/document-structures/index.js';
 import type { BatchPartSendingInfo } from '../models/sessions/batch-types.js';
@@ -11,7 +11,15 @@ import { parseUpoXml } from '../xml/index.js';
 
 export interface BatchUploadOptions {
   formCode?: FormCode;
+  /** @deprecated Use `features`. Still honoured and merged with `features`. */
   upoVersion?: UpoVersion | string;
+  /**
+   * X-KSeF-Feature value(s) sent when opening the session, e.g.
+   * `KSeFFeature.SubjectIdentifierValidation` (TEST only). KSeF honours one
+   * feature per session, so more than one distinct value (counting
+   * `upoVersion`) throws `KSeFValidationError`.
+   */
+  features?: string | readonly string[];
   pollOptions?: PollOptions;
   /** Max unencrypted part size in bytes. Default: 100 MB. */
   maxPartSize?: number;
@@ -33,6 +41,7 @@ export async function uploadBatch(
   if (options?.parallelism !== undefined && (!Number.isInteger(options.parallelism) || options.parallelism < 1)) {
     throw new Error('parallelism must be a positive integer');
   }
+  const feature = resolveSessionFeature(options?.upoVersion, options?.features);
   await client.crypto.init();
 
   if (options?.validate) {
@@ -80,7 +89,7 @@ export async function uploadBatch(
         batchFile,
         offlineMode: options?.offlineMode,
       },
-      options?.upoVersion,
+      feature,
     );
     return { batchFile, encryptedParts, openResp };
   });
@@ -128,6 +137,7 @@ export async function uploadBatchStream(
   if (options?.parallelism !== undefined && (!Number.isInteger(options.parallelism) || options.parallelism < 1)) {
     throw new Error('parallelism must be a positive integer');
   }
+  const feature = resolveSessionFeature(options?.upoVersion, options?.features);
   await client.crypto.init();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
 
@@ -155,7 +165,7 @@ export async function uploadBatchStream(
         batchFile,
         offlineMode: options?.offlineMode,
       },
-      options?.upoVersion,
+      feature,
     );
     return { streamParts, openResp };
   });

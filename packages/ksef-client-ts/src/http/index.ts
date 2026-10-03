@@ -33,5 +33,7 @@ export {
   KSEF_FEATURE_HEADER,
   UpoVersion,
   type UpoVersion as UpoVersionType,
+  KSeFFeature,
+  type KSeFFeature as KSeFFeatureType,
   ENFORCE_XADES_COMPLIANCE,
 } from './ksef-feature.js';

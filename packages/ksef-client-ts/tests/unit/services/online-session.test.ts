@@ -1,5 +1,6 @@
 import { OnlineSessionService } from '../../../src/services/online-session.js';
-import { KSEF_FEATURE_HEADER, UpoVersion } from '../../../src/http/ksef-feature.js';
+import { KSEF_FEATURE_HEADER, KSeFFeature, UpoVersion } from '../../../src/http/ksef-feature.js';
+import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
 import { Routes } from '../../../src/http/routes.js';
 import { createMockRestClient, getRequest, mockResponse } from './_helpers.js';
 
@@ -46,6 +47,52 @@ describe('OnlineSessionService', () => {
 
     const req = getRequest(vi.mocked(client.execute));
     expect(req.getHeaders()).toHaveProperty(KSEF_FEATURE_HEADER, 'upo-v4-2');
+  });
+
+  it('openSession with KSeFFeature.SubjectIdentifierValidation sets X-KSeF-Feature header', async () => {
+    const client = createMockRestClient();
+    const service = new OnlineSessionService(client);
+    const request = { nip: '1234567890' } as any;
+    vi.mocked(client.execute).mockResolvedValueOnce(mockResponse({ sessionRef: 'ref-3' }));
+
+    await service.openSession(request, KSeFFeature.SubjectIdentifierValidation);
+
+    const req = getRequest(vi.mocked(client.execute));
+    expect(req.getHeaders()).toHaveProperty(KSEF_FEATURE_HEADER, 'subject-identifier-validation');
+  });
+
+  it('openSession accepts a single-value feature array and merges repeats', async () => {
+    const client = createMockRestClient();
+    const service = new OnlineSessionService(client);
+    const request = { nip: '1234567890' } as any;
+    vi.mocked(client.execute).mockResolvedValueOnce(mockResponse({ sessionRef: 'ref-3' }));
+
+    await service.openSession(request, [KSeFFeature.SubjectIdentifierValidation, '', KSeFFeature.SubjectIdentifierValidation]);
+
+    const req = getRequest(vi.mocked(client.execute));
+    expect(req.getHeaders()).toHaveProperty(KSEF_FEATURE_HEADER, 'subject-identifier-validation');
+  });
+
+  it('openSession sends no X-KSeF-Feature header for an empty feature array', async () => {
+    const client = createMockRestClient();
+    const service = new OnlineSessionService(client);
+    const request = { nip: '1234567890' } as any;
+    vi.mocked(client.execute).mockResolvedValueOnce(mockResponse({ sessionRef: 'ref-3' }));
+
+    await service.openSession(request, []);
+
+    const req = getRequest(vi.mocked(client.execute));
+    expect(req.getHeaders()).not.toHaveProperty(KSEF_FEATURE_HEADER);
+  });
+
+  it('openSession rejects more than one distinct feature without sending', async () => {
+    const client = createMockRestClient();
+    const service = new OnlineSessionService(client);
+    const request = { nip: '1234567890' } as any;
+
+    await expect(service.openSession(request, [UpoVersion.V4_3, KSeFFeature.SubjectIdentifierValidation]))
+      .rejects.toBeInstanceOf(KSeFValidationError);
+    expect(client.execute).not.toHaveBeenCalled();
   });
 
   it('sendInvoice sends POST to sessions/online/{sessionRef}/invoices with body', async () => {

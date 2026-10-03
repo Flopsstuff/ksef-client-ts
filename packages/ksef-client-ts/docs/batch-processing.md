@@ -199,10 +199,12 @@ Low-level service that maps directly to KSeF batch API endpoints.
 ### openSession
 
 ```typescript
-openSession(request: OpenBatchSessionRequest, upoVersion?: string): Promise<OpenBatchSessionResponse>
+openSession(request: OpenBatchSessionRequest, features?: string | readonly string[]): Promise<OpenBatchSessionResponse>
 ```
 
 Sends `BatchFileInfo` (metadata: ZIP hash, part count, part hashes) and `EncryptionInfo` (encrypted AES key + IV) to KSeF. The server validates the metadata and returns presigned upload URLs — one per declared part.
+
+`features` sets the `X-KSeF-Feature` header, e.g. `KSeFFeature.SubjectIdentifierValidation` (TEST only). KSeF applies only one feature per session, so more than one distinct value throws `KSeFValidationError` — see [KSeF Feature Constants](./api-reference.md#ksef-feature-constants).
 
 **Request:**
 
@@ -268,13 +270,13 @@ Signals to KSeF that all parts have been uploaded. KSeF begins processing (decry
 Orchestrates the full pipeline: crypto init → split → encrypt → open → upload → close → poll.
 
 ```typescript
-import { uploadBatch } from 'ksef-client-ts';
+import { uploadBatch, KSeFFeature } from 'ksef-client-ts';
 
 const result = await uploadBatch(client, zipData, {
   formCode: { systemCode: 'FA', schemaVersion: '3', value: 'FA (3)' },  // default
   maxPartSize: 50_000_000,   // 50 MB parts
   offlineMode: false,
-  upoVersion: 'upo-v4-3',
+  features: KSeFFeature.SubjectIdentifierValidation,  // optional, TEST only; one feature per session
   pollOptions: {
     intervalMs: 5000,        // poll every 5 seconds
     maxAttempts: 120,        // wait up to 10 minutes

@@ -1,8 +1,8 @@
 import { RestClient } from '../http/rest-client.js';
-import { KSEF_FEATURE_HEADER } from '../http/ksef-feature.js';
+import { KSEF_FEATURE_HEADER, resolveSessionFeature } from '../http/ksef-feature.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
-import type { UpoVersion } from '../http/ksef-feature.js';
+import type { KSeFFeature, UpoVersion } from '../http/ksef-feature.js';
 import type { OpenOnlineSessionRequest, OpenOnlineSessionResponse, SendInvoiceRequest, SendInvoiceResponse } from '../models/sessions/online-types.js';
 
 export class OnlineSessionService {
@@ -12,14 +12,21 @@ export class OnlineSessionService {
     this.restClient = restClient;
   }
 
+  /**
+   * @param features Value(s) for the X-KSeF-Feature header, e.g.
+   *   `KSeFFeature.SubjectIdentifierValidation` (TEST only). KSeF honours one
+   *   feature per session, so more than one distinct value throws
+   *   `KSeFValidationError` before the request is sent.
+   */
   async openSession(
     request: OpenOnlineSessionRequest,
-    upoVersion?: UpoVersion | string,
+    features?: UpoVersion | KSeFFeature | string | readonly string[],
   ): Promise<OpenOnlineSessionResponse> {
+    const feature = resolveSessionFeature(features);
     const req = RestRequest.post(Routes.Sessions.Online.open)
       .body(request);
-    if (upoVersion) {
-      req.header(KSEF_FEATURE_HEADER, upoVersion);
+    if (feature) {
+      req.header(KSEF_FEATURE_HEADER, feature);
     }
     const response = await this.restClient.execute<OpenOnlineSessionResponse>(req);
     return response.body;

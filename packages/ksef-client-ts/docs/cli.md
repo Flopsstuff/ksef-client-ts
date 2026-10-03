@@ -113,7 +113,7 @@ One-shot command for CI jobs and disposable hosts: after `ksef auth login --toke
 ## Sessions
 
 ```bash
-ksef session open                             # Open online session
+ksef session open [--feature F]               # Open online session (--feature sets X-KSeF-Feature, TEST only)
 ksef session close [ref]                      # Close session (current or by ref)
 ksef session status [ref]                     # Check session status
 ksef session list [--type online|batch]       # List sessions (tabular view shows Reference, Status, Created, Updated, Total, Success, Failed)
@@ -125,6 +125,16 @@ ksef session active [--pageSize N]            # List active authentication sessi
 ksef session revoke <ref>                     # Revoke an active session by reference
 ksef session revoke --current                 # Revoke the current active session
 ```
+
+### Session Features
+
+`--feature` sets the `X-KSeF-Feature` header on `ksef session open`. With `subject-identifier-validation` (TEST only) KSeF checks the NIP numbers and internal identifiers of the parties on each invoice and rejects an invoice with an invalid one (status 450):
+
+```bash
+ksef session open --env test --feature subject-identifier-validation
+```
+
+The flag takes a comma-separated list for consistency with other list flags, but KSeF applies only one feature per session, so more than one distinct value is rejected before the session is opened.
 
 ### UPO Download
 

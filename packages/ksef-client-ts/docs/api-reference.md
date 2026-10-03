@@ -160,10 +160,10 @@ Revoke a specific session by its reference number.
 Accessed via `client.onlineSession`.
 
 ```ts
-openSession(request: OpenOnlineSessionRequest, upoVersion?: string): Promise<OpenOnlineSessionResponse>
+openSession(request: OpenOnlineSessionRequest, features?: string | readonly string[]): Promise<OpenOnlineSessionResponse>
 ```
 
-Open a new online (interactive) session.
+Open a new online (interactive) session. `features` sets the `X-KSeF-Feature` header (see [KSeF Feature Constants](#ksef-feature-constants)).
 
 ```ts
 sendInvoice(sessionRef: string, request: SendInvoiceRequest): Promise<SendInvoiceResponse>
@@ -184,10 +184,10 @@ Close an online session.
 Accessed via `client.batchSession`.
 
 ```ts
-openSession(request: OpenBatchSessionRequest, upoVersion?: string): Promise<OpenBatchSessionResponse>
+openSession(request: OpenBatchSessionRequest, features?: string | readonly string[]): Promise<OpenBatchSessionResponse>
 ```
 
-Open a new batch session and receive part upload URLs.
+Open a new batch session and receive part upload URLs. `features` sets the `X-KSeF-Feature` header (see [KSeF Feature Constants](#ksef-feature-constants)).
 
 ```ts
 sendParts(openResponse: OpenBatchSessionResponse, parts: BatchPartSendingInfo[]): Promise<void>
@@ -1532,10 +1532,10 @@ const result = await pollUntil(
 
 ## KSeF Feature Constants
 
-Constants for the `X-KSeF-Feature` header, used to negotiate UPO format version and XAdES compliance.
+Constants for the `X-KSeF-Feature` header, used to switch on optional KSeF behaviour: the UPO format version, invoice identifier validation and XAdES compliance.
 
 ```ts
-import { KSEF_FEATURE_HEADER, UpoVersion, ENFORCE_XADES_COMPLIANCE } from 'ksef-client-ts';
+import { KSEF_FEATURE_HEADER, KSeFFeature, UpoVersion, ENFORCE_XADES_COMPLIANCE } from 'ksef-client-ts';
 ```
 
 | Constant | Value | Description |
@@ -1543,6 +1543,17 @@ import { KSEF_FEATURE_HEADER, UpoVersion, ENFORCE_XADES_COMPLIANCE } from 'ksef-
 | `KSEF_FEATURE_HEADER` | `'X-KSeF-Feature'` | HTTP header name for feature negotiation |
 | `UpoVersion.V4_2` | `'upo-v4-2'` | UPO format v4-2 (default before 2026-01-05) |
 | `UpoVersion.V4_3` | `'upo-v4-3'` | UPO format v4-3 (adds InvoicingMode field) |
+| `KSeFFeature.SubjectIdentifierValidation` | `'subject-identifier-validation'` | Validate the NIP numbers and internal identifiers of the parties on each invoice (TEST only, KSeF API v2.8.0) |
 | `ENFORCE_XADES_COMPLIANCE` | `'enforce-xades-compliance'` | Strict XAdES validation in auth requests |
 
-Session open methods (`onlineSession.openSession()`, `batchSession.openSession()`) and `auth.submitXadesAuthRequest()` accept an optional `upoVersion` parameter to set this header.
+Session open methods (`onlineSession.openSession()`, `batchSession.openSession()`) take the feature as their optional second argument, a single value or an array; the workflows (`openOnlineSession()`, `openSendAndClose()`, `uploadBatch()`, `uploadBatchStream()` and their `*Parsed` variants) take it as the `features` option. The older `upoVersion` option still works and is merged with `features`. `auth.submitXadesAuthRequest()` sends `ENFORCE_XADES_COMPLIANCE` when its `enforceXadesCompliance` argument is `true`.
+
+KSeF applies **only one feature per session**: a comma-separated list, or the header repeated, is accepted but none of the listed features takes effect. The client therefore throws `KSeFValidationError` before opening the session when it is given more than one distinct value (repeats and empty strings are dropped first).
+
+```ts
+const handle = await openOnlineSession(client, {
+  features: KSeFFeature.SubjectIdentifierValidation,
+});
+// An invoice with an invalid buyer NIP now ends with status 450
+// ("Błąd weryfikacji semantyki dokumentu faktury") instead of being accepted.
+```

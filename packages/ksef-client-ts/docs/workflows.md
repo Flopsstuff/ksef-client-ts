@@ -196,15 +196,17 @@ crypto.init() → getEncryptionData() → onlineSession.openSession()
 ```
 
 ```typescript
-import { openOnlineSession } from 'ksef-client-ts';
+import { openOnlineSession, KSeFFeature } from 'ksef-client-ts';
 
 const handle = await openOnlineSession(client, {
   formCode: { systemCode: 'FA', schemaVersion: '3', value: 'FA (3)' }, // optional, this is the default
-  upoVersion: 'upo-v4-3',  // optional
+  features: KSeFFeature.SubjectIdentifierValidation,  // optional, TEST only
 });
 
 console.log(`Session ${handle.sessionRef}, valid until ${handle.validUntil}`);
 ```
+
+`features` sets the `X-KSeF-Feature` header on the session-open request. With `KSeFFeature.SubjectIdentifierValidation` KSeF checks the NIP numbers and internal identifiers of the parties on each invoice and rejects an invoice with an invalid one (status 450). KSeF applies only one feature per session, so more than one distinct value throws `KSeFValidationError`. The older `upoVersion` option is deprecated; it still works and counts as one of the features.
 
 ### OnlineSessionHandle
 

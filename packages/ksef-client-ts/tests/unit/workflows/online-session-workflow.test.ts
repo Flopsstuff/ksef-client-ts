@@ -89,6 +89,28 @@ describe('openOnlineSession', () => {
     );
   });
 
+  it('passes features to openSession', async () => {
+    await openOnlineSession(client, { features: 'subject-identifier-validation' });
+    expect(client.onlineSession.openSession).toHaveBeenCalledWith(
+      expect.any(Object),
+      'subject-identifier-validation',
+    );
+  });
+
+  it('merges the deprecated upoVersion with features without repeats', async () => {
+    await openOnlineSession(client, { upoVersion: 'upo-v4-3', features: ['upo-v4-3'] });
+    expect(client.onlineSession.openSession).toHaveBeenCalledWith(expect.any(Object), 'upo-v4-3');
+  });
+
+  it('rejects upoVersion and a different feature before touching crypto', async () => {
+    await expect(openOnlineSession(client, {
+      upoVersion: 'upo-v4-3',
+      features: 'subject-identifier-validation',
+    })).rejects.toBeInstanceOf(KSeFValidationError);
+    expect(client.crypto.init).not.toHaveBeenCalled();
+    expect(client.onlineSession.openSession).not.toHaveBeenCalled();
+  });
+
   it('handle.sendInvoice encrypts and sends', async () => {
     const handle = await openOnlineSession(client);
     const ref = await handle.sendInvoice('<invoice>test</invoice>');

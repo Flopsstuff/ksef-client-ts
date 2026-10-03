@@ -78,7 +78,7 @@ All source files are in `src/http/`:
 | `route-builder.ts` | Prepends API version prefix (`/v2/`) to endpoint paths. |
 | `routes.ts` | All KSeF API endpoint paths as `const` object. |
 | `transport.ts` | `TransportFn` type alias + `defaultTransport` (native `fetch`). |
-| `ksef-feature.ts` | `X-KSeF-Feature` header constants (`UpoVersion`, `ENFORCE_XADES_COMPLIANCE`). |
+| `ksef-feature.ts` | `X-KSeF-Feature` header constants (`UpoVersion`, `KSeFFeature`, `ENFORCE_XADES_COMPLIANCE`). |
 | `index.ts` | Barrel re-exports. |
 
 ---

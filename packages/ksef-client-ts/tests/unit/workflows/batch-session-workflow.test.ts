@@ -94,6 +94,27 @@ describe('uploadBatch', () => {
     );
   });
 
+  it('passes features merged with the deprecated upoVersion', async () => {
+    await uploadBatch(client, zipData, {
+      upoVersion: 'subject-identifier-validation',
+      features: ['subject-identifier-validation'],
+      pollOptions: { intervalMs: 1 },
+    });
+    expect(client.batchSession.openSession).toHaveBeenCalledWith(
+      expect.any(Object),
+      'subject-identifier-validation',
+    );
+  });
+
+  it('rejects more than one distinct feature before touching crypto', async () => {
+    await expect(uploadBatch(client, zipData, {
+      features: ['upo-v4-3', 'subject-identifier-validation'],
+      pollOptions: { intervalMs: 1 },
+    })).rejects.toThrow('only one X-KSeF-Feature value per session');
+    expect(client.crypto.init).not.toHaveBeenCalled();
+    expect(client.batchSession.openSession).not.toHaveBeenCalled();
+  });
+
   it('passes offlineMode to openSession', async () => {
     await uploadBatch(client, zipData, { offlineMode: true, pollOptions: { intervalMs: 1 } });
     expect(client.batchSession.openSession).toHaveBeenCalledWith(
@@ -320,6 +341,27 @@ describe('uploadBatchStream', () => {
       expect.objectContaining({ formCode }),
       'v4-3',
     );
+  });
+
+  it('passes features to openSession', async () => {
+    await uploadBatchStream(client, zipStreamFactory, zipData.length, {
+      features: 'subject-identifier-validation',
+      pollOptions: { intervalMs: 1 },
+    });
+    expect(client.batchSession.openSession).toHaveBeenCalledWith(
+      expect.any(Object),
+      'subject-identifier-validation',
+    );
+  });
+
+  it('rejects more than one distinct feature before touching crypto', async () => {
+    await expect(uploadBatchStream(client, zipStreamFactory, zipData.length, {
+      upoVersion: 'upo-v4-3',
+      features: 'subject-identifier-validation',
+      pollOptions: { intervalMs: 1 },
+    })).rejects.toThrow('only one X-KSeF-Feature value per session');
+    expect(client.crypto.init).not.toHaveBeenCalled();
+    expect(client.batchSession.openSession).not.toHaveBeenCalled();
   });
 
   it('throws on non-200 final status', async () => {

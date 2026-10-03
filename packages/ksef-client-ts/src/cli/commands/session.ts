@@ -11,6 +11,7 @@ import type { FormCode, SessionType } from '../../models/common.js';
 import { DEFAULT_FORM_CODE, FORM_CODE_KEYS } from '../../models/document-structures/index.js';
 import { parseUpoXml } from '../../xml/index.js';
 import { withKeyRotationRetry } from '../../crypto/with-key-rotation-retry.js';
+import { resolveSessionFeature } from '../../http/ksef-feature.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -27,6 +28,7 @@ const open = defineCommand({
   args: {
     batch: { type: 'boolean', description: 'Open a batch session instead of online' },
     formCode: { type: 'string', description: 'Document type: FA2, FA3, PEF3, PEFKOR3, FARR1 (default: FA3)' },
+    feature: { type: 'string', description: 'X-KSeF-Feature value, e.g. subject-identifier-validation (TEST only); KSeF applies one per session' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -61,12 +63,20 @@ const open = defineCommand({
         throw new Error('Batch session open is used internally by `ksef invoice send <dir>`. Use `ksef session open` for online sessions.');
       }
 
+      // Comma-separated like the other list flags. More than one value throws here,
+      // before the session is opened: KSeF would silently ignore all of them.
+      const features = args.feature
+        ? (args.feature as string).split(',').map((f) => f.trim()).filter(Boolean)
+        : [];
+      const feature = resolveSessionFeature(features);
+
       if (!args.json) consola.start('Opening online session...');
       // Fetch keys inside the retry so a key rotation (KSeF 21470) refreshes them before retrying.
       const { encryptionData, result } = await withKeyRotationRetry(client.crypto, async () => {
         const encryptionData = await client.crypto.getEncryptionData();
         const result = await client.onlineSession.openSession(
           { formCode, encryption: encryptionData.encryptionInfo },
+          feature,
         );
         return { encryptionData, result };
       });

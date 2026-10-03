@@ -1,5 +1,5 @@
 import type { KSeFClient } from '../client.js';
-import type { UpoVersion } from '../http/ksef-feature.js';
+import { resolveSessionFeature, type UpoVersion } from '../http/ksef-feature.js';
 import type { FormCode } from '../models/common.js';
 import type { OnlineSessionState } from '../models/sessions/session-state.js';
 import { KSeFSessionExpiredError } from '../errors/ksef-session-expired-error.js';
@@ -16,7 +16,15 @@ import { KSeFValidationError } from '../errors/ksef-validation-error.js';
 
 export interface OpenOnlineSessionOptions {
   formCode?: FormCode;
+  /** @deprecated Use `features`. Still honoured and merged with `features`. */
   upoVersion?: UpoVersion | string;
+  /**
+   * X-KSeF-Feature value(s) sent when opening the session, e.g.
+   * `KSeFFeature.SubjectIdentifierValidation` (TEST only). KSeF honours one
+   * feature per session, so more than one distinct value (counting
+   * `upoVersion`) throws `KSeFValidationError`.
+   */
+  features?: string | readonly string[];
   /** Validate invoices against XSD schema before sending. Default: false. */
   validate?: boolean;
 }
@@ -132,6 +140,7 @@ export async function openOnlineSession(
   client: KSeFClient,
   options?: OpenOnlineSessionOptions,
 ): Promise<OnlineSessionHandle> {
+  const feature = resolveSessionFeature(options?.upoVersion, options?.features);
   await client.crypto.init();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
 
@@ -139,7 +148,7 @@ export async function openOnlineSession(
     const encData = await client.crypto.getEncryptionData();
     const openResp = await client.onlineSession.openSession(
       { formCode, encryption: encData.encryptionInfo },
-      options?.upoVersion,
+      feature,
     );
     return { encData, openResp };
   });
