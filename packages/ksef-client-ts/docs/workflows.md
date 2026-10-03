@@ -33,6 +33,7 @@ All source files are in `src/workflows/`:
 | `hwm-coordinator.ts` | Continuation point logic for incremental export |
 | `hwm-storage.ts` | `HwmStore` interface + `InMemoryHwmStore` / `FileHwmStore` |
 | `offline-invoice-workflow.ts` | Offline invoice lifecycle: generate, submit, technical correction |
+| `collective-identifier-paging.ts` | Continuation-token walks over collective identifiers and their invoices — see [Collective Identifiers](/collective-identifiers#paging-through-every-result) |
 | `index.ts` | Barrel re-exports for all workflows, types, and HWM utilities |
 
 Supporting files outside `src/workflows/`:

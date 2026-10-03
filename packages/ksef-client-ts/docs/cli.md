@@ -404,6 +404,8 @@ ksef collective-identifier by-ksef <ksefNumber>                 # Identifiers a 
 ksef collective-identifier invoices <numbers>                   # Invoices inside identifiers (comma-separated, max 10)
 ```
 
+`list`, `by-ksef` and `invoices` print one page at a time: `--pageSize` sets its size and `--continue <token>` fetches the page the previous run pointed to. Add `--all` to fetch every remaining page in one run; with `--json` the output keeps the single-page shape, holding all items and no continuation token.
+
 ## Peppol
 
 Query Peppol integration data.

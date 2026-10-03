@@ -43,7 +43,8 @@ Error (built-in)
         ├── KSeFCircuitOpenError         src/errors/ksef-circuit-open-error.ts (circuit breaker is open)
         ├── KSeFValidationError          src/errors/ksef-validation-error.ts  (client-side validation)
         ├── KSeFXsdValidationError       src/errors/ksef-xsd-validation-error.ts (XSD schema validation)
-        └── KSeFMetadataPaginationError  src/errors/ksef-metadata-pagination-error.ts (paging cannot advance)
+        ├── KSeFMetadataPaginationError  src/errors/ksef-metadata-pagination-error.ts (paging cannot advance)
+        └── KSeFPaginationError          src/errors/ksef-pagination-error.ts (continuation-token paging cannot finish)
 ```
 
 All server-returned HTTP errors extend `KSeFApiError`, so a single `instanceof KSeFApiError` catch handles every response-side failure. The `KSeFApiProblem` union type (see [Exhaustive dispatch](#exhaustive-dispatch-with-ksefapiproblem)) narrows through the five RFC 7807 subclasses for exhaustive `switch` / `assertNever` patterns.
@@ -70,6 +71,7 @@ import {
   KSeFSessionUnavailableError,
   KSeFXsdValidationError,
   KSeFMetadataPaginationError,
+  KSeFPaginationError,
   KSeFErrorCode,
   type KSeFApiProblem,
   assertNever,
@@ -873,6 +875,31 @@ Read the message to tell them apart: the first names the boundary it stalled on,
 
 ---
 
+### `KSeFPaginationError`
+
+**File:** `src/errors/ksef-pagination-error.ts`
+
+Thrown by the continuation-token paging helpers (the [collective identifier](/collective-identifiers#paging-through-every-result) walks) when a walk cannot reach its last page. It is raised instead of looping forever, after every page read so far has been yielded. Extends `KSeFError`.
+
+The metadata paging helper keeps its own `KSeFMetadataPaginationError`: that one pages by date boundaries and reports a boundary value, not a token.
+
+```typescript
+class KSeFPaginationError extends KSeFError {
+  readonly continuationToken: string;
+
+  constructor(message: string, continuationToken: string);
+}
+```
+
+| Cause | What happened | `continuationToken` | Remedy |
+|-------|---------------|---------------------|--------|
+| Repeated token | KSeF returned a continuation token it had already returned, so following it would never end | The repeated token | Restart the walk, or narrow the query |
+| Page limit reached | The walk needed more pages than `maxPages` allows (default 1000) | The token of the first unread page | Resume with it as `continuationToken`, or raise `maxPages` |
+
+Read the message to tell them apart: the first says the walk stalled, the second names the limit it exceeded. Thrown from `src/workflows/collective-identifier-paging.ts`.
+
+---
+
 ## Programmatic Error Handling Patterns
 
 ### Catch all library errors
@@ -1257,6 +1284,7 @@ try {
 | `KSeFValidationError` | -- | -- | `details[]` with `field` and `message` | None (client-side) |
 | `KSeFXsdValidationError` | -- | -- | `schemaFile`, `errors[]` | None (client-side) |
 | `KSeFMetadataPaginationError` | -- | -- | `boundaryValue` | None (narrow the query or raise the crossing cap) |
+| `KSeFPaginationError` | -- | -- | `continuationToken` | None (resume from `continuationToken` or raise `maxPages`) |
 
 ---
 
@@ -1282,10 +1310,12 @@ try {
 | `src/errors/ksef-validation-error.ts` | `KSeFValidationError`, `ValidationDetail` |
 | `src/errors/ksef-xsd-validation-error.ts` | `KSeFXsdValidationError` (XSD schema validation) |
 | `src/errors/ksef-metadata-pagination-error.ts` | `KSeFMetadataPaginationError` (paging cannot advance) |
+| `src/errors/ksef-pagination-error.ts` | `KSeFPaginationError` (continuation-token paging cannot finish) |
 | `src/errors/index.ts` | Barrel re-exports for all error types |
 | `src/http/rest-client.ts` | `ensureSuccess()` dispatch, `sendRequest()` retry + auth refresh |
 | `src/http/retry-policy.ts` | `RetryPolicy`, `parseRetryAfter()`, `calculateBackoff()` |
 | `src/http/auth-manager.ts` | `AuthManager` interface, dedup refresh logic |
 | `src/workflows/metadata-query-paging.ts` | Metadata paging helper; raises `KSeFMetadataPaginationError` |
+| `src/workflows/collective-identifier-paging.ts` | Collective identifier paging helpers; raise `KSeFPaginationError` |
 | `src/workflows/polling.ts` | `pollUntil()` with timeout |
 | `src/workflows/invoice-export-workflow.ts` | Export workflow error propagation |

@@ -16,3 +16,5 @@ export { authenticateWithToken, authenticateWithCertificate, authenticateWithPkc
 export type { AuthResult, TokenAuthOptions, CertificateAuthOptions, Pkcs12AuthOptions, ExternalSignatureAuthOptions } from './auth-workflow.js';
 export { queryAllInvoiceMetadata, collectAllInvoiceMetadata } from './metadata-query-paging.js';
 export type { MetadataQueryClient, QueryAllMetadataOptions } from './metadata-query-paging.js';
+export { queryCollectiveIdentifierPages, getCollectiveIdentifierPagesByKsefNumber, queryCollectiveIdentifierInvoicePages, collectAllCollectiveIdentifiers, collectAllCollectiveIdentifiersByKsefNumber, collectAllCollectiveIdentifierInvoices } from './collective-identifier-paging.js';
+export type { CollectiveIdentifierPagingClient, CollectiveIdentifierPagingOptions, CollectiveIdentifierPage } from './collective-identifier-paging.js';

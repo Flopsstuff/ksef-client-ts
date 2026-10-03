@@ -6,6 +6,11 @@ import { outputResult, outputTable, outputKeyValue, outputWarning } from '../out
 import { withErrorHandler } from '../error-handler.js';
 import { normalizeCliDate } from '../date-utils.js';
 import type { GlobalOptions } from '../types.js';
+import {
+  collectAllCollectiveIdentifiers,
+  collectAllCollectiveIdentifiersByKsefNumber,
+  collectAllCollectiveIdentifierInvoices,
+} from '../../workflows/collective-identifier-paging.js';
 import type {
   CollectiveIdentifierInvoice,
   CollectiveIdentifiersQueryRequest,
@@ -96,6 +101,7 @@ const list = defineCommand({
     currentContext: { type: 'boolean', description: 'Only identifiers generated in the current context' },
     pageSize: { type: 'string', description: 'Number of results per page (10-200)' },
     continue: { type: 'string', description: 'Continuation token from a previous page' },
+    all: { type: 'boolean', description: 'Fetch every page (from --continue, if given)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -117,11 +123,17 @@ const list = defineCommand({
       if (args.currentContext) request.createdInCurrentContext = true;
 
       const pageSize = args.pageSize ? parseInt(args.pageSize, 10) : undefined;
-      const result = await client.collectiveIdentifiers.query(
-        request,
-        pageSize,
-        args.continue as string | undefined,
-      );
+      const continuationToken = args.continue as string | undefined;
+      // --all keeps the single-page shape, minus the token: there is no next page.
+      const result = args.all
+        ? {
+          collectiveIdentifiers: await collectAllCollectiveIdentifiers(
+            client,
+            request,
+            { pageSize, continuationToken },
+          ),
+        }
+        : await client.collectiveIdentifiers.query(request, pageSize, continuationToken);
 
       if (args.json) {
         outputResult(result, { json: true });
@@ -162,6 +174,7 @@ const byKsef = defineCommand({
     ksefNumber: { type: 'positional', description: 'KSeF invoice number', required: true },
     pageSize: { type: 'string', description: 'Number of results per page (10-200)' },
     continue: { type: 'string', description: 'Continuation token from a previous page' },
+    all: { type: 'boolean', description: 'Fetch every page (from --continue, if given)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -174,11 +187,16 @@ const byKsef = defineCommand({
       const { client } = await requireSession(globalOpts);
       const pageSize = args.pageSize ? parseInt(args.pageSize, 10) : undefined;
 
-      const result = await client.collectiveIdentifiers.getByKsefNumber(
-        args.ksefNumber,
-        pageSize,
-        args.continue as string | undefined,
-      );
+      const continuationToken = args.continue as string | undefined;
+      const result = args.all
+        ? {
+          collectiveIdentifiers: await collectAllCollectiveIdentifiersByKsefNumber(
+            client,
+            args.ksefNumber,
+            { pageSize, continuationToken },
+          ),
+        }
+        : await client.collectiveIdentifiers.getByKsefNumber(args.ksefNumber, pageSize, continuationToken);
 
       if (args.json) {
         outputResult(result, { json: true });
@@ -221,6 +239,7 @@ const invoices = defineCommand({
     },
     pageSize: { type: 'string', description: 'Number of results per page (10-500)' },
     continue: { type: 'string', description: 'Continuation token from a previous page' },
+    all: { type: 'boolean', description: 'Fetch every page (from --continue, if given)' },
     env: { type: 'string', description: 'Environment (test/demo/prod)' },
     json: { type: 'boolean', description: 'Output as JSON' },
     verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
@@ -238,11 +257,20 @@ const invoices = defineCommand({
         .map((n) => n.trim())
         .filter((n) => n.length > 0);
 
-      const result = await client.collectiveIdentifiers.queryInvoices(
-        { collectiveIdentifierNumbers },
-        pageSize,
-        args.continue as string | undefined,
-      );
+      const continuationToken = args.continue as string | undefined;
+      const result = args.all
+        ? {
+          invoices: await collectAllCollectiveIdentifierInvoices(
+            client,
+            { collectiveIdentifierNumbers },
+            { pageSize, continuationToken },
+          ),
+        }
+        : await client.collectiveIdentifiers.queryInvoices(
+          { collectiveIdentifierNumbers },
+          pageSize,
+          continuationToken,
+        );
 
       if (args.json) {
         outputResult(result, { json: true });

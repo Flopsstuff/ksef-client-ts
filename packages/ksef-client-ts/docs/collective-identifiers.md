@@ -88,7 +88,7 @@ for (const item of page.collectiveIdentifiers) {
 }
 ```
 
-Paginate by passing `page.continuationToken` back as the third argument until it is empty.
+Paginate by passing `page.continuationToken` back as the third argument until it is empty, or let the [paging helpers](#paging-through-every-result) do it.
 
 ## Look up identifiers by KSeF number
 
@@ -136,6 +136,50 @@ for (const invoice of result.invoices) {
 The KSeF endpoint prose calls this field `paymentDetailsHidden`, but the schema and the live API both return it as `detailsHidden`. This client follows the wire format.
 :::
 
+## Paging through every result
+
+All three lists above page with a continuation token: KSeF returns it in the response body, the next request sends it in the `x-continuation-token` header, and an empty token marks the last page. Three async generators follow it for you and yield one page at a time:
+
+| Helper | Endpoint | Default page size |
+| ------ | -------- | ----------------- |
+| `queryCollectiveIdentifierPages(client, request, options?)` | `POST /collective-identifiers/query` | 200 (KSeF allows 10-200) |
+| `getCollectiveIdentifierPagesByKsefNumber(client, ksefNumber, options?)` | `GET /collective-identifiers/ksef/{ksefNumber}` | 200 (KSeF allows 10-200) |
+| `queryCollectiveIdentifierInvoicePages(client, request, options?)` | `POST /collective-identifiers/invoices` | 500 (KSeF allows 10-500) |
+
+The defaults are the largest pages KSeF serves, so a walk uses as few requests of the domain's rate limit as possible.
+
+Each page is `{ items, continuationToken }`, where `continuationToken` is the token of the *next* page and `undefined` on the last one. Save it after you have handled a page, and pass it back as the `continuationToken` option to resume from the following page later:
+
+```ts
+import { queryCollectiveIdentifierInvoicePages } from 'ksef-client-ts';
+
+// Where an earlier run stopped; undefined starts from the first page.
+let savedToken: string | undefined = loadSavedToken();
+const controller = new AbortController();
+
+for await (const page of queryCollectiveIdentifierInvoicePages(
+  client,
+  { collectiveIdentifierNumbers: [collectiveIdentifierNumber] },
+  { continuationToken: savedToken, signal: controller.signal },
+)) {
+  for (const invoice of page.items) {
+    console.log(invoice.ksefNumber, invoice.payment?.amount);
+  }
+  savedToken = page.continuationToken; // undefined once the walk is complete
+}
+```
+
+| Option | Default | Meaning |
+| ------ | ------- | ------- |
+| `pageSize` | 200 or 500 | Results per request. Values outside KSeF's range are left for KSeF to reject. |
+| `continuationToken` | — | Token of the page to start from. |
+| `maxPages` | 1000 | Safety cap on the number of requests. |
+| `signal` | — | An `AbortSignal`. Once aborted, the walk rejects with the signal's reason before its next request; a request already in flight is not cancelled. |
+
+When the page order does not matter, the `collectAll` variants drain a walk into one array: `collectAllCollectiveIdentifiers`, `collectAllCollectiveIdentifiersByKsefNumber` and `collectAllCollectiveIdentifierInvoices`. They take the same arguments.
+
+A walk ends with a [`KSeFPaginationError`](/error-handling#ksefpaginationerror) instead of running forever in two cases: KSeF returns a token it has already returned, or the walk needs more than `maxPages` pages. Every page read before that has already been yielded. The error's `continuationToken` is the repeated token, or, at the cap, the token of the first unread page to resume from.
+
 ## CLI
 
 ```bash
@@ -151,11 +195,17 @@ ksef collective-identifier list --from 2026-07-01 [--to 2026-07-31] \
   [--pageSize N] [--continue <token>]
 
 # Which identifiers does this invoice belong to?
-ksef collective-identifier by-ksef <ksefNumber>
+ksef collective-identifier by-ksef <ksefNumber> [--pageSize N] [--continue <token>]
 
 # What is inside this identifier?
-ksef collective-identifier invoices <collectiveIdentifierNumber>
+ksef collective-identifier invoices <collectiveIdentifierNumber> [--pageSize N] [--continue <token>]
+
+# Any of the three lists: fetch every page instead of one
+ksef collective-identifier list --from 2026-07-01 --all
+ksef collective-identifier invoices <collectiveIdentifierNumber> --all [--continue <token>]
 ```
+
+Without `--all` each list command prints one page and, when there is more, the continuation token to pass to `--continue`. With `--all` it follows the tokens itself, starting from `--continue` when given, and prints every row; `--json` then prints the usual response shape with all items and no `continuationToken`.
 
 `--file` accepts either a full request object or a bare array:
 
