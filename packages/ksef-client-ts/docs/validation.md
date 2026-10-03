@@ -718,7 +718,7 @@ KSeFError (src/errors/ksef-error.ts)
   └── KSeFValidationError (src/errors/ksef-validation-error.ts)
 ```
 
-`KSeFValidationError` is a **client-side** error -- it is thrown before any API call is made. This distinguishes it from `KSeFApiError` and its subtypes (401, 403, 429), which represent server responses.
+`KSeFValidationError` is a **client-side** error -- it is thrown before any API call is made. This distinguishes it from `KSeFApiError` and its subtypes (400, 401, 403, 410, 429), which represent server responses.
 
 ### Interface
 

@@ -475,7 +475,7 @@ If your invoices are already on disk, read them into buffers. If they are genera
 | `KSeFValidationError('Data requires N parts, exceeding maximum of 50')` | `BatchFileBuilder` | Too many parts after split |
 | `KSeFValidationError('maxPartSize must be a positive number')` | `BatchFileBuilder` | Invalid `maxPartSize` option |
 | `Error('No upload request found for part N')` | `BatchSessionService.sendParts` | Part ordinal mismatch between builder output and server response |
-| `Error('Batch session failed: CODE — DESC')` | `uploadBatch` workflow | Session processing code >= 400 |
+| `KSeFSessionFailedError('Batch session failed: CODE — DESC')` | `uploadBatch` / `uploadBatchStream` workflows | Session processing code >= 400 (`code`, `description`, `details`, `referenceNumber`) |
 | `Error('Polling timeout: ...')` | `pollUntil` | Processing didn't complete within `maxAttempts` |
 | `KSeFApiError` / `KSeFRateLimitError` | `RestClient` | HTTP errors during API calls (retried automatically, see [HTTP Resilience](./http-resilience.md)) |
 | PKCS#12 errors (see table above) | `Pkcs12Loader` | Certificate extraction failures |

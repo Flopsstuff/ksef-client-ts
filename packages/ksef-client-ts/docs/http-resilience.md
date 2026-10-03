@@ -45,10 +45,12 @@ RestClient.sendRequest()
   ▼
 RestClient.ensureSuccess()
   │
+  ├── 400 → KSeFSessionUnavailableError (21184) / KSeFUnknownPublicKeyError (21470) / KSeFBadRequestError
   ├── 429 → KSeFRateLimitError
   ├── 401 → KSeFUnauthorizedError
   ├── 403 → KSeFForbiddenError
-  └── other → KSeFApiError
+  ├── 410 → KSeFGoneError
+  └── other → KSeFBatchTimeoutError (21208) / KSeFApiError
 ```
 
 The order matters:
@@ -554,12 +556,18 @@ Regular API requests to the KSeF base URL are not validated against the presigne
 
 ## Error Dispatch
 
-**File:** `src/http/rest-client.ts`, `ensureSuccess()` method (lines 182-215)
+**File:** `src/http/rest-client.ts`, `ensureSuccess()` method
 
 After the retry loop is exhausted and a non-2xx response remains, `ensureSuccess()` reads the body text **once** and attempts to parse it as JSON per status code:
 
 ```text
 Response not OK?
+  │
+  ├── 400 → parse as BadRequestProblemDetails (or legacy ApiErrorResponse)
+  │         → KSeF code 21184 → throw KSeFSessionUnavailableError
+  │         → KSeF code 21470 → throw KSeFUnknownPublicKeyError
+  │         → Problem Details body → throw KSeFBadRequestError
+  │         (see Error Handling for the full 400 branch)
   │
   ├── 429 → parse as TooManyRequestsResponse → throw KSeFRateLimitError
   │         (includes Retry-After header parsing)
@@ -570,11 +578,15 @@ Response not OK?
   ├── 403 → parse as ForbiddenProblemDetails → throw KSeFForbiddenError
   │         (only if body has .reasonCode field — RFC 7807 format)
   │
-  └── any → parse as ApiErrorResponse → throw KSeFApiError
+  ├── 410 → parse as GoneProblemDetails → throw KSeFGoneError
+  │
+  └── any → parse as ApiErrorResponse
+            → KSeF exceptionCode 21208 → throw KSeFBatchTimeoutError
+            → otherwise throw KSeFApiError
             (generic fallback for all other status codes)
 ```
 
-The dispatch order (429 > 401 > 403 > generic) is intentional. A 429 that also has `detail` in the body should be treated as rate limiting, not as unauthorized. Each check is exclusive — once a specific error type is thrown, no further checks run.
+The dispatch order (400 > 429 > 401 > 403 > 410 > generic) is intentional. A 429 that also has `detail` in the body should be treated as rate limiting, not as unauthorized. Each check is exclusive — once a specific error type is thrown, no further checks run.
 
 ---
 

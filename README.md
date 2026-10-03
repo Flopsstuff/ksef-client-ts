@@ -7,10 +7,10 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 ## Features
 
 - **Full API coverage** — every KSeF API v2.8.1 endpoint, types aligned with the official OpenAPI spec
-- **Collective identifiers** — group up to 500 invoices from one seller under a single settlement reference so a buyer can pay the batch against one payment reference
+- **Collective identifiers** — group up to 500 invoices from one seller under a single settlement reference so a buyer can pay the batch against one payment reference; invoices are checked before an identifier is generated, and identifiers and their invoices can be paged through without handling continuation tokens
 - **Offline invoice mode** — full lifecycle for all 4 KSeF offline modes with QR KOD I + KOD II signing, deadline tracking, local storage, and technical correction
-- **Full-featured CLI** — `ksef` with 17 command groups for auth, sessions, invoices, offline, batch upload, export, and more
-- **High-level workflows** — auth, online/batch sessions, invoice export — full lifecycle in a single call
+- **Full-featured CLI** — `ksef` with 17 command groups for auth, sessions, invoices, offline, batch upload, export, and more, with fix hints for common KSeF error codes
+- **High-level workflows** — auth, online/batch sessions, invoice export — full lifecycle in a single call; wait for a single invoice's outcome and get its KSeF number or a typed rejection that names a duplicate's original KSeF number
 - **Built-in cryptography** — AES-256-CBC, RSA-OAEP, ECDH, XAdES-B signatures, self-signed certs (Node crypto)
 - **External signing** — HSM, EPUAP, and smart card authentication via callback-based signing
 - **Automatic token management** — AuthManager: token injection, 401 refresh with dedup
@@ -20,8 +20,8 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 - **Multiple document structures** — FA, PEF, PEF_KOR, FA_RR with typed FormCode constants and UPO parsing
 - **Invoice XML serialization (FA2/FA3/PEF/PEF_KOR)** — build XSD-compliant invoice XML from typed TypeScript objects with correct element ordering (including the FA3 per-VAT-rate interleave) and namespace injection; `ksef invoice build` exposes the same pipeline to shell workflows with JSON/YAML input and optional XSD validation
 - **Invoice XML validation** — three-level client-side validation (well-formedness, XSD schema via Zod, NIP/PESEL checksums, future date rejection) with auto-detection for all 6 invoice types
-- **PDF visualization** — render FA(2)/FA(3) invoices — ordinary, advance, settlement and their corrections — and UPO(4.2)/(4.3) receipts to print-ready PDF offline from version-specific, declarative templates, with Polish/English/bilingual labels and the embedded KSeF Code I verification QR; `ksef invoice pdf` brings the same rendering to shell workflows. Requires the optional `pdfmake` peer (`npm i "pdfmake@^0.2.20"`), so the core install stays dependency-free
-- **Typed errors with RFC 7807 Problem Details** — `KSeFError` hierarchy with dedicated classes for 400/401/403/410/429 carrying structured diagnostic context; exhaustive dispatch via the `KSeFApiProblem` union and `assertNever`; fluent request builders
+- **PDF visualization** — render FA(2)/FA(3) invoices — ordinary, advance, settlement and their corrections — and UPO(4.2)/(4.3) receipts, UTF-8 or UTF-16 encoded, to print-ready PDF offline from version-specific, declarative templates, with Polish/English/bilingual labels and the embedded KSeF Code I verification QR; `ksef invoice pdf` brings the same rendering to shell workflows. Requires the optional `pdfmake` peer (`npm i "pdfmake@^0.2.20"`), so the core install stays dependency-free
+- **Typed errors with RFC 7807 Problem Details** — `KSeFError` hierarchy with dedicated classes for 400/401/403/410/429 carrying structured diagnostic context, plus KSeF conditions such as a temporarily unavailable session, a failed session or a rejected invoice; exhaustive dispatch via the `KSeFApiProblem` union and `assertNever`; fluent request builders
 - **Comprehensive test coverage** — unit + E2E tests across HTTP, crypto, services, workflows; CI on every change
 - **Interactive setup wizard** — `ksef setup` guides through environment selection, authentication, and token generation in one flow
 - **Zero HTTP dependencies** — native `fetch` (Node 18+); dual ESM/CJS via tsup
