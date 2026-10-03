@@ -178,7 +178,7 @@ for await (const page of queryCollectiveIdentifierInvoicePages(
 
 When the page order does not matter, the `collectAll` variants drain a walk into one array: `collectAllCollectiveIdentifiers`, `collectAllCollectiveIdentifiersByKsefNumber` and `collectAllCollectiveIdentifierInvoices`. They take the same arguments.
 
-A walk ends with a [`KSeFPaginationError`](/error-handling#ksefpaginationerror) instead of running forever in two cases: KSeF returns a token it has already returned, or the walk needs more than `maxPages` pages. Every page read before that has already been yielded. The error's `continuationToken` is the repeated token, or, at the cap, the token of the first unread page to resume from.
+A walk ends with a [`KSeFPaginationError`](/error-handling#ksefpaginationerror) instead of running forever in two cases: KSeF returns a token it has already returned, or the walk needs more than `maxPages` pages. Every page read before that has already been yielded. The error's `reason` tells the two apart (`'repeated-token'` or `'max-pages'`), and its `continuationToken` (also quoted in the message) is the repeated token, or, at the cap, the token of the first unread page to resume from.
 
 ## CLI
 
@@ -206,6 +206,8 @@ ksef collective-identifier invoices <collectiveIdentifierNumber> --all [--contin
 ```
 
 Without `--all` each list command prints one page and, when there is more, the continuation token to pass to `--continue`. With `--all` it follows the tokens itself, starting from `--continue` when given, and prints every row; `--json` then prints the usual response shape with all items and no `continuationToken`.
+
+`--all` prints nothing until the last page is in. If the listing needs more than 1000 pages, the command stops with an error before printing any rows; the hint names the token to pass to `--continue` to fetch the pages after the ones read, and `--json` puts it in the error's `continuationToken`.
 
 `--file` accepts either a full request object or a bare array:
 

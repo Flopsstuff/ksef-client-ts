@@ -9,15 +9,22 @@ import { KSeFError } from './ksef-error.js';
  */
 export class KSeFPaginationError extends KSeFError {
   /**
+   * Why the walk stopped: `'repeated-token'` when KSeF handed back a token it
+   * had already returned, `'max-pages'` when the `maxPages` cap was reached.
+   * Only the second can be resumed with {@link continuationToken}.
+   */
+  readonly reason: 'repeated-token' | 'max-pages';
+  /**
    * The token the walk stopped at: the repeated token when paging stalled, or
    * the token of the first unread page when the cap was reached — pass it back
    * as `continuationToken` to resume from there.
    */
   readonly continuationToken: string;
 
-  constructor(message: string, continuationToken: string) {
+  constructor(message: string, continuationToken: string, reason: 'repeated-token' | 'max-pages') {
     super(message);
     this.name = 'KSeFPaginationError';
     this.continuationToken = continuationToken;
+    this.reason = reason;
   }
 }

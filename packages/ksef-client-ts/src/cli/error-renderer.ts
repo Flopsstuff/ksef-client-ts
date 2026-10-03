@@ -6,6 +6,7 @@ import {
   KSeFForbiddenError,
   KSeFGoneError,
   KSeFInvoiceRejectedError,
+  KSeFPaginationError,
   KSeFRateLimitError,
   KSeFSessionFailedError,
   KSeFUnauthorizedError,
@@ -71,6 +72,12 @@ export function renderCliError(error: unknown, opts?: { json?: boolean }): void 
     consola.error(`KSeF session ${error.referenceNumber} failed (status ${error.code}): ${error.description}`);
     for (const d of error.details) consola.error(`  └ ${d}`);
     consola.info(`Hint: Run \`ksef session failed ${error.referenceNumber}\` to see which invoices were rejected and why.`);
+    return;
+  }
+
+  if (error instanceof KSeFPaginationError) {
+    consola.error(error.message);
+    consola.info(paginationHint(error));
     return;
   }
 
@@ -164,10 +171,25 @@ function serializeError(error: Error): Record<string, unknown> {
       details: error.details,
     };
   }
+  if (error instanceof KSeFPaginationError) {
+    return {
+      name: error.name,
+      message: error.message,
+      reason: error.reason,
+      continuationToken: error.continuationToken,
+    };
+  }
   return {
     name: error.name,
     message: error.message,
   };
+}
+
+/** `--all` collects every page before printing, so the rows read before the stop are not shown. */
+function paginationHint(error: KSeFPaginationError): string {
+  return error.reason === 'max-pages'
+    ? `Hint: The listing has more pages than one run fetches, and the rows read so far were not printed. Narrow the query, or run the command again with \`--continue ${error.continuationToken}\` to fetch the pages after them.`
+    : 'Hint: KSeF repeated a continuation token, so the listing cannot be finished. Narrow the query and run the command again.';
 }
 
 /** Invoice status codes (e.g. 440) are a separate namespace from the KSeF error codes in `CODE_HINTS`. */

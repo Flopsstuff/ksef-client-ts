@@ -129,7 +129,9 @@ describe('queryCollectiveIdentifierPages', () => {
     expect(err).toBeInstanceOf(KSeFPaginationError);
     expect(err).toBeInstanceOf(KSeFError);
     expect((err as KSeFPaginationError).continuationToken).toBe('t2');
+    expect((err as KSeFPaginationError).reason).toBe('max-pages');
     expect((err as Error).message).toMatch(/2 pages/);
+    expect((err as Error).message).toContain('"t2"');
     expect(seen).toEqual(['A', 'B']);
     expect(client.collectiveIdentifiers.query).toHaveBeenCalledTimes(2);
   });
@@ -154,7 +156,9 @@ describe('queryCollectiveIdentifierPages', () => {
 
     expect(err).toBeInstanceOf(KSeFPaginationError);
     expect((err as KSeFPaginationError).continuationToken).toBe('t1');
+    expect((err as KSeFPaginationError).reason).toBe('repeated-token');
     expect((err as Error).message).toMatch(/stalled/);
+    expect((err as Error).message).toContain('"t1" a second time');
     // Every page read is yielded before the walk gives up.
     expect(seen).toEqual(['A', 'B']);
     expect(client.collectiveIdentifiers.query).toHaveBeenCalledTimes(2);

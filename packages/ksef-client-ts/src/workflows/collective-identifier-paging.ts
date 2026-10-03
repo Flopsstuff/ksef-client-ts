@@ -80,8 +80,9 @@ async function* walkPages<T>(
     signal?.throwIfAborted();
     if (pages >= maxPages) {
       throw new KSeFPaginationError(
-        `Collective identifier paging exceeded ${maxPages} pages; resume from the continuation token or raise maxPages.`,
+        `Collective identifier paging exceeded ${maxPages} pages; resume from continuation token "${token!}" or raise maxPages.`,
         token!,
+        'max-pages',
       );
     }
     const page = await fetchPage(pageSize, token);
@@ -90,8 +91,9 @@ async function* walkPages<T>(
     if (next === undefined) return;
     if (seen.has(next)) {
       throw new KSeFPaginationError(
-        'Collective identifier paging stalled: KSeF returned a continuation token it had already returned.',
+        `Collective identifier paging stalled: KSeF returned continuation token "${next}" a second time.`,
         next,
+        'repeated-token',
       );
     }
     seen.add(next);

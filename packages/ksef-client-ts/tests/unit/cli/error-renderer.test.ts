@@ -8,6 +8,7 @@ import {
   KSeFForbiddenError,
   KSeFGoneError,
   KSeFInvoiceRejectedError,
+  KSeFPaginationError,
   KSeFRateLimitError,
   KSeFSessionFailedError,
   KSeFSessionUnavailableError,
@@ -416,6 +417,22 @@ describe('renderCliError — KSeFSessionFailedError', () => {
   });
 });
 
+describe('renderCliError — KSeFPaginationError', () => {
+  it('points at --continue with the first unread token when the page cap is reached', () => {
+    renderCliError(new KSeFPaginationError('paging exceeded 1000 pages', 'tok-next', 'max-pages'));
+
+    expect(errorCalls()).toEqual(['paging exceeded 1000 pages']);
+    expect(infoCalls()).toEqual([expect.stringContaining('`--continue tok-next`')]);
+  });
+
+  it('does not suggest resuming from a repeated token', () => {
+    renderCliError(new KSeFPaginationError('paging stalled', 'tok-loop', 'repeated-token'));
+
+    expect(infoCalls()).toEqual([expect.stringContaining('Narrow the query')]);
+    expect(infoCalls()[0]).not.toContain('--continue');
+  });
+});
+
 describe('renderCliError — generic Error', () => {
   it('renders "Cannot reach KSeF API" + doctor hint on fetch failure', () => {
     renderCliError(new Error('fetch failed: ECONNREFUSED'));
@@ -599,6 +616,18 @@ describe('renderCliError — JSON mode', () => {
       code: 415,
       description: 'Błąd odszyfrowania',
       details: [],
+    });
+  });
+
+  it('serializes KSeFPaginationError with its reason and continuation token', () => {
+    renderCliError(new KSeFPaginationError('paging exceeded 1000 pages', 'tok-next', 'max-pages'), { json: true });
+
+    const parsed = JSON.parse(String(stdoutSpy.mock.calls[0]![0]));
+    expect(parsed.error).toEqual({
+      name: 'KSeFPaginationError',
+      message: 'paging exceeded 1000 pages',
+      reason: 'max-pages',
+      continuationToken: 'tok-next',
     });
   });
 

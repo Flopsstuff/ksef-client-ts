@@ -970,18 +970,21 @@ The metadata paging helper keeps its own `KSeFMetadataPaginationError`: that one
 
 ```typescript
 class KSeFPaginationError extends KSeFError {
+  readonly reason: 'repeated-token' | 'max-pages';
   readonly continuationToken: string;
 
-  constructor(message: string, continuationToken: string);
+  constructor(message: string, continuationToken: string, reason: 'repeated-token' | 'max-pages');
 }
 ```
 
-| Cause | What happened | `continuationToken` | Remedy |
-|-------|---------------|---------------------|--------|
-| Repeated token | KSeF returned a continuation token it had already returned, so following it would never end | The repeated token | Restart the walk, or narrow the query |
-| Page limit reached | The walk needed more pages than `maxPages` allows (default 1000) | The token of the first unread page | Resume with it as `continuationToken`, or raise `maxPages` |
+| `reason` | What happened | `continuationToken` | Remedy |
+|----------|---------------|---------------------|--------|
+| `'repeated-token'` | KSeF returned a continuation token it had already returned, so following it would never end | The repeated token | Restart the walk, or narrow the query |
+| `'max-pages'` | The walk needed more pages than `maxPages` allows (default 1000) | The token of the first unread page | Resume with it as `continuationToken`, or raise `maxPages` |
 
-Read the message to tell them apart: the first says the walk stalled, the second names the limit it exceeded. Thrown from `src/workflows/collective-identifier-paging.ts`.
+The message names the token in both cases. Thrown from `src/workflows/collective-identifier-paging.ts`.
+
+In the CLI, `--all` collects every page before printing, so the rows read before the stop are not shown. At the page cap the CLI prints a hint to run the command again with `--continue <token>`, which fetches the pages after them. For a repeated token it suggests narrowing the query instead. With `--json` the error object carries `reason` and `continuationToken`.
 
 ---
 
@@ -1371,7 +1374,7 @@ try {
 | `KSeFValidationError` | -- | -- | `details[]` with `field` and `message` | None (client-side) |
 | `KSeFXsdValidationError` | -- | -- | `schemaFile`, `errors[]` | None (client-side) |
 | `KSeFMetadataPaginationError` | -- | -- | `boundaryValue` | None (narrow the query or raise the crossing cap) |
-| `KSeFPaginationError` | -- | -- | `continuationToken` | None (resume from `continuationToken` or raise `maxPages`) |
+| `KSeFPaginationError` | -- | -- | `reason`, `continuationToken` | None (resume from `continuationToken` or raise `maxPages`) |
 
 ---
 
