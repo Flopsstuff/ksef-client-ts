@@ -71,6 +71,7 @@ function assertGenerateInvoices(invoices: CollectiveIdentifierInvoice[]): void {
       );
     }
     seen.add(ksefNumber);
+    // KSeF counts UTF-16 code units, not code points (verified on TEST, 2026-10-03).
     if (
       typeof description === 'string'
       && description.length > MAX_COLLECTIVE_IDENTIFIER_INVOICE_DESCRIPTION_LENGTH

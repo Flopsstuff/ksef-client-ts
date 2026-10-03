@@ -30,7 +30,7 @@ The checksum uses CRC-8 with polynomial `0x07` and initial value `0x00`. The who
 - **At most 132 collective identifiers** per invoice within one context.
 - **Same seller only** — every invoice in one collective identifier must have been issued by the same seller.
 - **Each KSeF number once** — a number repeated in the list is refused.
-- A per-invoice `description` is **at most 512 characters**, and a `payment` needs both `amount` and `currency`.
+- A per-invoice `description` is **at most 512 characters**, counted the way KSeF counts them — in UTF-16 code units, so an emoji or another character outside the Basic Multilingual Plane takes two — and a `payment` needs both `amount` and `currency`.
 - The query date range (`dateCreatedFrom` to `dateCreatedTo`) spans **at most 100 days**.
 
 ## Generate an identifier

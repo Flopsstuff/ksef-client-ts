@@ -186,6 +186,24 @@ describe('CollectiveIdentifiersService', () => {
         expect(restClient.execute).toHaveBeenCalledOnce();
       });
 
+      it('measures a description in UTF-16 code units, as KSeF does', async () => {
+        const emoji = '\u{1F600}'; // 2 UTF-16 code units, 1 code point
+        const half = MAX_COLLECTIVE_IDENTIFIER_INVOICE_DESCRIPTION_LENGTH / 2;
+
+        await service.generate({
+          invoices: [{ ksefNumber: KSEF_NUMBER, description: emoji.repeat(half) }, { ksefNumber: KSEF_NUMBER_2 }],
+        });
+        expect(restClient.execute).toHaveBeenCalledOnce();
+        vi.mocked(restClient.execute).mockClear();
+
+        // 257 code points stay well under 512, but 514 code units do not.
+        const detail = await rejection([
+          { ksefNumber: KSEF_NUMBER, description: emoji.repeat(half + 1) },
+          { ksefNumber: KSEF_NUMBER_2 },
+        ]);
+        expect(detail.field).toBe('invoices[0].description');
+      });
+
       it.each([
         ['no currency', { amount: 100 }, 'invoices[0].payment.currency'],
         ['an empty currency', { amount: 100, currency: '' }, 'invoices[0].payment.currency'],
