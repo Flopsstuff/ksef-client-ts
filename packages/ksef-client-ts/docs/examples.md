@@ -301,7 +301,7 @@ async function managePermissions() {
 - Available `PersonPermissionType` values: `'InvoiceRead'`, `'InvoiceWrite'`, `'CredentialsRead'`, `'CredentialsManage'`, `'EnforcementOperations'`, `'SubunitManage'`, `'Introspection'`, `'CollectiveIdentifierManage'`.
 - Use `revokeCommonGrant()` for person/entity/subunit grants, and `revokeAuthorizationGrant()` for authorization grants.
 - The `EntityPermissionGrantBuilder` and `AuthorizationPermissionGrantBuilder` follow the same pattern for entity and authorization permissions respectively.
-- Entity and indirect grants accept `'InvoiceRead'`, `'InvoiceWrite'`, and `'CollectiveIdentifierManage'` (the last one since KSeF API v2.8.0).
+- Entity and indirect grants accept `'InvoiceRead'`, `'InvoiceWrite'`, and `'CollectiveIdentifierManage'` (the last one since KSeF API v2.8.1).
 
 ### Filter by subunit InternalId (VatGroup)
 

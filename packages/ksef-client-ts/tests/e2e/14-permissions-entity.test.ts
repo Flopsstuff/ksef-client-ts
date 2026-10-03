@@ -71,7 +71,7 @@ describe('14 - Permissions: Entity', { timeout: 120_000 }, () => {
     const targetNip = generateRandomNip();
     const description = `E2E entity collective ${Date.now()}`;
 
-    // Step 1: Grant the permission added in KSeF API v2.8.0
+    // Step 1: Grant the permission added in KSeF API v2.8.1
     const grantReq = new EntityPermissionGrantBuilder()
       .withNip(targetNip)
       .addPermission('CollectiveIdentifierManage')

@@ -113,7 +113,7 @@ describe('18 - Permissions: Indirect', { timeout: 120_000 }, () => {
     const targetNip = generateRandomNip();
     const description = `E2E indirect collective ${Date.now()}`;
 
-    // Step 1: Grant the permission added in KSeF API v2.8.0
+    // Step 1: Grant the permission added in KSeF API v2.8.1
     const grantResp = await client.permissions.grantIndirectPermissions({
       subjectIdentifier: { type: 'Nip', value: subjectNip },
       targetIdentifier: { type: 'Nip', value: targetNip },
