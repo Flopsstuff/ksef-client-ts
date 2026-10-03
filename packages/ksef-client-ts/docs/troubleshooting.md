@@ -15,6 +15,8 @@ KSeFError (base)
 ├── KSeFGoneError (410, operation status retention expired)
 ├── KSeFAuthStatusError
 ├── KSeFSessionExpiredError
+├── KSeFSessionFailedError (session ended in a failed status)
+├── KSeFInvoiceRejectedError (KSeF rejected a sent invoice)
 └── KSeFValidationError (client-side validation)
 ```
 
@@ -154,6 +156,18 @@ The KSeF session has expired. Sessions have a limited duration.
 Authentication status check returned an unexpected code during the login ceremony.
 
 **What to do:** Retry the login. If persistent, check KSeF system status via `ksef lighthouse status`.
+
+### KSeFSessionFailedError
+
+An online or batch session ended in a failed status (e.g. 445 — no valid invoices) while waiting for its UPO. `code`, `description` and `details` carry what KSeF reported.
+
+**What to do:** Run `ksef session failed <ref>` (or `getSessionFailedInvoices()`) to see why each invoice was rejected.
+
+### KSeFInvoiceRejectedError
+
+`waitForInvoice()` found that KSeF rejected the invoice. `code` is the invoice status: 440 is a duplicate (same seller, invoice type and number), 450 a semantic error explained in `details`.
+
+**What to do:** For 440, the invoice is already in KSeF — `originalKsefNumber` gives its KSeF number. Otherwise fix the invoice and send it again.
 
 ---
 

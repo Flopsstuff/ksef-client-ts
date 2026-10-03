@@ -7,7 +7,9 @@ import {
   KSeFBatchTimeoutError,
   KSeFForbiddenError,
   KSeFGoneError,
+  KSeFInvoiceRejectedError,
   KSeFRateLimitError,
+  KSeFSessionFailedError,
   KSeFSessionUnavailableError,
   KSeFUnauthorizedError,
   KSeFUnknownPublicKeyError,
@@ -355,6 +357,65 @@ describe('renderCliError — KSeFValidationError', () => {
   });
 });
 
+function rejectedInvoice(code: number, description: string, extra: { details?: string[]; extensions?: Record<string, string | null> } = {}) {
+  return new KSeFInvoiceRejectedError('sess-ref', {
+    ordinalNumber: 1,
+    referenceNumber: 'inv-ref',
+    invoiceNumber: 'FV/1',
+    invoiceHash: 'hash',
+    invoicingDate: '2026-10-03T10:00:00Z',
+    status: { code, description, ...extra },
+  });
+}
+
+describe('renderCliError — KSeFInvoiceRejectedError', () => {
+  it('renders a duplicate with the original KSeF number and a 440 hint', () => {
+    renderCliError(rejectedInvoice(440, 'Duplikat faktury', { extensions: { originalKsefNumber: 'KSEF-ORIG' } }));
+
+    expect(errorCalls()).toEqual([
+      'KSeF rejected invoice inv-ref (status 440): Duplikat faktury',
+      '  └ Invoice number: FV/1',
+      '  └ Original KSeF number: KSEF-ORIG',
+    ]);
+    const hints = infoCalls();
+    expect(hints).toHaveLength(1);
+    expect(hints[0]).toMatch(/^Hint \[440\]: /);
+    expect(hints[0]).toContain('KSEF-ORIG');
+  });
+
+  it('gives the 440 hint without the original number when KSeF did not send it', () => {
+    renderCliError(rejectedInvoice(440, 'Duplikat faktury'));
+
+    expect(infoCalls()).toEqual([expect.stringMatching(/^Hint \[440\]: An invoice with this number/)]);
+  });
+
+  it('renders the details of other rejections without a hint', () => {
+    renderCliError(rejectedInvoice(450, 'Błąd weryfikacji semantyki', { details: ['bad P_15'] }));
+
+    expect(errorCalls()).toEqual(expect.arrayContaining([
+      'KSeF rejected invoice inv-ref (status 450): Błąd weryfikacji semantyki',
+      '  └ bad P_15',
+    ]));
+    expect(infoCalls()).toEqual([]);
+  });
+});
+
+describe('renderCliError — KSeFSessionFailedError', () => {
+  it('renders the session status with a hint to list failed invoices', () => {
+    renderCliError(new KSeFSessionFailedError('Batch session failed: 445 — Brak poprawnych faktur', 'sess-ref', {
+      status: { code: 445, description: 'Brak poprawnych faktur', details: ['all invalid'] },
+      dateCreated: '2026-10-03T10:00:00Z',
+      dateUpdated: '2026-10-03T10:00:00Z',
+    }));
+
+    expect(errorCalls()).toEqual([
+      'KSeF session sess-ref failed (status 445): Brak poprawnych faktur',
+      '  └ all invalid',
+    ]);
+    expect(infoCalls()).toEqual([expect.stringContaining('ksef session failed sess-ref')]);
+  });
+});
+
 describe('renderCliError — generic Error', () => {
   it('renders "Cannot reach KSeF API" + doctor hint on fetch failure', () => {
     renderCliError(new Error('fetch failed: ECONNREFUSED'));
@@ -501,6 +562,43 @@ describe('renderCliError — JSON mode', () => {
       name: 'KSeFValidationError',
       message: 'bad',
       details: [{ field: 'nip', message: 'short' }],
+    });
+  });
+
+  it('serializes KSeFInvoiceRejectedError with its status and extensions', () => {
+    const err = rejectedInvoice(440, 'Duplikat faktury', { extensions: { originalKsefNumber: 'KSEF-ORIG' } });
+
+    renderCliError(err, { json: true });
+
+    const parsed = JSON.parse(String(stdoutSpy.mock.calls[0]![0]));
+    expect(parsed.error).toEqual({
+      name: 'KSeFInvoiceRejectedError',
+      message: err.message,
+      sessionReferenceNumber: 'sess-ref',
+      referenceNumber: 'inv-ref',
+      invoiceNumber: 'FV/1',
+      code: 440,
+      description: 'Duplikat faktury',
+      details: [],
+      extensions: { originalKsefNumber: 'KSEF-ORIG' },
+    });
+  });
+
+  it('serializes KSeFSessionFailedError with its status', () => {
+    renderCliError(new KSeFSessionFailedError('Session failed: 415 — Błąd odszyfrowania', 'sess-ref', {
+      status: { code: 415, description: 'Błąd odszyfrowania' },
+      dateCreated: '2026-10-03T10:00:00Z',
+      dateUpdated: '2026-10-03T10:00:00Z',
+    }), { json: true });
+
+    const parsed = JSON.parse(String(stdoutSpy.mock.calls[0]![0]));
+    expect(parsed.error).toEqual({
+      name: 'KSeFSessionFailedError',
+      message: 'Session failed: 415 — Błąd odszyfrowania',
+      referenceNumber: 'sess-ref',
+      code: 415,
+      description: 'Błąd odszyfrowania',
+      details: [],
     });
   });
 

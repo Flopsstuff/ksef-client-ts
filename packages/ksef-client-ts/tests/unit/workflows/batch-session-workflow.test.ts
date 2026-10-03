@@ -5,6 +5,7 @@ import { uploadBatch, uploadBatchParsed, uploadBatchStream, uploadBatchStreamPar
 import { createZip } from '../../../src/utils/zip.js';
 import { createTarGz } from '../../../src/utils/targz.js';
 import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
+import { KSeFSessionFailedError } from '../../../src/errors/ksef-session-failed-error.js';
 import type { UpoPotwierdzenie } from '../../../src/xml/index.js';
 
 const invoicesDir = path.join(__dirname, '../../fixtures/invoices');
@@ -147,6 +148,9 @@ describe('uploadBatch', () => {
     await expect(
       uploadBatch(client, zipData, { pollOptions: { intervalMs: 1 } }),
     ).rejects.toThrow('Batch session failed: 400');
+    await expect(
+      uploadBatch(client, zipData, { pollOptions: { intervalMs: 1 } }),
+    ).rejects.toBeInstanceOf(KSeFSessionFailedError);
   });
 
   it('sends encrypted parts (not raw data)', async () => {
@@ -397,6 +401,9 @@ describe('uploadBatchStream', () => {
     await expect(
       uploadBatchStream(client, zipStreamFactory, zipData.length, { pollOptions: { intervalMs: 1 } }),
     ).rejects.toThrow('Batch session failed: 400');
+    await expect(
+      uploadBatchStream(client, zipStreamFactory, zipData.length, { pollOptions: { intervalMs: 1 } }),
+    ).rejects.toBeInstanceOf(KSeFSessionFailedError);
   });
 
   it('uses sendPartsWithStream (not sendParts)', async () => {

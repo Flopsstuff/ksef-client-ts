@@ -13,6 +13,9 @@ import { withKeyRotationRetry } from '../crypto/with-key-rotation-retry.js';
 import { parseUpoXml } from '../xml/index.js';
 import { validate as validateInvoice } from '../validation/invoice-validator.js';
 import { KSeFValidationError } from '../errors/ksef-validation-error.js';
+import { KSeFSessionFailedError } from '../errors/ksef-session-failed-error.js';
+import { KSeFInvoiceRejectedError } from '../errors/ksef-invoice-rejected-error.js';
+import type { SessionInvoiceStatusResponse } from '../models/sessions/status-types.js';
 
 export interface OpenOnlineSessionOptions {
   formCode?: FormCode;
@@ -36,7 +39,7 @@ export interface SendAndCloseOptions extends OpenOnlineSessionOptions {
 interface SessionHandleDeps {
   crypto: { getFileMetadata(data: Uint8Array): { hashSHA: string; fileSize: number }; encryptAES256(data: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array };
   onlineSession: Pick<OnlineSessionService, 'sendInvoice' | 'closeSession'>;
-  sessionStatus: Pick<SessionStatusService, 'getSessionStatus' | 'getSessionUpo'>;
+  sessionStatus: Pick<SessionStatusService, 'getSessionStatus' | 'getSessionUpo' | 'getSessionInvoice'>;
   getAccessToken: () => string | undefined;
 }
 
@@ -60,7 +63,11 @@ function buildSessionHandle(params: SessionHandleParams): OnlineSessionHandle {
       { ...pollOpts, description: `UPO for session ${sessionRef}` },
     );
     if (result.status.code !== 200) {
-      throw new Error(`Session failed: ${result.status.code} — ${result.status.description}`);
+      throw new KSeFSessionFailedError(
+        `Session failed: ${result.status.code} — ${result.status.description}`,
+        sessionRef,
+        result,
+      );
     }
     return {
       pages: result.upo?.pages ?? [],
@@ -106,6 +113,19 @@ function buildSessionHandle(params: SessionHandleParams): OnlineSessionHandle {
 
     async waitForUpo(pollOpts?: PollOptions): Promise<UpoInfo> {
       return fetchUpo(pollOpts);
+    },
+
+    async waitForInvoice(invoiceRef: string, pollOpts?: PollOptions): Promise<SessionInvoiceStatusResponse> {
+      // 100 accepted and 150 processing are interim; 200 is success, 4xx/5xx a final rejection.
+      const result = await pollUntil(
+        () => deps.sessionStatus.getSessionInvoice(sessionRef, invoiceRef),
+        (s) => s.status.code === 200 || s.status.code >= 400,
+        { ...pollOpts, description: `invoice ${invoiceRef} in session ${sessionRef}` },
+      );
+      if (result.status.code !== 200) {
+        throw new KSeFInvoiceRejectedError(sessionRef, result);
+      }
+      return result;
     },
 
     async waitForUpoParsed(pollOpts?: PollOptions): Promise<ParsedUpoInfo> {

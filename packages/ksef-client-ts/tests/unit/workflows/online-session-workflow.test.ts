@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { openOnlineSession, resumeOnlineSession, openSendAndClose } from '../../../src/workflows/online-session-workflow.js';
 import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
 import { KSeFSessionExpiredError } from '../../../src/errors/ksef-session-expired-error.js';
+import { KSeFError } from '../../../src/errors/ksef-error.js';
+import { KSeFInvoiceRejectedError } from '../../../src/errors/ksef-invoice-rejected-error.js';
+import { KSeFSessionFailedError } from '../../../src/errors/ksef-session-failed-error.js';
 import { validate as validateInvoice } from '../../../src/validation/invoice-validator.js';
 import type { UpoPotwierdzenie } from '../../../src/xml/index.js';
 
@@ -53,8 +56,20 @@ function createMockClient() {
         successfulInvoiceCount: 1,
         failedInvoiceCount: 0,
       }),
+      getSessionInvoice: vi.fn().mockResolvedValue(invoiceStatus({ code: 200, description: 'Sukces' }, { ksefNumber: '1234567890-20261003-0123456789AB-01' })),
     },
   } as any;
+}
+
+function invoiceStatus(status: { code: number; description: string; details?: string[]; extensions?: Record<string, string | null> }, extra?: object) {
+  return {
+    ordinalNumber: 1,
+    referenceNumber: 'inv-ref-1',
+    invoiceHash: 'hash-abc',
+    invoicingDate: '2026-10-03T10:00:00Z',
+    status,
+    ...extra,
+  };
 }
 
 let client: ReturnType<typeof createMockClient>;
@@ -175,6 +190,23 @@ describe('openOnlineSession', () => {
     await expect(handle.waitForUpo({ intervalMs: 1 })).rejects.toThrow('Session failed: 500');
   });
 
+  it('handle.waitForUpo throws KSeFSessionFailedError carrying the session status', async () => {
+    client.sessionStatus.getSessionStatus.mockResolvedValue({
+      status: { code: 445, description: 'Błąd weryfikacji, brak poprawnych faktur', details: ['no valid invoices'] },
+      failedInvoiceCount: 1,
+    });
+    const handle = await openOnlineSession(client);
+    const err = await handle.waitForUpo({ intervalMs: 1 }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(KSeFSessionFailedError);
+    expect(err).toBeInstanceOf(KSeFError);
+    expect(err).toBeInstanceOf(Error);
+    const failed = err as KSeFSessionFailedError;
+    expect(failed.referenceNumber).toBe('sess-ref-1');
+    expect(failed.code).toBe(445);
+    expect(failed.details).toEqual(['no valid invoices']);
+    expect(failed.sessionStatus.failedInvoiceCount).toBe(1);
+  });
+
   it('handle.waitForUpo polls past code 100', async () => {
     let call = 0;
     client.sessionStatus.getSessionStatus.mockImplementation(async () => {
@@ -189,6 +221,64 @@ describe('openOnlineSession', () => {
     const upo = await handle.waitForUpo({ intervalMs: 1, maxAttempts: 10 });
     expect(upo.pages).toEqual([]);
     expect(client.sessionStatus.getSessionStatus).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('waitForInvoice', () => {
+  it('polls past 100 and 150 and returns the status with the KSeF number', async () => {
+    client.sessionStatus.getSessionInvoice
+      .mockResolvedValueOnce(invoiceStatus({ code: 100, description: 'Faktura przyjęta do dalszego przetwarzania' }))
+      .mockResolvedValueOnce(invoiceStatus({ code: 150, description: 'Trwa przetwarzanie' }))
+      .mockResolvedValueOnce(invoiceStatus({ code: 200, description: 'Sukces' }, { ksefNumber: 'KSEF-1' }));
+    const handle = await openOnlineSession(client);
+    const result = await handle.waitForInvoice('inv-ref-1', { intervalMs: 1, maxAttempts: 5 });
+    expect(result.ksefNumber).toBe('KSEF-1');
+    expect(result.status.code).toBe(200);
+    expect(client.sessionStatus.getSessionInvoice).toHaveBeenCalledTimes(3);
+    expect(client.sessionStatus.getSessionInvoice).toHaveBeenCalledWith('sess-ref-1', 'inv-ref-1');
+  });
+
+  it('throws KSeFInvoiceRejectedError with the original KSeF number of a duplicate', async () => {
+    client.sessionStatus.getSessionInvoice.mockResolvedValue(invoiceStatus(
+      {
+        code: 440,
+        description: 'Duplikat faktury',
+        extensions: { originalSessionReferenceNumber: 'orig-sess', originalKsefNumber: 'KSEF-ORIG' },
+      },
+      { invoiceNumber: 'FV/1' },
+    ));
+    const handle = await openOnlineSession(client);
+    const err = await handle.waitForInvoice('inv-ref-1', { intervalMs: 1 }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(KSeFInvoiceRejectedError);
+    const rejected = err as KSeFInvoiceRejectedError;
+    expect(rejected.sessionReferenceNumber).toBe('sess-ref-1');
+    expect(rejected.referenceNumber).toBe('inv-ref-1');
+    expect(rejected.invoiceNumber).toBe('FV/1');
+    expect(rejected.code).toBe(440);
+    expect(rejected.isDuplicate).toBe(true);
+    expect(rejected.originalKsefNumber).toBe('KSEF-ORIG');
+    expect(rejected.originalSessionReferenceNumber).toBe('orig-sess');
+    expect(client.sessionStatus.getSessionInvoice).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws KSeFInvoiceRejectedError with the details of a semantic rejection', async () => {
+    client.sessionStatus.getSessionInvoice.mockResolvedValue(
+      invoiceStatus({ code: 450, description: 'Błąd weryfikacji semantyki dokumentu faktury', details: ['bad P_15'] }),
+    );
+    const handle = await openOnlineSession(client);
+    await expect(handle.waitForInvoice('inv-ref-1', { intervalMs: 1 })).rejects.toMatchObject({
+      name: 'KSeFInvoiceRejectedError',
+      code: 450,
+      details: ['bad P_15'],
+    });
+  });
+
+  it('times out while the invoice is still processing', async () => {
+    client.sessionStatus.getSessionInvoice.mockResolvedValue(invoiceStatus({ code: 150, description: 'Trwa przetwarzanie' }));
+    const handle = await openOnlineSession(client);
+    await expect(handle.waitForInvoice('inv-ref-1', { intervalMs: 1, maxAttempts: 3 }))
+      .rejects.toThrow('Polling timeout: invoice inv-ref-1 in session sess-ref-1 after 3 attempts');
+    expect(client.sessionStatus.getSessionInvoice).toHaveBeenCalledTimes(3);
   });
 });
 
@@ -363,6 +453,21 @@ describe('resumeOnlineSession', () => {
     expect(client.crypto.encryptAES256).toHaveBeenCalled();
     // Uses scoped services, not client.onlineSession
     expect(client.onlineSession.sendInvoice).not.toHaveBeenCalled();
+  });
+
+  it('resumed handle can wait for an invoice via scoped services', async () => {
+    const scoped = createMockScopedRestClient();
+    scoped.execute.mockResolvedValue({
+      body: invoiceStatus({ code: 200, description: 'Sukces' }, { ksefNumber: 'KSEF-RESUMED' }),
+      headers: new Headers(),
+      statusCode: 200,
+    });
+    client.createScopedRestClient.mockReturnValue(scoped);
+    const handle = resumeOnlineSession(client, savedState);
+    const result = await handle.waitForInvoice('inv-ref-1', { intervalMs: 1 });
+    expect(result.ksefNumber).toBe('KSEF-RESUMED');
+    expect(scoped.execute).toHaveBeenCalled();
+    expect(client.sessionStatus.getSessionInvoice).not.toHaveBeenCalled();
   });
 
   it('resumed handle can close session via scoped services', async () => {

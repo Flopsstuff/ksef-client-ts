@@ -5,7 +5,9 @@ import {
   KSeFErrorCode,
   KSeFForbiddenError,
   KSeFGoneError,
+  KSeFInvoiceRejectedError,
   KSeFRateLimitError,
+  KSeFSessionFailedError,
   KSeFUnauthorizedError,
   KSeFValidationError,
 } from '../errors/index.js';
@@ -52,6 +54,23 @@ export function renderCliError(error: unknown, opts?: { json?: boolean }): void 
     for (const d of error.details) {
       consola.error(`  └ ${d.field ? `[${d.field}] ` : ''}${d.message}`);
     }
+    return;
+  }
+
+  if (error instanceof KSeFInvoiceRejectedError) {
+    consola.error(`KSeF rejected invoice ${error.referenceNumber} (status ${error.code}): ${error.description}`);
+    for (const d of error.details) consola.error(`  └ ${d}`);
+    if (error.invoiceNumber) consola.error(`  └ Invoice number: ${error.invoiceNumber}`);
+    if (error.originalKsefNumber) consola.error(`  └ Original KSeF number: ${error.originalKsefNumber}`);
+    const hint = invoiceRejectedHint(error);
+    if (hint) consola.info(hint);
+    return;
+  }
+
+  if (error instanceof KSeFSessionFailedError) {
+    consola.error(`KSeF session ${error.referenceNumber} failed (status ${error.code}): ${error.description}`);
+    for (const d of error.details) consola.error(`  └ ${d}`);
+    consola.info(`Hint: Run \`ksef session failed ${error.referenceNumber}\` to see which invoices were rejected and why.`);
     return;
   }
 
@@ -122,10 +141,42 @@ function serializeError(error: Error): Record<string, unknown> {
       details: error.details,
     };
   }
+  if (error instanceof KSeFInvoiceRejectedError) {
+    return {
+      name: error.name,
+      message: error.message,
+      sessionReferenceNumber: error.sessionReferenceNumber,
+      referenceNumber: error.referenceNumber,
+      invoiceNumber: error.invoiceNumber,
+      code: error.code,
+      description: error.description,
+      details: error.details,
+      extensions: error.extensions,
+    };
+  }
+  if (error instanceof KSeFSessionFailedError) {
+    return {
+      name: error.name,
+      message: error.message,
+      referenceNumber: error.referenceNumber,
+      code: error.code,
+      description: error.description,
+      details: error.details,
+    };
+  }
   return {
     name: error.name,
     message: error.message,
   };
+}
+
+/** Invoice status codes (e.g. 440) are a separate namespace from the KSeF error codes in `CODE_HINTS`. */
+function invoiceRejectedHint(error: KSeFInvoiceRejectedError): string | undefined {
+  if (!error.isDuplicate) return undefined;
+  const original = error.originalKsefNumber;
+  return original
+    ? `Hint [440]: This invoice is already in KSeF as ${original}. Use that KSeF number instead of sending it again, or give a new invoice its own number.`
+    : 'Hint [440]: An invoice with this number is already in KSeF. Give a new invoice its own number instead of sending it again.';
 }
 
 function hintForStatus(error: KSeFApiError): string | undefined {

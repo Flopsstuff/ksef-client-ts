@@ -82,7 +82,11 @@ const result = await pollUntil(
   { ...options.pollOptions, description: `UPO for session ${sessionRef}` },
 );
 if (result.status.code !== 200) {
-  throw new Error(`Session failed: ${result.status.code} — ${result.status.description}`);
+  throw new KSeFSessionFailedError(
+    `Session failed: ${result.status.code} — ${result.status.description}`,
+    sessionRef,
+    result,
+  );
 }
 ```
 
@@ -193,7 +197,7 @@ For sending individual invoices interactively. Returns a session handle with met
 
 ```
 crypto.init() → getEncryptionData() → onlineSession.openSession()
-     → return OnlineSessionHandle { sendInvoice, close, waitForUpo, waitForUpoParsed }
+     → return OnlineSessionHandle { sendInvoice, waitForInvoice, close, waitForUpo, waitForUpoParsed }
 ```
 
 ```typescript
@@ -218,6 +222,7 @@ interface OnlineSessionHandle {
   readonly sessionRef: string;
   readonly validUntil: string;
   sendInvoice(invoiceXml: string | Uint8Array): Promise<string>;   // returns invoice reference
+  waitForInvoice(invoiceReferenceNumber: string, options?: PollOptions): Promise<SessionInvoiceStatusResponse>;
   close(): Promise<void>;
   waitForUpo(options?: PollOptions): Promise<UpoInfo>;
   waitForUpoParsed(options?: PollOptions): Promise<ParsedUpoInfo>;
@@ -240,13 +245,36 @@ const ref1 = await handle.sendInvoice('<Invoice>...</Invoice>');
 const ref2 = await handle.sendInvoice(xmlBuffer);
 ```
 
+#### waitForInvoice
+
+Waits for the outcome of one sent invoice. Polls `sessionStatus.getSessionInvoice(sessionRef, invoiceRef)` until KSeF finishes processing it. Status 100 (accepted) and 150 (processing) keep polling; 200 resolves with the invoice status, which carries the assigned `ksefNumber`; any status of 400 or above throws `KSeFInvoiceRejectedError`. It works before or after `close()`, and on a resumed handle. The default poll cadence (2 s) stays well inside the 120 requests per minute KSeF allows for invoice status.
+
+```typescript
+import { KSeFInvoiceRejectedError } from 'ksef-client-ts';
+
+const invoiceRef = await handle.sendInvoice(invoiceXml);
+try {
+  const { ksefNumber } = await handle.waitForInvoice(invoiceRef);
+  console.log(`Accepted as ${ksefNumber}`);
+} catch (error) {
+  if (error instanceof KSeFInvoiceRejectedError && error.isDuplicate) {
+    // 440: already in KSeF, e.g. the response to an earlier send was lost.
+    console.log(`Already in KSeF as ${error.originalKsefNumber}`);
+  } else {
+    throw error;
+  }
+}
+```
+
+There is no combined send-and-wait method: `sendInvoice` followed by `waitForInvoice` is the whole of it, and keeping the two calls apart lets you send a run of invoices first and wait for them afterwards.
+
 #### close
 
 Closes the session. Always call this — preferably in a `try/finally` block — to avoid orphan sessions.
 
 #### waitForUpo
 
-Polls `sessionStatus.getSessionStatus()` until code 200 (success) or >= 400 (failure). Returns:
+Polls `sessionStatus.getSessionStatus()` until code 200 (success) or >= 400 (failure). A failed session throws `KSeFSessionFailedError` with the session status code, description and details. Returns:
 
 ```typescript
 interface UpoInfo {
@@ -775,7 +803,8 @@ All workflows throw standard library errors:
 | `KSeFApiError` / `KSeFRateLimitError` / etc. | HTTP errors from underlying service calls (see [HTTP Resilience](./http-resilience.md)) |
 | `KSeFValidationError` | Invalid input to `BatchFileBuilder` (empty ZIP, exceeds limits) or `parseUpoXml` (malformed XML) |
 | `Error('Polling timeout: ...')` | `pollUntil` exceeded `maxAttempts` |
-| `Error('Session failed: ...')` | Session status code >= 400 after polling |
+| `KSeFSessionFailedError` | Online or batch session status code >= 400 after polling (`code`, `description`, `details`, `referenceNumber`) |
+| `KSeFInvoiceRejectedError` | `waitForInvoice` — the invoice status code >= 400, e.g. 440 duplicate or 450 semantic error (`code`, `details`, `extensions`, `originalKsefNumber`) |
 | `Error('Export failed: ...')` | Export status code >= 400 after polling |
 | `Error('Download failed for part N: HTTP ...')` | Presigned URL download returned non-2xx |
 | `Error('zip contains too many files')`, etc. | ZIP bomb protection limits exceeded |

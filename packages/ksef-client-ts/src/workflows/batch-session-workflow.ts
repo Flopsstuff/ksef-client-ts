@@ -8,6 +8,7 @@ import { BatchFileBuilder, type BatchStreamBuildResult } from '../builders/batch
 import { pollUntil } from './polling.js';
 import { withKeyRotationRetry } from '../crypto/with-key-rotation-retry.js';
 import { parseUpoXml } from '../xml/index.js';
+import { KSeFSessionFailedError } from '../errors/ksef-session-failed-error.js';
 
 export interface BatchUploadOptions {
   formCode?: FormCode;
@@ -112,7 +113,11 @@ export async function uploadBatch(
     { ...options?.pollOptions, description: `UPO for batch ${openResp.referenceNumber}` },
   );
   if (result.status.code !== 200) {
-    throw new Error(`Batch session failed: ${result.status.code} — ${result.status.description}`);
+    throw new KSeFSessionFailedError(
+      `Batch session failed: ${result.status.code} — ${result.status.description}`,
+      openResp.referenceNumber,
+      result,
+    );
   }
 
   return {
@@ -180,7 +185,11 @@ export async function uploadBatchStream(
     { ...options?.pollOptions, description: `UPO for batch ${openResp.referenceNumber}` },
   );
   if (result.status.code !== 200) {
-    throw new Error(`Batch session failed: ${result.status.code} — ${result.status.description}`);
+    throw new KSeFSessionFailedError(
+      `Batch session failed: ${result.status.code} — ${result.status.description}`,
+      openResp.referenceNumber,
+      result,
+    );
   }
 
   return {

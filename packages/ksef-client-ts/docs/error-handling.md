@@ -14,7 +14,7 @@ The library provides a structured error hierarchy so that callers can react prec
 - **Auth errors** (`KSeFUnauthorizedError`, `KSeFForbiddenError`) carry RFC 7807 Problem Details with machine-readable reason codes.
 - **Retention errors** (`KSeFGoneError`) signal that a server-side async operation status has aged out (HTTP 410).
 - **Client-side errors** (`KSeFValidationError`) catch invalid requests before they reach the network.
-- **Workflow errors** (`KSeFAuthStatusError`, `KSeFSessionExpiredError`) represent higher-level failures in multi-step operations.
+- **Workflow errors** (`KSeFAuthStatusError`, `KSeFSessionExpiredError`, `KSeFSessionFailedError`, `KSeFInvoiceRejectedError`) represent higher-level failures in multi-step operations.
 
 All error classes extend a common base `KSeFError`, so a single `instanceof KSeFError` catch covers every library error without catching unrelated exceptions.
 
@@ -40,6 +40,8 @@ Error (built-in)
         │                                src/errors/ksef-session-unavailable-error.ts (400, KSeF code 21184)
         ├── KSeFAuthStatusError          src/errors/ksef-auth-status-error.ts (auth ceremony failed)
         ├── KSeFSessionExpiredError      src/errors/ksef-session-expired-error.ts (stored session expired)
+        ├── KSeFSessionFailedError       src/errors/ksef-session-failed-error.ts (session ended in a failed status)
+        ├── KSeFInvoiceRejectedError     src/errors/ksef-invoice-rejected-error.ts (KSeF rejected a sent invoice)
         ├── KSeFCircuitOpenError         src/errors/ksef-circuit-open-error.ts (circuit breaker is open)
         ├── KSeFValidationError          src/errors/ksef-validation-error.ts  (client-side validation)
         ├── KSeFXsdValidationError       src/errors/ksef-xsd-validation-error.ts (XSD schema validation)
@@ -64,6 +66,8 @@ import {
   KSeFGoneError,
   KSeFAuthStatusError,
   KSeFSessionExpiredError,
+  KSeFSessionFailedError,
+  KSeFInvoiceRejectedError,
   KSeFValidationError,
   KSeFBatchTimeoutError,
   KSeFCircuitOpenError,
@@ -758,6 +762,87 @@ Recovery: re-authenticate and open a new session.
 
 ---
 
+### `KSeFSessionFailedError`
+
+**File:** `src/errors/ksef-session-failed-error.ts`
+
+Thrown by `waitForUpo()` / `waitForUpoParsed()` on an online session handle and by the batch upload workflows when the session, polled for its UPO, ends in a failed status (code 400 or above). `code` is a KSeF *session* status, not an HTTP status. The message keeps its earlier form (`Session failed: …` / `Batch session failed: …`), so code matching on it still works.
+
+```typescript
+class KSeFSessionFailedError extends KSeFError {
+  readonly referenceNumber: string;            // session reference number
+  readonly code: number;                       // session status code
+  readonly description: string;
+  readonly details: string[];
+  readonly sessionStatus: SessionStatusResponse; // full status, with invoice counts
+}
+```
+
+| Session | Failed status codes |
+|---------|---------------------|
+| Online | 415 key decryption error, 440 session cancelled (no invoices sent), 445 no valid invoices |
+| Batch | 405 package verification error, 415 key decryption error, 420 invoice limit exceeded, 430 decompression error, 435 part decryption error, 440 session cancelled (upload timed out or no invoices sent), 445 no valid invoices, 500 unknown error |
+
+Recovery: list the session's failed invoices (`client.sessionStatus.getSessionFailedInvoices(referenceNumber)`, or `ksef session failed <ref>`) to see why each one was rejected.
+
+---
+
+### `KSeFInvoiceRejectedError`
+
+**File:** `src/errors/ksef-invoice-rejected-error.ts`
+
+Thrown by `OnlineSessionHandle.waitForInvoice()` when KSeF finishes processing a sent invoice and rejects it. `code` is a KSeF *invoice* status, not an HTTP status or a KSeF error code. The whole status response is kept, so the reason and the structured data KSeF attached reach the caller.
+
+```typescript
+class KSeFInvoiceRejectedError extends KSeFError {
+  readonly sessionReferenceNumber: string;
+  readonly referenceNumber: string;            // invoice reference number from sendInvoice()
+  readonly ordinalNumber: number;
+  readonly invoiceNumber?: string;             // P_2, when KSeF could read it
+  readonly code: number;                       // invoice status code
+  readonly description: string;
+  readonly details: string[];
+  readonly extensions: Record<string, string | null>;
+  readonly invoiceStatus: SessionInvoiceStatusResponse;
+
+  get isDuplicate(): boolean;                          // code === 440
+  get originalKsefNumber(): string | undefined;        // extensions.originalKsefNumber
+  get originalSessionReferenceNumber(): string | undefined;
+}
+```
+
+| Invoice status | Outcome |
+|----------------|---------|
+| 100, 150 | Accepted / processing -- `waitForInvoice()` keeps polling |
+| 200 | Success -- resolves with the status, carrying `ksefNumber` |
+| 405 | Processing cancelled because of a session error |
+| 410 | Invalid permission scope |
+| 415 | Invoices with attachments cannot be sent |
+| 430 | Invoice file verification error |
+| 435 | File decryption error |
+| 440 | Duplicate invoice -- `extensions` carry `originalKsefNumber` and `originalSessionReferenceNumber` |
+| 450 | Semantic verification error -- `details` explain it |
+| 500 | Unknown error |
+| 550 | Cancelled by the system -- send the invoice again |
+
+A duplicate is how a lost send response is recovered: sending the same invoice again yields 440 together with the KSeF number the first send was given.
+
+```typescript
+import { KSeFInvoiceRejectedError } from 'ksef-client-ts';
+
+try {
+  const { ksefNumber } = await handle.waitForInvoice(await handle.sendInvoice(xml));
+  return ksefNumber;
+} catch (error) {
+  if (error instanceof KSeFInvoiceRejectedError && error.originalKsefNumber) {
+    return error.originalKsefNumber;  // already in KSeF
+  }
+  throw error;
+}
+```
+
+---
+
 ### `KSeFCircuitOpenError`
 
 **File:** `src/errors/ksef-circuit-open-error.ts`
@@ -1280,6 +1365,8 @@ try {
 | `KSeFGoneError` | 410 | RFC 7807 `GoneProblemDetails` | `detail`, `traceId`, `instance`, `timestamp` | None (re-issue the underlying action) |
 | `KSeFAuthStatusError` | -- | -- | `referenceNumber`, `statusDescription` | None |
 | `KSeFSessionExpiredError` | -- | -- | `message` | None |
+| `KSeFSessionFailedError` | -- (session status) | -- | `referenceNumber`, `code`, `description`, `details`, `sessionStatus` | None (inspect the failed invoices) |
+| `KSeFInvoiceRejectedError` | -- (invoice status) | -- | `referenceNumber`, `code`, `details`, `extensions`, `originalKsefNumber` | None (fix the invoice; for 440 use `originalKsefNumber`) |
 | `KSeFCircuitOpenError` | -- | -- | `endpoint`, `openedAt`, `retryAfterMs` | None (wait out `retryAfterMs` before retrying) |
 | `KSeFValidationError` | -- | -- | `details[]` with `field` and `message` | None (client-side) |
 | `KSeFXsdValidationError` | -- | -- | `schemaFile`, `errors[]` | None (client-side) |
@@ -1306,6 +1393,8 @@ try {
 | `src/errors/ksef-gone-error.ts` | `KSeFGoneError` (HTTP 410, retention expired) |
 | `src/errors/ksef-auth-status-error.ts` | `KSeFAuthStatusError` |
 | `src/errors/ksef-session-expired-error.ts` | `KSeFSessionExpiredError` |
+| `src/errors/ksef-session-failed-error.ts` | `KSeFSessionFailedError` (session ended in a failed status) |
+| `src/errors/ksef-invoice-rejected-error.ts` | `KSeFInvoiceRejectedError` (sent invoice rejected; duplicate's original KSeF number) |
 | `src/errors/ksef-circuit-open-error.ts` | `KSeFCircuitOpenError` (opt-in circuit breaker) |
 | `src/errors/ksef-validation-error.ts` | `KSeFValidationError`, `ValidationDetail` |
 | `src/errors/ksef-xsd-validation-error.ts` | `KSeFXsdValidationError` (XSD schema validation) |

@@ -1258,6 +1258,8 @@ Error
         │     └── KSeFSessionUnavailableError // HTTP 400, KSeF code 21184 (open a new session)
         ├── KSeFAuthStatusError         // auth operation failed/timed out
         ├── KSeFSessionExpiredError     // stored session expired
+        ├── KSeFSessionFailedError      // online/batch session ended in a failed status
+        ├── KSeFInvoiceRejectedError    // waitForInvoice: KSeF rejected the invoice (e.g. 440 duplicate)
         └── KSeFValidationError         // client-side validation failed
 ```
 
@@ -1468,7 +1470,8 @@ import { openOnlineSession, openSendAndClose } from 'ksef-client-ts';
 
 // Open a session and get a handle for sending invoices
 const handle = await openOnlineSession(client, { formCode, encryption });
-await handle.sendInvoice(invoiceRequest);
+const invoiceRef = await handle.sendInvoice(invoiceRequest);
+const { ksefNumber } = await handle.waitForInvoice(invoiceRef); // throws KSeFInvoiceRejectedError if rejected
 await handle.close();
 const upo = await handle.waitForUpo();
 
@@ -1521,7 +1524,7 @@ const result = await pollUntil(
 | Type | Description |
 |------|-------------|
 | `PollOptions` | `intervalMs`, `maxAttempts`, `onProgress` callback |
-| `OnlineSessionHandle` | Session ref + `sendInvoice()`, `close()`, `waitForUpo()` methods |
+| `OnlineSessionHandle` | Session ref + `sendInvoice()`, `waitForInvoice()`, `close()`, `waitForUpo()` methods |
 | `UpoInfo` | Pages with reference numbers, download URLs, invoice counts |
 | `BatchUploadResult` | Session reference + UPO info |
 | `ExportResult` | Export parts array (ordinal, URL, size, hash, expiration) |

@@ -26,6 +26,8 @@ export { KSeFPaginationError } from './ksef-pagination-error.js';
 export { KSeFBatchTimeoutError } from './ksef-batch-timeout-error.js';
 export { KSeFUnknownPublicKeyError } from './ksef-unknown-public-key-error.js';
 export { KSeFSessionUnavailableError } from './ksef-session-unavailable-error.js';
+export { KSeFSessionFailedError } from './ksef-session-failed-error.js';
+export { KSeFInvoiceRejectedError } from './ksef-invoice-rejected-error.js';
 export { KSeFCircuitOpenError } from './ksef-circuit-open-error.js';
 export { KSeFXsdValidationError } from './ksef-xsd-validation-error.js';
 export { KSeFErrorCode } from './error-codes.js';
