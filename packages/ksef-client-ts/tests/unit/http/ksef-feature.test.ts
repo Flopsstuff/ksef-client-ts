@@ -37,9 +37,25 @@ describe('resolveSessionFeature', () => {
     expect(resolveSessionFeature('')).toBeUndefined();
   });
 
-  it('passes a single string through verbatim', () => {
+  it('passes a single value through', () => {
     expect(resolveSessionFeature('upo-v4-3')).toBe('upo-v4-3');
     expect(resolveSessionFeature('custom-feature')).toBe('custom-feature');
+    expect(resolveSessionFeature(' upo-v4-3 ')).toBe('upo-v4-3');
+  });
+
+  it('splits comma-delimited strings and collapses repeats and empty entries', () => {
+    expect(resolveSessionFeature('upo-v4-3,upo-v4-3')).toBe('upo-v4-3');
+    expect(resolveSessionFeature('upo-v4-3, ')).toBe('upo-v4-3');
+    expect(resolveSessionFeature(', ,')).toBeUndefined();
+    expect(resolveSessionFeature(['upo-v4-3, upo-v4-3', ''])).toBe('upo-v4-3');
+  });
+
+  it('throws for a comma-delimited string with distinct values', () => {
+    expect(() => resolveSessionFeature('upo-v4-3,subject-identifier-validation')).toThrow(KSeFValidationError);
+    expect(() => resolveSessionFeature('upo-v4-3, subject-identifier-validation')).toThrow(
+      'KSeF applies only one X-KSeF-Feature value per session, got 2: upo-v4-3, subject-identifier-validation',
+    );
+    expect(() => resolveSessionFeature(undefined, ['subject-identifier-validation, upo-v4-3'])).toThrow(KSeFValidationError);
   });
 
   it('accepts a single-value array', () => {

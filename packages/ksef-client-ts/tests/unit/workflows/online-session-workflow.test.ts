@@ -102,6 +102,24 @@ describe('openOnlineSession', () => {
     expect(client.onlineSession.openSession).toHaveBeenCalledWith(expect.any(Object), 'upo-v4-3');
   });
 
+  it('rejects a comma-delimited features string with distinct values before touching crypto', async () => {
+    await expect(openOnlineSession(client, { features: 'upo-v4-3, subject-identifier-validation' }))
+      .rejects.toBeInstanceOf(KSeFValidationError);
+    expect(client.crypto.init).not.toHaveBeenCalled();
+    expect(client.onlineSession.openSession).not.toHaveBeenCalled();
+  });
+
+  it('rejects a comma-delimited deprecated upoVersion with distinct values', async () => {
+    await expect(openOnlineSession(client, { upoVersion: 'upo-v4-3,subject-identifier-validation' }))
+      .rejects.toBeInstanceOf(KSeFValidationError);
+    expect(client.onlineSession.openSession).not.toHaveBeenCalled();
+  });
+
+  it('collapses a comma-delimited features string of one repeated value', async () => {
+    await openOnlineSession(client, { features: 'subject-identifier-validation,subject-identifier-validation, ' });
+    expect(client.onlineSession.openSession).toHaveBeenCalledWith(expect.any(Object), 'subject-identifier-validation');
+  });
+
   it('rejects upoVersion and a different feature before touching crypto', async () => {
     await expect(openOnlineSession(client, {
       upoVersion: 'upo-v4-3',

@@ -63,12 +63,10 @@ const open = defineCommand({
         throw new Error('Batch session open is used internally by `ksef invoice send <dir>`. Use `ksef session open` for online sessions.');
       }
 
-      // Comma-separated like the other list flags. More than one value throws here,
-      // before the session is opened: KSeF would silently ignore all of them.
-      const features = args.feature
-        ? (args.feature as string).split(',').map((f) => f.trim()).filter(Boolean)
-        : [];
-      const feature = resolveSessionFeature(features);
+      // Comma-separated like the other list flags (split by the resolver). More than
+      // one value throws here, before the session is opened: KSeF would silently
+      // ignore all of them.
+      const feature = resolveSessionFeature(args.feature as string | undefined);
 
       if (!args.json) consola.start('Opening online session...');
       // Fetch keys inside the retry so a key rotation (KSeF 21470) refreshes them before retrying.

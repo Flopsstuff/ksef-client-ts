@@ -85,6 +85,28 @@ describe('OnlineSessionService', () => {
     expect(req.getHeaders()).not.toHaveProperty(KSEF_FEATURE_HEADER);
   });
 
+  it('openSession collapses a comma-delimited string of one repeated feature', async () => {
+    const client = createMockRestClient();
+    const service = new OnlineSessionService(client);
+    const request = { nip: '1234567890' } as any;
+    vi.mocked(client.execute).mockResolvedValueOnce(mockResponse({ sessionRef: 'ref-3' }));
+
+    await service.openSession(request, 'subject-identifier-validation, subject-identifier-validation, ');
+
+    const req = getRequest(vi.mocked(client.execute));
+    expect(req.getHeaders()).toHaveProperty(KSEF_FEATURE_HEADER, 'subject-identifier-validation');
+  });
+
+  it('openSession rejects a comma-delimited string of distinct features without sending', async () => {
+    const client = createMockRestClient();
+    const service = new OnlineSessionService(client);
+    const request = { nip: '1234567890' } as any;
+
+    await expect(service.openSession(request, 'upo-v4-3,subject-identifier-validation'))
+      .rejects.toBeInstanceOf(KSeFValidationError);
+    expect(client.execute).not.toHaveBeenCalled();
+  });
+
   it('openSession rejects more than one distinct feature without sending', async () => {
     const client = createMockRestClient();
     const service = new OnlineSessionService(client);

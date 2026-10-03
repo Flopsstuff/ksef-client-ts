@@ -106,6 +106,23 @@ describe('uploadBatch', () => {
     );
   });
 
+  it('rejects a comma-delimited features string with distinct values before touching crypto', async () => {
+    await expect(uploadBatch(client, zipData, {
+      features: 'upo-v4-3,subject-identifier-validation',
+      pollOptions: { intervalMs: 1 },
+    })).rejects.toBeInstanceOf(KSeFValidationError);
+    expect(client.crypto.init).not.toHaveBeenCalled();
+    expect(client.batchSession.openSession).not.toHaveBeenCalled();
+  });
+
+  it('collapses a comma-delimited features string of one repeated value', async () => {
+    await uploadBatch(client, zipData, {
+      features: 'subject-identifier-validation, subject-identifier-validation',
+      pollOptions: { intervalMs: 1 },
+    });
+    expect(client.batchSession.openSession).toHaveBeenCalledWith(expect.any(Object), 'subject-identifier-validation');
+  });
+
   it('rejects more than one distinct feature before touching crypto', async () => {
     await expect(uploadBatch(client, zipData, {
       features: ['upo-v4-3', 'subject-identifier-validation'],
@@ -352,6 +369,15 @@ describe('uploadBatchStream', () => {
       expect.any(Object),
       'subject-identifier-validation',
     );
+  });
+
+  it('rejects a comma-delimited features string with distinct values before touching crypto', async () => {
+    await expect(uploadBatchStream(client, zipStreamFactory, zipData.length, {
+      features: 'subject-identifier-validation, upo-v4-3',
+      pollOptions: { intervalMs: 1 },
+    })).rejects.toBeInstanceOf(KSeFValidationError);
+    expect(client.crypto.init).not.toHaveBeenCalled();
+    expect(client.batchSession.openSession).not.toHaveBeenCalled();
   });
 
   it('rejects more than one distinct feature before touching crypto', async () => {

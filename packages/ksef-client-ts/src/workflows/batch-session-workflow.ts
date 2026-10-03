@@ -15,9 +15,9 @@ export interface BatchUploadOptions {
   upoVersion?: UpoVersion | string;
   /**
    * X-KSeF-Feature value(s) sent when opening the session, e.g.
-   * `KSeFFeature.SubjectIdentifierValidation` (TEST only). KSeF honours one
-   * feature per session, so more than one distinct value (counting
-   * `upoVersion`) throws `KSeFValidationError`.
+   * `KSeFFeature.SubjectIdentifierValidation` (TEST only). Strings are split
+   * on commas. KSeF honours one feature per session, so more than one distinct
+   * value (counting `upoVersion`) throws `KSeFValidationError`.
    */
   features?: string | readonly string[];
   pollOptions?: PollOptions;

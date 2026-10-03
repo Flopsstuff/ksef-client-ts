@@ -1548,7 +1548,7 @@ import { KSEF_FEATURE_HEADER, KSeFFeature, UpoVersion, ENFORCE_XADES_COMPLIANCE 
 
 Session open methods (`onlineSession.openSession()`, `batchSession.openSession()`) take the feature as their optional second argument, a single value or an array; the workflows (`openOnlineSession()`, `openSendAndClose()`, `uploadBatch()`, `uploadBatchStream()` and their `*Parsed` variants) take it as the `features` option. The older `upoVersion` option still works and is merged with `features`. `auth.submitXadesAuthRequest()` sends `ENFORCE_XADES_COMPLIANCE` when its `enforceXadesCompliance` argument is `true`.
 
-KSeF applies **only one feature per session**: a comma-separated list, or the header repeated, is accepted but none of the listed features takes effect. The client therefore throws `KSeFValidationError` before opening the session when it is given more than one distinct value (repeats and empty strings are dropped first).
+KSeF applies **only one feature per session**: a comma-separated list, or the header repeated, is accepted but none of the listed features takes effect. The client therefore throws `KSeFValidationError` before opening the session when it is given more than one distinct value. Strings are split on commas and trimmed first, so `'upo-v4-3, subject-identifier-validation'` counts as two values, while repeats and empty entries are dropped (`'a,a'` and `'a, '` both send `a`).
 
 ```ts
 const handle = await openOnlineSession(client, {

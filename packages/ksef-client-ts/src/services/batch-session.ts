@@ -15,9 +15,9 @@ export class BatchSessionService {
 
   /**
    * @param features Value(s) for the X-KSeF-Feature header, e.g.
-   *   `KSeFFeature.SubjectIdentifierValidation` (TEST only). KSeF honours one
-   *   feature per session, so more than one distinct value throws
-   *   `KSeFValidationError` before the request is sent.
+   *   `KSeFFeature.SubjectIdentifierValidation` (TEST only). Strings are split
+   *   on commas. KSeF honours one feature per session, so more than one
+   *   distinct value throws `KSeFValidationError` before the request is sent.
    */
   async openSession(
     request: OpenBatchSessionRequest,

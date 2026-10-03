@@ -30,8 +30,9 @@ export const ENFORCE_XADES_COMPLIANCE = 'enforce-xades-compliance' as const;
 
 /**
  * Collapse the feature value(s) for a session-open request into the single
- * X-KSeF-Feature value to send, or `undefined` when there is none. Empty
- * strings are dropped and repeats are merged.
+ * X-KSeF-Feature value to send, or `undefined` when there is none. Every
+ * string is split on commas and trimmed, so `'a, b'` counts as two values;
+ * empty entries are dropped and repeats are merged.
  *
  * KSeF honours exactly one feature per request: a comma-separated list or a
  * repeated header is accepted with 201 but silently ignored, so none of the
@@ -42,8 +43,12 @@ export function resolveSessionFeature(
   ...inputs: Array<string | readonly string[] | undefined>
 ): string | undefined {
   const values = [...new Set(
-    inputs.flatMap((input) => (input === undefined ? [] : typeof input === 'string' ? [input] : [...input])),
-  )].filter((value) => value !== '');
+    inputs
+      .flatMap((input) => (input === undefined ? [] : typeof input === 'string' ? [input] : [...input]))
+      .flatMap((input) => input.split(','))
+      .map((value) => value.trim())
+      .filter((value) => value !== ''),
+  )];
   if (values.length > 1) {
     throw KSeFValidationError.fromField(
       'features',
