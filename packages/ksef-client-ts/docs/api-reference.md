@@ -1253,13 +1253,15 @@ Error
         │     ├── KSeFForbiddenError    // HTTP 403 (RFC 7807)
         │     ├── KSeFGoneError         // HTTP 410 (RFC 7807, retention expired)
         │     ├── KSeFRateLimitError    // HTTP 429 (RFC 7807)
-        │     └── KSeFBatchTimeoutError // KSeF exception code 21208
+        │     ├── KSeFBatchTimeoutError // KSeF exception code 21208
+        │     ├── KSeFUnknownPublicKeyError   // HTTP 400, KSeF code 21470
+        │     └── KSeFSessionUnavailableError // HTTP 400, KSeF code 21184 (open a new session)
         ├── KSeFAuthStatusError         // auth operation failed/timed out
         ├── KSeFSessionExpiredError     // stored session expired
         └── KSeFValidationError         // client-side validation failed
 ```
 
-All server-returned HTTP errors extend `KSeFApiError`, so a single `instanceof KSeFApiError` check covers every response-side failure. `RestClient.ensureSuccess` dispatches errors in order: 429 → 401 → 403 → 410 → 400 → (exceptionCode `21208` → `KSeFBatchTimeoutError`) → generic `KSeFApiError`.
+All server-returned HTTP errors extend `KSeFApiError`, so a single `instanceof KSeFApiError` check covers every response-side failure. `RestClient.ensureSuccess` dispatches errors in order: 400 (KSeF code `21184` → `KSeFSessionUnavailableError`, `21470` → `KSeFUnknownPublicKeyError`, otherwise `KSeFBadRequestError`) → 429 → 401 → 403 → 410 → (exceptionCode `21208` → `KSeFBatchTimeoutError`) → generic `KSeFApiError`.
 
 ### KSeFApiProblem
 

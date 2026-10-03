@@ -20,7 +20,7 @@ KSeFError (base)
 
 `RestClient` dispatches errors in order: **429 → 401 → 403 → 410 → known KSeF exception codes → generic**. The first matching handler throws the corresponding error class.
 
-Currently, the exception-code branch maps **21208** to `KSeFBatchTimeoutError`.
+Currently, the exception-code branch maps **21208** to `KSeFBatchTimeoutError`. On HTTP 400, code **21184** (session temporarily unavailable — open a new session and continue) maps to `KSeFSessionUnavailableError` and code **21470** to `KSeFUnknownPublicKeyError`.
 
 ---
 

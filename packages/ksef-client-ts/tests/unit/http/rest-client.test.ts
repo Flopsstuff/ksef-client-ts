@@ -12,6 +12,7 @@ import { KSeFGoneError } from '../../../src/errors/ksef-gone-error.js';
 import { KSeFBadRequestError } from '../../../src/errors/ksef-bad-request-error.js';
 import { KSeFBatchTimeoutError } from '../../../src/errors/ksef-batch-timeout-error.js';
 import { KSeFUnknownPublicKeyError } from '../../../src/errors/ksef-unknown-public-key-error.js';
+import { KSeFSessionUnavailableError } from '../../../src/errors/ksef-session-unavailable-error.js';
 
 const defaultOptions: ResolvedOptions = {
   baseUrl: 'https://ksef-test.mf.gov.pl/api',
@@ -800,6 +801,75 @@ describe('RestClient', () => {
 
       expect(err).toBeInstanceOf(KSeFUnknownPublicKeyError);
       expect((err as KSeFUnknownPublicKeyError).message).toBe('Encryption rejected');
+    });
+
+    it('throws KSeFSessionUnavailableError on 400 Problem Details with errors[].code 21184', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: 21184, description: 'Sesja tymczasowo niedostępna.' }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.post('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFSessionUnavailableError);
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect(err).not.toBeInstanceOf(KSeFBadRequestError);
+      expect((err as KSeFSessionUnavailableError).errorCode).toBe(21184);
+      expect((err as KSeFSessionUnavailableError).statusCode).toBe(400);
+      expect((err as KSeFSessionUnavailableError).message).toBe('Sesja tymczasowo niedostępna.');
+    });
+
+    it('throws KSeFSessionUnavailableError on 400 Problem Details with a code-only 21184 item', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: 21184 }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.post('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFSessionUnavailableError);
+      expect((err as KSeFSessionUnavailableError).message).toContain('open a new session');
+    });
+
+    it('throws KSeFSessionUnavailableError on 400 legacy body with exceptionCode 21184', async () => {
+      const body = {
+        exception: {
+          exceptionDetailList: [
+            { exceptionCode: 21184, exceptionDescription: 'Sesja tymczasowo niedostępna.' },
+          ],
+        },
+      };
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, body));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.post('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFSessionUnavailableError);
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect((err as KSeFSessionUnavailableError).errorCode).toBe(21184);
+      expect((err as KSeFSessionUnavailableError).message).toBe('Sesja tymczasowo niedostępna.');
+      expect((err as KSeFSessionUnavailableError).errorResponse).toEqual(body);
+    });
+
+    it('prefers KSeFSessionUnavailableError over KSeFUnknownPublicKeyError when both codes are present', async () => {
+      const problem = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: 21470 }, { code: 21184 }],
+      }));
+      const legacy = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        exception: { exceptionDetailList: [{ exceptionCode: 21470 }, { exceptionCode: 21184 }] },
+      }));
+
+      const fromProblem = await createClient(problem).execute(RestRequest.post('/test')).catch((e: unknown) => e);
+      const fromLegacy = await createClient(legacy).execute(RestRequest.post('/test')).catch((e: unknown) => e);
+
+      expect(fromProblem).toBeInstanceOf(KSeFSessionUnavailableError);
+      expect(fromLegacy).toBeInstanceOf(KSeFSessionUnavailableError);
     });
 
     it('rejects 400 Problem Details whose errors item has a non-string description', async () => {
