@@ -1128,8 +1128,8 @@ Extends `KSeFApiError`. Thrown on HTTP 400 responses when the body matches `BadR
 ```ts
 interface BadRequestErrorDetail {
   code: number;
-  description: string;
-  details: string[];
+  description?: string;     // absent when KSeF reports only the code
+  details?: string[] | null;
 }
 ```
 

@@ -739,6 +739,97 @@ describe('RestClient', () => {
       expect(err).not.toBeInstanceOf(KSeFBadRequestError);
     });
 
+    it('accepts 400 Problem Details whose errors items carry only a code', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: 21405 }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFBadRequestError);
+      expect((err as KSeFBadRequestError).errors).toEqual([{ code: 21405 }]);
+    });
+
+    it('throws KSeFUnknownPublicKeyError on 400 Problem Details with a code-only 21470 item', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: 21470 }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFUnknownPublicKeyError);
+      expect((err as KSeFUnknownPublicKeyError).message).toContain('KSeF 21470');
+    });
+
+    it('keeps every code of a 400 Problem Details list mixing described and code-only items', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        detail: 'Validation failed',
+        errors: [
+          { code: 21405, description: 'Invalid field', details: ['P_1'] },
+          { code: 21406 },
+        ],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFBadRequestError);
+      expect((err as KSeFBadRequestError).errors.map((e) => e.code)).toEqual([21405, 21406]);
+      expect((err as KSeFBadRequestError).errors[0]!.description).toBe('Invalid field');
+      expect((err as KSeFBadRequestError).errors[1]!.description).toBeUndefined();
+    });
+
+    it('routes a mixed 400 Problem Details list containing a code-only 21470 to KSeFUnknownPublicKeyError', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        detail: 'Encryption rejected',
+        errors: [{ code: 21405, description: 'Invalid field' }, { code: 21470 }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFUnknownPublicKeyError);
+      expect((err as KSeFUnknownPublicKeyError).message).toBe('Encryption rejected');
+    });
+
+    it('rejects 400 Problem Details whose errors item has a non-string description', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: 21405, description: 42 }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect(err).not.toBeInstanceOf(KSeFBadRequestError);
+    });
+
+    it('rejects a code-only 400 Problem Details item whose code is not numeric', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: '21405' }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect(err).not.toBeInstanceOf(KSeFBadRequestError);
+    });
+
     it('falls back to generic KSeFApiError on 400 with legacy body', async () => {
       const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
         exception: {

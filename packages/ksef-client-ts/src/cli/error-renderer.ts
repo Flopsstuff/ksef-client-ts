@@ -79,7 +79,7 @@ function renderProblemDetails(fields: ProblemFields): void {
   if (fields.errors?.length) {
     consola.error(`  └ Errors:`);
     for (const err of fields.errors) {
-      consola.error(`    • [${err.code}] ${err.description}`);
+      consola.error(err.description ? `    • [${err.code}] ${err.description}` : `    • [${err.code}]`);
       for (const d of err.details ?? []) {
         consola.error(`      └ ${d}`);
       }

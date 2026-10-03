@@ -90,6 +90,20 @@ describe('renderCliError — KSeFApiError dispatch', () => {
     expect(infoCalls()).toEqual([expect.stringContaining('Review the error list')]);
   });
 
+  it('renders a code-only KSeFBadRequestError entry without an "undefined" description', () => {
+    const err = new KSeFBadRequestError({
+      title: 'Bad Request',
+      status: 400,
+      errors: [{ code: 21405 }],
+    });
+
+    renderCliError(err);
+
+    const errors = errorCalls();
+    expect(errors).toContain('    • [21405]');
+    expect(errors.join('\n')).not.toContain('undefined');
+  });
+
   it('renders KSeFUnauthorizedError with detail, traceId, and auth hint', () => {
     const err = new KSeFUnauthorizedError({
       title: 'Unauthorized',

@@ -117,7 +117,7 @@ const client = new KSeFClient({
 | `traceId` | `string?` | Server-side trace ID for correlating with KSeF support |
 | `timestamp` | `string?` | UTC timestamp recorded by the server |
 
-Each entry in `errors` has `code: number`, `description: string`, and `details: string[]`. The client throws `KSeFBadRequestError` whose `.errors` field is ready for display or programmatic routing by `code`.
+Each entry in `errors` has `code: number`, `description?: string`, and `details?: string[] | null` — KSeF sometimes sends an entry with only its `code`, and such a body is still read as Problem Details. The client throws `KSeFBadRequestError` whose `.errors` field is ready for display or programmatic routing by `code`.
 
 When the server returns a legacy 400 body (older server or proxy), the client falls back to generic `KSeFApiError` with `statusCode === 400`. Both cases are caught by `instanceof KSeFApiError`.
 
@@ -538,7 +538,7 @@ class KSeFBadRequestError extends KSeFApiError {
 | `traceId` | `string?` | Server-side trace ID |
 | `timestamp` | `string?` | UTC timestamp recorded by the server |
 
-The top-level message falls back through `detail` → `title` → `"Bad Request"`, so it is never empty. Each `errors` entry carries `code: number`, `description: string`, and `details: string[]` — route on `code` for programmatic handling.
+The top-level message falls back through `detail` → `title` → `"Bad Request"`, so it is never empty. Each `errors` entry carries `code: number`, `description?: string`, and `details?: string[] | null` — route on `code` for programmatic handling.
 
 ::: warning
 Not every 400 arrives as this class, and which class you get depends on the body format:

@@ -412,7 +412,8 @@ function isBadRequestProblem(value: unknown): value is BadRequestProblemDetails 
       if (typeof item !== 'object' || item === null) return false;
       const detail = item as Record<string, unknown>;
       if (typeof detail.code !== 'number') return false;
-      if (typeof detail.description !== 'string') return false;
+      // KSeF sends some entries with only a `code`; a missing description must not drop the whole problem.
+      if (detail.description !== undefined && typeof detail.description !== 'string') return false;
     }
   }
   return true;
