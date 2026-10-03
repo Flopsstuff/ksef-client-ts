@@ -59,7 +59,7 @@ The order matters:
 2. **Circuit breaker check** runs before rate-limit acquire and before the retry loop, so an open circuit fails fast with `KSeFCircuitOpenError` without stalling on the global token queue or consuming a token a healthy caller could have used. The retry loop re-checks the breaker at the start of each attempt so a mid-loop open (from another concurrent request) short-circuits remaining attempts. After the loop finishes, the breaker records a success or failure based on the final outcome. 429 and 401 responses never count as failures.
 3. **Rate limit acquire** runs once, after the breaker check and before the retry loop, so retries don't consume additional rate limit tokens (except on 429, where a re-acquire is needed because the server rejected the request).
 4. **Auth refresh** runs inside the retry loop but only on the first attempt and only for 401 responses. If refresh succeeds, the request is retried once with the new token. If it fails, the 401 propagates.
-5. **Error dispatch** happens after the retry loop is exhausted. The body is read once and parsed per status code in a fixed priority: 429 > 401 > 403 > generic.
+5. **Error dispatch** happens after the retry loop is exhausted. The body is read once and parsed per status code in a fixed priority: 400 > 429 > 401 > 403 > 410 > generic.
 
 ---
 
