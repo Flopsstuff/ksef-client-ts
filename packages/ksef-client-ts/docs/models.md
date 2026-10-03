@@ -608,9 +608,9 @@ Each permission grant target has its own set of allowed permission types:
 | Enum | Values | Used by |
 |---|---|---|
 | `PersonPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CredentialsRead`, `CredentialsManage`, `EnforcementOperations`, `SubunitManage`, `Introspection`, `CollectiveIdentifierManage` | `GrantPermissionsPersonRequest` |
-| `EntityPermissionItemType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsEntityRequest` |
+| `EntityPermissionItemType` | `InvoiceRead`, `InvoiceWrite`, `CollectiveIdentifierManage` | `GrantPermissionsEntityRequest`, `EntityPermissionItem` (entity-grants query) |
 | `EuEntityPermissionType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsEuEntityRepresentativeRequest` |
-| `IndirectPermissionType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsIndirectRequest` |
+| `IndirectPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CollectiveIdentifierManage` | `GrantPermissionsIndirectRequest` |
 | `SubunitPermissionScope` | `CredentialsManage` | `GrantPermissionsSubunitRequest` |
 | `InvoicePermissionType` | `SelfInvoicing`, `TaxRepresentative`, `RRInvoicing`, `PefInvoicing` | Entity authorization grants |
 | `EntityRoleType` | `CourtBailiff`, `EnforcementAuthority`, `LocalGovernmentUnit`, `LocalGovernmentSubUnit`, `VatGroupUnit`, `VatGroupSubUnit` | Entity role queries |

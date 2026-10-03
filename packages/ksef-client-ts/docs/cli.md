@@ -300,6 +300,8 @@ ksef permission grant --type authorization \
 
 Supported grant types: `person`, `entity`, `authorization`, `indirect`, `subunit`, `eu-entity-admin`, `eu-entity-representative`. Each type requires specific flags — the CLI will report missing fields.
 
+For `entity` and `indirect` grants, `--permissions` takes `InvoiceRead`, `InvoiceWrite`, and `CollectiveIdentifierManage` (managing collective identifiers, KSeF API v2.8.0).
+
 Add `--canDelegate` to allow the subject to further delegate permissions to their own employees (corresponds to "Zakres uprawnień" in the KSeF web portal).
 
 ### Other Permission Commands

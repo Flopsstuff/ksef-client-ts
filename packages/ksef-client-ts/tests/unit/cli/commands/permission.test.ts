@@ -114,6 +114,22 @@ describe('permission', () => {
       );
     });
 
+    it('entity — passes CollectiveIdentifierManage through', async () => {
+      mockClient.permissions.grantEntityPermissions.mockResolvedValue({ referenceNumber: 'ref-2c' });
+      await runGrant({
+        type: 'entity', targetNip: '1234567890', permissions: 'InvoiceRead, CollectiveIdentifierManage',
+        fullName: 'Test Corp', canDelegate: true,
+      });
+      expect(mockClient.permissions.grantEntityPermissions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          permissions: [
+            { type: 'InvoiceRead', canDelegate: true },
+            { type: 'CollectiveIdentifierManage', canDelegate: true },
+          ],
+        }),
+      );
+    });
+
     it('authorization — takes only first permission', async () => {
       mockClient.permissions.grantAuthorizationPermissions.mockResolvedValue({ referenceNumber: 'ref-3' });
       await runGrant({
@@ -188,6 +204,18 @@ describe('permission', () => {
           subjectIdentifier: { type: 'Pesel', value: '99999' },
           targetIdentifier: { type: 'Nip', value: '5555555555' },
         }),
+      );
+    });
+
+    it('indirect — passes CollectiveIdentifierManage through', async () => {
+      mockClient.permissions.grantIndirectPermissions.mockResolvedValue({ referenceNumber: 'ref-i1c' });
+      await runGrant({
+        type: 'indirect', identifier: '99999', identifierType: 'Pesel',
+        permissions: 'CollectiveIdentifierManage', firstName: 'Anna', lastName: 'Nowak',
+        targetNip: '5555555555',
+      });
+      expect(mockClient.permissions.grantIndirectPermissions).toHaveBeenCalledWith(
+        expect.objectContaining({ permissions: ['CollectiveIdentifierManage'] }),
       );
     });
 

@@ -17,13 +17,19 @@ export type EuEntityPermissionType =
   | 'InvoiceRead'
   | 'InvoiceWrite';
 
+/**
+ * Permission an entity can be granted to handle invoices (`EntityPermissionType`),
+ * and the scope reported for it by the entity-grants query (`EntityPermissionItemScope`).
+ */
 export type EntityPermissionItemType =
   | 'InvoiceRead'
-  | 'InvoiceWrite';
+  | 'InvoiceWrite'
+  | 'CollectiveIdentifierManage';
 
 export type IndirectPermissionType =
   | 'InvoiceRead'
-  | 'InvoiceWrite';
+  | 'InvoiceWrite'
+  | 'CollectiveIdentifierManage';
 
 export type PersonalPermissionScopeType =
   | 'CredentialsManage'
