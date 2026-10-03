@@ -3188,14 +3188,16 @@
       "EntityPermissionItemScope": {
         "enum": [
           "InvoiceWrite",
-          "InvoiceRead"
+          "InvoiceRead",
+          "CollectiveIdentifierManage"
         ],
         "type": "string"
       },
       "EntityPermissionType": {
         "enum": [
           "InvoiceWrite",
-          "InvoiceRead"
+          "InvoiceRead",
+          "CollectiveIdentifierManage"
         ],
         "type": "string"
       },
@@ -3938,7 +3940,6 @@
           "detail",
           "reasonCode",
           "status",
-          "timestamp",
           "title"
         ],
         "type": "object",
@@ -4054,7 +4055,8 @@
       "IndirectPermissionType": {
         "enum": [
           "InvoiceRead",
-          "InvoiceWrite"
+          "InvoiceWrite",
+          "CollectiveIdentifierManage"
         ],
         "type": "string"
       },
