@@ -596,6 +596,20 @@ The CLI provides contextual hints after common errors:
 | Rate limited | Retry after N seconds. |
 | Network error | Run `ksef doctor` to diagnose connectivity issues. |
 
+Some KSeF error codes get a dedicated hint, shown instead of the HTTP status hint above. The codes are read from the error list, from the legacy exception list and from the error class itself; each distinct code is answered once, as `Hint [code]: …`:
+
+| Code | Hint |
+|------|------|
+| 21184 | The session is temporarily unavailable — run `ksef session open` and send the remaining invoices in the new session. |
+| 21208 | The batch session expired before all parts were uploaded — send the batch again with `ksef invoice send`. |
+| 21418 | The continuation token is invalid — start the listing again without `--continue`. |
+| 21470 | KSeF no longer accepts the encryption key (likely mid key rotation) — wait a moment and run the command again. |
+| 71004 | A collective identifier groups invoices of one seller only — remove the invoices of other sellers. |
+| 71005 | The invoice list repeats a KSeF number — remove the duplicates. |
+| 21405 | Generic input validation — fix the values named in the error details. Shown only when no more specific code applies. |
+
+Hints are printed only in the human-readable output; `--json` emits the error payload alone.
+
 ## Reading CLI Errors
 
 Every server-returned failure is rendered with its full RFC 7807 Problem Details context so you can act on issues without re-running in verbose mode:

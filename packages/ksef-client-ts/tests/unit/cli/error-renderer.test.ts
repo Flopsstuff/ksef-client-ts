@@ -202,8 +202,8 @@ describe('renderCliError — KSeFApiError dispatch', () => {
     expect(errors).toEqual(expect.arrayContaining([
       expect.stringContaining('Detail: Batch timed out after 30m'),
     ]));
-    // No status-specific hint for batch timeout; no 404 hint
-    expect(infoCalls()).toEqual([]);
+    // The class's own code (21208) drives the hint even without a legacy body.
+    expect(infoCalls()).toEqual([expect.stringContaining('Hint [21208]')]);
   });
 
   it('renders generic KSeFApiError (no Problem Details) via base toProblemFields', () => {
@@ -242,6 +242,96 @@ describe('renderCliError — KSeFApiError dispatch', () => {
       expect.stringContaining('[10100]'),
       expect.stringContaining('Invalid NIP'),
     ]));
+  });
+});
+
+describe('renderCliError — hints by KSeF error code', () => {
+  function badRequest(...codes: number[]): KSeFBadRequestError {
+    return new KSeFBadRequestError({
+      title: 'Bad Request',
+      status: 400,
+      errors: codes.map((code) => ({ code })),
+    });
+  }
+
+  it.each([
+    { code: 21184, text: 'ksef session open' },
+    { code: 21418, text: 'without `--continue`' },
+    { code: 71004, text: 'one seller' },
+    { code: 71005, text: 'Remove the duplicates' },
+    { code: 21470, text: 'public key' },
+    { code: 21208, text: 'ksef invoice send' },
+    { code: 21405, text: 'error details' },
+  ])('gives the $code hint instead of the status hint', ({ code, text }) => {
+    renderCliError(badRequest(code));
+
+    const hints = infoCalls();
+    expect(hints).toHaveLength(1);
+    expect(hints[0]).toMatch(new RegExp(`^Hint \\[${code}\\]: `));
+    expect(hints[0]).toContain(text);
+  });
+
+  it('falls back to the status hint for a code without one', () => {
+    renderCliError(badRequest(21105));
+
+    expect(infoCalls()).toEqual([expect.stringContaining('Review the error list')]);
+  });
+
+  it('reads codes from the legacy exception list', () => {
+    const err = new KSeFApiError('Legacy error', 404, {
+      exception: {
+        exceptionDetailList: [{ exceptionCode: 21418, exceptionDescription: 'Bad token' }],
+      },
+    });
+
+    renderCliError(err);
+
+    expect(infoCalls()).toEqual([expect.stringContaining('Hint [21418]')]);
+  });
+
+  it('reads the code of a legacy-built typed error', () => {
+    renderCliError(KSeFSessionUnavailableError.fromLegacy(undefined));
+
+    expect(infoCalls()).toEqual([expect.stringContaining('Hint [21184]')]);
+  });
+
+  it('gives each distinct code its hint once, in order', () => {
+    const err = new KSeFBadRequestError({
+      title: 'Bad Request',
+      status: 400,
+      errors: [{ code: 71005 }, { code: 71004 }, { code: 71005 }],
+    });
+
+    renderCliError(err);
+
+    expect(infoCalls()).toEqual([
+      expect.stringContaining('Hint [71005]'),
+      expect.stringContaining('Hint [71004]'),
+    ]);
+  });
+
+  it('dedupes a code present in both the problem and the class field', () => {
+    renderCliError(KSeFUnknownPublicKeyError.fromProblem({
+      title: 'Bad Request',
+      status: 400,
+      errors: [{ code: 21470 }],
+    }));
+
+    expect(infoCalls()).toEqual([expect.stringContaining('Hint [21470]')]);
+  });
+
+  it('dedupes a code present in both the legacy list and the class field', () => {
+    renderCliError(KSeFBatchTimeoutError.fromResponse(400, {
+      exception: { exceptionDetailList: [{ exceptionCode: 21208 }] },
+    }));
+
+    expect(infoCalls()).toEqual([expect.stringContaining('Hint [21208]')]);
+  });
+
+  it('drops the generic 21405 hint when a specific code has one', () => {
+    renderCliError(badRequest(21405, 71004));
+
+    expect(infoCalls()).toEqual([expect.stringContaining('Hint [71004]')]);
   });
 });
 
@@ -389,6 +479,8 @@ describe('renderCliError — JSON mode', () => {
 
     renderCliError(err, { json: true });
 
+    // Hints are human-only: --json output stays the bare error payload.
+    expect(consola.info).not.toHaveBeenCalled();
     const parsed = JSON.parse(String(stdoutSpy.mock.calls[0]![0]));
     expect(parsed.error).toEqual({
       name: 'KSeFSessionUnavailableError',

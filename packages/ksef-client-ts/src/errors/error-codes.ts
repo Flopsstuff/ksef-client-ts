@@ -9,6 +9,8 @@ export const KSeFErrorCode = {
   InvalidContinuationToken: 21418,
   /** The supplied public key identifier is unknown or points to a revoked key (KSeF API v2.5.0). */
   UnknownPublicKeyId: 21470,
+  /** Generic input validation failure; the error details name the rejected values (KSeF API v2.0.0). */
+  InvalidInput: 21405,
   /** A collective identifier request lists invoices of different sellers (KSeF API v2.8.1). */
   CollectiveIdentifierDifferentSellers: 71004,
   /** A collective identifier request repeats the same KSeF number (KSeF API v2.8.1). */
