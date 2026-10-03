@@ -170,6 +170,18 @@ describe('invoice pdf — CLI wiring', () => {
     expect(mockedPdf.renderUpoPdf).toHaveBeenCalled();
   });
 
+  it('detects the document kind from UTF-16 text and renders the file bytes as read', async () => {
+    const xml = '<?xml version="1.0" encoding="UTF-16"?><Potwierdzenie/>';
+    const file = Buffer.from(`﻿${xml}`, 'utf16le');
+    mockedFs.readFileSync.mockReturnValue(file);
+    mockedPdf.detectInvoiceVersion.mockReturnValue(null);
+    mockedPdf.detectUpoVersion.mockReturnValue('UPO(4.3)');
+    await runPdf({ file: 'upo.xml' });
+    expect(mockedPdf.detectInvoiceVersion).toHaveBeenCalledWith(xml);
+    expect(mockedPdf.detectUpoVersion).toHaveBeenCalledWith(xml);
+    expect(mockedPdf.renderUpoPdf).toHaveBeenCalledWith(new Uint8Array(file), expect.anything());
+  });
+
   it('honors --template for a UPO document instead of the default UPO renderer', async () => {
     mockedPdf.detectInvoiceVersion.mockReturnValue(null);
     mockedPdf.detectUpoVersion.mockReturnValue('UPO(4.3)');
