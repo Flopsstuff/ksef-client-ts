@@ -9,15 +9,15 @@ import { badRequestProblemFields } from './bad-request-problem-fields.js';
 import { KSeFErrorCode } from './error-codes.js';
 
 /**
- * KSeF rejected an encryption request because the supplied `publicKeyId` is unknown
- * or points to a revoked key (HTTP 400, error code 21470, KSeF API v2.5.0).
+ * KSeF temporarily stopped accepting invoices in an existing online session, e.g. during
+ * maintenance (HTTP 400, error code 21184, KSeF API v2.8.0).
  *
- * Encryption-bearing operations recover by refreshing the certificate cache and
- * retrying once with a freshly selected key.
+ * The session itself cannot be resumed from the client: open a new session and send the
+ * remaining invoices there. The library does not reopen the session automatically.
  */
-export class KSeFUnknownPublicKeyError extends KSeFApiError {
+export class KSeFSessionUnavailableError extends KSeFApiError {
   override readonly statusCode: 400 = 400;
-  readonly errorCode = KSeFErrorCode.UnknownPublicKeyId;
+  readonly errorCode = KSeFErrorCode.SessionTemporarilyUnavailable;
   /** RFC 7807 fields, set only when built from a Problem Details body. */
   readonly detail?: string;
   readonly instance?: string;
@@ -28,7 +28,7 @@ export class KSeFUnknownPublicKeyError extends KSeFApiError {
 
   constructor(message: string, errorResponse?: ApiErrorResponse, problem?: BadRequestProblemDetails) {
     super(message, 400, errorResponse);
-    this.name = 'KSeFUnknownPublicKeyError';
+    this.name = 'KSeFSessionUnavailableError';
     this.detail = problem?.detail;
     this.instance = problem?.instance;
     this.errors = problem?.errors ?? [];
@@ -37,16 +37,16 @@ export class KSeFUnknownPublicKeyError extends KSeFApiError {
     this.fromProblemDetails = problem !== undefined;
   }
 
-  static fromLegacy(body?: ApiErrorResponse): KSeFUnknownPublicKeyError {
+  static fromLegacy(body?: ApiErrorResponse): KSeFSessionUnavailableError {
     const detail = body?.exception?.exceptionDetailList?.find(
-      (d) => d.exceptionCode === KSeFErrorCode.UnknownPublicKeyId,
+      (d) => d.exceptionCode === KSeFErrorCode.SessionTemporarilyUnavailable,
     );
-    return new KSeFUnknownPublicKeyError(messageOf(detail?.exceptionDescription), body);
+    return new KSeFSessionUnavailableError(messageOf(detail?.exceptionDescription), body);
   }
 
-  static fromProblem(problem: BadRequestProblemDetails): KSeFUnknownPublicKeyError {
-    const detail = problem.errors?.find((e) => e.code === KSeFErrorCode.UnknownPublicKeyId);
-    return new KSeFUnknownPublicKeyError(messageOf(detail?.description || problem.detail), undefined, problem);
+  static fromProblem(problem: BadRequestProblemDetails): KSeFSessionUnavailableError {
+    const detail = problem.errors?.find((e) => e.code === KSeFErrorCode.SessionTemporarilyUnavailable);
+    return new KSeFSessionUnavailableError(messageOf(detail?.description || problem.detail), undefined, problem);
   }
 
   override toProblemFields(): ProblemFields {
@@ -58,6 +58,6 @@ export class KSeFUnknownPublicKeyError extends KSeFApiError {
 function messageOf(description?: string | null): string {
   return (
     description?.trim() ||
-    'The supplied public key identifier is unknown or revoked (KSeF 21470).'
+    'The session is temporarily unavailable; open a new session and continue sending invoices there (KSeF 21184).'
   );
 }

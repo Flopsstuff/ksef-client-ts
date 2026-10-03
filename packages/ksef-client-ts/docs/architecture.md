@@ -121,11 +121,13 @@ Service method
 `RestClient.ensureSuccess()` reads the response body once, then dispatches:
 
 ```
+400 → KSeFSessionUnavailableError (KSeF code 21184) / KSeFUnknownPublicKeyError (21470)
+      / KSeFBadRequestError (if body matches BadRequestProblemDetails)
 429 → KSeFRateLimitError (parses Retry-After header)
 401 → KSeFUnauthorizedError (if body matches UnauthorizedProblemDetails)
 403 → KSeFForbiddenError (if body matches ForbiddenProblemDetails)
 410 → KSeFGoneError (operation status retention expired, KSeF v2.4.0+)
- *  → KSeFApiError (generic, any non-2xx)
+ *  → KSeFBatchTimeoutError (KSeF code 21208) / KSeFApiError (generic, any non-2xx)
 ```
 
 ---
@@ -283,13 +285,23 @@ Some types have suffixes to avoid ambiguity:
 Error
   └── KSeFError                       # Base for all library errors
         ├── KSeFApiError              # HTTP API errors (non-2xx)
-        │     └── KSeFRateLimitError  # 429 with Retry-After
-        ├── KSeFUnauthorizedError     # 401 (ProblemDetails body)
-        ├── KSeFForbiddenError        # 403 with reasonCode
-        ├── KSeFGoneError             # 410 (operation status retention expired, KSeF v2.4.0+)
+        │     ├── KSeFBadRequestError         # 400 (ProblemDetails body)
+        │     ├── KSeFUnauthorizedError       # 401 (ProblemDetails body)
+        │     ├── KSeFForbiddenError          # 403 with reasonCode
+        │     ├── KSeFGoneError               # 410 (operation status retention expired, KSeF v2.4.0+)
+        │     ├── KSeFRateLimitError          # 429 with Retry-After
+        │     ├── KSeFBatchTimeoutError       # KSeF code 21208
+        │     ├── KSeFUnknownPublicKeyError   # 400, KSeF code 21470
+        │     └── KSeFSessionUnavailableError # 400, KSeF code 21184 (open a new session)
         ├── KSeFAuthStatusError       # Auth operation failed/timed out
         ├── KSeFSessionExpiredError   # Stored session expired
-        └── KSeFValidationError       # Client-side validation (builders)
+        ├── KSeFSessionFailedError    # Online/batch session ended in a failed status
+        ├── KSeFInvoiceRejectedError  # waitForInvoice: KSeF rejected the invoice
+        ├── KSeFCircuitOpenError      # Opt-in circuit breaker is open
+        ├── KSeFValidationError       # Client-side validation (builders)
+        ├── KSeFXsdValidationError    # XSD schema validation
+        ├── KSeFMetadataPaginationError # Metadata paging cannot advance
+        └── KSeFPaginationError       # Continuation-token paging cannot finish
 ```
 
 All errors extend `KSeFError`, so `catch (e) { if (e instanceof KSeFError) ... }` catches everything from the library.

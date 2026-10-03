@@ -7,6 +7,7 @@ import { KSeFGoneError } from '../errors/ksef-gone-error.js';
 import { KSeFBadRequestError } from '../errors/ksef-bad-request-error.js';
 import { KSeFBatchTimeoutError } from '../errors/ksef-batch-timeout-error.js';
 import { KSeFUnknownPublicKeyError } from '../errors/ksef-unknown-public-key-error.js';
+import { KSeFSessionUnavailableError } from '../errors/ksef-session-unavailable-error.js';
 import { KSeFErrorCode, hasErrorCode } from '../errors/error-codes.js';
 import type {
   ApiErrorResponse,
@@ -339,12 +340,19 @@ export class RestClient {
     if (response.status === 400) {
       const problem = tryParseProblem(isBadRequestProblem);
       if (problem) {
+        // 21184 wins over 21470: a key-rotation retry would land in the same unavailable session.
+        if (problem.errors?.some((e) => e.code === KSeFErrorCode.SessionTemporarilyUnavailable)) {
+          throw KSeFSessionUnavailableError.fromProblem(problem);
+        }
         if (problem.errors?.some((e) => e.code === KSeFErrorCode.UnknownPublicKeyId)) {
           throw KSeFUnknownPublicKeyError.fromProblem(problem);
         }
         throw new KSeFBadRequestError(problem);
       }
       const legacy = parseJson<ApiErrorResponse>();
+      if (hasErrorCode(legacy, KSeFErrorCode.SessionTemporarilyUnavailable)) {
+        throw KSeFSessionUnavailableError.fromLegacy(legacy);
+      }
       if (hasErrorCode(legacy, KSeFErrorCode.UnknownPublicKeyId)) {
         throw KSeFUnknownPublicKeyError.fromLegacy(legacy);
       }
@@ -412,7 +420,8 @@ function isBadRequestProblem(value: unknown): value is BadRequestProblemDetails 
       if (typeof item !== 'object' || item === null) return false;
       const detail = item as Record<string, unknown>;
       if (typeof detail.code !== 'number') return false;
-      if (typeof detail.description !== 'string') return false;
+      // KSeF sends some entries with only a `code`; a missing description must not drop the whole problem.
+      if (detail.description !== undefined && typeof detail.description !== 'string') return false;
     }
   }
   return true;

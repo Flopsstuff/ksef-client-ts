@@ -2,7 +2,9 @@ import { RestClient } from '../http/rest-client.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
 import { KSeFValidationError } from '../errors/ksef-validation-error.js';
+import { KsefNumber } from '../validation/patterns.js';
 import type {
+  CollectiveIdentifierInvoice,
   GenerateCollectiveIdentifierRequest,
   GenerateCollectiveIdentifierResponse,
   CollectiveIdentifiersQueryRequest,
@@ -30,6 +32,74 @@ export const MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER = 5000;
 
 export const MAX_COLLECTIVE_IDENTIFIERS_PER_INVOICES_QUERY = 10;
 
+/** The request schema caps each invoice's description at this many characters. */
+export const MAX_COLLECTIVE_IDENTIFIER_INVOICE_DESCRIPTION_LENGTH = 512;
+
+/**
+ * Rejects an invoice list KSeF is bound to refuse, before it is sent: a malformed
+ * number, an overlong description or an incomplete payment (21405), invoices of
+ * different sellers (71004) and a repeated number (71005). The seller is the NIP
+ * that opens every KSeF number. Numbers are compared exactly as written, because
+ * KSeF resolves the 35- and 36-character forms separately: the two forms of one
+ * number are not reported as a repeat, the form the invoice was not issued under
+ * is simply not found (71001).
+ */
+function assertGenerateInvoices(invoices: CollectiveIdentifierInvoice[]): void {
+  const seen = new Set<string>();
+  let seller: string | undefined;
+  invoices.forEach((invoice, i) => {
+    const { ksefNumber, payment, description } = invoice;
+    if (typeof ksefNumber !== 'string' || !KsefNumber.test(ksefNumber)) {
+      throw KSeFValidationError.fromField(
+        `invoices[${i}].ksefNumber`,
+        `Invalid KSeF number "${String(ksefNumber)}": expected NIP-YYYYMMDD-XXXXXXXXXXXX-CC (uppercase hex)`,
+      );
+    }
+    const nip = ksefNumber.slice(0, ksefNumber.indexOf('-'));
+    if (seller === undefined) {
+      seller = nip;
+    } else if (nip !== seller) {
+      throw KSeFValidationError.fromField(
+        `invoices[${i}].ksefNumber`,
+        `All invoices of a collective identifier must have one seller: ${ksefNumber} belongs to ${nip}, the list starts with ${seller}`,
+      );
+    }
+    if (seen.has(ksefNumber)) {
+      throw KSeFValidationError.fromField(
+        `invoices[${i}].ksefNumber`,
+        `KSeF number ${ksefNumber} appears more than once in the list`,
+      );
+    }
+    seen.add(ksefNumber);
+    // KSeF counts UTF-16 code units, not code points (verified on TEST, 2026-10-03).
+    if (
+      typeof description === 'string'
+      && description.length > MAX_COLLECTIVE_IDENTIFIER_INVOICE_DESCRIPTION_LENGTH
+    ) {
+      throw KSeFValidationError.fromField(
+        `invoices[${i}].description`,
+        `A description is at most ${MAX_COLLECTIVE_IDENTIFIER_INVOICE_DESCRIPTION_LENGTH} characters, got ${description.length}`,
+      );
+    }
+    if (payment != null) {
+      // A non-finite number serializes to null, which KSeF reads as a missing amount.
+      const { amount, currency } = payment;
+      if (amount == null || (typeof amount === 'number' && !Number.isFinite(amount))) {
+        throw KSeFValidationError.fromField(
+          `invoices[${i}].payment.amount`,
+          'A payment needs an amount together with its currency',
+        );
+      }
+      if (typeof currency !== 'string' || currency === '') {
+        throw KSeFValidationError.fromField(
+          `invoices[${i}].payment.currency`,
+          'A payment needs a currency together with its amount',
+        );
+      }
+    }
+  });
+}
+
 export class CollectiveIdentifiersService {
   private readonly restClient: RestClient;
 
@@ -53,6 +123,7 @@ export class CollectiveIdentifiersService {
         `A collective identifier accepts at most ${MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER} invoices, got ${count}`,
       );
     }
+    assertGenerateInvoices(request.invoices);
     const req = RestRequest.post(Routes.CollectiveIdentifiers.root)
       .body(request);
     const response = await this.restClient.execute<GenerateCollectiveIdentifierResponse>(req);

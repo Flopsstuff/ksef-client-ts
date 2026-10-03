@@ -70,8 +70,9 @@ export interface GoneProblemDetails {
 
 export interface BadRequestErrorDetail {
   code: number;
-  description: string;
-  details: string[];
+  /** Absent when KSeF reports only the code. */
+  description?: string;
+  details?: string[] | null;
 }
 
 export interface BadRequestProblemDetails {

@@ -207,7 +207,7 @@
                   "collectiveIdentifiers": [
                     {
                       "collectiveIdentifierNumber": "1111111111-IZ202607-65ED02180000-E7",
-                      "dateCreated": "2026-07-10T12:00:00+02:00",
+                      "dateCreated": "2026-07-11T12:00:00+00:00",
                       "invoiceCount": 16,
                       "createdInCurrentContext": true
                     }
@@ -1124,7 +1124,12 @@
           "YER",
           "ZAR",
           "ZMW",
-          "ZWL"
+          "ZWL",
+          "CNH",
+          "VED",
+          "XTS",
+          "ZWG",
+          "SLE"
         ],
         "type": "string"
       },
@@ -1221,7 +1226,6 @@
           "detail",
           "reasonCode",
           "status",
-          "timestamp",
           "title"
         ],
         "type": "object",

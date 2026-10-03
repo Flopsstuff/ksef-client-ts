@@ -236,10 +236,20 @@
                     "perMinute": 30,
                     "perHour": 120
                   },
+                  "onlineSessionClose": {
+                    "perSecond": 20,
+                    "perMinute": 60,
+                    "perHour": 240
+                  },
                   "batchSession": {
                     "perSecond": 10,
                     "perMinute": 20,
                     "perHour": 60
+                  },
+                  "batchSessionClose": {
+                    "perSecond": 20,
+                    "perMinute": 40,
+                    "perHour": 120
                   },
                   "invoiceSend": {
                     "perSecond": 10,
@@ -295,6 +305,16 @@
                     "perSecond": 10,
                     "perMinute": 30,
                     "perHour": 120
+                  },
+                  "anonymous": {
+                    "perSecond": 60,
+                    "perMinute": -1,
+                    "perHour": -1
+                  },
+                  "global": {
+                    "perSecond": -1,
+                    "perMinute": -1,
+                    "perHour": -1
                   }
                 }
               }
@@ -1404,8 +1424,11 @@
       },
       "EffectiveApiRateLimits": {
         "required": [
+          "anonymous",
           "batchSession",
+          "batchSessionClose",
           "collectiveIdentifier",
+          "global",
           "invoiceDownload",
           "invoiceExport",
           "invoiceExportStatus",
@@ -1413,6 +1436,7 @@
           "invoiceSend",
           "invoiceStatus",
           "onlineSession",
+          "onlineSessionClose",
           "other",
           "sessionInvoiceList",
           "sessionList",
@@ -1432,7 +1456,31 @@
               }
             ]
           },
+          "onlineSessionClose": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
           "batchSession": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
+          "batchSessionClose": {
             "required": [
               "perSecond",
               "perMinute",
@@ -1565,6 +1613,30 @@
             ]
           },
           "other": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
+          "anonymous": {
+            "required": [
+              "perSecond",
+              "perMinute",
+              "perHour"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EffectiveApiRateLimitValues"
+              }
+            ]
+          },
+          "global": {
             "required": [
               "perSecond",
               "perMinute",
@@ -1756,7 +1828,6 @@
           "detail",
           "reasonCode",
           "status",
-          "timestamp",
           "title"
         ],
         "type": "object",

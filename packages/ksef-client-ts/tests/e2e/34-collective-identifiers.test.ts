@@ -3,6 +3,10 @@ import { authenticateWithCertAndCrypto } from './helpers/auth.js';
 import { getFormCode, prepareAndEncryptInvoice } from './helpers/invoices.js';
 import { pollUntil } from './helpers/polling.js';
 import { KSeFBadRequestError } from '../../src/errors/ksef-bad-request-error.js';
+import {
+  collectAllCollectiveIdentifiers,
+  queryCollectiveIdentifierInvoicePages,
+} from '../../src/workflows/collective-identifier-paging.js';
 import type { KSeFClient } from '../../src/client.js';
 import type { GenerateCollectiveIdentifierResponse } from '../../src/models/collective-identifiers/types.js';
 
@@ -139,5 +143,33 @@ describe('34 - Collective Identifiers', { timeout: 300_000 }, () => {
     const withPayment = result.invoices.find((i) => i.ksefNumber === ksefNumbers[0]);
     expect(withPayment!.payment).toEqual({ amount: 123.45, currency: 'PLN' });
     expect(withPayment!.description).toBe('E2E first');
+  });
+
+  it('should walk the identifiers and their invoices with the paging helpers', async () => {
+    // A fresh context holds only this spec's identifier, so a single page at the
+    // smallest page size is expected: this checks that the helpers send valid
+    // paging parameters and recognise KSeF's last page, not multi-page walks.
+    const now = Date.now();
+    const identifiers = await collectAllCollectiveIdentifiers(
+      client,
+      {
+        dateCreatedFrom: new Date(now - 86_400_000).toISOString(),
+        dateCreatedTo: new Date(now + 60_000).toISOString(),
+      },
+      { pageSize: 10 },
+    );
+    expect(identifiers.map((c) => c.collectiveIdentifierNumber)).toContain(collectiveIdentifierNumber);
+
+    const pages = [];
+    for await (const page of queryCollectiveIdentifierInvoicePages(
+      client,
+      { collectiveIdentifierNumbers: [collectiveIdentifierNumber] },
+      { pageSize: 10 },
+    )) {
+      pages.push(page);
+    }
+    expect(pages.at(-1)!.continuationToken).toBeUndefined();
+    expect(pages.flatMap((p) => p.items.map((i) => i.ksefNumber)).sort())
+      .toEqual([ksefNumbers[0], ksefNumbers[1]].sort());
   });
 });

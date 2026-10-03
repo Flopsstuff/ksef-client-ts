@@ -160,10 +160,10 @@ Revoke a specific session by its reference number.
 Accessed via `client.onlineSession`.
 
 ```ts
-openSession(request: OpenOnlineSessionRequest, upoVersion?: string): Promise<OpenOnlineSessionResponse>
+openSession(request: OpenOnlineSessionRequest, features?: string | readonly string[]): Promise<OpenOnlineSessionResponse>
 ```
 
-Open a new online (interactive) session.
+Open a new online (interactive) session. `features` sets the `X-KSeF-Feature` header (see [KSeF Feature Constants](#ksef-feature-constants)).
 
 ```ts
 sendInvoice(sessionRef: string, request: SendInvoiceRequest): Promise<SendInvoiceResponse>
@@ -184,10 +184,10 @@ Close an online session.
 Accessed via `client.batchSession`.
 
 ```ts
-openSession(request: OpenBatchSessionRequest, upoVersion?: string): Promise<OpenBatchSessionResponse>
+openSession(request: OpenBatchSessionRequest, features?: string | readonly string[]): Promise<OpenBatchSessionResponse>
 ```
 
-Open a new batch session and receive part upload URLs.
+Open a new batch session and receive part upload URLs. `features` sets the `X-KSeF-Feature` header (see [KSeF Feature Constants](#ksef-feature-constants)).
 
 ```ts
 sendParts(openResponse: OpenBatchSessionResponse, parts: BatchPartSendingInfo[]): Promise<void>
@@ -537,7 +537,7 @@ Get certificate limits for the current subject.
 getRateLimits(): Promise<EffectiveApiRateLimits>
 ```
 
-Get the effective API rate limits.
+Get the effective API rate limits, per group and time window. A window equal to `RATE_LIMIT_UNLIMITED` (`-1`) has no limit — check for it before treating a value as a request count. The `global` group (per-IP) is reserved and currently disabled.
 
 ---
 
@@ -1128,8 +1128,8 @@ Extends `KSeFApiError`. Thrown on HTTP 400 responses when the body matches `BadR
 ```ts
 interface BadRequestErrorDetail {
   code: number;
-  description: string;
-  details: string[];
+  description?: string;     // absent when KSeF reports only the code
+  details?: string[] | null;
 }
 ```
 
@@ -1253,13 +1253,21 @@ Error
         │     ├── KSeFForbiddenError    // HTTP 403 (RFC 7807)
         │     ├── KSeFGoneError         // HTTP 410 (RFC 7807, retention expired)
         │     ├── KSeFRateLimitError    // HTTP 429 (RFC 7807)
-        │     └── KSeFBatchTimeoutError // KSeF exception code 21208
+        │     ├── KSeFBatchTimeoutError // KSeF exception code 21208
+        │     ├── KSeFUnknownPublicKeyError   // HTTP 400, KSeF code 21470
+        │     └── KSeFSessionUnavailableError // HTTP 400, KSeF code 21184 (open a new session)
         ├── KSeFAuthStatusError         // auth operation failed/timed out
         ├── KSeFSessionExpiredError     // stored session expired
-        └── KSeFValidationError         // client-side validation failed
+        ├── KSeFSessionFailedError      // online/batch session ended in a failed status
+        ├── KSeFInvoiceRejectedError    // waitForInvoice: KSeF rejected the invoice (e.g. 440 duplicate)
+        ├── KSeFCircuitOpenError        // opt-in circuit breaker is open
+        ├── KSeFValidationError         // client-side validation failed
+        ├── KSeFXsdValidationError      // XSD schema validation failed
+        ├── KSeFMetadataPaginationError // metadata paging cannot advance
+        └── KSeFPaginationError         // continuation-token paging repeats a token or hits maxPages
 ```
 
-All server-returned HTTP errors extend `KSeFApiError`, so a single `instanceof KSeFApiError` check covers every response-side failure. `RestClient.ensureSuccess` dispatches errors in order: 429 → 401 → 403 → 410 → 400 → (exceptionCode `21208` → `KSeFBatchTimeoutError`) → generic `KSeFApiError`.
+All server-returned HTTP errors extend `KSeFApiError`, so a single `instanceof KSeFApiError` check covers every response-side failure. `RestClient.ensureSuccess` dispatches errors in order: 400 (KSeF code `21184` → `KSeFSessionUnavailableError`, `21470` → `KSeFUnknownPublicKeyError`, otherwise `KSeFBadRequestError`) → 429 → 401 → 403 → 410 → (exceptionCode `21208` → `KSeFBatchTimeoutError`) → generic `KSeFApiError`.
 
 ### KSeFApiProblem
 
@@ -1466,7 +1474,8 @@ import { openOnlineSession, openSendAndClose } from 'ksef-client-ts';
 
 // Open a session and get a handle for sending invoices
 const handle = await openOnlineSession(client, { formCode, encryption });
-await handle.sendInvoice(invoiceRequest);
+const invoiceRef = await handle.sendInvoice(invoiceRequest);
+const { ksefNumber } = await handle.waitForInvoice(invoiceRef); // throws KSeFInvoiceRejectedError if rejected
 await handle.close();
 const upo = await handle.waitForUpo();
 
@@ -1519,7 +1528,7 @@ const result = await pollUntil(
 | Type | Description |
 |------|-------------|
 | `PollOptions` | `intervalMs`, `maxAttempts`, `onProgress` callback |
-| `OnlineSessionHandle` | Session ref + `sendInvoice()`, `close()`, `waitForUpo()` methods |
+| `OnlineSessionHandle` | Session ref + `sendInvoice()`, `waitForInvoice()`, `close()`, `waitForUpo()` methods |
 | `UpoInfo` | Pages with reference numbers, download URLs, invoice counts |
 | `BatchUploadResult` | Session reference + UPO info |
 | `ExportResult` | Export parts array (ordinal, URL, size, hash, expiration) |
@@ -1530,10 +1539,10 @@ const result = await pollUntil(
 
 ## KSeF Feature Constants
 
-Constants for the `X-KSeF-Feature` header, used to negotiate UPO format version and XAdES compliance.
+Constants for the `X-KSeF-Feature` header, used to switch on optional KSeF behaviour: the UPO format version, invoice identifier validation and XAdES compliance.
 
 ```ts
-import { KSEF_FEATURE_HEADER, UpoVersion, ENFORCE_XADES_COMPLIANCE } from 'ksef-client-ts';
+import { KSEF_FEATURE_HEADER, KSeFFeature, UpoVersion, ENFORCE_XADES_COMPLIANCE } from 'ksef-client-ts';
 ```
 
 | Constant | Value | Description |
@@ -1541,6 +1550,17 @@ import { KSEF_FEATURE_HEADER, UpoVersion, ENFORCE_XADES_COMPLIANCE } from 'ksef-
 | `KSEF_FEATURE_HEADER` | `'X-KSeF-Feature'` | HTTP header name for feature negotiation |
 | `UpoVersion.V4_2` | `'upo-v4-2'` | UPO format v4-2 (default before 2026-01-05) |
 | `UpoVersion.V4_3` | `'upo-v4-3'` | UPO format v4-3 (adds InvoicingMode field) |
+| `KSeFFeature.SubjectIdentifierValidation` | `'subject-identifier-validation'` | Validate the NIP numbers and internal identifiers of the parties on each invoice (TEST only, KSeF API v2.8.0) |
 | `ENFORCE_XADES_COMPLIANCE` | `'enforce-xades-compliance'` | Strict XAdES validation in auth requests |
 
-Session open methods (`onlineSession.openSession()`, `batchSession.openSession()`) and `auth.submitXadesAuthRequest()` accept an optional `upoVersion` parameter to set this header.
+Session open methods (`onlineSession.openSession()`, `batchSession.openSession()`) take the feature as their optional second argument, a single value or an array; the workflows (`openOnlineSession()`, `openSendAndClose()`, `uploadBatch()`, `uploadBatchStream()` and their `*Parsed` variants) take it as the `features` option. The older `upoVersion` option is deprecated; it still works and counts as one of the features. `auth.submitXadesAuthRequest()` sends `ENFORCE_XADES_COMPLIANCE` when its `enforceXadesCompliance` argument is `true`.
+
+KSeF applies **only one feature per session**: a comma-separated list, or the header repeated, is accepted but none of the listed features takes effect. The client therefore throws `KSeFValidationError` before opening the session when it is given more than one distinct value. Strings are split on commas and trimmed first, so `'upo-v4-3, subject-identifier-validation'` counts as two values, while repeats and empty entries are dropped (`'a,a'` and `'a, '` both send `a`).
+
+```ts
+const handle = await openOnlineSession(client, {
+  features: KSeFFeature.SubjectIdentifierValidation,
+});
+// An invoice with an invalid buyer NIP now ends with status 450
+// ("Błąd weryfikacji semantyki dokumentu faktury") instead of being accepted.
+```

@@ -51,6 +51,18 @@ All four render functions accept the XML as a `string` or a `Uint8Array`, take a
 
 > Passing the **raw file bytes** (`Uint8Array`) rather than a decoded string is recommended when embedding the QR code: the verification hash is computed over the original bytes, so it matches the value registered by KSeF exactly.
 
+### Input encodings
+
+Bytes are decoded by what they are, not by the `encoding` attribute of the XML declaration:
+
+| Input | Recognized by |
+|-------|---------------|
+| UTF-8, with or without a byte order mark | anything that is not UTF-16 |
+| UTF-16LE, with or without a byte order mark | `FF FE`, or `3C 00` (`<`) at the start |
+| UTF-16BE, with or without a byte order mark | `FE FF`, or `00 3C` (`<`) at the start |
+
+The byte order mark is dropped before parsing, and so is a leading `U+FEFF` in a string. A UTF-16 file with an odd number of bytes renders with a replacement character in place of the dangling byte. The QR hash is always computed over the bytes as given, whatever their encoding. `ksef invoice pdf` reads the file as bytes, so the same applies on the command line.
+
 ### `renderInvoicePdf(xml, name, opts?)` — built-in template
 
 Render an invoice with one of the built-in templates, selected by name.

@@ -289,6 +289,8 @@
             "format": "byte"
           },
           "publicKeyId": {
+            "maxLength": 44,
+            "minLength": 44,
             "type": "string",
             "format": "byte"
           },

@@ -2185,9 +2185,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 10,
-          "perMinute": 30,
-          "perHour": 120
+          "perSecond": 20,
+          "perMinute": 60,
+          "perHour": 240
         },
         "x-required-permissions": [
           "InvoiceWrite",
@@ -2434,9 +2434,9 @@
           }
         ],
         "x-rate-limits": {
-          "perSecond": 10,
-          "perMinute": 20,
-          "perHour": 60
+          "perSecond": 20,
+          "perMinute": 40,
+          "perHour": 120
         },
         "x-required-permissions": [
           "InvoiceWrite",
@@ -2811,7 +2811,12 @@
           "YER",
           "ZAR",
           "ZMW",
-          "ZWL"
+          "ZWL",
+          "CNH",
+          "VED",
+          "XTS",
+          "ZWG",
+          "SLE"
         ],
         "type": "string"
       },
@@ -2947,7 +2952,6 @@
           "detail",
           "reasonCode",
           "status",
-          "timestamp",
           "title"
         ],
         "type": "object",

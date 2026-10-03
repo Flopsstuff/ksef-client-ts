@@ -26,6 +26,7 @@ import { getBuiltinTemplate as loadBuiltinTemplate, builtinTemplateNames } from 
 import { loadPdfMake, createPdfBuffer } from './fonts.js';
 import { deriveInvoiceQrUrl } from './qr.js';
 import { documentFlags } from './document-flags.js';
+import { toXmlString } from './xml-input.js';
 
 export type { Locale } from './i18n/types.js';
 export type { InvoiceTemplate } from './template/dsl.js';
@@ -142,11 +143,12 @@ export interface RenderOptions {
   notes?: RenderNote[];
 }
 
+/**
+ * A document as text or as its bytes. Bytes may be UTF-8 or UTF-16 (either byte
+ * order), with or without a byte order mark; the QR hash is still taken over
+ * them as given.
+ */
 type RawXml = string | Uint8Array;
-
-function toXmlString(input: RawXml): string {
-  return typeof input === 'string' ? input : new TextDecoder('utf-8').decode(input);
-}
 
 /**
  * Bindings are written relative to the document body (`Fa.P_2`, `Podmiot1.…`,

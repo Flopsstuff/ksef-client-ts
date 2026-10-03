@@ -12,6 +12,7 @@ import { KSeFGoneError } from '../../../src/errors/ksef-gone-error.js';
 import { KSeFBadRequestError } from '../../../src/errors/ksef-bad-request-error.js';
 import { KSeFBatchTimeoutError } from '../../../src/errors/ksef-batch-timeout-error.js';
 import { KSeFUnknownPublicKeyError } from '../../../src/errors/ksef-unknown-public-key-error.js';
+import { KSeFSessionUnavailableError } from '../../../src/errors/ksef-session-unavailable-error.js';
 
 const defaultOptions: ResolvedOptions = {
   baseUrl: 'https://ksef-test.mf.gov.pl/api',
@@ -730,6 +731,169 @@ describe('RestClient', () => {
         title: 'Bad Request',
         status: 400,
         errors: [{ code: 'not-a-number', description: 'oops' }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect(err).not.toBeInstanceOf(KSeFBadRequestError);
+    });
+
+    it('accepts 400 Problem Details whose errors items carry only a code', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: 21405 }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFBadRequestError);
+      expect((err as KSeFBadRequestError).errors).toEqual([{ code: 21405 }]);
+    });
+
+    it('throws KSeFUnknownPublicKeyError on 400 Problem Details with a code-only 21470 item', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: 21470 }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFUnknownPublicKeyError);
+      expect((err as KSeFUnknownPublicKeyError).message).toContain('KSeF 21470');
+    });
+
+    it('keeps every code of a 400 Problem Details list mixing described and code-only items', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        detail: 'Validation failed',
+        errors: [
+          { code: 21405, description: 'Invalid field', details: ['P_1'] },
+          { code: 21406 },
+        ],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFBadRequestError);
+      expect((err as KSeFBadRequestError).errors.map((e) => e.code)).toEqual([21405, 21406]);
+      expect((err as KSeFBadRequestError).errors[0]!.description).toBe('Invalid field');
+      expect((err as KSeFBadRequestError).errors[1]!.description).toBeUndefined();
+    });
+
+    it('routes a mixed 400 Problem Details list containing a code-only 21470 to KSeFUnknownPublicKeyError', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        detail: 'Encryption rejected',
+        errors: [{ code: 21405, description: 'Invalid field' }, { code: 21470 }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFUnknownPublicKeyError);
+      expect((err as KSeFUnknownPublicKeyError).message).toBe('Encryption rejected');
+    });
+
+    it('throws KSeFSessionUnavailableError on 400 Problem Details with errors[].code 21184', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: 21184, description: 'Sesja tymczasowo niedostępna.' }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.post('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFSessionUnavailableError);
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect(err).not.toBeInstanceOf(KSeFBadRequestError);
+      expect((err as KSeFSessionUnavailableError).errorCode).toBe(21184);
+      expect((err as KSeFSessionUnavailableError).statusCode).toBe(400);
+      expect((err as KSeFSessionUnavailableError).message).toBe('Sesja tymczasowo niedostępna.');
+      expect((err as KSeFSessionUnavailableError).errors).toEqual([
+        { code: 21184, description: 'Sesja tymczasowo niedostępna.' },
+      ]);
+    });
+
+    it('throws KSeFSessionUnavailableError on 400 Problem Details with a code-only 21184 item', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: 21184 }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.post('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFSessionUnavailableError);
+      expect((err as KSeFSessionUnavailableError).message).toContain('open a new session');
+    });
+
+    it('throws KSeFSessionUnavailableError on 400 legacy body with exceptionCode 21184', async () => {
+      const body = {
+        exception: {
+          exceptionDetailList: [
+            { exceptionCode: 21184, exceptionDescription: 'Sesja tymczasowo niedostępna.' },
+          ],
+        },
+      };
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, body));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.post('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFSessionUnavailableError);
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect((err as KSeFSessionUnavailableError).errorCode).toBe(21184);
+      expect((err as KSeFSessionUnavailableError).message).toBe('Sesja tymczasowo niedostępna.');
+      expect((err as KSeFSessionUnavailableError).errorResponse).toEqual(body);
+    });
+
+    it('prefers KSeFSessionUnavailableError over KSeFUnknownPublicKeyError when both codes are present', async () => {
+      const problem = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: 21470 }, { code: 21184 }],
+      }));
+      const legacy = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        exception: { exceptionDetailList: [{ exceptionCode: 21470 }, { exceptionCode: 21184 }] },
+      }));
+
+      const fromProblem = await createClient(problem).execute(RestRequest.post('/test')).catch((e: unknown) => e);
+      const fromLegacy = await createClient(legacy).execute(RestRequest.post('/test')).catch((e: unknown) => e);
+
+      expect(fromProblem).toBeInstanceOf(KSeFSessionUnavailableError);
+      expect(fromLegacy).toBeInstanceOf(KSeFSessionUnavailableError);
+    });
+
+    it('rejects 400 Problem Details whose errors item has a non-string description', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: 21405, description: 42 }],
+      }));
+
+      const client = createClient(transport);
+      const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(KSeFApiError);
+      expect(err).not.toBeInstanceOf(KSeFBadRequestError);
+    });
+
+    it('rejects a code-only 400 Problem Details item whose code is not numeric', async () => {
+      const transport = vi.fn<TransportFn>().mockResolvedValue(mockResponse(400, {
+        title: 'Bad Request',
+        status: 400,
+        errors: [{ code: '21405' }],
       }));
 
       const client = createClient(transport);

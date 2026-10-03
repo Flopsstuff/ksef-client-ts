@@ -21,15 +21,15 @@ hero:
 
 features:
   - title: Full API Coverage
-    details: Every KSeF API v2.7.1 endpoint — auth, sessions, invoices, permissions, tokens, certificates, collective identifiers, QR codes, and more. All types aligned with the official OpenAPI spec.
+    details: Every KSeF API v2.8.1 endpoint — auth, sessions, invoices, permissions, tokens, certificates, collective identifiers, QR codes, and more. All types aligned with the official OpenAPI spec.
   - title: Collective Identifiers
-    details: Group up to 500 invoices issued by one seller under a single settlement reference, so a buyer can settle the whole batch against one payment reference instead of paying invoice by invoice. Look identifiers up by KSeF number, list their member invoices, and handle withheld payment details explicitly.
+    details: Group up to 500 invoices issued by one seller under a single settlement reference, so a buyer can settle the whole batch against one payment reference instead of paying invoice by invoice. Look identifiers up by KSeF number, list their member invoices, and handle withheld payment details explicitly. Invoices are checked before an identifier is generated, and paging helpers read every page without handling continuation tokens by hand.
   - title: Offline Invoice Mode
     details: Full lifecycle for all 4 KSeF offline modes (offline24, offline, awaryjny, awaria_calkowita). Generate invoices locally with QR KOD I + KOD II signing, store in ~/.ksef/offline/, track deadlines with business day calculation, submit when available, and handle technical corrections.
   - title: Full-Featured CLI
-    details: 17 command groups, 60+ subcommands. Auth, sessions, invoices, offline, batch upload, incremental export, permissions, tokens, certificates, QR codes, health checks, and shell completion.
+    details: 17 command groups, 60+ subcommands. Auth, sessions, invoices, offline, batch upload, incremental export, permissions, tokens, certificates, QR codes, health checks, and shell completion. Errors come with fix hints for common KSeF error codes.
   - title: High-Level Workflows
-    details: Orchestration functions for auth, online/batch sessions, and invoice export. Handle the full lifecycle — polling, encryption, UPO retrieval — in a single call.
+    details: Orchestration functions for auth, online/batch sessions, and invoice export. Handle the full lifecycle — polling, encryption, UPO retrieval — in a single call, or wait for one sent invoice's outcome and get its KSeF number or a typed rejection that names a duplicate's original KSeF number.
   - title: Built-in Cryptography
     details: AES-256-CBC encryption/decryption, RSA-OAEP key wrapping, ECDH key agreement, XAdES-B envelope signatures, and self-signed certificate generation — all using Node.js native crypto.
   - title: External Signing
@@ -49,11 +49,11 @@ features:
   - title: Invoice XML Validation
     details: Three-level client-side validation against official KSeF XSD schemas — well-formedness, schema structure (via generated Zod validators), and business rules (NIP/PESEL checksums, future date rejection). Supports all 6 invoice types with auto-detection. CLI batch validation, programmatic API, and opt-in pre-send validation in workflows.
   - title: PDF Visualization
-    details: Render FA (2)/(3) invoices — ordinary, advance, settlement and their corrections — and UPO (4.2)/(4.3) receipts to print-ready PDF offline from version-specific, declarative templates — Polish, English, or bilingual labels, an embedded KSeF Code I verification QR, and built-in or custom layouts. The `ksef invoice pdf` CLI brings the same rendering to shell workflows. PDF output uses the optional `pdfmake` peer (`npm i "pdfmake@^0.2.20"`), so the core install stays dependency-free.
+    details: Render FA (2)/(3) invoices — ordinary, advance, settlement and their corrections — and UPO (4.2)/(4.3) receipts, UTF-8 or UTF-16 encoded, to print-ready PDF offline from version-specific, declarative templates — Polish, English, or bilingual labels, an embedded KSeF Code I verification QR, and built-in or custom layouts. The `ksef invoice pdf` CLI brings the same rendering to shell workflows. PDF output uses the optional `pdfmake` peer (`npm i "pdfmake@^0.2.20"`), so the core install stays dependency-free.
   - title: Typed Errors with RFC 7807 Problem Details
-    details: KSeFError hierarchy with dedicated classes for 400, 401, 403, 410, and 429 carrying structured diagnostic context (trace IDs, required-vs-present permissions, validation error lists). Exhaustive dispatch via the KSeFApiProblem union and assertNever helper. Fluent request builders catch mistakes at compile time before they hit the network.
+    details: KSeFError hierarchy with dedicated classes for 400, 401, 403, 410, and 429 carrying structured diagnostic context (trace IDs, required-vs-present permissions, validation error lists), plus KSeF conditions such as a temporarily unavailable session, a failed session, or a rejected invoice. Exhaustive dispatch via the KSeFApiProblem union and assertNever helper. Fluent request builders catch mistakes at compile time before they hit the network.
   - title: Comprehensive Test Coverage
-    details: 1400+ Vitest unit and E2E tests across HTTP, crypto, services, workflows, builders, and CLI. CI runs the full suite on every change so regressions are caught early.
+    details: 3200+ Vitest unit and E2E tests across HTTP, crypto, services, workflows, builders, and CLI. CI runs the full suite on every change so regressions are caught early.
   - title: Interactive Setup Wizard
     details: Get started in one command — ksef setup walks you through environment selection, NIP configuration, external signature authentication, and API token generation. Credentials are securely stored in ~/.ksef/credentials.json.
   - title: Zero HTTP Dependencies

@@ -7,8 +7,13 @@ import {
   KSeFBatchTimeoutError,
   KSeFForbiddenError,
   KSeFGoneError,
+  KSeFInvoiceRejectedError,
+  KSeFPaginationError,
   KSeFRateLimitError,
+  KSeFSessionFailedError,
+  KSeFSessionUnavailableError,
   KSeFUnauthorizedError,
+  KSeFUnknownPublicKeyError,
   KSeFValidationError,
 } from '../../../src/errors/index.js';
 
@@ -90,6 +95,20 @@ describe('renderCliError — KSeFApiError dispatch', () => {
     expect(infoCalls()).toEqual([expect.stringContaining('Review the error list')]);
   });
 
+  it('renders a code-only KSeFBadRequestError entry without an "undefined" description', () => {
+    const err = new KSeFBadRequestError({
+      title: 'Bad Request',
+      status: 400,
+      errors: [{ code: 21405 }],
+    });
+
+    renderCliError(err);
+
+    const errors = errorCalls();
+    expect(errors).toContain('    • [21405]');
+    expect(errors.join('\n')).not.toContain('undefined');
+  });
+
   it('renders KSeFUnauthorizedError with detail, traceId, and auth hint', () => {
     const err = new KSeFUnauthorizedError({
       title: 'Unauthorized',
@@ -155,6 +174,27 @@ describe('renderCliError — KSeFApiError dispatch', () => {
     expect(infoCalls()).toEqual([expect.stringContaining('aged out')]);
   });
 
+  it.each([
+    { name: 'KSeFUnknownPublicKeyError', cls: KSeFUnknownPublicKeyError, code: 21470 },
+    { name: 'KSeFSessionUnavailableError', cls: KSeFSessionUnavailableError, code: 21184 },
+  ])('renders the Problem Details error list of $name', ({ cls, code }) => {
+    const err = cls.fromProblem({
+      title: 'Bad Request',
+      status: 400,
+      errors: [{ code, description: 'Rejected by KSeF', details: ['ref 123'] }],
+      traceId: 'trace-400',
+    });
+
+    renderCliError(err);
+
+    expect(errorCalls()).toEqual(expect.arrayContaining([
+      expect.stringContaining('Errors:'),
+      expect.stringContaining(`[${code}] Rejected by KSeF`),
+      expect.stringContaining('ref 123'),
+      expect.stringContaining('Trace ID: trace-400'),
+    ]));
+  });
+
   it('renders KSeFBatchTimeoutError via base toProblemFields (detail only)', () => {
     const err = new KSeFBatchTimeoutError('Batch timed out after 30m', 504);
 
@@ -165,8 +205,8 @@ describe('renderCliError — KSeFApiError dispatch', () => {
     expect(errors).toEqual(expect.arrayContaining([
       expect.stringContaining('Detail: Batch timed out after 30m'),
     ]));
-    // No status-specific hint for batch timeout; no 404 hint
-    expect(infoCalls()).toEqual([]);
+    // The class's own code (21208) drives the hint even without a legacy body.
+    expect(infoCalls()).toEqual([expect.stringContaining('Hint [21208]')]);
   });
 
   it('renders generic KSeFApiError (no Problem Details) via base toProblemFields', () => {
@@ -208,6 +248,96 @@ describe('renderCliError — KSeFApiError dispatch', () => {
   });
 });
 
+describe('renderCliError — hints by KSeF error code', () => {
+  function badRequest(...codes: number[]): KSeFBadRequestError {
+    return new KSeFBadRequestError({
+      title: 'Bad Request',
+      status: 400,
+      errors: codes.map((code) => ({ code })),
+    });
+  }
+
+  it.each([
+    { code: 21184, text: 'ksef session open' },
+    { code: 21418, text: 'without `--continue`' },
+    { code: 71004, text: 'one seller' },
+    { code: 71005, text: 'Remove the duplicates' },
+    { code: 21470, text: 'public key' },
+    { code: 21208, text: 'ksef invoice send' },
+    { code: 21405, text: 'error details' },
+  ])('gives the $code hint instead of the status hint', ({ code, text }) => {
+    renderCliError(badRequest(code));
+
+    const hints = infoCalls();
+    expect(hints).toHaveLength(1);
+    expect(hints[0]).toMatch(new RegExp(`^Hint \\[${code}\\]: `));
+    expect(hints[0]).toContain(text);
+  });
+
+  it('falls back to the status hint for a code without one', () => {
+    renderCliError(badRequest(21105));
+
+    expect(infoCalls()).toEqual([expect.stringContaining('Review the error list')]);
+  });
+
+  it('reads codes from the legacy exception list', () => {
+    const err = new KSeFApiError('Legacy error', 404, {
+      exception: {
+        exceptionDetailList: [{ exceptionCode: 21418, exceptionDescription: 'Bad token' }],
+      },
+    });
+
+    renderCliError(err);
+
+    expect(infoCalls()).toEqual([expect.stringContaining('Hint [21418]')]);
+  });
+
+  it('reads the code of a legacy-built typed error', () => {
+    renderCliError(KSeFSessionUnavailableError.fromLegacy(undefined));
+
+    expect(infoCalls()).toEqual([expect.stringContaining('Hint [21184]')]);
+  });
+
+  it('gives each distinct code its hint once, in order', () => {
+    const err = new KSeFBadRequestError({
+      title: 'Bad Request',
+      status: 400,
+      errors: [{ code: 71005 }, { code: 71004 }, { code: 71005 }],
+    });
+
+    renderCliError(err);
+
+    expect(infoCalls()).toEqual([
+      expect.stringContaining('Hint [71005]'),
+      expect.stringContaining('Hint [71004]'),
+    ]);
+  });
+
+  it('dedupes a code present in both the problem and the class field', () => {
+    renderCliError(KSeFUnknownPublicKeyError.fromProblem({
+      title: 'Bad Request',
+      status: 400,
+      errors: [{ code: 21470 }],
+    }));
+
+    expect(infoCalls()).toEqual([expect.stringContaining('Hint [21470]')]);
+  });
+
+  it('dedupes a code present in both the legacy list and the class field', () => {
+    renderCliError(KSeFBatchTimeoutError.fromResponse(400, {
+      exception: { exceptionDetailList: [{ exceptionCode: 21208 }] },
+    }));
+
+    expect(infoCalls()).toEqual([expect.stringContaining('Hint [21208]')]);
+  });
+
+  it('drops the generic 21405 hint when a specific code has one', () => {
+    renderCliError(badRequest(21405, 71004));
+
+    expect(infoCalls()).toEqual([expect.stringContaining('Hint [71004]')]);
+  });
+});
+
 describe('renderCliError — KSeFValidationError', () => {
   it('renders message plus details with field prefix', () => {
     const err = new KSeFValidationError('Validation failed', [
@@ -225,6 +355,81 @@ describe('renderCliError — KSeFValidationError', () => {
       expect.stringContaining('unknown error'),
     ]));
     expect(infoCalls()).toEqual([]);
+  });
+});
+
+function rejectedInvoice(code: number, description: string, extra: { details?: string[]; extensions?: Record<string, string | null> } = {}) {
+  return new KSeFInvoiceRejectedError('sess-ref', {
+    ordinalNumber: 1,
+    referenceNumber: 'inv-ref',
+    invoiceNumber: 'FV/1',
+    invoiceHash: 'hash',
+    invoicingDate: '2026-10-03T10:00:00Z',
+    status: { code, description, ...extra },
+  });
+}
+
+describe('renderCliError — KSeFInvoiceRejectedError', () => {
+  it('renders a duplicate with the original KSeF number and a 440 hint', () => {
+    renderCliError(rejectedInvoice(440, 'Duplikat faktury', { extensions: { originalKsefNumber: 'KSEF-ORIG' } }));
+
+    expect(errorCalls()).toEqual([
+      'KSeF rejected invoice inv-ref (status 440): Duplikat faktury',
+      '  └ Invoice number: FV/1',
+      '  └ Original KSeF number: KSEF-ORIG',
+    ]);
+    const hints = infoCalls();
+    expect(hints).toHaveLength(1);
+    expect(hints[0]).toMatch(/^Hint \[440\]: /);
+    expect(hints[0]).toContain('KSEF-ORIG');
+  });
+
+  it('gives the 440 hint without the original number when KSeF did not send it', () => {
+    renderCliError(rejectedInvoice(440, 'Duplikat faktury'));
+
+    expect(infoCalls()).toEqual([expect.stringMatching(/^Hint \[440\]: An invoice with this number/)]);
+  });
+
+  it('renders the details of other rejections without a hint', () => {
+    renderCliError(rejectedInvoice(450, 'Błąd weryfikacji semantyki', { details: ['bad P_15'] }));
+
+    expect(errorCalls()).toEqual(expect.arrayContaining([
+      'KSeF rejected invoice inv-ref (status 450): Błąd weryfikacji semantyki',
+      '  └ bad P_15',
+    ]));
+    expect(infoCalls()).toEqual([]);
+  });
+});
+
+describe('renderCliError — KSeFSessionFailedError', () => {
+  it('renders the session status with a hint to list failed invoices', () => {
+    renderCliError(new KSeFSessionFailedError('Batch session failed: 445 — Brak poprawnych faktur', 'sess-ref', {
+      status: { code: 445, description: 'Brak poprawnych faktur', details: ['all invalid'] },
+      dateCreated: '2026-10-03T10:00:00Z',
+      dateUpdated: '2026-10-03T10:00:00Z',
+    }));
+
+    expect(errorCalls()).toEqual([
+      'KSeF session sess-ref failed (status 445): Brak poprawnych faktur',
+      '  └ all invalid',
+    ]);
+    expect(infoCalls()).toEqual([expect.stringContaining('ksef session failed sess-ref')]);
+  });
+});
+
+describe('renderCliError — KSeFPaginationError', () => {
+  it('points at --continue with the first unread token when the page cap is reached', () => {
+    renderCliError(new KSeFPaginationError('paging exceeded 1000 pages', 'tok-next', 'max-pages'));
+
+    expect(errorCalls()).toEqual(['paging exceeded 1000 pages']);
+    expect(infoCalls()).toEqual([expect.stringContaining('`--continue tok-next`')]);
+  });
+
+  it('does not suggest resuming from a repeated token', () => {
+    renderCliError(new KSeFPaginationError('paging stalled', 'tok-loop', 'repeated-token'));
+
+    expect(infoCalls()).toEqual([expect.stringContaining('Narrow the query')]);
+    expect(infoCalls()[0]).not.toContain('--continue');
   });
 });
 
@@ -342,6 +547,28 @@ describe('renderCliError — JSON mode', () => {
     });
   });
 
+  it('serializes the Problem Details fields of KSeFSessionUnavailableError', () => {
+    const err = KSeFSessionUnavailableError.fromProblem({
+      title: 'Bad Request',
+      status: 400,
+      errors: [{ code: 21184, description: 'Sesja tymczasowo niedostępna.' }],
+      traceId: 'trace-400',
+    });
+
+    renderCliError(err, { json: true });
+
+    // Hints are human-only: --json output stays the bare error payload.
+    expect(consola.info).not.toHaveBeenCalled();
+    const parsed = JSON.parse(String(stdoutSpy.mock.calls[0]![0]));
+    expect(parsed.error).toEqual({
+      name: 'KSeFSessionUnavailableError',
+      statusCode: 400,
+      message: 'Sesja tymczasowo niedostępna.',
+      errors: [{ code: 21184, description: 'Sesja tymczasowo niedostępna.' }],
+      traceId: 'trace-400',
+    });
+  });
+
   it('serializes KSeFValidationError with details[]', () => {
     const err = new KSeFValidationError('bad', [{ field: 'nip', message: 'short' }]);
 
@@ -352,6 +579,55 @@ describe('renderCliError — JSON mode', () => {
       name: 'KSeFValidationError',
       message: 'bad',
       details: [{ field: 'nip', message: 'short' }],
+    });
+  });
+
+  it('serializes KSeFInvoiceRejectedError with its status and extensions', () => {
+    const err = rejectedInvoice(440, 'Duplikat faktury', { extensions: { originalKsefNumber: 'KSEF-ORIG' } });
+
+    renderCliError(err, { json: true });
+
+    const parsed = JSON.parse(String(stdoutSpy.mock.calls[0]![0]));
+    expect(parsed.error).toEqual({
+      name: 'KSeFInvoiceRejectedError',
+      message: err.message,
+      sessionReferenceNumber: 'sess-ref',
+      referenceNumber: 'inv-ref',
+      invoiceNumber: 'FV/1',
+      code: 440,
+      description: 'Duplikat faktury',
+      details: [],
+      extensions: { originalKsefNumber: 'KSEF-ORIG' },
+    });
+  });
+
+  it('serializes KSeFSessionFailedError with its status', () => {
+    renderCliError(new KSeFSessionFailedError('Session failed: 415 — Błąd odszyfrowania', 'sess-ref', {
+      status: { code: 415, description: 'Błąd odszyfrowania' },
+      dateCreated: '2026-10-03T10:00:00Z',
+      dateUpdated: '2026-10-03T10:00:00Z',
+    }), { json: true });
+
+    const parsed = JSON.parse(String(stdoutSpy.mock.calls[0]![0]));
+    expect(parsed.error).toEqual({
+      name: 'KSeFSessionFailedError',
+      message: 'Session failed: 415 — Błąd odszyfrowania',
+      referenceNumber: 'sess-ref',
+      code: 415,
+      description: 'Błąd odszyfrowania',
+      details: [],
+    });
+  });
+
+  it('serializes KSeFPaginationError with its reason and continuation token', () => {
+    renderCliError(new KSeFPaginationError('paging exceeded 1000 pages', 'tok-next', 'max-pages'), { json: true });
+
+    const parsed = JSON.parse(String(stdoutSpy.mock.calls[0]![0]));
+    expect(parsed.error).toEqual({
+      name: 'KSeFPaginationError',
+      message: 'paging exceeded 1000 pages',
+      reason: 'max-pages',
+      continuationToken: 'tok-next',
     });
   });
 

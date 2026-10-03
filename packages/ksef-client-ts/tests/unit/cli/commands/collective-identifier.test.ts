@@ -171,6 +171,41 @@ describe('collective-identifier', () => {
         expect.stringContaining('No collective identifiers'),
       );
     });
+
+    it('--all follows the continuation token and prints every row', async () => {
+      const { consola } = await import('consola');
+      const item = (n: string) => ({
+        collectiveIdentifierNumber: n,
+        dateCreated: '2026-07-15T09:12:00Z',
+        invoiceCount: 2,
+        createdInCurrentContext: true,
+      });
+      mockClient.collectiveIdentifiers.query
+        .mockResolvedValueOnce({ collectiveIdentifiers: [item('A')], continuationToken: 't1' })
+        .mockResolvedValueOnce({ collectiveIdentifiers: [item('B')], continuationToken: null });
+
+      await sub('list').run!({ args: { from: '2026-07-01', to: '2026-07-31', all: true, pageSize: '50' } });
+
+      const { query } = mockClient.collectiveIdentifiers;
+      expect(query).toHaveBeenCalledTimes(2);
+      expect(query).toHaveBeenNthCalledWith(2, expect.any(Object), 50, 't1');
+      const rows = vi.mocked(output.outputTable).mock.calls[0]![0] as Array<{ number: string }>;
+      expect(rows.map((r) => r.number)).toEqual(['A', 'B']);
+      expect(consola.info).not.toHaveBeenCalledWith(expect.stringContaining('Continuation token'));
+    });
+
+    it('--all --json prints the single-page shape without a token', async () => {
+      const a = { collectiveIdentifierNumber: 'A' };
+      const b = { collectiveIdentifierNumber: 'B' };
+      mockClient.collectiveIdentifiers.query
+        .mockResolvedValueOnce({ collectiveIdentifiers: [a], continuationToken: 't1' })
+        .mockResolvedValueOnce({ collectiveIdentifiers: [b] });
+
+      await sub('list').run!({ args: { from: '2026-07-01', all: true, json: true, continue: 't0' } });
+
+      expect(mockClient.collectiveIdentifiers.query).toHaveBeenNthCalledWith(1, expect.any(Object), 200, 't0');
+      expect(output.outputResult).toHaveBeenCalledWith({ collectiveIdentifiers: [a, b] }, { json: true });
+    });
   });
 
   describe('by-ksef', () => {
@@ -202,6 +237,19 @@ describe('collective-identifier', () => {
       await sub('by-ksef').run!({ args: { ksefNumber: KSEF_A } });
 
       expect(output.outputTable).toHaveBeenCalled();
+    });
+
+    it('--all collects every page', async () => {
+      const a = { collectiveIdentifierNumber: 'A' };
+      const b = { collectiveIdentifierNumber: 'B' };
+      mockClient.collectiveIdentifiers.getByKsefNumber
+        .mockResolvedValueOnce({ collectiveIdentifiers: [a], continuationToken: 't1' })
+        .mockResolvedValueOnce({ collectiveIdentifiers: [b], continuationToken: '' });
+
+      await sub('by-ksef').run!({ args: { ksefNumber: KSEF_A, all: true, json: true } });
+
+      expect(mockClient.collectiveIdentifiers.getByKsefNumber).toHaveBeenNthCalledWith(2, KSEF_A, 200, 't1');
+      expect(output.outputResult).toHaveBeenCalledWith({ collectiveIdentifiers: [a, b] }, { json: true });
     });
   });
 
@@ -257,6 +305,24 @@ describe('collective-identifier', () => {
       await sub('invoices').run!({ args: { number: COLLECTIVE_NUMBER } });
 
       expect(consola.info).not.toHaveBeenCalledWith(expect.stringContaining('hidden'));
+    });
+
+    it('--all collects every page of invoices', async () => {
+      const x = { ksefNumber: KSEF_A, collectiveIdentifierNumber: COLLECTIVE_NUMBER, detailsHidden: false };
+      const y = { ksefNumber: KSEF_B, collectiveIdentifierNumber: COLLECTIVE_NUMBER, detailsHidden: false };
+      mockClient.collectiveIdentifiers.queryInvoices
+        .mockResolvedValueOnce({ invoices: [x], continuationToken: 'i1' })
+        .mockResolvedValueOnce({ invoices: [y] });
+
+      await sub('invoices').run!({ args: { number: COLLECTIVE_NUMBER, all: true, json: true } });
+
+      expect(mockClient.collectiveIdentifiers.queryInvoices).toHaveBeenNthCalledWith(
+        2,
+        { collectiveIdentifierNumbers: [COLLECTIVE_NUMBER] },
+        500,
+        'i1',
+      );
+      expect(output.outputResult).toHaveBeenCalledWith({ invoices: [x, y] }, { json: true });
     });
   });
 });

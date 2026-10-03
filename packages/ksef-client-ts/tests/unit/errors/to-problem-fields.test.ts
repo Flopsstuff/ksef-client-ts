@@ -6,7 +6,9 @@ import {
   KSeFForbiddenError,
   KSeFGoneError,
   KSeFRateLimitError,
+  KSeFSessionUnavailableError,
   KSeFUnauthorizedError,
+  KSeFUnknownPublicKeyError,
 } from '../../../src/errors/index.js';
 
 describe('toProblemFields()', () => {
@@ -170,6 +172,51 @@ describe('toProblemFields()', () => {
     it('inherits base toProblemFields and returns message as detail', () => {
       const err = new KSeFBatchTimeoutError('Batch timed out', 504);
       expect(err.toProblemFields()).toEqual({ detail: 'Batch timed out' });
+    });
+  });
+
+  describe.each([
+    { name: 'KSeFUnknownPublicKeyError', cls: KSeFUnknownPublicKeyError, code: 21470 },
+    { name: 'KSeFSessionUnavailableError', cls: KSeFSessionUnavailableError, code: 21184 },
+  ])('$name', ({ cls, code }) => {
+    const problem = {
+      title: 'Bad Request',
+      status: 400,
+      detail: 'Request rejected',
+      instance: '/v2/sessions/online/ref/invoices',
+      errors: [{ code: 21405, description: 'Invalid field', details: ['P_1'] }, { code }],
+      traceId: 'trace-400',
+      timestamp: '2026-10-03T10:00:00Z',
+    };
+
+    it('fromProblem() keeps the Problem Details fields', () => {
+      const err = cls.fromProblem(problem);
+
+      expect(err.detail).toBe('Request rejected');
+      expect(err.instance).toBe('/v2/sessions/online/ref/invoices');
+      expect(err.errors).toEqual(problem.errors);
+      expect(err.traceId).toBe('trace-400');
+      expect(err.timestamp).toBe('2026-10-03T10:00:00Z');
+      expect(err.errorResponse).toBeUndefined();
+    });
+
+    it('toProblemFields() surfaces them like KSeFBadRequestError', () => {
+      expect(cls.fromProblem(problem).toProblemFields()).toEqual({
+        detail: 'Request rejected',
+        errors: problem.errors,
+        traceId: 'trace-400',
+        instance: '/v2/sessions/online/ref/invoices',
+        timestamp: '2026-10-03T10:00:00Z',
+      });
+    });
+
+    it('toProblemFields() keeps the base message-only shape for a legacy body', () => {
+      const err = cls.fromLegacy({
+        exception: { exceptionDetailList: [{ exceptionCode: code, exceptionDescription: 'Legacy' }] },
+      });
+
+      expect(err.errors).toEqual([]);
+      expect(err.toProblemFields()).toEqual({ detail: 'Legacy' });
     });
   });
 });

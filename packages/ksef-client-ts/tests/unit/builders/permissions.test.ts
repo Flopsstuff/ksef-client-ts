@@ -94,6 +94,20 @@ describe('EntityPermissionGrantBuilder', () => {
     expect(req.permissions[0]).toEqual({ type: 'Write', canDelegate: true });
   });
 
+  it('should pass CollectiveIdentifierManage through alongside invoice permissions', () => {
+    const req = new EntityPermissionGrantBuilder()
+      .withNip('1234567890')
+      .addPermission('InvoiceRead')
+      .addPermission('CollectiveIdentifierManage', true)
+      .withDescription('Collective identifiers')
+      .withSubjectDetails({ fullName: 'Firma Sp. z o.o.' })
+      .build();
+    expect(req.permissions).toEqual([
+      { type: 'InvoiceRead', canDelegate: false },
+      { type: 'CollectiveIdentifierManage', canDelegate: true },
+    ]);
+  });
+
   it('should support withPermissions replacing all', () => {
     const req = validBuilder()
       .withPermissions([{ type: 'Write', canDelegate: true }])

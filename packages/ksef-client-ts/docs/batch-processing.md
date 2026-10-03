@@ -199,10 +199,12 @@ Low-level service that maps directly to KSeF batch API endpoints.
 ### openSession
 
 ```typescript
-openSession(request: OpenBatchSessionRequest, upoVersion?: string): Promise<OpenBatchSessionResponse>
+openSession(request: OpenBatchSessionRequest, features?: string | readonly string[]): Promise<OpenBatchSessionResponse>
 ```
 
 Sends `BatchFileInfo` (metadata: ZIP hash, part count, part hashes) and `EncryptionInfo` (encrypted AES key + IV) to KSeF. The server validates the metadata and returns presigned upload URLs — one per declared part.
+
+`features` sets the `X-KSeF-Feature` header, e.g. `KSeFFeature.SubjectIdentifierValidation` (TEST only). KSeF applies only one feature per session, so more than one distinct value throws `KSeFValidationError` — see [KSeF Feature Constants](./api-reference.md#ksef-feature-constants).
 
 **Request:**
 
@@ -268,13 +270,13 @@ Signals to KSeF that all parts have been uploaded. KSeF begins processing (decry
 Orchestrates the full pipeline: crypto init → split → encrypt → open → upload → close → poll.
 
 ```typescript
-import { uploadBatch } from 'ksef-client-ts';
+import { uploadBatch, KSeFFeature } from 'ksef-client-ts';
 
 const result = await uploadBatch(client, zipData, {
   formCode: { systemCode: 'FA', schemaVersion: '3', value: 'FA (3)' },  // default
   maxPartSize: 50_000_000,   // 50 MB parts
   offlineMode: false,
-  upoVersion: 'upo-v4-3',
+  features: KSeFFeature.SubjectIdentifierValidation,  // optional, TEST only; one feature per session
   pollOptions: {
     intervalMs: 5000,        // poll every 5 seconds
     maxAttempts: 120,        // wait up to 10 minutes
@@ -473,7 +475,7 @@ If your invoices are already on disk, read them into buffers. If they are genera
 | `KSeFValidationError('Data requires N parts, exceeding maximum of 50')` | `BatchFileBuilder` | Too many parts after split |
 | `KSeFValidationError('maxPartSize must be a positive number')` | `BatchFileBuilder` | Invalid `maxPartSize` option |
 | `Error('No upload request found for part N')` | `BatchSessionService.sendParts` | Part ordinal mismatch between builder output and server response |
-| `Error('Batch session failed: CODE — DESC')` | `uploadBatch` workflow | Session processing code >= 400 |
+| `KSeFSessionFailedError('Batch session failed: CODE — DESC (DETAILS)')` | `uploadBatch` / `uploadBatchStream` workflows | Session processing code >= 400 (`code`, `description`, `details`, `referenceNumber`); the parenthesised details, separated by semicolons, appear only when the status carries any |
 | `Error('Polling timeout: ...')` | `pollUntil` | Processing didn't complete within `maxAttempts` |
 | `KSeFApiError` / `KSeFRateLimitError` | `RestClient` | HTTP errors during API calls (retried automatically, see [HTTP Resilience](./http-resilience.md)) |
 | PKCS#12 errors (see table above) | `Pkcs12Loader` | Certificate extraction failures |

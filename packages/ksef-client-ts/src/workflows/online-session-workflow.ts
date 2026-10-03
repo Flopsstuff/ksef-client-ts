@@ -1,5 +1,5 @@
 import type { KSeFClient } from '../client.js';
-import type { UpoVersion } from '../http/ksef-feature.js';
+import { resolveSessionFeature, type UpoVersion } from '../http/ksef-feature.js';
 import type { FormCode } from '../models/common.js';
 import type { OnlineSessionState } from '../models/sessions/session-state.js';
 import { KSeFSessionExpiredError } from '../errors/ksef-session-expired-error.js';
@@ -13,10 +13,21 @@ import { withKeyRotationRetry } from '../crypto/with-key-rotation-retry.js';
 import { parseUpoXml } from '../xml/index.js';
 import { validate as validateInvoice } from '../validation/invoice-validator.js';
 import { KSeFValidationError } from '../errors/ksef-validation-error.js';
+import { KSeFSessionFailedError } from '../errors/ksef-session-failed-error.js';
+import { KSeFInvoiceRejectedError } from '../errors/ksef-invoice-rejected-error.js';
+import type { SessionInvoiceStatusResponse } from '../models/sessions/status-types.js';
 
 export interface OpenOnlineSessionOptions {
   formCode?: FormCode;
+  /** @deprecated Use `features`. Still honoured and merged with `features`. */
   upoVersion?: UpoVersion | string;
+  /**
+   * X-KSeF-Feature value(s) sent when opening the session, e.g.
+   * `KSeFFeature.SubjectIdentifierValidation` (TEST only). Strings are split
+   * on commas. KSeF honours one feature per session, so more than one distinct
+   * value (counting `upoVersion`) throws `KSeFValidationError`.
+   */
+  features?: string | readonly string[];
   /** Validate invoices against XSD schema before sending. Default: false. */
   validate?: boolean;
 }
@@ -28,7 +39,7 @@ export interface SendAndCloseOptions extends OpenOnlineSessionOptions {
 interface SessionHandleDeps {
   crypto: { getFileMetadata(data: Uint8Array): { hashSHA: string; fileSize: number }; encryptAES256(data: Uint8Array, key: Uint8Array, iv: Uint8Array): Uint8Array };
   onlineSession: Pick<OnlineSessionService, 'sendInvoice' | 'closeSession'>;
-  sessionStatus: Pick<SessionStatusService, 'getSessionStatus' | 'getSessionUpo'>;
+  sessionStatus: Pick<SessionStatusService, 'getSessionStatus' | 'getSessionUpo' | 'getSessionInvoice'>;
   getAccessToken: () => string | undefined;
 }
 
@@ -52,7 +63,11 @@ function buildSessionHandle(params: SessionHandleParams): OnlineSessionHandle {
       { ...pollOpts, description: `UPO for session ${sessionRef}` },
     );
     if (result.status.code !== 200) {
-      throw new Error(`Session failed: ${result.status.code} — ${result.status.description}`);
+      throw new KSeFSessionFailedError(
+        `Session failed: ${result.status.code} — ${result.status.description}`,
+        sessionRef,
+        result,
+      );
     }
     return {
       pages: result.upo?.pages ?? [],
@@ -100,6 +115,19 @@ function buildSessionHandle(params: SessionHandleParams): OnlineSessionHandle {
       return fetchUpo(pollOpts);
     },
 
+    async waitForInvoice(invoiceRef: string, pollOpts?: PollOptions): Promise<SessionInvoiceStatusResponse> {
+      // 100 accepted and 150 processing are interim; 200 is success, 4xx/5xx a final rejection.
+      const result = await pollUntil(
+        () => deps.sessionStatus.getSessionInvoice(sessionRef, invoiceRef),
+        (s) => s.status.code === 200 || s.status.code >= 400,
+        { ...pollOpts, description: `invoice ${invoiceRef} in session ${sessionRef}` },
+      );
+      if (result.status.code !== 200) {
+        throw new KSeFInvoiceRejectedError(sessionRef, result);
+      }
+      return result;
+    },
+
     async waitForUpoParsed(pollOpts?: PollOptions): Promise<ParsedUpoInfo> {
       const upoInfo = await fetchUpo(pollOpts);
       const parsed = [];
@@ -132,6 +160,7 @@ export async function openOnlineSession(
   client: KSeFClient,
   options?: OpenOnlineSessionOptions,
 ): Promise<OnlineSessionHandle> {
+  const feature = resolveSessionFeature(options?.upoVersion, options?.features);
   await client.crypto.init();
   const formCode = options?.formCode ?? DEFAULT_FORM_CODE;
 
@@ -139,7 +168,7 @@ export async function openOnlineSession(
     const encData = await client.crypto.getEncryptionData();
     const openResp = await client.onlineSession.openSession(
       { formCode, encryption: encData.encryptionInfo },
-      options?.upoVersion,
+      feature,
     );
     return { encData, openResp };
   });

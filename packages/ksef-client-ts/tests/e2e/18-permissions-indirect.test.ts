@@ -107,4 +107,46 @@ describe('18 - Permissions: Indirect', { timeout: 120_000 }, () => {
       );
     }
   });
+
+  it('should grant indirect CollectiveIdentifierManage with NIP target', async () => {
+    const subjectNip = generateRandomNip();
+    const targetNip = generateRandomNip();
+    const description = `E2E indirect collective ${Date.now()}`;
+
+    // Step 1: Grant the permission added in KSeF API v2.8.1
+    const grantResp = await client.permissions.grantIndirectPermissions({
+      subjectIdentifier: { type: 'Nip', value: subjectNip },
+      targetIdentifier: { type: 'Nip', value: targetNip },
+      permissions: ['CollectiveIdentifierManage'],
+      description,
+      subjectDetails: {
+        subjectDetailsType: 'PersonByIdentifier',
+        personById: { firstName: 'Test', lastName: 'Collective' },
+      },
+    });
+    expect(grantResp.referenceNumber).toBeTruthy();
+
+    await pollUntil(
+      () => client.permissions.getOperationStatus(grantResp.referenceNumber),
+      (s) => s.status.code === 200,
+      { intervalMs: 2000, maxAttempts: 30, description: 'indirect CollectiveIdentifierManage grant' },
+    );
+
+    // Step 2: Query and verify the scope
+    const queryResult = await client.permissions.queryPersonsGrants({
+      queryType: 'PermissionsGrantedInCurrentContext',
+    });
+    const matchingGrants = queryResult.permissions.filter((p) => p.description === description);
+    expect(matchingGrants.map((g) => g.permissionScope)).toEqual(['CollectiveIdentifierManage']);
+
+    // Cleanup: revoke
+    for (const grant of matchingGrants) {
+      const revokeResp = await client.permissions.revokeCommonGrant(grant.id);
+      await pollUntil(
+        () => client.permissions.getOperationStatus(revokeResp.referenceNumber),
+        (s) => s.status.code === 200,
+        { intervalMs: 2000, maxAttempts: 30, description: `revoke indirect grant ${grant.id}` },
+      );
+    }
+  });
 });
