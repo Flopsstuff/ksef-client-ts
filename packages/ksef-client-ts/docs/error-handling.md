@@ -499,13 +499,19 @@ Thrown when KSeF rejects an encryption request because the supplied `publicKeyId
 class KSeFUnknownPublicKeyError extends KSeFApiError {
   readonly statusCode: 400;
   readonly errorCode: 21470;
+  // Set only when built from an RFC 7807 body (same fields as KSeFBadRequestError):
+  readonly detail?: string;
+  readonly instance?: string;
+  readonly errors: BadRequestErrorDetail[]; // [] for a legacy body
+  readonly traceId?: string;
+  readonly timestamp?: string;
 
   static fromProblem(problem: BadRequestProblemDetails): KSeFUnknownPublicKeyError;
   static fromLegacy(body?: ApiErrorResponse): KSeFUnknownPublicKeyError;
 }
 ```
 
-Two factories cover both response shapes KSeF may return: `fromProblem` reads the RFC 7807 `errors[]` array, `fromLegacy` reads the older `exception.exceptionDetailList` array. Both fall back to a fixed message when the server sends no description.
+Two factories cover both response shapes KSeF may return: `fromProblem` reads the RFC 7807 `errors[]` array, `fromLegacy` reads the older `exception.exceptionDetailList` array. Both fall back to a fixed message when the server sends no description. Built from an RFC 7807 body, the error keeps the same Problem Details fields as `KSeFBadRequestError` and returns them from `toProblemFields()`, so the CLI and JSON output still show the full error list and trace ID; built from a legacy body, the details stay in `errorResponse`.
 
 ::: warning
 On a 400 carrying code `21470` this class is thrown **instead of** `KSeFBadRequestError`, and it is not part of the `KSeFApiProblem` union. A handler that only catches `KSeFBadRequestError` will miss it — catch `KSeFApiError` to cover both.
@@ -525,13 +531,19 @@ Thrown when KSeF temporarily stops accepting invoices in an existing online sess
 class KSeFSessionUnavailableError extends KSeFApiError {
   readonly statusCode: 400;
   readonly errorCode: 21184;
+  // Set only when built from an RFC 7807 body (same fields as KSeFBadRequestError):
+  readonly detail?: string;
+  readonly instance?: string;
+  readonly errors: BadRequestErrorDetail[]; // [] for a legacy body
+  readonly traceId?: string;
+  readonly timestamp?: string;
 
   static fromProblem(problem: BadRequestProblemDetails): KSeFSessionUnavailableError;
   static fromLegacy(body?: ApiErrorResponse): KSeFSessionUnavailableError;
 }
 ```
 
-Like `KSeFUnknownPublicKeyError`, it is built from either body format and falls back to a fixed message that recommends opening a new session. If a 400 carries both `21184` and `21470`, this class wins: rotating the key and retrying would land in the same unavailable session.
+Like `KSeFUnknownPublicKeyError`, it is built from either body format, keeps the Problem Details fields (`detail`, `instance`, `errors`, `traceId`, `timestamp`) when built from an RFC 7807 body, and falls back to a fixed message that recommends opening a new session. If a 400 carries both `21184` and `21470`, this class wins: rotating the key and retrying would land in the same unavailable session.
 
 ::: warning
 On a 400 carrying code `21184` this class is thrown **instead of** `KSeFBadRequestError`, and it is not part of the `KSeFApiProblem` union. Catch it explicitly, or catch `KSeFApiError`.
@@ -1234,8 +1246,8 @@ try {
 | `KSeFBadRequestError` | 400 | RFC 7807 `BadRequestProblemDetails` | `errors[]`, `detail`, `traceId`, `instance`, `timestamp` | None (fix the request) |
 | `KSeFRateLimitError` | 429 | RFC 7807 `TooManyRequestsProblemDetails` or legacy `TooManyRequestsResponse` | `retryAfterSeconds`, `recommendedDelay`, `problem?` | Retry with `Retry-After` |
 | `KSeFBatchTimeoutError` | any non-2xx (KSeF code 21208) | `ApiErrorResponse` | `errorCode` (21208), `statusCode`, `errorResponse` | None (retry with smaller batch) |
-| `KSeFUnknownPublicKeyError` | 400 (KSeF code 21470) | RFC 7807 `BadRequestProblemDetails` or `ApiErrorResponse` | `errorCode` (21470), `statusCode`, `errorResponse` | Certificate cache refresh, then retry once |
-| `KSeFSessionUnavailableError` | 400 (KSeF code 21184) | RFC 7807 `BadRequestProblemDetails` or `ApiErrorResponse` | `errorCode` (21184), `statusCode`, `errorResponse` | None (open a new session and continue) |
+| `KSeFUnknownPublicKeyError` | 400 (KSeF code 21470) | RFC 7807 `BadRequestProblemDetails` or `ApiErrorResponse` | `errorCode` (21470), `statusCode`, `errors[]`, `traceId` (RFC 7807) or `errorResponse` (legacy) | Certificate cache refresh, then retry once |
+| `KSeFSessionUnavailableError` | 400 (KSeF code 21184) | RFC 7807 `BadRequestProblemDetails` or `ApiErrorResponse` | `errorCode` (21184), `statusCode`, `errors[]`, `traceId` (RFC 7807) or `errorResponse` (legacy) | None (open a new session and continue) |
 | `KSeFUnauthorizedError` | 401 | RFC 7807 `UnauthorizedProblemDetails` | `detail`, `traceId`, `instance`, `timestamp` | Token refresh, then retry once |
 | `KSeFForbiddenError` | 403 | RFC 7807 `ForbiddenProblemDetails` | `reasonCode`, `detail`, `traceId`, `security`, `timestamp` | None (not retryable) |
 | `KSeFGoneError` | 410 | RFC 7807 `GoneProblemDetails` | `detail`, `traceId`, `instance`, `timestamp` | None (re-issue the underlying action) |

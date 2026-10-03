@@ -819,6 +819,9 @@ describe('RestClient', () => {
       expect((err as KSeFSessionUnavailableError).errorCode).toBe(21184);
       expect((err as KSeFSessionUnavailableError).statusCode).toBe(400);
       expect((err as KSeFSessionUnavailableError).message).toBe('Sesja tymczasowo niedostępna.');
+      expect((err as KSeFSessionUnavailableError).errors).toEqual([
+        { code: 21184, description: 'Sesja tymczasowo niedostępna.' },
+      ]);
     });
 
     it('throws KSeFSessionUnavailableError on 400 Problem Details with a code-only 21184 item', async () => {

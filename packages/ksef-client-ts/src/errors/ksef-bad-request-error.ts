@@ -1,5 +1,6 @@
 import { KSeFApiError } from './ksef-api-error.js';
 import type { BadRequestErrorDetail, BadRequestProblemDetails, ProblemFields } from './types.js';
+import { badRequestProblemFields } from './bad-request-problem-fields.js';
 
 export class KSeFBadRequestError extends KSeFApiError {
   override readonly statusCode: 400 = 400;
@@ -20,12 +21,6 @@ export class KSeFBadRequestError extends KSeFApiError {
   }
 
   override toProblemFields(): ProblemFields {
-    return {
-      detail: this.detail,
-      errors: this.errors.length ? this.errors : undefined,
-      traceId: this.traceId,
-      instance: this.instance,
-      timestamp: this.timestamp,
-    };
+    return badRequestProblemFields(this);
   }
 }

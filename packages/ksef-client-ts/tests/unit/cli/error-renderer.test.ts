@@ -8,7 +8,9 @@ import {
   KSeFForbiddenError,
   KSeFGoneError,
   KSeFRateLimitError,
+  KSeFSessionUnavailableError,
   KSeFUnauthorizedError,
+  KSeFUnknownPublicKeyError,
   KSeFValidationError,
 } from '../../../src/errors/index.js';
 
@@ -167,6 +169,27 @@ describe('renderCliError — KSeFApiError dispatch', () => {
       expect.stringContaining('Trace ID: trace-410'),
     ]));
     expect(infoCalls()).toEqual([expect.stringContaining('aged out')]);
+  });
+
+  it.each([
+    { name: 'KSeFUnknownPublicKeyError', cls: KSeFUnknownPublicKeyError, code: 21470 },
+    { name: 'KSeFSessionUnavailableError', cls: KSeFSessionUnavailableError, code: 21184 },
+  ])('renders the Problem Details error list of $name', ({ cls, code }) => {
+    const err = cls.fromProblem({
+      title: 'Bad Request',
+      status: 400,
+      errors: [{ code, description: 'Rejected by KSeF', details: ['ref 123'] }],
+      traceId: 'trace-400',
+    });
+
+    renderCliError(err);
+
+    expect(errorCalls()).toEqual(expect.arrayContaining([
+      expect.stringContaining('Errors:'),
+      expect.stringContaining(`[${code}] Rejected by KSeF`),
+      expect.stringContaining('ref 123'),
+      expect.stringContaining('Trace ID: trace-400'),
+    ]));
   });
 
   it('renders KSeFBatchTimeoutError via base toProblemFields (detail only)', () => {
@@ -353,6 +376,26 @@ describe('renderCliError — JSON mode', () => {
         errors: [{ code: 21105, description: 'x', details: [] }],
         traceId: 'trace-400',
       },
+    });
+  });
+
+  it('serializes the Problem Details fields of KSeFSessionUnavailableError', () => {
+    const err = KSeFSessionUnavailableError.fromProblem({
+      title: 'Bad Request',
+      status: 400,
+      errors: [{ code: 21184, description: 'Sesja tymczasowo niedostępna.' }],
+      traceId: 'trace-400',
+    });
+
+    renderCliError(err, { json: true });
+
+    const parsed = JSON.parse(String(stdoutSpy.mock.calls[0]![0]));
+    expect(parsed.error).toEqual({
+      name: 'KSeFSessionUnavailableError',
+      statusCode: 400,
+      message: 'Sesja tymczasowo niedostępna.',
+      errors: [{ code: 21184, description: 'Sesja tymczasowo niedostępna.' }],
+      traceId: 'trace-400',
     });
   });
 
