@@ -766,7 +766,7 @@ Recovery: re-authenticate and open a new session.
 
 **File:** `src/errors/ksef-session-failed-error.ts`
 
-Thrown by `waitForUpo()` / `waitForUpoParsed()` on an online session handle and by the batch upload workflows when the session, polled for its UPO, ends in a failed status (code 400 or above). `code` is a KSeF *session* status, not an HTTP status. The message keeps its earlier form (`Session failed: …` / `Batch session failed: …`), so code matching on it still works.
+Thrown by `waitForUpo()` / `waitForUpoParsed()` on an online session handle and by the batch upload workflows when the session, polled for its UPO, ends in a failed status (code 400 or above). `code` is a KSeF *session* status, not an HTTP status. The message begins as before (`Session failed: CODE — DESCRIPTION` / `Batch session failed: CODE — DESCRIPTION`); when the status carries details, they are appended in parentheses, separated by semicolons. Matching on the start of the message therefore still works, while an exact comparison of the whole message fails when details are present — prefer `code` and `details`.
 
 ```typescript
 class KSeFSessionFailedError extends KSeFError {

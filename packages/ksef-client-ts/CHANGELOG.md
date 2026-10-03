@@ -19,7 +19,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - **Updated to KSeF API v2.8.1** — the bundled API specification now tracks the current KSeF release.
-- **Failed sessions report their status** — a session that ends in a failed state while waiting for its receipt or during a batch upload now raises a dedicated library error carrying the session's status code, description and details, so handlers that catch all library errors now see it too, while its message stays the same as before.
+- **Failed sessions report their status** — a session that ends in a failed state while waiting for its receipt or during a batch upload now raises a dedicated library error carrying the session's status code, description and details, so handlers that catch all library errors now see it too, while its message still begins as before and now ends with the status details when KSeF reports any.
 - **One option for the receipt format and session features** — the receipt format is now chosen together with the other optional session features, and the former dedicated setting remains as a deprecated alias.
 
 ### Fixed

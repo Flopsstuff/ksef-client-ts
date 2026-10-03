@@ -56,7 +56,7 @@ yarn vitest run tests/unit/services/auth.test.ts   # Single file
 
 ## E2E Tests
 
-39 test files running against the live **KSeF TEST** environment. No API tokens or env vars needed.
+39 test files: 36 run against the live **KSeF TEST** environment, and 3 run locally without any network access — the `ksef invoice build` CLI smoke test (31) and the PDF specs (35, 36). No API tokens or env vars needed.
 
 ### Zero Secrets
 
@@ -103,11 +103,11 @@ This means tests can run on any machine, any CI, without configuring credentials
 | 28 | `28-upo-parsing.test.ts` | UPO XML parsing | Cert + Crypto | 180s |
 | 29 | `29-technical-correction.test.ts` | Technical correction invoices | Cert + Crypto | 180s |
 | 30 | `30-rr-invoicing.test.ts` | FA_RR invoicing | Cert + Crypto | 180s |
-| 31 | `31-invoice-build-cli-smoke.test.ts` | `ksef invoice build` CLI smoke | Cert | 60s |
+| 31 | `31-invoice-build-cli-smoke.test.ts` | `ksef invoice build` CLI smoke through the built CLI, no network | None | 60s |
 | 31 | `31-self-invoicing.test.ts` | Self-invoicing flow | Cert + Crypto | 180s |
 | 32 | `32-invoice-build-send.test.ts` | Build and send invoice via CLI | Cert + Crypto | 180s |
 | 32 | `32-offline-invoice.test.ts` | Offline invoice lifecycle | Cert + Crypto | 300s |
-| 33 | `33-xml-serialization.test.ts` | Invoice XML serialization round-trip | None | 60s |
+| 33 | `33-xml-serialization.test.ts` | Invoice XML serialization round-trip | Cert + Crypto | 180s |
 | 34 | `34-collective-identifiers.test.ts` | Collective identifier lifecycle | Cert + Crypto | 180s |
 | 35 | `35-invoice-pdf-cli.test.ts` | `ksef invoice pdf` through the built CLI: the whole preview set, plus the inputs it refuses | None | 120s |
 | 36 | `36-invoice-pdf-library.test.ts` | The same rendering through `ksef-client-ts/pdf`: template objects, supplied QR URLs, every render option | None | 120s |
