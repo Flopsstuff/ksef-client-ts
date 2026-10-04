@@ -14,7 +14,7 @@ The library provides a structured error hierarchy so that callers can react prec
 - **Auth errors** (`KSeFUnauthorizedError`, `KSeFForbiddenError`) carry RFC 7807 Problem Details with machine-readable reason codes.
 - **Retention errors** (`KSeFGoneError`) signal that a server-side async operation status has aged out (HTTP 410).
 - **Client-side errors** (`KSeFValidationError`) catch invalid requests before they reach the network.
-- **Workflow errors** (`KSeFAuthStatusError`, `KSeFSessionExpiredError`) represent higher-level failures in multi-step operations.
+- **Workflow errors** (`KSeFAuthStatusError`, `KSeFSessionExpiredError`, `KSeFSessionFailedError`, `KSeFInvoiceRejectedError`) represent higher-level failures in multi-step operations.
 
 All error classes extend a common base `KSeFError`, so a single `instanceof KSeFError` catch covers every library error without catching unrelated exceptions.
 
@@ -34,19 +34,24 @@ Error (built-in)
         │     ├── KSeFGoneError          src/errors/ksef-gone-error.ts        (410 + RFC 7807, retention expired)
         │     ├── KSeFRateLimitError     src/errors/ksef-rate-limit-error.ts  (429 + RFC 7807)
         │     ├── KSeFBatchTimeoutError  src/errors/ksef-batch-timeout-error.ts (KSeF code 21208)
-        │     └── KSeFUnknownPublicKeyError
-        │                                src/errors/ksef-unknown-public-key-error.ts (400, KSeF code 21470)
+        │     ├── KSeFUnknownPublicKeyError
+        │     │                          src/errors/ksef-unknown-public-key-error.ts (400, KSeF code 21470)
+        │     └── KSeFSessionUnavailableError
+        │                                src/errors/ksef-session-unavailable-error.ts (400, KSeF code 21184)
         ├── KSeFAuthStatusError          src/errors/ksef-auth-status-error.ts (auth ceremony failed)
         ├── KSeFSessionExpiredError      src/errors/ksef-session-expired-error.ts (stored session expired)
+        ├── KSeFSessionFailedError       src/errors/ksef-session-failed-error.ts (session ended in a failed status)
+        ├── KSeFInvoiceRejectedError     src/errors/ksef-invoice-rejected-error.ts (KSeF rejected a sent invoice)
         ├── KSeFCircuitOpenError         src/errors/ksef-circuit-open-error.ts (circuit breaker is open)
         ├── KSeFValidationError          src/errors/ksef-validation-error.ts  (client-side validation)
         ├── KSeFXsdValidationError       src/errors/ksef-xsd-validation-error.ts (XSD schema validation)
-        └── KSeFMetadataPaginationError  src/errors/ksef-metadata-pagination-error.ts (paging cannot advance)
+        ├── KSeFMetadataPaginationError  src/errors/ksef-metadata-pagination-error.ts (paging cannot advance)
+        └── KSeFPaginationError          src/errors/ksef-pagination-error.ts (continuation-token paging cannot finish)
 ```
 
 All server-returned HTTP errors extend `KSeFApiError`, so a single `instanceof KSeFApiError` catch handles every response-side failure. The `KSeFApiProblem` union type (see [Exhaustive dispatch](#exhaustive-dispatch-with-ksefapiproblem)) narrows through the five RFC 7807 subclasses for exhaustive `switch` / `assertNever` patterns.
 
-Two `KSeFApiError` subclasses sit outside that union, because they are selected by KSeF error code rather than by status code: `KSeFBatchTimeoutError` (code 21208) and `KSeFUnknownPublicKeyError` (code 21470). Note that `KSeFUnknownPublicKeyError` is thrown *instead of* `KSeFBadRequestError` on a 400 carrying code 21470 -- catching `KSeFBadRequestError` alone will not see it. Catch `KSeFApiError` if you want both.
+Three `KSeFApiError` subclasses sit outside that union, because they are selected by KSeF error code rather than by status code: `KSeFBatchTimeoutError` (code 21208), `KSeFUnknownPublicKeyError` (code 21470) and `KSeFSessionUnavailableError` (code 21184). Note that `KSeFUnknownPublicKeyError` and `KSeFSessionUnavailableError` are thrown *instead of* `KSeFBadRequestError` on a 400 carrying their code -- catching `KSeFBadRequestError` alone will not see them. Catch `KSeFApiError` if you want all of them.
 
 **All exports:** `src/errors/index.ts` re-exports every error class, type, and interface. Import from the package root:
 
@@ -61,12 +66,16 @@ import {
   KSeFGoneError,
   KSeFAuthStatusError,
   KSeFSessionExpiredError,
+  KSeFSessionFailedError,
+  KSeFInvoiceRejectedError,
   KSeFValidationError,
   KSeFBatchTimeoutError,
   KSeFCircuitOpenError,
   KSeFUnknownPublicKeyError,
+  KSeFSessionUnavailableError,
   KSeFXsdValidationError,
   KSeFMetadataPaginationError,
+  KSeFPaginationError,
   KSeFErrorCode,
   type KSeFApiProblem,
   assertNever,
@@ -117,7 +126,7 @@ const client = new KSeFClient({
 | `traceId` | `string?` | Server-side trace ID for correlating with KSeF support |
 | `timestamp` | `string?` | UTC timestamp recorded by the server |
 
-Each entry in `errors` has `code: number`, `description: string`, and `details: string[]`. The client throws `KSeFBadRequestError` whose `.errors` field is ready for display or programmatic routing by `code`.
+Each entry in `errors` has `code: number`, `description?: string`, and `details?: string[] | null` — KSeF sometimes sends an entry with only its `code`, and such a body is still read as Problem Details. The client throws `KSeFBadRequestError` whose `.errors` field is ready for display or programmatic routing by `code`.
 
 When the server returns a legacy 400 body (older server or proxy), the client falls back to generic `KSeFApiError` with `statusCode === 400`. Both cases are caught by `instanceof KSeFApiError`.
 
@@ -286,9 +295,13 @@ After the retry loop is exhausted and a non-2xx response remains, `ensureSuccess
 Response not OK?
   │
   ├── status 400 → try BadRequestProblemDetails guard
-  │                → matches → throw new KSeFBadRequestError(problem)
-  │                → else legacy ApiErrorResponse; if it carries KSeF
-  │                  exceptionCode 21208 → throw KSeFBatchTimeoutError
+  │                → matches → errors[].code 21184 → throw KSeFSessionUnavailableError
+  │                            errors[].code 21470 → throw KSeFUnknownPublicKeyError
+  │                            otherwise → throw new KSeFBadRequestError(problem)
+  │                → else legacy ApiErrorResponse; by KSeF exceptionCode
+  │                  21184 → throw KSeFSessionUnavailableError
+  │                  21470 → throw KSeFUnknownPublicKeyError
+  │                  21208 → throw KSeFBatchTimeoutError
   │                  otherwise throw KSeFApiError.fromResponse()
   │
   ├── status 429 → try TooManyRequestsProblemDetails guard
@@ -474,7 +487,7 @@ class KSeFBatchTimeoutError extends KSeFApiError {
 }
 ```
 
-Use this class to distinguish server-side batch timeouts from other failure modes when orchestrating large batch uploads or finish operations. The numeric code registry for error detection is exposed as `KSeFErrorCode` in `src/errors/error-codes.ts` (currently `BatchTimeout = 21208`, `DuplicateInvoice = 440`).
+Use this class to distinguish server-side batch timeouts from other failure modes when orchestrating large batch uploads or finish operations. The numeric code registry for error detection is exposed as `KSeFErrorCode` in `src/errors/error-codes.ts` (currently `BatchTimeout = 21208`, `DuplicateInvoice = 440`, `SessionTemporarilyUnavailable = 21184`, `InvalidContinuationToken = 21418`, `UnknownPublicKeyId = 21470`, `CollectiveIdentifierDifferentSellers = 71004`, `CollectiveIdentifierDuplicateKsefNumber = 71005`).
 
 ::: tip
 Pair with a retry-with-smaller-batch strategy rather than a tight loop — the timeout means KSeF is under load, not that the request was malformed.
@@ -492,19 +505,72 @@ Thrown when KSeF rejects an encryption request because the supplied `publicKeyId
 class KSeFUnknownPublicKeyError extends KSeFApiError {
   readonly statusCode: 400;
   readonly errorCode: 21470;
+  // Set only when built from an RFC 7807 body (same fields as KSeFBadRequestError):
+  readonly detail?: string;
+  readonly instance?: string;
+  readonly errors: BadRequestErrorDetail[]; // [] for a legacy body
+  readonly traceId?: string;
+  readonly timestamp?: string;
 
   static fromProblem(problem: BadRequestProblemDetails): KSeFUnknownPublicKeyError;
   static fromLegacy(body?: ApiErrorResponse): KSeFUnknownPublicKeyError;
 }
 ```
 
-Two factories cover both response shapes KSeF may return: `fromProblem` reads the RFC 7807 `errors[]` array, `fromLegacy` reads the older `exception.exceptionDetailList` array. Both fall back to a fixed message when the server sends no description.
+Two factories cover both response shapes KSeF may return: `fromProblem` reads the RFC 7807 `errors[]` array, `fromLegacy` reads the older `exception.exceptionDetailList` array. Both fall back to a fixed message when the server sends no description. Built from an RFC 7807 body, the error keeps the same Problem Details fields as `KSeFBadRequestError` and returns them from `toProblemFields()`, so the CLI and JSON output still show the full error list and trace ID; built from a legacy body, the details stay in `errorResponse`.
 
 ::: warning
 On a 400 carrying code `21470` this class is thrown **instead of** `KSeFBadRequestError`, and it is not part of the `KSeFApiProblem` union. A handler that only catches `KSeFBadRequestError` will miss it — catch `KSeFApiError` to cover both.
 :::
 
 The library already recovers from this on its own: encryption-bearing operations wrapped in the key-rotation helper (`src/crypto/with-key-rotation-retry.ts`) refresh the cached KSeF public certificates and retry once with a freshly selected key. You normally see this error only when the retry also fails.
+
+---
+
+### `KSeFSessionUnavailableError`
+
+**File:** `src/errors/ksef-session-unavailable-error.ts`
+
+Thrown when KSeF temporarily stops accepting invoices in an existing online session, typically during maintenance — HTTP 400 with error code `21184` on `POST /sessions/online/{referenceNumber}/invoices` (KSeF API v2.8.0). Extends `KSeFApiError`, so it also carries `statusCode` and `errorResponse`.
+
+```typescript
+class KSeFSessionUnavailableError extends KSeFApiError {
+  readonly statusCode: 400;
+  readonly errorCode: 21184;
+  // Set only when built from an RFC 7807 body (same fields as KSeFBadRequestError):
+  readonly detail?: string;
+  readonly instance?: string;
+  readonly errors: BadRequestErrorDetail[]; // [] for a legacy body
+  readonly traceId?: string;
+  readonly timestamp?: string;
+
+  static fromProblem(problem: BadRequestProblemDetails): KSeFSessionUnavailableError;
+  static fromLegacy(body?: ApiErrorResponse): KSeFSessionUnavailableError;
+}
+```
+
+Like `KSeFUnknownPublicKeyError`, it is built from either body format, keeps the Problem Details fields (`detail`, `instance`, `errors`, `traceId`, `timestamp`) when built from an RFC 7807 body, and falls back to a fixed message that recommends opening a new session. If a 400 carries both `21184` and `21470`, this class wins: rotating the key and retrying would land in the same unavailable session.
+
+::: warning
+On a 400 carrying code `21184` this class is thrown **instead of** `KSeFBadRequestError`, and it is not part of the `KSeFApiProblem` union. Catch it explicitly, or catch `KSeFApiError`.
+:::
+
+The library does **not** reopen the session for you. KSeF's recommendation is to open a new session and send the remaining invoices there; invoices already accepted in the old session stay valid, so resend only the ones that were not accepted:
+
+```typescript
+import { KSeFSessionUnavailableError, openOnlineSession } from 'ksef-client-ts';
+
+try {
+  await handle.sendInvoice(xml);
+} catch (error) {
+  if (error instanceof KSeFSessionUnavailableError) {
+    handle = await openOnlineSession(client, sessionOptions); // new session
+    await handle.sendInvoice(xml);                            // continue there
+  } else {
+    throw error;
+  }
+}
+```
 
 ---
 
@@ -538,13 +604,13 @@ class KSeFBadRequestError extends KSeFApiError {
 | `traceId` | `string?` | Server-side trace ID |
 | `timestamp` | `string?` | UTC timestamp recorded by the server |
 
-The top-level message falls back through `detail` → `title` → `"Bad Request"`, so it is never empty. Each `errors` entry carries `code: number`, `description: string`, and `details: string[]` — route on `code` for programmatic handling.
+The top-level message falls back through `detail` → `title` → `"Bad Request"`, so it is never empty. Each `errors` entry carries `code: number`, `description?: string`, and `details?: string[] | null` — route on `code` for programmatic handling.
 
 ::: warning
 Not every 400 arrives as this class, and which class you get depends on the body format:
 
-- **RFC 7807 body** (the default) — only KSeF code `21470` is singled out, as [`KSeFUnknownPublicKeyError`](#ksefunknownpublickeyerror). Every other code, `21208` included, arrives as `KSeFBadRequestError` with the code in `errors[]`.
-- **Legacy body** — code `21470` throws [`KSeFUnknownPublicKeyError`](#ksefunknownpublickeyerror), code `21208` throws [`KSeFBatchTimeoutError`](#ksefbatchtimeouterror), and anything else falls back to a generic `KSeFApiError`.
+- **RFC 7807 body** (the default) — only KSeF codes `21184` and `21470` are singled out, as [`KSeFSessionUnavailableError`](#ksefsessionunavailableerror) and [`KSeFUnknownPublicKeyError`](#ksefunknownpublickeyerror). Every other code, `21208` included, arrives as `KSeFBadRequestError` with the code in `errors[]`.
+- **Legacy body** — code `21184` throws [`KSeFSessionUnavailableError`](#ksefsessionunavailableerror), code `21470` throws [`KSeFUnknownPublicKeyError`](#ksefunknownpublickeyerror), code `21208` throws [`KSeFBatchTimeoutError`](#ksefbatchtimeouterror), and anything else falls back to a generic `KSeFApiError`.
 
 Catch `KSeFApiError` to cover every 400 regardless of format, and route on `errors[].code` rather than on the class when you care about a specific KSeF code.
 :::
@@ -696,6 +762,87 @@ Recovery: re-authenticate and open a new session.
 
 ---
 
+### `KSeFSessionFailedError`
+
+**File:** `src/errors/ksef-session-failed-error.ts`
+
+Thrown by `waitForUpo()` / `waitForUpoParsed()` on an online session handle and by the batch upload workflows when the session, polled for its UPO, ends in a failed status (code 400 or above). `code` is a KSeF *session* status, not an HTTP status. The message begins as before (`Session failed: CODE — DESCRIPTION` / `Batch session failed: CODE — DESCRIPTION`); when the status carries details, they are appended in parentheses, separated by semicolons. Matching on the start of the message therefore still works, while an exact comparison of the whole message fails when details are present — prefer `code` and `details`.
+
+```typescript
+class KSeFSessionFailedError extends KSeFError {
+  readonly referenceNumber: string;            // session reference number
+  readonly code: number;                       // session status code
+  readonly description: string;
+  readonly details: string[];
+  readonly sessionStatus: SessionStatusResponse; // full status, with invoice counts
+}
+```
+
+| Session | Failed status codes |
+|---------|---------------------|
+| Online | 415 key decryption error, 440 session cancelled (no invoices sent), 445 no valid invoices |
+| Batch | 405 package verification error, 415 key decryption error, 420 invoice limit exceeded, 430 decompression error, 435 part decryption error, 440 session cancelled (upload timed out or no invoices sent), 445 no valid invoices, 500 unknown error |
+
+Recovery: list the session's failed invoices (`client.sessionStatus.getSessionFailedInvoices(referenceNumber)`, or `ksef session failed <ref>`) to see why each one was rejected.
+
+---
+
+### `KSeFInvoiceRejectedError`
+
+**File:** `src/errors/ksef-invoice-rejected-error.ts`
+
+Thrown by `OnlineSessionHandle.waitForInvoice()` when KSeF finishes processing a sent invoice and rejects it. `code` is a KSeF *invoice* status, not an HTTP status or a KSeF error code. The whole status response is kept, so the reason and the structured data KSeF attached reach the caller.
+
+```typescript
+class KSeFInvoiceRejectedError extends KSeFError {
+  readonly sessionReferenceNumber: string;
+  readonly referenceNumber: string;            // invoice reference number from sendInvoice()
+  readonly ordinalNumber: number;
+  readonly invoiceNumber?: string;             // P_2, when KSeF could read it
+  readonly code: number;                       // invoice status code
+  readonly description: string;
+  readonly details: string[];
+  readonly extensions: Record<string, string | null>;
+  readonly invoiceStatus: SessionInvoiceStatusResponse;
+
+  get isDuplicate(): boolean;                          // code === 440
+  get originalKsefNumber(): string | undefined;        // extensions.originalKsefNumber
+  get originalSessionReferenceNumber(): string | undefined;
+}
+```
+
+| Invoice status | Outcome |
+|----------------|---------|
+| 100, 150 | Accepted / processing -- `waitForInvoice()` keeps polling |
+| 200 | Success -- resolves with the status, carrying `ksefNumber` |
+| 405 | Processing cancelled because of a session error |
+| 410 | Invalid permission scope |
+| 415 | Invoices with attachments cannot be sent |
+| 430 | Invoice file verification error |
+| 435 | File decryption error |
+| 440 | Duplicate invoice -- `extensions` carry `originalKsefNumber` and `originalSessionReferenceNumber` |
+| 450 | Semantic verification error -- `details` explain it |
+| 500 | Unknown error |
+| 550 | Cancelled by the system -- send the invoice again |
+
+A duplicate is how a lost send response is recovered: sending the same invoice again yields 440 together with the KSeF number the first send was given.
+
+```typescript
+import { KSeFInvoiceRejectedError } from 'ksef-client-ts';
+
+try {
+  const { ksefNumber } = await handle.waitForInvoice(await handle.sendInvoice(xml));
+  return ksefNumber;
+} catch (error) {
+  if (error instanceof KSeFInvoiceRejectedError && error.originalKsefNumber) {
+    return error.originalKsefNumber;  // already in KSeF
+  }
+  throw error;
+}
+```
+
+---
+
 ### `KSeFCircuitOpenError`
 
 **File:** `src/errors/ksef-circuit-open-error.ts`
@@ -810,6 +957,34 @@ class KSeFMetadataPaginationError extends KSeFError {
 | Crossing limit reached | Every boundary advanced normally, but the query crossed more truncation boundaries than `maxBoundaryCrossings` allows (default 1000) | Raise `maxBoundaryCrossings`, or split the query into smaller date ranges |
 
 Read the message to tell them apart: the first names the boundary it stalled on, the second names the limit it exceeded. Neither means the request was rejected — the server answered fine, the result set just cannot be walked under the current settings. Thrown from `src/workflows/metadata-query-paging.ts`.
+
+---
+
+### `KSeFPaginationError`
+
+**File:** `src/errors/ksef-pagination-error.ts`
+
+Thrown by the continuation-token paging helpers (the [collective identifier](/collective-identifiers#paging-through-every-result) walks) when a walk cannot reach its last page. It is raised instead of looping forever, after every page read so far has been yielded. Extends `KSeFError`.
+
+The metadata paging helper keeps its own `KSeFMetadataPaginationError`: that one pages by date boundaries and reports a boundary value, not a token.
+
+```typescript
+class KSeFPaginationError extends KSeFError {
+  readonly reason: 'repeated-token' | 'max-pages';
+  readonly continuationToken: string;
+
+  constructor(message: string, continuationToken: string, reason: 'repeated-token' | 'max-pages');
+}
+```
+
+| `reason` | What happened | `continuationToken` | Remedy |
+|----------|---------------|---------------------|--------|
+| `'repeated-token'` | KSeF returned a continuation token it had already returned, so following it would never end | The repeated token | Restart the walk, or narrow the query |
+| `'max-pages'` | The walk needed more pages than `maxPages` allows (default 1000) | The token of the first unread page | Resume with it as `continuationToken`, or raise `maxPages` |
+
+The message names the token in both cases. Thrown from `src/workflows/collective-identifier-paging.ts`.
+
+In the CLI, `--all` collects every page before printing, so the rows read before the stop are not shown. At the page cap the CLI prints a hint to run the command again with `--continue <token>`, which fetches the pages after them. For a repeated token it suggests narrowing the query instead. With `--json` the error object carries `reason` and `continuationToken`.
 
 ---
 
@@ -1186,16 +1361,20 @@ try {
 | `KSeFBadRequestError` | 400 | RFC 7807 `BadRequestProblemDetails` | `errors[]`, `detail`, `traceId`, `instance`, `timestamp` | None (fix the request) |
 | `KSeFRateLimitError` | 429 | RFC 7807 `TooManyRequestsProblemDetails` or legacy `TooManyRequestsResponse` | `retryAfterSeconds`, `recommendedDelay`, `problem?` | Retry with `Retry-After` |
 | `KSeFBatchTimeoutError` | any non-2xx (KSeF code 21208) | `ApiErrorResponse` | `errorCode` (21208), `statusCode`, `errorResponse` | None (retry with smaller batch) |
-| `KSeFUnknownPublicKeyError` | 400 (KSeF code 21470) | RFC 7807 `BadRequestProblemDetails` or `ApiErrorResponse` | `errorCode` (21470), `statusCode`, `errorResponse` | Certificate cache refresh, then retry once |
+| `KSeFUnknownPublicKeyError` | 400 (KSeF code 21470) | RFC 7807 `BadRequestProblemDetails` or `ApiErrorResponse` | `errorCode` (21470), `statusCode`, `errors[]`, `traceId` (RFC 7807) or `errorResponse` (legacy) | Certificate cache refresh, then retry once |
+| `KSeFSessionUnavailableError` | 400 (KSeF code 21184) | RFC 7807 `BadRequestProblemDetails` or `ApiErrorResponse` | `errorCode` (21184), `statusCode`, `errors[]`, `traceId` (RFC 7807) or `errorResponse` (legacy) | None (open a new session and continue) |
 | `KSeFUnauthorizedError` | 401 | RFC 7807 `UnauthorizedProblemDetails` | `detail`, `traceId`, `instance`, `timestamp` | Token refresh, then retry once |
 | `KSeFForbiddenError` | 403 | RFC 7807 `ForbiddenProblemDetails` | `reasonCode`, `detail`, `traceId`, `security`, `timestamp` | None (not retryable) |
 | `KSeFGoneError` | 410 | RFC 7807 `GoneProblemDetails` | `detail`, `traceId`, `instance`, `timestamp` | None (re-issue the underlying action) |
 | `KSeFAuthStatusError` | -- | -- | `referenceNumber`, `statusDescription` | None |
 | `KSeFSessionExpiredError` | -- | -- | `message` | None |
+| `KSeFSessionFailedError` | -- (session status) | -- | `referenceNumber`, `code`, `description`, `details`, `sessionStatus` | None (inspect the failed invoices) |
+| `KSeFInvoiceRejectedError` | -- (invoice status) | -- | `referenceNumber`, `code`, `details`, `extensions`, `originalKsefNumber` | None (fix the invoice; for 440 use `originalKsefNumber`) |
 | `KSeFCircuitOpenError` | -- | -- | `endpoint`, `openedAt`, `retryAfterMs` | None (wait out `retryAfterMs` before retrying) |
 | `KSeFValidationError` | -- | -- | `details[]` with `field` and `message` | None (client-side) |
 | `KSeFXsdValidationError` | -- | -- | `schemaFile`, `errors[]` | None (client-side) |
 | `KSeFMetadataPaginationError` | -- | -- | `boundaryValue` | None (narrow the query or raise the crossing cap) |
+| `KSeFPaginationError` | -- | -- | `reason`, `continuationToken` | None (resume from `continuationToken` or raise `maxPages`) |
 
 ---
 
@@ -1210,20 +1389,25 @@ try {
 | `src/errors/ksef-rate-limit-error.ts` | `KSeFRateLimitError` with `fromRetryAfterHeader()` factory |
 | `src/errors/ksef-batch-timeout-error.ts` | `KSeFBatchTimeoutError` with `fromResponse()` factory (KSeF code 21208) |
 | `src/errors/ksef-unknown-public-key-error.ts` | `KSeFUnknownPublicKeyError` with `fromProblem()` / `fromLegacy()` factories (KSeF code 21470) |
+| `src/errors/ksef-session-unavailable-error.ts` | `KSeFSessionUnavailableError` with `fromProblem()` / `fromLegacy()` factories (KSeF code 21184) |
 | `src/errors/error-codes.ts` | `KSeFErrorCode` numeric code registry + `hasErrorCode()` helper |
 | `src/errors/ksef-unauthorized-error.ts` | `KSeFUnauthorizedError` |
 | `src/errors/ksef-forbidden-error.ts` | `KSeFForbiddenError` |
 | `src/errors/ksef-gone-error.ts` | `KSeFGoneError` (HTTP 410, retention expired) |
 | `src/errors/ksef-auth-status-error.ts` | `KSeFAuthStatusError` |
 | `src/errors/ksef-session-expired-error.ts` | `KSeFSessionExpiredError` |
+| `src/errors/ksef-session-failed-error.ts` | `KSeFSessionFailedError` (session ended in a failed status) |
+| `src/errors/ksef-invoice-rejected-error.ts` | `KSeFInvoiceRejectedError` (sent invoice rejected; duplicate's original KSeF number) |
 | `src/errors/ksef-circuit-open-error.ts` | `KSeFCircuitOpenError` (opt-in circuit breaker) |
 | `src/errors/ksef-validation-error.ts` | `KSeFValidationError`, `ValidationDetail` |
 | `src/errors/ksef-xsd-validation-error.ts` | `KSeFXsdValidationError` (XSD schema validation) |
 | `src/errors/ksef-metadata-pagination-error.ts` | `KSeFMetadataPaginationError` (paging cannot advance) |
+| `src/errors/ksef-pagination-error.ts` | `KSeFPaginationError` (continuation-token paging cannot finish) |
 | `src/errors/index.ts` | Barrel re-exports for all error types |
 | `src/http/rest-client.ts` | `ensureSuccess()` dispatch, `sendRequest()` retry + auth refresh |
 | `src/http/retry-policy.ts` | `RetryPolicy`, `parseRetryAfter()`, `calculateBackoff()` |
 | `src/http/auth-manager.ts` | `AuthManager` interface, dedup refresh logic |
 | `src/workflows/metadata-query-paging.ts` | Metadata paging helper; raises `KSeFMetadataPaginationError` |
+| `src/workflows/collective-identifier-paging.ts` | Collective identifier paging helpers; raise `KSeFPaginationError` |
 | `src/workflows/polling.ts` | `pollUntil()` with timeout |
 | `src/workflows/invoice-export-workflow.ts` | Export workflow error propagation |

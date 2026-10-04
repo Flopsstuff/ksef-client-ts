@@ -19,6 +19,7 @@ import { validate as validateInvoice } from '../../validation/invoice-validator.
 import { KSeFValidationError } from '../../errors/ksef-validation-error.js';
 import { type SchemaType, SCHEMA_TYPES } from '../../validation/schemas/index.js';
 import { withKeyRotationRetry } from '../../crypto/with-key-rotation-retry.js';
+import { decodeXmlBytes } from '../../pdf/xml-input.js';
 
 function getGlobalOpts(args: Record<string, unknown>): GlobalOptions {
   return {
@@ -733,8 +734,10 @@ const pdf = defineCommand({
       };
 
       // Exact bytes preserve the QR hash; pass the raw file as a Uint8Array.
+      // Detection decodes them the way the renderer will, so a UTF-16 file is
+      // routed by what it is rather than by what UTF-8 makes of it.
       const xmlBytes = new Uint8Array(fs.readFileSync(file));
-      const xmlStr = Buffer.from(xmlBytes).toString('utf-8');
+      const xmlStr = decodeXmlBytes(xmlBytes);
 
       // Lazy bridge into the internal PDF module; it lazily requires pdfmake and,
       // when absent/incompatible, throws a friendly install hint we surface here.

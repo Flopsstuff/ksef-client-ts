@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.14.0] - 2026-10-05
+
+### Added
+
+- **Waiting for a single invoice** — wait for the outcome of one sent invoice and get its KSeF number, or a dedicated rejection error carrying KSeF's code and details, including the original KSeF number of a duplicate so a lost send response can be recovered.
+- **Identifier validation on the test environment** — a session can be opened with KSeF's optional check of the tax and internal identifiers on each invoice, and since KSeF applies only one such option per session, asking for several at once is rejected before the session is opened (KSeF API v2.8.0).
+- **Temporarily unavailable sessions** — when KSeF pauses sending into an open session, this is now reported as its own error with the advice to open a new session and continue (KSeF API v2.8.0).
+- **New rate-limit groups** — the effective rate limits now include the separate limits for closing online and batch sessions, the anonymous limits and the reserved global group, and windows without a limit are recognisable as such and shown as unlimited in the command line (KSeF API v2.8.0).
+- **Collective identifier permission for entities and indirect grants** — the right to manage collective identifiers can now be granted to entities and indirectly, and it is reported in entity permission queries (KSeF API v2.8.1).
+- **Paging through collective identifiers** — identifiers and their invoices can be read page by page or all at once without handling continuation tokens by hand, with the option to stop and resume later, also from the command line.
+- **Earlier checks for collective identifiers** — malformed or repeated invoice numbers, invoices of different sellers, overlong descriptions and incomplete payment details are rejected before the request is sent instead of being refused by KSeF.
+- **Hints for common KSeF error codes** — the command line now suggests how to fix the most common KSeF errors, such as an unavailable session, an invalid continuation token, invoices of different sellers or an unknown encryption key.
+- **UTF-16 documents in PDF export** — invoices and receipts saved as UTF-16 now render to PDF, and the command line detects their document type correctly.
+
+### Changed
+
+- **Updated to KSeF API v2.8.1** — the bundled API specification now tracks the current KSeF release.
+- **Failed sessions report their status** — a session that ends in a failed state while waiting for its receipt or during a batch upload now raises a dedicated library error carrying the session's status code, description and details, so handlers that catch all library errors now see it too, while its message still begins as before and now ends with the status details when KSeF reports any.
+- **One option for the receipt format and session features** — the receipt format is now chosen together with the other optional session features, and the former dedicated setting remains as a deprecated alias.
+
+### Fixed
+
+- **Validation errors that carry only a code** — KSeF validation errors whose entries have no description were reported as generic errors and lost their codes, and an unknown encryption key in such a response was not recognised.
+- **Error details on unknown-key errors** — an error about an unknown KSeF encryption key now keeps the full list of errors and the trace identifier from the response, as other validation errors do.
+
 ## [0.13.1] - 2026-10-01
 
 ### Fixed

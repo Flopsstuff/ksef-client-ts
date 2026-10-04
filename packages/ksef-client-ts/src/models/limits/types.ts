@@ -1,3 +1,15 @@
+/**
+ * Value KSeF reports for a rate-limit window that has no limit
+ * (e.g. the `perMinute`/`perHour` windows of `anonymous`, or every window of `global`).
+ */
+export const RATE_LIMIT_UNLIMITED = -1;
+
+/**
+ * Request budget of one rate-limit group, per time window.
+ *
+ * A window set to {@link RATE_LIMIT_UNLIMITED} (`-1`) is not limited — compare
+ * against the constant before using the value as a count.
+ */
 export interface EffectiveApiRateLimitValues {
   perSecond: number;
   perMinute: number;
@@ -5,8 +17,14 @@ export interface EffectiveApiRateLimitValues {
 }
 
 export interface EffectiveApiRateLimits {
+  /** Opening online (interactive) sessions. */
   onlineSession: EffectiveApiRateLimitValues;
+  /** Closing online (interactive) sessions (KSeF API v2.8.0). */
+  onlineSessionClose: EffectiveApiRateLimitValues;
+  /** Opening batch sessions. */
   batchSession: EffectiveApiRateLimitValues;
+  /** Closing batch sessions (KSeF API v2.8.0). */
+  batchSessionClose: EffectiveApiRateLimitValues;
   invoiceSend: EffectiveApiRateLimitValues;
   invoiceStatus: EffectiveApiRateLimitValues;
   sessionList: EffectiveApiRateLimitValues;
@@ -18,6 +36,15 @@ export interface EffectiveApiRateLimits {
   invoiceDownload: EffectiveApiRateLimitValues;
   collectiveIdentifier: EffectiveApiRateLimitValues;
   other: EffectiveApiRateLimitValues;
+  /** Unauthenticated API operations (KSeF API v2.8.0). Some windows may be {@link RATE_LIMIT_UNLIMITED}. */
+  anonymous: EffectiveApiRateLimitValues;
+  /**
+   * Global per-IP limits across all API operations (KSeF API v2.8.0).
+   *
+   * Reserved for future use: the mechanism is currently disabled and KSeF reports
+   * every window as {@link RATE_LIMIT_UNLIMITED}. Do not build logic on these values.
+   */
+  global: EffectiveApiRateLimitValues;
 }
 
 export interface OnlineSessionEffectiveContextLimits {

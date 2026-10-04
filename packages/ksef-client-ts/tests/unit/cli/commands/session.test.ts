@@ -111,6 +111,7 @@ describe('session', () => {
       await runOpen({ formCode: 'FA3' });
       expect(mockClient.onlineSession.openSession).toHaveBeenCalledWith(
         expect.objectContaining({ formCode: { systemCode: 'FA (3)', schemaVersion: '1-0E', value: 'FA' } }),
+        undefined,
       );
     });
 
@@ -121,11 +122,40 @@ describe('session', () => {
       await runOpen({ formCode: 'PEF3' });
       expect(mockClient.onlineSession.openSession).toHaveBeenCalledWith(
         expect.objectContaining({ formCode: { systemCode: 'PEF (3)', schemaVersion: '2-1', value: 'PEF' } }),
+        undefined,
       );
     });
 
     it('throws on invalid --form-code key', async () => {
       await expect(runOpen({ formCode: 'INVALID' })).rejects.toThrow('Invalid form code "INVALID"');
+    });
+
+    it('passes --feature to openSession', async () => {
+      mockClient.onlineSession.openSession.mockResolvedValue({
+        referenceNumber: 'ref-feature', validUntil: '2099-01-01',
+      });
+      await runOpen({ feature: 'subject-identifier-validation' });
+      expect(mockClient.onlineSession.openSession).toHaveBeenCalledWith(
+        expect.any(Object),
+        'subject-identifier-validation',
+      );
+    });
+
+    it('trims --feature and drops empty and repeated entries', async () => {
+      mockClient.onlineSession.openSession.mockResolvedValue({
+        referenceNumber: 'ref-feature', validUntil: '2099-01-01',
+      });
+      await runOpen({ feature: ' subject-identifier-validation , ,subject-identifier-validation' });
+      expect(mockClient.onlineSession.openSession).toHaveBeenCalledWith(
+        expect.any(Object),
+        'subject-identifier-validation',
+      );
+    });
+
+    it('rejects more than one --feature value before opening the session', async () => {
+      await expect(runOpen({ feature: 'upo-v4-3,subject-identifier-validation' }))
+        .rejects.toThrow('only one X-KSeF-Feature value per session');
+      expect(mockClient.onlineSession.openSession).not.toHaveBeenCalled();
     });
   });
 

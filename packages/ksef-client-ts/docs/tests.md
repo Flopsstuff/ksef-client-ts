@@ -22,21 +22,21 @@ yarn vitest run tests/unit/services/auth.test.ts   # Single file
 
 ## Unit Tests
 
-157 test files, 2905 tests. Located in `tests/unit/`. All service/HTTP calls are mocked — no network access, fast execution.
+166 test files, 3210 tests. Located in `tests/unit/`. All service/HTTP calls are mocked — no network access, fast execution.
 
 ### Coverage by Area
 
 | Area | Files | What is tested |
 |------|-------|----------------|
-| **cli** | 34 | All 17 command groups, client factory, config/session store, error handler, output formatting |
-| **services** | 14 | All 14 API services — request construction, response parsing, error propagation |
-| **http** | 10 | RestClient, RetryPolicy (backoff, jitter), RateLimitPolicy (token bucket), PresignedUrlPolicy, AuthManager (401 refresh), transport, RestRequest builder, KSeF feature constants, circuit breaker |
-| **workflows** | 10 | Auth workflow, online/batch session, invoice export, incremental export, HWM coordinator, polling utility |
-| **errors** | 9 | Full error hierarchy — KSeFError, ApiError, RateLimitError, UnauthorizedError (ProblemDetails), ForbiddenError (reasonCode), batch timeout |
+| **cli** | 35 | All 17 command groups, client factory, config/session store, error handler, output formatting |
+| **services** | 15 | All 14 API services, retry safety — request construction, response parsing, error propagation |
+| **http** | 11 | RestClient, RetryPolicy (backoff, jitter), RateLimitPolicy (token bucket), PresignedUrlPolicy, AuthManager (401 refresh), transport, RestRequest builder, KSeF feature constants, circuit breaker |
+| **workflows** | 12 | Auth workflow, online/batch session (including waiting for one invoice), invoice export, incremental export, HWM coordinator, metadata and collective identifier paging, offline workflow, polling utility |
+| **errors** | 11 | Full error hierarchy — KSeFError, ApiError, BadRequestError, RateLimitError, UnauthorizedError (ProblemDetails), ForbiddenError (reasonCode), GoneError, batch timeout, session unavailable (21184), invoice rejected, problem-field extraction |
 | **crypto** | 8 | CryptographyService (AES, RSA, ECDH, CSR), SignatureService (XAdES), CertificateService (self-signed), CertificateFetcher, PKCS#12 loader, auth XML builder |
 | **validation** | 10 | Regex patterns + checksum validators (NIP, PESEL, KSeF number CRC-8), constraints, char validity, XSD validation helpers |
 | **xml** | 9 | FA2/FA3/PEF builders, invoice serializer, XSD validation, property ordering |
-| **pdf** | 29 | Template DSL validation and interpretation, every block renderer, the built-in layouts against fixtures, document flags, formatters, i18n bundles, QR derivation and sizing, font loading, strict mode |
+| **pdf** | 31 | Template DSL validation and interpretation, every block renderer, the built-in layouts against fixtures, document flags, formatters, i18n bundles, QR derivation and sizing, font loading, strict mode |
 | **utils** | 7 | Concurrency helpers, filesystem utilities, hashing, date/time helpers |
 | **builders** | 5 | AuthTokenRequest, AuthKsefTokenRequest, InvoiceQueryFilter, Permissions (person/entity/authorization), batch file |
 | **offline** | 4 | Offline invoice deadlines, file storage, holiday calendar, workflow orchestration |
@@ -56,7 +56,7 @@ yarn vitest run tests/unit/services/auth.test.ts   # Single file
 
 ## E2E Tests
 
-36 test files running against the live **KSeF TEST** environment. No API tokens or env vars needed.
+39 test files: 36 run against the live **KSeF TEST** environment, and 3 run locally without any network access — the `ksef invoice build` CLI smoke test (31) and the PDF specs (35, 36). No API tokens or env vars needed.
 
 ### Zero Secrets
 
@@ -103,14 +103,15 @@ This means tests can run on any machine, any CI, without configuring credentials
 | 28 | `28-upo-parsing.test.ts` | UPO XML parsing | Cert + Crypto | 180s |
 | 29 | `29-technical-correction.test.ts` | Technical correction invoices | Cert + Crypto | 180s |
 | 30 | `30-rr-invoicing.test.ts` | FA_RR invoicing | Cert + Crypto | 180s |
-| 31 | `31-invoice-build-cli-smoke.test.ts` | `ksef invoice build` CLI smoke | Cert | 60s |
+| 31 | `31-invoice-build-cli-smoke.test.ts` | `ksef invoice build` CLI smoke through the built CLI, no network | None | 60s |
 | 31 | `31-self-invoicing.test.ts` | Self-invoicing flow | Cert + Crypto | 180s |
 | 32 | `32-invoice-build-send.test.ts` | Build and send invoice via CLI | Cert + Crypto | 180s |
 | 32 | `32-offline-invoice.test.ts` | Offline invoice lifecycle | Cert + Crypto | 300s |
-| 33 | `33-xml-serialization.test.ts` | Invoice XML serialization round-trip | None | 60s |
+| 33 | `33-xml-serialization.test.ts` | Invoice XML serialization round-trip | Cert + Crypto | 180s |
 | 34 | `34-collective-identifiers.test.ts` | Collective identifier lifecycle | Cert + Crypto | 180s |
 | 35 | `35-invoice-pdf-cli.test.ts` | `ksef invoice pdf` through the built CLI: the whole preview set, plus the inputs it refuses | None | 120s |
 | 36 | `36-invoice-pdf-library.test.ts` | The same rendering through `ksef-client-ts/pdf`: template objects, supplied QR URLs, every render option | None | 120s |
+| 37 | `37-subject-identifier-validation.test.ts` | Session feature header: identifier validation rejects an invoice with an invalid NIP, one feature per session | Cert + Crypto | 300s |
 
 ### The PDF Specs (35, 36)
 

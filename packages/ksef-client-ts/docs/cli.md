@@ -113,7 +113,7 @@ One-shot command for CI jobs and disposable hosts: after `ksef auth login --toke
 ## Sessions
 
 ```bash
-ksef session open                             # Open online session
+ksef session open [--feature F]               # Open online session (--feature sets X-KSeF-Feature, TEST only)
 ksef session close [ref]                      # Close session (current or by ref)
 ksef session status [ref]                     # Check session status
 ksef session list [--type online|batch]       # List sessions (tabular view shows Reference, Status, Created, Updated, Total, Success, Failed)
@@ -125,6 +125,16 @@ ksef session active [--pageSize N]            # List active authentication sessi
 ksef session revoke <ref>                     # Revoke an active session by reference
 ksef session revoke --current                 # Revoke the current active session
 ```
+
+### Session Features
+
+`--feature` sets the `X-KSeF-Feature` header on `ksef session open`. With `subject-identifier-validation` (TEST only) KSeF checks the NIP numbers and internal identifiers of the parties on each invoice and rejects an invoice with an invalid one (status 450):
+
+```bash
+ksef session open --env test --feature subject-identifier-validation
+```
+
+The flag takes a comma-separated list for consistency with other list flags, but KSeF applies only one feature per session, so more than one distinct value is rejected before the session is opened.
 
 ### UPO Download
 
@@ -300,6 +310,8 @@ ksef permission grant --type authorization \
 
 Supported grant types: `person`, `entity`, `authorization`, `indirect`, `subunit`, `eu-entity-admin`, `eu-entity-representative`. Each type requires specific flags — the CLI will report missing fields.
 
+For `entity` and `indirect` grants, `--permissions` takes `InvoiceRead`, `InvoiceWrite`, and `CollectiveIdentifierManage` (managing collective identifiers, KSeF API v2.8.1).
+
 Add `--canDelegate` to allow the subject to further delegate permissions to their own employees (corresponds to "Zakres uprawnień" in the KSeF web portal).
 
 ### Other Permission Commands
@@ -378,6 +390,8 @@ ksef limits subject                              # Subject limits (max enrollmen
 ksef limits rate                                 # API rate limits (per-category table)
 ```
 
+`ksef limits rate` lists every group KSeF reports, including `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window KSeF reports as `-1` has no limit and is shown as `unlimited`; `--json` prints the raw `-1`. The `global` group (per-IP limits) is reserved and currently disabled, so all its windows read `unlimited`.
+
 ## Collective Identifiers
 
 Group invoices issued by one seller under a single settlement reference. Requires an active session and one of the `InvoiceRead`, `InvoiceWrite`, or `CollectiveIdentifierManage` permissions. See [Collective Identifiers](/collective-identifiers).
@@ -389,6 +403,8 @@ ksef collective-identifier list --from 2026-07-01 [--to ...]    # List identifie
 ksef collective-identifier by-ksef <ksefNumber>                 # Identifiers a given invoice belongs to
 ksef collective-identifier invoices <numbers>                   # Invoices inside identifiers (comma-separated, max 10)
 ```
+
+`list`, `by-ksef` and `invoices` print one page at a time: `--pageSize` sets its size and `--continue <token>` fetches the page the previous run pointed to. Add `--all` to fetch every remaining page in one run; with `--json` the output keeps the single-page shape, holding all items and no continuation token.
 
 ## Peppol
 
@@ -504,7 +520,7 @@ ksef test-data update-certificate --serial 0123456789ABCDEF --valid-to 2026-12-3
 
 ### Rate limits (requires session)
 
-Every category is required, and each takes `perSecond`, `perMinute`, and `perHour`. KSeF rejects the request if any category is missing. It also range-checks each category separately: `collectiveIdentifier` is capped at 10 per second, 60 per minute, and 120 per hour, well below the other categories.
+Every category is required, and each takes `perSecond`, `perMinute`, and `perHour`. KSeF rejects the request if any category is missing. The override covers the 13 categories below only: the groups added in KSeF API v2.8.0 (`onlineSessionClose`, `batchSessionClose`, `anonymous`, `global`) are reported by `ksef limits rate` but are not part of the override request. It also range-checks each category separately: `collectiveIdentifier` is capped at 10 per second, 60 per minute, and 120 per hour, well below the other categories.
 
 ```bash
 ksef test-data set-rate-limits --limits '{
@@ -579,6 +595,20 @@ The CLI provides contextual hints after common errors:
 | HTTP 410 | The operation has aged out. Re-submit the request if still relevant. |
 | Rate limited | Retry after N seconds. |
 | Network error | Run `ksef doctor` to diagnose connectivity issues. |
+
+Some KSeF error codes get a dedicated hint, shown instead of the HTTP status hint above. The codes are read from the error list, from the legacy exception list and from the error class itself; each distinct code is answered once, as `Hint [code]: …`:
+
+| Code | Hint |
+|------|------|
+| 21184 | The session is temporarily unavailable — run `ksef session open` and send the remaining invoices in the new session. |
+| 21208 | The batch session expired before all parts were uploaded — send the batch again with `ksef invoice send`. |
+| 21418 | The continuation token is invalid — start the listing again without `--continue`. |
+| 21470 | KSeF no longer accepts the encryption key (likely mid key rotation) — wait a moment and run the command again. |
+| 71004 | A collective identifier groups invoices of one seller only — remove the invoices of other sellers. |
+| 71005 | The invoice list repeats a KSeF number — remove the duplicates. |
+| 21405 | Generic input validation — fix the values named in the error details. Shown only when no more specific code applies. |
+
+Hints are printed only in the human-readable output; `--json` emits the error payload alone.
 
 ## Reading CLI Errors
 

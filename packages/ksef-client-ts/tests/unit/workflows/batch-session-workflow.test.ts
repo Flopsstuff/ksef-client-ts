@@ -5,6 +5,7 @@ import { uploadBatch, uploadBatchParsed, uploadBatchStream, uploadBatchStreamPar
 import { createZip } from '../../../src/utils/zip.js';
 import { createTarGz } from '../../../src/utils/targz.js';
 import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
+import { KSeFSessionFailedError } from '../../../src/errors/ksef-session-failed-error.js';
 import type { UpoPotwierdzenie } from '../../../src/xml/index.js';
 
 const invoicesDir = path.join(__dirname, '../../fixtures/invoices');
@@ -94,6 +95,44 @@ describe('uploadBatch', () => {
     );
   });
 
+  it('passes features merged with the deprecated upoVersion', async () => {
+    await uploadBatch(client, zipData, {
+      upoVersion: 'subject-identifier-validation',
+      features: ['subject-identifier-validation'],
+      pollOptions: { intervalMs: 1 },
+    });
+    expect(client.batchSession.openSession).toHaveBeenCalledWith(
+      expect.any(Object),
+      'subject-identifier-validation',
+    );
+  });
+
+  it('rejects a comma-delimited features string with distinct values before touching crypto', async () => {
+    await expect(uploadBatch(client, zipData, {
+      features: 'upo-v4-3,subject-identifier-validation',
+      pollOptions: { intervalMs: 1 },
+    })).rejects.toBeInstanceOf(KSeFValidationError);
+    expect(client.crypto.init).not.toHaveBeenCalled();
+    expect(client.batchSession.openSession).not.toHaveBeenCalled();
+  });
+
+  it('collapses a comma-delimited features string of one repeated value', async () => {
+    await uploadBatch(client, zipData, {
+      features: 'subject-identifier-validation, subject-identifier-validation',
+      pollOptions: { intervalMs: 1 },
+    });
+    expect(client.batchSession.openSession).toHaveBeenCalledWith(expect.any(Object), 'subject-identifier-validation');
+  });
+
+  it('rejects more than one distinct feature before touching crypto', async () => {
+    await expect(uploadBatch(client, zipData, {
+      features: ['upo-v4-3', 'subject-identifier-validation'],
+      pollOptions: { intervalMs: 1 },
+    })).rejects.toThrow('only one X-KSeF-Feature value per session');
+    expect(client.crypto.init).not.toHaveBeenCalled();
+    expect(client.batchSession.openSession).not.toHaveBeenCalled();
+  });
+
   it('passes offlineMode to openSession', async () => {
     await uploadBatch(client, zipData, { offlineMode: true, pollOptions: { intervalMs: 1 } });
     expect(client.batchSession.openSession).toHaveBeenCalledWith(
@@ -109,6 +148,9 @@ describe('uploadBatch', () => {
     await expect(
       uploadBatch(client, zipData, { pollOptions: { intervalMs: 1 } }),
     ).rejects.toThrow('Batch session failed: 400');
+    await expect(
+      uploadBatch(client, zipData, { pollOptions: { intervalMs: 1 } }),
+    ).rejects.toBeInstanceOf(KSeFSessionFailedError);
   });
 
   it('sends encrypted parts (not raw data)', async () => {
@@ -322,6 +364,36 @@ describe('uploadBatchStream', () => {
     );
   });
 
+  it('passes features to openSession', async () => {
+    await uploadBatchStream(client, zipStreamFactory, zipData.length, {
+      features: 'subject-identifier-validation',
+      pollOptions: { intervalMs: 1 },
+    });
+    expect(client.batchSession.openSession).toHaveBeenCalledWith(
+      expect.any(Object),
+      'subject-identifier-validation',
+    );
+  });
+
+  it('rejects a comma-delimited features string with distinct values before touching crypto', async () => {
+    await expect(uploadBatchStream(client, zipStreamFactory, zipData.length, {
+      features: 'subject-identifier-validation, upo-v4-3',
+      pollOptions: { intervalMs: 1 },
+    })).rejects.toBeInstanceOf(KSeFValidationError);
+    expect(client.crypto.init).not.toHaveBeenCalled();
+    expect(client.batchSession.openSession).not.toHaveBeenCalled();
+  });
+
+  it('rejects more than one distinct feature before touching crypto', async () => {
+    await expect(uploadBatchStream(client, zipStreamFactory, zipData.length, {
+      upoVersion: 'upo-v4-3',
+      features: 'subject-identifier-validation',
+      pollOptions: { intervalMs: 1 },
+    })).rejects.toThrow('only one X-KSeF-Feature value per session');
+    expect(client.crypto.init).not.toHaveBeenCalled();
+    expect(client.batchSession.openSession).not.toHaveBeenCalled();
+  });
+
   it('throws on non-200 final status', async () => {
     client.sessionStatus.getSessionStatus.mockResolvedValue({
       status: { code: 400, description: 'Bad request' },
@@ -329,6 +401,9 @@ describe('uploadBatchStream', () => {
     await expect(
       uploadBatchStream(client, zipStreamFactory, zipData.length, { pollOptions: { intervalMs: 1 } }),
     ).rejects.toThrow('Batch session failed: 400');
+    await expect(
+      uploadBatchStream(client, zipStreamFactory, zipData.length, { pollOptions: { intervalMs: 1 } }),
+    ).rejects.toBeInstanceOf(KSeFSessionFailedError);
   });
 
   it('uses sendPartsWithStream (not sendParts)', async () => {

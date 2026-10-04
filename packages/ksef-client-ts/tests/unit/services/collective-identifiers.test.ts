@@ -2,6 +2,7 @@ import {
   CollectiveIdentifiersService,
   MIN_INVOICES_PER_COLLECTIVE_IDENTIFIER,
   MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER,
+  MAX_COLLECTIVE_IDENTIFIER_INVOICE_DESCRIPTION_LENGTH,
 } from '../../../src/services/collective-identifiers.js';
 import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
 import { createMockRestClient, getRequest, mockResponse } from './_helpers.js';
@@ -16,6 +17,12 @@ import type {
 const KSEF_NUMBER = '1111111111-20260701-0189AB-CD1234-EF';
 const KSEF_NUMBER_2 = '1111111111-20260701-0189AB-CD1235-F0';
 const COLLECTIVE_NUMBER = '1111111111-IZ202607-65ED02180000-E7';
+
+/** Distinct, well-formed KSeF numbers of one seller, for lists of any length. */
+const invoiceList = (length: number) =>
+  Array.from({ length }, (_, i) => ({
+    ksefNumber: `1111111111-20260701-${i.toString(16).toUpperCase().padStart(12, '0')}-00`,
+  }));
 
 describe('CollectiveIdentifiersService', () => {
   let restClient: RestClient;
@@ -58,7 +65,7 @@ describe('CollectiveIdentifiersService', () => {
     it.each([0, 1])(
       `rejects %i invoices, below the minimum of ${MIN_INVOICES_PER_COLLECTIVE_IDENTIFIER}, without calling the API`,
       async (length) => {
-        const invoices = Array.from({ length }, () => ({ ksefNumber: KSEF_NUMBER }));
+        const invoices = invoiceList(length);
 
         await expect(service.generate({ invoices })).rejects.toBeInstanceOf(KSeFValidationError);
         expect(restClient.execute).not.toHaveBeenCalled();
@@ -66,10 +73,7 @@ describe('CollectiveIdentifiersService', () => {
     );
 
     it(`accepts exactly ${MIN_INVOICES_PER_COLLECTIVE_IDENTIFIER} invoices`, async () => {
-      const invoices = Array.from(
-        { length: MIN_INVOICES_PER_COLLECTIVE_IDENTIFIER },
-        () => ({ ksefNumber: KSEF_NUMBER }),
-      );
+      const invoices = invoiceList(MIN_INVOICES_PER_COLLECTIVE_IDENTIFIER);
 
       await service.generate({ invoices });
 
@@ -77,7 +81,7 @@ describe('CollectiveIdentifiersService', () => {
     });
 
     it('sends a list longer than the default limit, which a context may have raised', async () => {
-      const invoices = Array.from({ length: 501 }, () => ({ ksefNumber: KSEF_NUMBER }));
+      const invoices = invoiceList(501);
 
       await service.generate({ invoices });
 
@@ -85,24 +89,143 @@ describe('CollectiveIdentifiersService', () => {
     });
 
     it(`rejects more than ${MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER} invoices without calling the API`, async () => {
-      const invoices = Array.from(
-        { length: MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER + 1 },
-        () => ({ ksefNumber: KSEF_NUMBER }),
-      );
+      const invoices = invoiceList(MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER + 1);
 
       await expect(service.generate({ invoices })).rejects.toBeInstanceOf(KSeFValidationError);
       expect(restClient.execute).not.toHaveBeenCalled();
     });
 
     it(`accepts exactly ${MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER} invoices`, async () => {
-      const invoices = Array.from(
-        { length: MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER },
-        () => ({ ksefNumber: KSEF_NUMBER }),
-      );
+      const invoices = invoiceList(MAX_INVOICES_PER_COLLECTIVE_IDENTIFIER);
 
       await service.generate({ invoices });
 
       expect(restClient.execute).toHaveBeenCalledOnce();
+    });
+
+    describe('pre-flight checks', () => {
+      /** The detail a rejected request carries, asserting nothing was sent. */
+      async function rejection(invoices: Parameters<typeof service.generate>[0]['invoices']) {
+        const err = await service.generate({ invoices }).catch((e: unknown) => e);
+        expect(err).toBeInstanceOf(KSeFValidationError);
+        expect(restClient.execute).not.toHaveBeenCalled();
+        return (err as KSeFValidationError).details[0]!;
+      }
+
+      it('rejects a KSeF number repeated in the list (KSeF 71005)', async () => {
+        const detail = await rejection([
+          { ksefNumber: KSEF_NUMBER },
+          { ksefNumber: KSEF_NUMBER_2 },
+          { ksefNumber: KSEF_NUMBER },
+        ]);
+
+        expect(detail.field).toBe('invoices[2].ksefNumber');
+        expect(detail.message).toContain(KSEF_NUMBER);
+      });
+
+      it('sends the 35- and 36-character forms of one number, which KSeF resolves separately', async () => {
+        const v36 = '1111111111-20260701-0189AB-CD1234-EF';
+        const v35 = '1111111111-20260701-0189ABCD1234-EF';
+
+        await service.generate({ invoices: [{ ksefNumber: v35 }, { ksefNumber: v36 }] });
+
+        expect(restClient.execute).toHaveBeenCalledOnce();
+      });
+
+      it('rejects invoices of different sellers (KSeF 71004)', async () => {
+        const detail = await rejection([
+          { ksefNumber: KSEF_NUMBER },
+          { ksefNumber: '5265877635-20250826-0100001AF629-AF' },
+        ]);
+
+        expect(detail.field).toBe('invoices[1].ksefNumber');
+        expect(detail.message).toContain('5265877635');
+        expect(detail.message).toContain('1111111111');
+      });
+
+      it.each([
+        ['lowercase hex', '1111111111-20260701-0189abcd1234-ef'],
+        ['a prefix that is not a NIP', '0111111111-20260701-0189ABCD1234-EF'],
+        ['a missing checksum', '1111111111-20260701-0189ABCD1234'],
+        ['an empty string', ''],
+      ])('rejects a malformed KSeF number (%s)', async (_label, ksefNumber) => {
+        const detail = await rejection([{ ksefNumber: KSEF_NUMBER }, { ksefNumber }]);
+
+        expect(detail.field).toBe('invoices[1].ksefNumber');
+      });
+
+      it('rejects an invoice without a KSeF number', async () => {
+        const detail = await rejection([
+          { ksefNumber: KSEF_NUMBER },
+          {} as { ksefNumber: string },
+        ]);
+
+        expect(detail.field).toBe('invoices[1].ksefNumber');
+      });
+
+      it(`rejects a description longer than ${MAX_COLLECTIVE_IDENTIFIER_INVOICE_DESCRIPTION_LENGTH} characters`, async () => {
+        const detail = await rejection([
+          { ksefNumber: KSEF_NUMBER },
+          {
+            ksefNumber: KSEF_NUMBER_2,
+            description: 'x'.repeat(MAX_COLLECTIVE_IDENTIFIER_INVOICE_DESCRIPTION_LENGTH + 1),
+          },
+        ]);
+
+        expect(detail.field).toBe('invoices[1].description');
+      });
+
+      it(`accepts a description of exactly ${MAX_COLLECTIVE_IDENTIFIER_INVOICE_DESCRIPTION_LENGTH} characters`, async () => {
+        await service.generate({
+          invoices: [
+            { ksefNumber: KSEF_NUMBER, description: 'x'.repeat(MAX_COLLECTIVE_IDENTIFIER_INVOICE_DESCRIPTION_LENGTH) },
+            { ksefNumber: KSEF_NUMBER_2, description: null },
+          ],
+        });
+
+        expect(restClient.execute).toHaveBeenCalledOnce();
+      });
+
+      it('measures a description in UTF-16 code units, as KSeF does', async () => {
+        const emoji = '\u{1F600}'; // 2 UTF-16 code units, 1 code point
+        const half = MAX_COLLECTIVE_IDENTIFIER_INVOICE_DESCRIPTION_LENGTH / 2;
+
+        await service.generate({
+          invoices: [{ ksefNumber: KSEF_NUMBER, description: emoji.repeat(half) }, { ksefNumber: KSEF_NUMBER_2 }],
+        });
+        expect(restClient.execute).toHaveBeenCalledOnce();
+        vi.mocked(restClient.execute).mockClear();
+
+        // 257 code points stay well under 512, but 514 code units do not.
+        const detail = await rejection([
+          { ksefNumber: KSEF_NUMBER, description: emoji.repeat(half + 1) },
+          { ksefNumber: KSEF_NUMBER_2 },
+        ]);
+        expect(detail.field).toBe('invoices[0].description');
+      });
+
+      it.each([
+        ['no currency', { amount: 100 }, 'invoices[0].payment.currency'],
+        ['an empty currency', { amount: 100, currency: '' }, 'invoices[0].payment.currency'],
+        ['no amount', { currency: 'PLN' }, 'invoices[0].payment.amount'],
+        ['a null amount', { amount: null, currency: 'PLN' }, 'invoices[0].payment.amount'],
+        ['a non-finite amount', { amount: Number.NaN, currency: 'PLN' }, 'invoices[0].payment.amount'],
+      ])('rejects a payment with %s', async (_label, payment, field) => {
+        const detail = await rejection([
+          { ksefNumber: KSEF_NUMBER, payment: payment as { amount: number; currency: string } },
+          { ksefNumber: KSEF_NUMBER_2 },
+        ]);
+
+        expect(detail.field).toBe(field);
+      });
+
+      it('accepts an invoice whose payment is null', async () => {
+        await service.generate({
+          invoices: [{ ksefNumber: KSEF_NUMBER, payment: null }, { ksefNumber: KSEF_NUMBER_2 }],
+        });
+
+        expect(restClient.execute).toHaveBeenCalledOnce();
+      });
     });
   });
 

@@ -29,6 +29,8 @@ The checksum uses CRC-8 with polynomial `0x07` and initial value `0x00`. The who
 - **Between 2 and 500 invoices** per collective identifier. Two is a hard minimum — an identifier that groups nothing is rejected by the API schema — while 500 is the default ceiling, which the session limits for a context can raise as far as 5000. The client rejects a list below the minimum or above 5000 with a `KSeFValidationError` before sending; between the two it defers to whatever limit the context actually has in force.
 - **At most 132 collective identifiers** per invoice within one context.
 - **Same seller only** — every invoice in one collective identifier must have been issued by the same seller.
+- **Each KSeF number once** — a number repeated in the list is refused.
+- A per-invoice `description` is **at most 512 characters**, counted the way KSeF counts them — in UTF-16 code units, so an emoji or another character outside the Basic Multilingual Plane takes two — and a `payment` needs both `amount` and `currency`.
 - The query date range (`dateCreatedFrom` to `dateCreatedTo`) spans **at most 100 days**.
 
 ## Generate an identifier
@@ -47,6 +49,21 @@ const { collectiveIdentifierNumber } = await client.collectiveIdentifiers.genera
   ],
 });
 ```
+
+### Checks before sending
+
+`generate` refuses, with a `KSeFValidationError` and without contacting KSeF, a list that KSeF would certainly reject. The error's `details[0].field` points at the offending entry, e.g. `invoices[3].ksefNumber`.
+
+| Check | KSeF would answer |
+| ----- | ----------------- |
+| Fewer than 2 or more than 5000 invoices | `21405`, or the context's invoice limit |
+| A `ksefNumber` that does not match the KSeF number format (`NIP-YYYYMMDD-XXXXXXXXXXXX-CC`, uppercase hex, 35 or 36 characters) | `21405` |
+| Invoices of different sellers — the seller is the NIP that opens every KSeF number | `71004` |
+| The same KSeF number more than once | `71005` |
+| A `description` longer than 512 characters | `21405` |
+| A `payment` without `amount` or without `currency` | `21405` |
+
+KSeF numbers are compared exactly as written. KSeF still accepts the 36-character form for compatibility with KSeF 1.0, but it looks each form up separately: the two forms of one number are not a repeat to KSeF, and the form the invoice was not issued under is simply not found (`71001`). The checksum and the currency code are left to KSeF.
 
 ## List identifiers in the context
 
@@ -71,7 +88,7 @@ for (const item of page.collectiveIdentifiers) {
 }
 ```
 
-Paginate by passing `page.continuationToken` back as the third argument until it is empty.
+Paginate by passing `page.continuationToken` back as the third argument until it is empty, or let the [paging helpers](#paging-through-every-result) do it.
 
 ## Look up identifiers by KSeF number
 
@@ -119,6 +136,50 @@ for (const invoice of result.invoices) {
 The KSeF endpoint prose calls this field `paymentDetailsHidden`, but the schema and the live API both return it as `detailsHidden`. This client follows the wire format.
 :::
 
+## Paging through every result
+
+All three lists above page with a continuation token: KSeF returns it in the response body, the next request sends it in the `x-continuation-token` header, and an empty token marks the last page. Three async generators follow it for you and yield one page at a time:
+
+| Helper | Endpoint | Default page size |
+| ------ | -------- | ----------------- |
+| `queryCollectiveIdentifierPages(client, request, options?)` | `POST /collective-identifiers/query` | 200 (KSeF allows 10-200) |
+| `getCollectiveIdentifierPagesByKsefNumber(client, ksefNumber, options?)` | `GET /collective-identifiers/ksef/{ksefNumber}` | 200 (KSeF allows 10-200) |
+| `queryCollectiveIdentifierInvoicePages(client, request, options?)` | `POST /collective-identifiers/invoices` | 500 (KSeF allows 10-500) |
+
+The defaults are the largest pages KSeF serves, so a walk uses as few requests of the domain's rate limit as possible.
+
+Each page is `{ items, continuationToken }`, where `continuationToken` is the token of the *next* page and `undefined` on the last one. Save it after you have handled a page, and pass it back as the `continuationToken` option to resume from the following page later:
+
+```ts
+import { queryCollectiveIdentifierInvoicePages } from 'ksef-client-ts';
+
+// Where an earlier run stopped; undefined starts from the first page.
+let savedToken: string | undefined = loadSavedToken();
+const controller = new AbortController();
+
+for await (const page of queryCollectiveIdentifierInvoicePages(
+  client,
+  { collectiveIdentifierNumbers: [collectiveIdentifierNumber] },
+  { continuationToken: savedToken, signal: controller.signal },
+)) {
+  for (const invoice of page.items) {
+    console.log(invoice.ksefNumber, invoice.payment?.amount);
+  }
+  savedToken = page.continuationToken; // undefined once the walk is complete
+}
+```
+
+| Option | Default | Meaning |
+| ------ | ------- | ------- |
+| `pageSize` | 200 or 500 | Results per request. Values outside KSeF's range are left for KSeF to reject. |
+| `continuationToken` | — | Token of the page to start from. |
+| `maxPages` | 1000 | Safety cap on the number of requests. |
+| `signal` | — | An `AbortSignal`. Once aborted, the walk rejects with the signal's reason before its next request; a request already in flight is not cancelled. |
+
+When the page order does not matter, the `collectAll` variants drain a walk into one array: `collectAllCollectiveIdentifiers`, `collectAllCollectiveIdentifiersByKsefNumber` and `collectAllCollectiveIdentifierInvoices`. They take the same arguments.
+
+A walk ends with a [`KSeFPaginationError`](/error-handling#ksefpaginationerror) instead of running forever in two cases: KSeF returns a token it has already returned, or the walk needs more than `maxPages` pages. Every page read before that has already been yielded. The error's `reason` tells the two apart (`'repeated-token'` or `'max-pages'`), and its `continuationToken` (also quoted in the message) is the repeated token, or, at the cap, the token of the first unread page to resume from.
+
 ## CLI
 
 ```bash
@@ -134,11 +195,19 @@ ksef collective-identifier list --from 2026-07-01 [--to 2026-07-31] \
   [--pageSize N] [--continue <token>]
 
 # Which identifiers does this invoice belong to?
-ksef collective-identifier by-ksef <ksefNumber>
+ksef collective-identifier by-ksef <ksefNumber> [--pageSize N] [--continue <token>]
 
 # What is inside this identifier?
-ksef collective-identifier invoices <collectiveIdentifierNumber>
+ksef collective-identifier invoices <collectiveIdentifierNumber> [--pageSize N] [--continue <token>]
+
+# Any of the three lists: fetch every page instead of one
+ksef collective-identifier list --from 2026-07-01 --all
+ksef collective-identifier invoices <collectiveIdentifierNumber> --all [--continue <token>]
 ```
+
+Without `--all` each list command prints one page and, when there is more, the continuation token to pass to `--continue`. With `--all` it follows the tokens itself, starting from `--continue` when given, and prints every row; `--json` then prints the usual response shape with all items and no `continuationToken`.
+
+`--all` prints nothing until the last page is in. If the listing needs more than 1000 pages, the command stops with an error before printing any rows; the hint names the token to pass to `--continue` to fetch the pages after the ones read, and `--json` puts it in the error's `continuationToken`.
 
 `--file` accepts either a full request object or a bare array:
 
@@ -165,6 +234,8 @@ When `--to` is omitted from `list`, the current time is used.
 | ---- | ------- |
 | `71001` | The invoice cannot be assigned to a collective identifier. |
 | `71002` | The invoice already belongs to the maximum number of collective identifiers (132). |
+| `71004` | The invoices have different sellers. The client catches this before sending. |
+| `71005` | A KSeF number is repeated in the request. The client catches this before sending. |
 | `21405` | Input validation failed. |
 
 Rate limits for this domain are 20 requests/second, 120/minute, 240/hour (`collectiveIdentifier` category — see `ksef limits rate`). Not to be confused with the much lower ceiling the same category has on test-data rate-limit *overrides* (10/60/120), which bounds what you may set, not what KSeF enforces.

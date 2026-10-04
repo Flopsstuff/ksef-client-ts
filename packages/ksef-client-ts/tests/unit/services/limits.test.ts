@@ -1,5 +1,6 @@
 import { LimitsService } from '../../../src/services/limits.js';
 import { createMockRestClient, getRequest, mockResponse } from './_helpers.js';
+import * as pkg from '../../../src/index.js';
 
 describe('LimitsService', () => {
   it('getContextLimits sends GET to limits/context', async () => {
@@ -42,5 +43,9 @@ describe('LimitsService', () => {
     const req = getRequest(restClient.execute);
     expect(req.method).toBe('GET');
     expect(req.path).toBe('rate-limits');
+  });
+
+  it('exports RATE_LIMIT_UNLIMITED (-1) from the package root', () => {
+    expect(pkg.RATE_LIMIT_UNLIMITED).toBe(-1);
   });
 });

@@ -141,7 +141,7 @@ Invoice number (`P_2` in XML) must be unique — resubmitting gives error 440 (D
 
 ### OpenAPI spec
 
-`packages/ksef-client-ts/docs/open-api.json` is the KSeF API OpenAPI specification (source of truth, KSeF API v2.7.1, build `2.7.1-te`; synced from the live TEST endpoint `https://api-test.ksef.mf.gov.pl/docs/v2/openapi.json`). Note: TEST/DEMO lead while PROD trails, so the vendored spec can be ahead of what PROD serves. Update it with `yarn sync-openapi` (`--env demo|prod` to pull from another environment, `--dry-run` to preview the delta), which writes the served document verbatim. Per-domain chunks in `packages/ksef-client-ts/docs/openapi-chunks/` (10 chunks + manifest; descriptions stripped to save tokens). Regenerate with `yarn split-openapi` after every sync. Validate coverage with `yarn check-api`.
+`packages/ksef-client-ts/docs/open-api.json` is the KSeF API OpenAPI specification (source of truth, KSeF API v2.8.1, build `2.8.1-te`; synced from the live TEST endpoint `https://api-test.ksef.mf.gov.pl/docs/v2/openapi.json`). Note: TEST/DEMO lead while PROD trails, so the vendored spec can be ahead of what PROD serves. Update it with `yarn sync-openapi` (`--env demo|prod` to pull from another environment, `--dry-run` to preview the delta), which writes the served document verbatim. Per-domain chunks in `packages/ksef-client-ts/docs/openapi-chunks/` (10 chunks + manifest; descriptions stripped to save tokens). Regenerate with `yarn split-openapi` after every sync. Validate coverage with `yarn check-api`.
 
 ### XSD schemas
 
@@ -149,9 +149,9 @@ Invoice number (`P_2` in XML) must be unique — resubmitting gives error 440 (D
 
 ### Error hierarchy
 
-`KSeFError` (base) → `KSeFApiError` (generic HTTP), `KSeFBadRequestError` (400), `KSeFUnauthorizedError` (401), `KSeFForbiddenError` (403), `KSeFGoneError` (410, retention expired), `KSeFRateLimitError` (429), `KSeFBatchTimeoutError` (KSeF code 21208), `KSeFUnknownPublicKeyError` (KSeF code 21470, pre-empts `KSeFBadRequestError`), `KSeFAuthStatusError`, `KSeFSessionExpiredError`, `KSeFValidationError` (builder validation), `KSeFXsdValidationError` (XSD schema validation), `KSeFMetadataPaginationError` (paging cannot advance), `KSeFCircuitOpenError` (circuit breaker fail-fast).
+`KSeFError` (base) → `KSeFApiError` (generic HTTP), `KSeFBadRequestError` (400), `KSeFUnauthorizedError` (401), `KSeFForbiddenError` (403), `KSeFGoneError` (410, retention expired), `KSeFRateLimitError` (429), `KSeFBatchTimeoutError` (KSeF code 21208), `KSeFUnknownPublicKeyError` (KSeF code 21470, pre-empts `KSeFBadRequestError`), `KSeFSessionUnavailableError` (KSeF code 21184, session temporarily unavailable, pre-empts `KSeFBadRequestError` and `KSeFUnknownPublicKeyError`), `KSeFAuthStatusError`, `KSeFSessionExpiredError`, `KSeFSessionFailedError` (session ended in a failed status while waiting for UPO), `KSeFInvoiceRejectedError` (`waitForInvoice` — invoice status ≥ 400, e.g. 440 duplicate with `originalKsefNumber`), `KSeFValidationError` (builder validation), `KSeFXsdValidationError` (XSD schema validation), `KSeFMetadataPaginationError` (paging cannot advance), `KSeFPaginationError` (continuation-token paging repeats a token or hits its page cap), `KSeFCircuitOpenError` (circuit breaker fail-fast).
 
-`RestClient.ensureSuccess` reads body text once, then parses per status code (400→429→401→403→410), falling back to a KSeF-error-code check and then generic `KSeFApiError`.
+`RestClient.ensureSuccess` reads body text once, then parses per status code (400→429→401→403→410), falling back to a KSeF-error-code check and then generic `KSeFApiError`. Within 400, KSeF codes are checked in both body formats in the order 21184 → 21470 (→ 21208 for legacy bodies) before the generic 400 class.
 
 ### CI/CD
 

@@ -1,9 +1,9 @@
 import { RestClient } from '../http/rest-client.js';
-import { KSEF_FEATURE_HEADER } from '../http/ksef-feature.js';
+import { KSEF_FEATURE_HEADER, resolveSessionFeature } from '../http/ksef-feature.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
 import { runWithConcurrency } from '../utils/concurrency.js';
-import type { UpoVersion } from '../http/ksef-feature.js';
+import type { KSeFFeature, UpoVersion } from '../http/ksef-feature.js';
 import type { OpenBatchSessionRequest, OpenBatchSessionResponse, BatchPartSendingInfo, BatchPartStreamSendingInfo } from '../models/sessions/batch-types.js';
 
 export class BatchSessionService {
@@ -13,14 +13,21 @@ export class BatchSessionService {
     this.restClient = restClient;
   }
 
+  /**
+   * @param features Value(s) for the X-KSeF-Feature header, e.g.
+   *   `KSeFFeature.SubjectIdentifierValidation` (TEST only). Strings are split
+   *   on commas. KSeF honours one feature per session, so more than one
+   *   distinct value throws `KSeFValidationError` before the request is sent.
+   */
   async openSession(
     request: OpenBatchSessionRequest,
-    upoVersion?: UpoVersion | string,
+    features?: UpoVersion | KSeFFeature | string | readonly string[],
   ): Promise<OpenBatchSessionResponse> {
+    const feature = resolveSessionFeature(features);
     const req = RestRequest.post(Routes.Sessions.Batch.open)
       .body(request);
-    if (upoVersion) {
-      req.header(KSEF_FEATURE_HEADER, upoVersion);
+    if (feature) {
+      req.header(KSEF_FEATURE_HEADER, feature);
     }
     const response = await this.restClient.execute<OpenBatchSessionResponse>(req);
     return response.body;

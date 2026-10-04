@@ -1,6 +1,6 @@
 # Models & Type System
 
-Complete reference for the model layer that defines every request, response, enum, and identifier type used by the KSeF client. All types are derived from the KSeF OpenAPI spec (API v2.7.1, build 2.7.1-te) and organized by API domain.
+Complete reference for the model layer that defines every request, response, enum, and identifier type used by the KSeF client. All types are derived from the KSeF OpenAPI spec (API v2.8.1, build 2.8.1-te) and organized by API domain.
 
 ---
 
@@ -608,9 +608,9 @@ Each permission grant target has its own set of allowed permission types:
 | Enum | Values | Used by |
 |---|---|---|
 | `PersonPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CredentialsRead`, `CredentialsManage`, `EnforcementOperations`, `SubunitManage`, `Introspection`, `CollectiveIdentifierManage` | `GrantPermissionsPersonRequest` |
-| `EntityPermissionItemType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsEntityRequest` |
+| `EntityPermissionItemType` | `InvoiceRead`, `InvoiceWrite`, `CollectiveIdentifierManage` | `GrantPermissionsEntityRequest`, `EntityPermissionItem` (entity-grants query) |
 | `EuEntityPermissionType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsEuEntityRepresentativeRequest` |
-| `IndirectPermissionType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsIndirectRequest` |
+| `IndirectPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CollectiveIdentifierManage` | `GrantPermissionsIndirectRequest` |
 | `SubunitPermissionScope` | `CredentialsManage` | `GrantPermissionsSubunitRequest` |
 | `InvoicePermissionType` | `SelfInvoicing`, `TaxRepresentative`, `RRInvoicing`, `PefInvoicing` | Entity authorization grants |
 | `EntityRoleType` | `CourtBailiff`, `EnforcementAuthority`, `LocalGovernmentUnit`, `LocalGovernmentSubUnit`, `VatGroupUnit`, `VatGroupSubUnit` | Entity role queries |
@@ -756,7 +756,7 @@ Effective rate limits and session context limits, plus override types for the te
 
 Key types:
 
-- `EffectiveApiRateLimits` -- per-second/minute/hour limits for 13 endpoint categories
+- `EffectiveApiRateLimits` -- per-second/minute/hour limits for 17 groups: the 13 endpoint categories, plus `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window equal to `RATE_LIMIT_UNLIMITED` (`-1`) has no limit; `global` (per-IP) is reserved and currently disabled
 - `EffectiveContextLimits` -- max invoice size and count for online/batch sessions, and max invoices per collective identifier
 - `EffectiveSubjectLimits` -- enrollment and certificate limits per subject
 - `SetRateLimitsRequest`, `SetSessionLimitsRequest`, `SetSubjectLimitsRequest` -- override requests (test environment only)
@@ -937,7 +937,7 @@ The `Permission` prefix prevents collision with the auth-domain identifier type 
 
 ## OpenAPI Alignment
 
-All types are aligned with the KSeF OpenAPI spec (API v2.7.1, build 2.7.1-te, `docs/open-api.json`). Key alignment decisions:
+All types are aligned with the KSeF OpenAPI spec (API v2.8.1, build 2.8.1-te, `docs/open-api.json`). Key alignment decisions:
 
 | OpenAPI spec | TypeScript type | Note |
 |---|---|---|

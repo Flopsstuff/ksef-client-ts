@@ -45,10 +45,12 @@ RestClient.sendRequest()
   ▼
 RestClient.ensureSuccess()
   │
+  ├── 400 → KSeFSessionUnavailableError (21184) / KSeFUnknownPublicKeyError (21470) / KSeFBadRequestError
   ├── 429 → KSeFRateLimitError
   ├── 401 → KSeFUnauthorizedError
   ├── 403 → KSeFForbiddenError
-  └── other → KSeFApiError
+  ├── 410 → KSeFGoneError
+  └── other → KSeFBatchTimeoutError (21208) / KSeFApiError
 ```
 
 The order matters:
@@ -57,7 +59,7 @@ The order matters:
 2. **Circuit breaker check** runs before rate-limit acquire and before the retry loop, so an open circuit fails fast with `KSeFCircuitOpenError` without stalling on the global token queue or consuming a token a healthy caller could have used. The retry loop re-checks the breaker at the start of each attempt so a mid-loop open (from another concurrent request) short-circuits remaining attempts. After the loop finishes, the breaker records a success or failure based on the final outcome. 429 and 401 responses never count as failures.
 3. **Rate limit acquire** runs once, after the breaker check and before the retry loop, so retries don't consume additional rate limit tokens (except on 429, where a re-acquire is needed because the server rejected the request).
 4. **Auth refresh** runs inside the retry loop but only on the first attempt and only for 401 responses. If refresh succeeds, the request is retried once with the new token. If it fails, the 401 propagates.
-5. **Error dispatch** happens after the retry loop is exhausted. The body is read once and parsed per status code in a fixed priority: 429 > 401 > 403 > generic.
+5. **Error dispatch** happens after the retry loop is exhausted. The body is read once and parsed per status code in a fixed priority: 400 > 429 > 401 > 403 > 410 > generic.
 
 ---
 
@@ -78,7 +80,7 @@ All source files are in `src/http/`:
 | `route-builder.ts` | Prepends API version prefix (`/v2/`) to endpoint paths. |
 | `routes.ts` | All KSeF API endpoint paths as `const` object. |
 | `transport.ts` | `TransportFn` type alias + `defaultTransport` (native `fetch`). |
-| `ksef-feature.ts` | `X-KSeF-Feature` header constants (`UpoVersion`, `ENFORCE_XADES_COMPLIANCE`). |
+| `ksef-feature.ts` | `X-KSeF-Feature` header constants (`UpoVersion`, `KSeFFeature`, `ENFORCE_XADES_COMPLIANCE`). |
 | `index.ts` | Barrel re-exports. |
 
 ---
@@ -554,12 +556,18 @@ Regular API requests to the KSeF base URL are not validated against the presigne
 
 ## Error Dispatch
 
-**File:** `src/http/rest-client.ts`, `ensureSuccess()` method (lines 182-215)
+**File:** `src/http/rest-client.ts`, `ensureSuccess()` method
 
 After the retry loop is exhausted and a non-2xx response remains, `ensureSuccess()` reads the body text **once** and attempts to parse it as JSON per status code:
 
 ```text
 Response not OK?
+  │
+  ├── 400 → parse as BadRequestProblemDetails (or legacy ApiErrorResponse)
+  │         → KSeF code 21184 → throw KSeFSessionUnavailableError
+  │         → KSeF code 21470 → throw KSeFUnknownPublicKeyError
+  │         → Problem Details body → throw KSeFBadRequestError
+  │         (see Error Handling for the full 400 branch)
   │
   ├── 429 → parse as TooManyRequestsResponse → throw KSeFRateLimitError
   │         (includes Retry-After header parsing)
@@ -570,11 +578,15 @@ Response not OK?
   ├── 403 → parse as ForbiddenProblemDetails → throw KSeFForbiddenError
   │         (only if body has .reasonCode field — RFC 7807 format)
   │
-  └── any → parse as ApiErrorResponse → throw KSeFApiError
+  ├── 410 → parse as GoneProblemDetails → throw KSeFGoneError
+  │
+  └── any → parse as ApiErrorResponse
+            → KSeF exceptionCode 21208 → throw KSeFBatchTimeoutError
+            → otherwise throw KSeFApiError
             (generic fallback for all other status codes)
 ```
 
-The dispatch order (429 > 401 > 403 > generic) is intentional. A 429 that also has `detail` in the body should be treated as rate limiting, not as unauthorized. Each check is exclusive — once a specific error type is thrown, no further checks run.
+The dispatch order (400 > 429 > 401 > 403 > 410 > generic) is intentional. A 429 that also has `detail` in the body should be treated as rate limiting, not as unauthorized. Each check is exclusive — once a specific error type is thrown, no further checks run.
 
 ---
 

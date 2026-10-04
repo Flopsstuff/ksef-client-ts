@@ -9,18 +9,28 @@ Guide to error types, diagnostics, and common issues when working with the KSeF 
 ```
 KSeFError (base)
 ├── KSeFApiError (generic HTTP errors)
-│   └── KSeFRateLimitError (429)
-├── KSeFUnauthorizedError (401)
-├── KSeFForbiddenError (403)
-├── KSeFGoneError (410, operation status retention expired)
+│   ├── KSeFBadRequestError (400)
+│   ├── KSeFUnauthorizedError (401)
+│   ├── KSeFForbiddenError (403)
+│   ├── KSeFGoneError (410, operation status retention expired)
+│   ├── KSeFRateLimitError (429)
+│   ├── KSeFBatchTimeoutError (KSeF code 21208)
+│   ├── KSeFUnknownPublicKeyError (400, KSeF code 21470)
+│   └── KSeFSessionUnavailableError (400, KSeF code 21184)
 ├── KSeFAuthStatusError
 ├── KSeFSessionExpiredError
-└── KSeFValidationError (client-side validation)
+├── KSeFSessionFailedError (session ended in a failed status)
+├── KSeFInvoiceRejectedError (KSeF rejected a sent invoice)
+├── KSeFCircuitOpenError (circuit breaker is open)
+├── KSeFValidationError (client-side validation)
+├── KSeFXsdValidationError (XSD schema validation)
+├── KSeFMetadataPaginationError (metadata paging cannot advance)
+└── KSeFPaginationError (continuation-token paging cannot finish)
 ```
 
-`RestClient` dispatches errors in order: **429 → 401 → 403 → 410 → known KSeF exception codes → generic**. The first matching handler throws the corresponding error class.
+`RestClient` dispatches errors in order: **400 → 429 → 401 → 403 → 410 → known KSeF exception codes → generic**. The first matching handler throws the corresponding error class.
 
-Currently, the exception-code branch maps **21208** to `KSeFBatchTimeoutError`.
+Currently, the exception-code branch maps **21208** to `KSeFBatchTimeoutError`. On HTTP 400, code **21184** (session temporarily unavailable — open a new session and continue) maps to `KSeFSessionUnavailableError` and code **21470** to `KSeFUnknownPublicKeyError`.
 
 ---
 
@@ -42,7 +52,7 @@ The KSeF API enforces per-subject rate limits. The library automatically retries
 
 ### 401 — Unauthorized
 
-**Error class:** `KSeFUnauthorizedError` (extends `KSeFError`)
+**Error class:** `KSeFUnauthorizedError` (extends `KSeFApiError`)
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -63,7 +73,7 @@ The library automatically attempts one token refresh on 401. If refresh also fai
 
 ### 403 — Forbidden
 
-**Error class:** `KSeFForbiddenError` (extends `KSeFError`)
+**Error class:** `KSeFForbiddenError` (extends `KSeFApiError`)
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -100,7 +110,7 @@ No dedicated error class — thrown as `KSeFApiError`.
 
 ### 410 — Gone (operation status retention expired)
 
-**Error class:** `KSeFGoneError` (extends `KSeFError`)
+**Error class:** `KSeFGoneError` (extends `KSeFApiError`)
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -154,6 +164,18 @@ The KSeF session has expired. Sessions have a limited duration.
 Authentication status check returned an unexpected code during the login ceremony.
 
 **What to do:** Retry the login. If persistent, check KSeF system status via `ksef lighthouse status`.
+
+### KSeFSessionFailedError
+
+An online or batch session ended in a failed status (e.g. 445 — no valid invoices) while waiting for its UPO. `code`, `description` and `details` carry what KSeF reported.
+
+**What to do:** Run `ksef session failed <ref>` (or `getSessionFailedInvoices()`) to see why each invoice was rejected.
+
+### KSeFInvoiceRejectedError
+
+`waitForInvoice()` found that KSeF rejected the invoice. `code` is the invoice status: 440 is a duplicate (same seller, invoice type and number), 450 a semantic error explained in `details`.
+
+**What to do:** For 440, the invoice is already in KSeF — `originalKsefNumber` gives its KSeF number. Otherwise fix the invoice and send it again.
 
 ---
 
