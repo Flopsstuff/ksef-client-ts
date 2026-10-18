@@ -64,7 +64,9 @@ The exception is a POST that only reads data and uses POST because it carries a 
 delay = min(baseDelayMs × 2^attempt + random(0, baseDelayMs), maxDelayMs)
 ```
 
-For 429 responses with a `Retry-After` header, the server-specified delay is used instead of the calculated backoff. `Retry-After` is parsed as seconds (integer) or HTTP-date.
+For 429 and 503 responses with a `Retry-After` header, the server-specified delay is used instead of the calculated backoff (`maxDelayMs` does not cap it). `Retry-After` is parsed as seconds or HTTP-date; a negative value or a date in the past means retry at once, and a malformed value falls back to backoff.
+
+If the server asks for a longer wait than `maxRetryAfterMs` (default 120 s), the client does not sleep and stops retrying: a 429 is thrown at once as `KSeFRateLimitError` with the server's value in `retryAfterSeconds`, so you can schedule the retry yourself; a 503 is thrown as `KSeFApiError`.
 
 ### Configuration
 
@@ -75,6 +77,7 @@ For 429 responses with a `Retry-After` header, the server-specified delay is use
 | `maxDelayMs` | `number` | `30000` | Maximum delay cap in milliseconds |
 | `retryableStatusCodes` | `number[]` | `[429, 500, 502, 503, 504]` | HTTP status codes to retry |
 | `retryNetworkErrors` | `boolean` | `true` | Retry on network errors |
+| `maxRetryAfterMs` | `number` | `120000` | Longest `Retry-After` the client waits out; a longer one fails at once. `Infinity` waits for any value |
 
 ### Examples
 

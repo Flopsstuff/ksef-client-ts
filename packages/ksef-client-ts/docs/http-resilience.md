@@ -32,7 +32,8 @@ RestClient.sendRequest()
   │   │     └── AuthManager.onUnauthorized() ──► refresh token ──► retry once
   │   │
   │   ├── On retryable status (429, 5xx; POST: 429 only):
-  │   │     ├── Calculate delay (Retry-After or exponential backoff)
+  │   │     ├── Calculate delay (Retry-After on 429/503, else exponential backoff)
+  │   │     ├── Retry-After above maxRetryAfterMs → return response (no retry)
   │   │     ├── Sleep
   │   │     ├── Re-acquire rate limit token (429 only)
   │   │     └── Continue loop
@@ -151,6 +152,7 @@ interface RetryPolicy {
   maxDelayMs: number;           // default: 30000
   retryableStatusCodes: number[]; // default: [429, 500, 502, 503, 504]
   retryNetworkErrors: boolean;  // default: true
+  maxRetryAfterMs?: number;     // default: 120000
 }
 ```
 
@@ -171,16 +173,18 @@ The jitter is uniform random `[0, baseDelayMs)` added to the exponential value. 
 
 ### Retry-After header
 
-For 429 responses, the server may include a `Retry-After` header. If present, it overrides the calculated backoff:
+For 429 and 503 responses, the server may include a `Retry-After` header. If present, it overrides the calculated backoff and is not capped by `maxDelayMs`:
 
 ```typescript
-// src/http/retry-policy.ts, lines 25-39
+// src/http/retry-policy.ts
 function parseRetryAfter(header: string | null): number | null {
-  // Try as integer seconds: "120" → 120000ms
-  // Try as HTTP-date: "Thu, 28 Mar 2026 12:00:00 GMT" → diff from now
-  // Returns null if unparseable
+  // Try as seconds: "120" → 120000ms; negative → 0
+  // Try as HTTP-date: "Thu, 28 Mar 2026 12:00:00 GMT" → diff from now, past → 0
+  // Returns null if absent, unparseable or non-finite ("Infinity") → backoff
 }
 ```
+
+`maxRetryAfterMs` (default 120 000 ms) bounds how long the client will wait. When `Retry-After` asks for more, the client neither sleeps nor retries: the response becomes final, so a 429 is thrown as `KSeFRateLimitError` with the server's value (`retryAfterSeconds`) and a 503 as `KSeFApiError`. The circuit breaker records that response like any other final one. Set `maxRetryAfterMs: Infinity` to wait for any value.
 
 ### Retryable errors
 

@@ -17,6 +17,20 @@ describe('KSeFRateLimitError', () => {
     expect(err.recommendedDelay).toBe(0);
   });
 
+  it('fromRetryAfterHeader() clamps a negative value to 0', () => {
+    const err = KSeFRateLimitError.fromRetryAfterHeader(429, '-5');
+
+    expect(err.retryAfterSeconds).toBe(0);
+    expect(err.recommendedDelay).toBe(0);
+  });
+
+  it('fromRetryAfterHeader() ignores a non-finite value', () => {
+    const err = KSeFRateLimitError.fromRetryAfterHeader(429, 'Infinity');
+
+    expect(err.retryAfterSeconds).toBeUndefined();
+    expect(err.recommendedDelay).toBe(60);
+  });
+
   it('fromRetryAfterHeader() with HTTP-date', () => {
     const futureDate = new Date(Date.now() + 120_000);
     const err = KSeFRateLimitError.fromRetryAfterHeader(429, futureDate.toUTCString());

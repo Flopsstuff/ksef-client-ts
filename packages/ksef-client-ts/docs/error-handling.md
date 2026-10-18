@@ -465,10 +465,10 @@ The `fromRetryAfterHeader()` factory parses the header in two formats:
 1. **Seconds:** `Retry-After: 120` -- parsed as integer, stored in `retryAfterSeconds`.
 2. **HTTP-date:** `Retry-After: Thu, 28 Mar 2026 12:00:00 GMT` -- parsed as `Date`, delta from now stored in `retryAfterSeconds`.
 
-If the header is missing or unparseable, `retryAfterSeconds` is `undefined` and `recommendedDelay` falls back to `60` seconds.
+A negative value is treated as `0`. If the header is missing, unparseable or non-finite, `retryAfterSeconds` is `undefined` and `recommendedDelay` falls back to `60` seconds.
 
 ::: tip
-By the time you catch a `KSeFRateLimitError`, the built-in retry policy has already retried up to 3 times with backoff. This error means all retries were exhausted. Use `recommendedDelay` to schedule a later retry.
+By the time you catch a `KSeFRateLimitError`, the built-in retry policy has already retried up to 3 times with backoff, or skipped retrying because `Retry-After` was longer than `maxRetryAfterMs`. Use `recommendedDelay` to schedule a later retry.
 :::
 
 ---
@@ -1182,7 +1182,7 @@ The `RestClient` handles several error types transparently before they reach you
 
 Retryable responses (429, 500, 502, 503, 504; for POST only 429) and network errors (`ECONNRESET`, `ECONNREFUSED`, `ETIMEDOUT`, `AbortError`; for POST only `ECONNREFUSED` and `UND_ERR_CONNECT_TIMEOUT`) are retried up to `maxRetries` times (default: 3) with exponential backoff and jitter.
 
-For 429 responses, the `Retry-After` header is respected -- if present, its value overrides the calculated backoff delay.
+For 429 and 503 responses, the `Retry-After` header is respected -- if present, its value overrides the calculated backoff delay. A `Retry-After` longer than `maxRetryAfterMs` (default 120 s) is not waited out: the request fails at once, a 429 as `KSeFRateLimitError` carrying the server's value.
 
 ```
 Your code calls client.invoices.sendInvoice()
