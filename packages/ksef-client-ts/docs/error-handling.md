@@ -487,7 +487,7 @@ class KSeFBatchTimeoutError extends KSeFApiError {
 }
 ```
 
-Use this class to distinguish server-side batch timeouts from other failure modes when orchestrating large batch uploads or finish operations. The numeric code registry for error detection is exposed as `KSeFErrorCode` in `src/errors/error-codes.ts` (currently `BatchTimeout = 21208`, `DuplicateInvoice = 440`, `SessionTemporarilyUnavailable = 21184`, `InvalidContinuationToken = 21418`, `UnknownPublicKeyId = 21470`, `CollectiveIdentifierDifferentSellers = 71004`, `CollectiveIdentifierDuplicateKsefNumber = 71005`).
+Use this class to distinguish server-side batch timeouts from other failure modes when orchestrating large batch uploads or finish operations. The numeric code registry for error detection is exposed as `KSeFErrorCode` in `src/errors/error-codes.ts` (currently `BatchTimeout = 21208`, `DuplicateInvoice = 440`, `SessionTemporarilyUnavailable = 21184`, `InvalidContinuationToken = 21418`, `UnknownPublicKeyId = 21470`, `InvalidInput = 21405`, `UnreadableContent = 21001`, `CollectiveIdentifierDifferentSellers = 71004`, `CollectiveIdentifierDuplicateKsefNumber = 71005`).
 
 ::: tip
 Pair with a retry-with-smaller-batch strategy rather than a tight loop — the timeout means KSeF is under load, not that the request was malformed.

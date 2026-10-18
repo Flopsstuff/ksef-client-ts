@@ -37,6 +37,7 @@ export function renderCliError(error: unknown, opts?: { json?: boolean }): void 
     if (legacyDetails?.length) {
       for (const d of legacyDetails) {
         consola.error(`  └ [${d.exceptionCode}] ${d.exceptionDescription ?? ''}`);
+        for (const detail of d.details ?? []) consola.error(`      └ ${detail}`);
       }
     }
 
@@ -231,6 +232,10 @@ const CODE_HINTS: ReadonlyMap<number, string> = new Map([
   [
     KSeFErrorCode.UnknownPublicKeyId,
     'KSeF no longer accepts the public key used for encryption, likely mid key rotation. Wait a moment and run the command again.',
+  ],
+  [
+    KSeFErrorCode.UnreadableContent,
+    'KSeF could not read the request: a value has the wrong type or is not one KSeF accepts. Check the field named in the error details.',
   ],
   [
     KSeFErrorCode.BatchTimeout,
