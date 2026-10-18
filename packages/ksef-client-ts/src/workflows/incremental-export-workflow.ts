@@ -133,21 +133,37 @@ export async function incrementalExportAndDownload(
 /**
  * Reads the invoice records from the `_metadata.json` of one decrypted export
  * package (its parts concatenated form a single archive). Returns an empty list
- * when the package has no archive or no metadata file.
+ * when the package has no archive or no metadata file. Only the metadata entry
+ * is extracted; the invoices are skipped without being buffered.
  */
 async function readPackageRecords(
   parts: Uint8Array[],
   compressionType: CompressionType | undefined,
 ): Promise<ContinuationPackageRecord[]> {
-  const archive = Buffer.concat(parts);
-  if (archive.length === 0) return [];
-  const files = compressionType === 'TarGz' ? await extractTarGz(archive) : await unzip(archive);
-  for (const [name, content] of files) {
-    if (name.split('/').pop()?.toLowerCase() !== '_metadata.json') continue;
+  const nonEmpty = parts.filter((part) => part.length > 0);
+  if (nonEmpty.length === 0) return [];
+  const options = { filter: isMetadataFile };
+  let files: Map<string, Buffer>;
+  if (compressionType === 'TarGz') {
+    files = await extractTarGz(nonEmpty, options);
+  } else {
+    // A ZIP is read from its central directory, so it needs one contiguous
+    // buffer; a single-part package is wrapped without copying.
+    const only = nonEmpty.length === 1 ? nonEmpty[0] : undefined;
+    const archive = only
+      ? Buffer.from(only.buffer, only.byteOffset, only.byteLength)
+      : Buffer.concat(nonEmpty);
+    files = await unzip(archive, options);
+  }
+  for (const content of files.values()) {
     const parsed = JSON.parse(content.toString('utf-8')) as { invoices?: unknown };
     return Array.isArray(parsed.invoices) ? (parsed.invoices as ContinuationPackageRecord[]) : [];
   }
   return [];
+}
+
+function isMetadataFile(name: string): boolean {
+  return name.split('/').pop()?.toLowerCase() === '_metadata.json';
 }
 
 function buildDefaultFilters(

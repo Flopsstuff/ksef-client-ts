@@ -1237,6 +1237,64 @@ describe('incrementalExportAndDownload — truncated package without lastPermane
     expect(mockDoExport.mock.calls[1][1].dateRange.from).toBe('2026-01-15T00:00:00Z');
   });
 
+  it('reads the records from a package split across several parts', async () => {
+    const twoParts = [1, 2].map((n) => ({
+      ordinalNumber: n,
+      url: `https://dl.example.com/${n}`,
+      method: 'GET',
+      partSize: 100,
+      partHash: `ph${n}`,
+      encryptedPartSize: 110,
+      encryptedPartHash: MOCK_ENC_HASH,
+      expirationDate: '2026-12-31',
+    }));
+    for (const [make, compressionType] of [[createZip, 'Zip'], [createTarGz, 'TarGz']] as const) {
+      mockDoExport.mockReset();
+      const archive = await make(packageEntries([
+        { ksefNumber: 'K-1', permanentStorageDate: '2026-01-15T00:00:00Z' },
+      ]));
+      const cut = Math.floor(archive.length / 2);
+      serveArchive(archive.subarray(0, cut));
+      serveArchive(archive.subarray(cut));
+      mockDoExport
+        .mockResolvedValueOnce(truncatedResult('ref-1', { compressionType, parts: twoParts }))
+        .mockResolvedValueOnce(mockExportResult({ referenceNumber: 'ref-2', isTruncated: false }));
+
+      await incrementalExportAndDownload(client, {
+        subjectType: 'Subject1',
+        windowFrom: '2026-01-01T00:00:00Z',
+        windowTo: '2026-03-01T00:00:00Z',
+        continuationPoints: {},
+        pollOptions: { intervalMs: 1 },
+        transport: mockTransport,
+      });
+
+      expect(mockDoExport.mock.calls[1][1].dateRange.from).toBe('2026-01-15T00:00:00Z');
+    }
+  });
+
+  it('reads a package truncated at the full 10 000-invoice cap', async () => {
+    const invoices = Array.from({ length: 10_000 }, (_, i) => ({
+      ksefNumber: `K-${i}`,
+      permanentStorageDate: new Date(Date.UTC(2026, 0, 2) + i * 1000).toISOString(),
+    }));
+    serveArchive(await createZip(packageEntries(invoices)));
+    mockDoExport
+      .mockResolvedValueOnce(truncatedResult('ref-1'))
+      .mockResolvedValueOnce(mockExportResult({ referenceNumber: 'ref-2', isTruncated: false }));
+
+    await incrementalExportAndDownload(client, {
+      subjectType: 'Subject1',
+      windowFrom: '2026-01-01T00:00:00Z',
+      windowTo: '2026-03-01T00:00:00Z',
+      continuationPoints: {},
+      pollOptions: { intervalMs: 1 },
+      transport: mockTransport,
+    });
+
+    expect(mockDoExport.mock.calls[1][1].dateRange.from).toBe(invoices[9_999].permanentStorageDate);
+  }, 30_000); // packing ~10k entries takes seconds on a loaded machine
+
   it('fails without saving the HWM when the package lists no records to resume from', async () => {
     serveArchive(await createZip(packageEntries([
       { ksefNumber: 'K-1', permanentStorageDate: '2026-01-15T00:00:00Z' },

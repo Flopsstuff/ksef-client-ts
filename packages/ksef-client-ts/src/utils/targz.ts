@@ -1,15 +1,15 @@
 import { createGzip, createGunzip } from 'node:zlib';
 import { Readable } from 'node:stream';
 import { extract, pack } from 'tar-stream';
-import type { ZipEntryInput, UnzipOptions } from './zip.js';
+import { DEFAULT_MAX_ARCHIVE_FILES, type ZipEntryInput, type UnzipOptions } from './zip.js';
 
 type TarGzLimits = Pick<
   UnzipOptions,
-  'maxFiles' | 'maxTotalUncompressedSize' | 'maxFileUncompressedSize' | 'maxCompressionRatio'
+  'maxFiles' | 'maxTotalUncompressedSize' | 'maxFileUncompressedSize' | 'maxCompressionRatio' | 'filter'
 >;
 
-const DEFAULT_LIMITS: Required<TarGzLimits> = {
-  maxFiles: 10_000,
+const DEFAULT_LIMITS: Required<Omit<TarGzLimits, 'filter'>> = {
+  maxFiles: DEFAULT_MAX_ARCHIVE_FILES,
   maxTotalUncompressedSize: 2_000_000_000,
   maxFileUncompressedSize: 500_000_000,
   maxCompressionRatio: 200,
@@ -70,20 +70,27 @@ export async function createTarGz(entries: ZipEntryInput[]): Promise<Buffer> {
  * count. `maxCompressionRatio` caps the ratio of total decompressed bytes to the
  * compressed archive size (gzip is a single stream, so the ratio is measured over
  * the whole archive rather than per entry); pass `null` to disable it.
+ *
+ * `filter` keeps only the entries whose name it accepts; the others are still
+ * inflated (gzip is one stream) and checked against every limit, but drained
+ * without being stored. The archive may also be passed as its consecutive
+ * chunks (e.g. downloaded parts), which are streamed without joining them.
  */
 export async function extractTarGz(
-  buffer: Buffer,
+  buffer: Buffer | readonly Uint8Array[],
   options: TarGzLimits = {},
 ): Promise<Map<string, Buffer>> {
   const limits = { ...DEFAULT_LIMITS, ...options };
+  const chunks = Buffer.isBuffer(buffer) ? [buffer] : buffer;
+  const compressedSize = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
   // Guard against ratio checks when the compressed size is unknown/zero.
   const ratioCeiling =
-    limits.maxCompressionRatio !== null && limits.maxCompressionRatio !== undefined && buffer.length > 0
-      ? buffer.length * limits.maxCompressionRatio
+    limits.maxCompressionRatio !== null && limits.maxCompressionRatio !== undefined && compressedSize > 0
+      ? compressedSize * limits.maxCompressionRatio
       : null;
 
   return new Promise((resolve, reject) => {
-    const source = Readable.from(buffer);
+    const source = Readable.from(chunks);
     const gunzip = createGunzip();
     const extractor = extract();
     const files = new Map<string, Buffer>();
@@ -140,7 +147,14 @@ export async function extractTarGz(
         return;
       }
 
-      const chunks: Buffer[] = [];
+      let keep: boolean;
+      try {
+        keep = !options.filter || options.filter(header.name);
+      } catch (err) {
+        fail(err instanceof Error ? err : new Error(String(err)));
+        return;
+      }
+      const entryChunks: Buffer[] = [];
       let entrySize = 0;
       stream.on('data', (chunk: Buffer) => {
         if (settled) return;
@@ -149,13 +163,13 @@ export async function extractTarGz(
           fail(new Error('tar.gz entry exceeds max_file_uncompressed_size'));
           return;
         }
-        chunks.push(chunk);
+        if (keep) entryChunks.push(chunk);
       });
       stream.on('error', fail);
       stream.on('end', () => {
         if (settled) return;
         extractedFileCount += 1;
-        files.set(header.name, Buffer.concat(chunks));
+        if (keep) files.set(header.name, Buffer.concat(entryChunks));
         next();
       });
     });

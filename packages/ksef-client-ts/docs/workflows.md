@@ -474,10 +474,11 @@ When `extract: true`, the decrypted ZIP is passed to `unzip()` (`src/utils/zip.t
 
 | Limit | Default | Description |
 |-------|---------|-------------|
-| `maxFiles` | 10,000 | Maximum number of files in the ZIP |
+| `maxFiles` | 10,001 | Maximum number of files in the ZIP (a full package: 10,000 invoices + `_metadata.json`) |
 | `maxTotalUncompressedSize` | 2 GB | Total uncompressed size of all files |
 | `maxFileUncompressedSize` | 500 MB | Maximum size of a single file |
 | `maxCompressionRatio` | 200:1 | Maximum compression ratio (null to disable) |
+| `filter` | — | Extract only entries whose name it accepts; the rest still count toward the limits |
 
 Additionally, entries with `compressedSize === 0` but `uncompressedSize > 0` are rejected as suspicious metadata.
 

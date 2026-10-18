@@ -11,10 +11,21 @@ export interface UnzipOptions {
   maxTotalUncompressedSize?: number;
   maxFileUncompressedSize?: number;
   maxCompressionRatio?: number | null;
+  /**
+   * Extract only the entries whose name it accepts. Every entry still counts
+   * toward the limits; rejected ones are never inflated or kept in memory.
+   */
+  filter?: (fileName: string) => boolean;
 }
 
-const DEFAULT_UNZIP_OPTIONS: Required<UnzipOptions> = {
-  maxFiles: 10_000,
+/**
+ * KSeF caps an export package at 10 000 invoices and adds its `_metadata.json`
+ * next to them, so a full package holds 10 001 entries.
+ */
+export const DEFAULT_MAX_ARCHIVE_FILES = 10_001;
+
+const DEFAULT_UNZIP_OPTIONS: Required<Omit<UnzipOptions, 'filter'>> = {
+  maxFiles: DEFAULT_MAX_ARCHIVE_FILES,
   maxTotalUncompressedSize: 2_000_000_000,
   maxFileUncompressedSize: 500_000_000,
   maxCompressionRatio: 200,
@@ -49,6 +60,8 @@ export async function unzip(
       }
 
       const files = new Map<string, Buffer>();
+      // Counted apart from the Map: filtered-out entries never land in it.
+      let fileCount = 0;
       let totalUncompressed = 0;
 
       zipfile.readEntry();
@@ -59,10 +72,11 @@ export async function unzip(
           return;
         }
 
-        if (limits.maxFiles > 0 && files.size >= limits.maxFiles) {
+        if (limits.maxFiles > 0 && fileCount >= limits.maxFiles) {
           reject(new Error('zip contains too many files'));
           return;
         }
+        fileCount += 1;
 
         const uncompressedSize = entry.uncompressedSize ?? 0;
         const compressedSize = entry.compressedSize ?? 0;
@@ -92,6 +106,18 @@ export async function unzip(
               return;
             }
           }
+        }
+
+        let keep: boolean;
+        try {
+          keep = !options.filter || options.filter(entry.fileName);
+        } catch (filterErr) {
+          reject(filterErr);
+          return;
+        }
+        if (!keep) {
+          zipfile.readEntry();
+          return;
         }
 
         zipfile.openReadStream(entry, (streamErr, stream) => {
