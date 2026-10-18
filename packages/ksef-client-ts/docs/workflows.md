@@ -580,9 +580,13 @@ Pure functions for managing continuation points:
 type ContinuationPoints = Record<string, string | undefined>;
 
 // After each export iteration, update the point for a subject type.
-// Pass the package's _metadata.json invoices: a truncated package
-// without lastPermanentStorageDate throws if no records are given.
-updateContinuationPoint(points, subjectType, exportPackage, metadata.invoices);
+// Pass the package's _metadata.json invoices only for a
+// PermanentStorage filter: their permanentStorageDate is the
+// resume point, which would skip invoices under another date type.
+// A truncated package without lastPermanentStorageDate throws
+// if no records are given.
+const records = dateType === 'PermanentStorage' ? metadata.invoices : undefined;
+updateContinuationPoint(points, subjectType, exportPackage, records);
 
 // Get effective start date: saved HWM or fallback to windowFrom
 getEffectiveStartDate(points, subjectType, windowFrom);
@@ -594,7 +598,7 @@ deduplicateByKsefNumber(entries);
 `updateContinuationPoint` logic:
 
 - If truncated: save `lastPermanentStorageDate` (the date of the last invoice in the batch)
-- If truncated without `lastPermanentStorageDate` (KSeF may omit it): save the latest `permanentStorageDate` among the records passed as the optional fourth argument. These are the `invoices` from the package's `_metadata.json`. With no records, it throws and leaves the point unchanged, so no invoices are skipped.
+- If truncated without `lastPermanentStorageDate` (KSeF may omit it): save the latest `permanentStorageDate` among the records passed as the optional fourth argument. These are the `invoices` from the package's `_metadata.json`; pass them only for a `PermanentStorage` date filter, since another date type would resume past unexported invoices. With no records, it throws and leaves the point unchanged, so no invoices are skipped.
 - If not truncated: save `permanentStorageHwmDate` (the server-reported high-water mark)
 - If neither date is available: delete the point (reset to window start)
 
