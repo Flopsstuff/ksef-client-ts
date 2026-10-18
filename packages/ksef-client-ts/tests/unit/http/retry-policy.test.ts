@@ -164,6 +164,13 @@ describe('exceedsMaxRetryAfter', () => {
     expect(exceedsMaxRetryAfter(120_001, policy)).toBe(true);
   });
 
+  it('applies the default when the option is NaN', () => {
+    const policy = { ...defaultRetryPolicy(), maxRetryAfterMs: Number.NaN };
+    expect(exceedsMaxRetryAfter(120_000, policy)).toBe(false);
+    expect(exceedsMaxRetryAfter(120_001, policy)).toBe(true);
+    expect(exceedsMaxRetryAfter(30 * 24 * 3600 * 1000, policy)).toBe(true);
+  });
+
   it('applies the default when the policy omits the option', () => {
     const { maxRetryAfterMs: _omitted, ...policy } = defaultRetryPolicy();
     expect(exceedsMaxRetryAfter(120_000, policy)).toBe(false);

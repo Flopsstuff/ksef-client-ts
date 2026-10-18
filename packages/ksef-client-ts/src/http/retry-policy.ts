@@ -83,7 +83,12 @@ export function getRetryAfterMs(response: Response): number | null {
  * honour is always reported as too long rather than retried at once.
  */
 export function exceedsMaxRetryAfter(delayMs: number, policy: RetryPolicy): boolean {
-  const cap = Math.min(policy.maxRetryAfterMs ?? DEFAULT_MAX_RETRY_AFTER_MS, MAX_TIMER_DELAY_MS);
+  // NaN would make every comparison false and let any delay through.
+  const configured = policy.maxRetryAfterMs;
+  const cap = Math.min(
+    configured === undefined || Number.isNaN(configured) ? DEFAULT_MAX_RETRY_AFTER_MS : configured,
+    MAX_TIMER_DELAY_MS,
+  );
   return delayMs > cap;
 }
 
