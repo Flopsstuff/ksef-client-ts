@@ -71,6 +71,11 @@ describe('calculateBackoff', () => {
     }
   });
 
+  it('never exceeds the timer limit, whatever maxDelayMs says', () => {
+    const unbounded: RetryPolicy = { ...defaultRetryPolicy(), maxDelayMs: Infinity };
+    expect(calculateBackoff(40, unbounded)).toBe(2_147_483_647);
+  });
+
   it('jitter adds randomness (not all results identical)', () => {
     const results = new Set<number>();
     for (let i = 0; i < 50; i++) {
@@ -168,7 +173,16 @@ describe('exceedsMaxRetryAfter', () => {
   it('honours an override', () => {
     const policy: RetryPolicy = { ...defaultRetryPolicy(), maxRetryAfterMs: 5_000 };
     expect(exceedsMaxRetryAfter(5_001, policy)).toBe(true);
-    expect(exceedsMaxRetryAfter(Number.MAX_SAFE_INTEGER, { ...policy, maxRetryAfterMs: Infinity })).toBe(false);
+  });
+
+  it('clamps an Infinity or oversized cap to the timer limit', () => {
+    const timerMax = 2_147_483_647;
+    for (const maxRetryAfterMs of [Infinity, timerMax + 1, Number.MAX_SAFE_INTEGER]) {
+      const policy: RetryPolicy = { ...defaultRetryPolicy(), maxRetryAfterMs };
+      expect(exceedsMaxRetryAfter(timerMax, policy)).toBe(false);
+      expect(exceedsMaxRetryAfter(timerMax + 1, policy)).toBe(true);
+      expect(exceedsMaxRetryAfter(Number.MAX_SAFE_INTEGER, policy)).toBe(true);
+    }
   });
 });
 

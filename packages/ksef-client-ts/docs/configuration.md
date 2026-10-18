@@ -77,7 +77,7 @@ If the server asks for a longer wait than `maxRetryAfterMs` (default 120 s), the
 | `maxDelayMs` | `number` | `30000` | Maximum delay cap in milliseconds |
 | `retryableStatusCodes` | `number[]` | `[429, 500, 502, 503, 504]` | HTTP status codes to retry |
 | `retryNetworkErrors` | `boolean` | `true` | Retry on network errors |
-| `maxRetryAfterMs` | `number` | `120000` | Longest `Retry-After` the client waits out; a longer one fails at once. `Infinity` waits for any value |
+| `maxRetryAfterMs` | `number` | `120000` | Longest `Retry-After` the client waits out; a longer one fails at once. Capped at 2147483647 (~24.8 days, the timer limit), so `Infinity` means "wait up to that" |
 
 ### Examples
 

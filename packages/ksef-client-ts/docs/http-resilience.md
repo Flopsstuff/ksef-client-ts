@@ -184,7 +184,7 @@ function parseRetryAfter(header: string | null): number | null {
 }
 ```
 
-`maxRetryAfterMs` (default 120 000 ms) bounds how long the client will wait. When `Retry-After` asks for more, the client neither sleeps nor retries: the response becomes final, so a 429 is thrown as `KSeFRateLimitError` with the server's value (`retryAfterSeconds`) and a 503 as `KSeFApiError`. The circuit breaker records that response like any other final one. Set `maxRetryAfterMs: Infinity` to wait for any value.
+`maxRetryAfterMs` (default 120 000 ms) bounds how long the client will wait. When `Retry-After` asks for more, the client neither sleeps nor retries: the response becomes final, so a 429 is thrown as `KSeFRateLimitError` with the server's value (`retryAfterSeconds`) and a 503 as `KSeFApiError`. The circuit breaker records that response like any other final one. Raising it (even to `Infinity`) lifts the cap only up to 2 147 483 647 ms (~24.8 days), the longest delay a timer can hold: anything longer would overflow `setTimeout` into an immediate retry, so it is always treated as exceeding the cap.
 
 ### Retryable errors
 

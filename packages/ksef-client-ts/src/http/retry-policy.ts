@@ -9,12 +9,21 @@ export interface RetryPolicy {
    * A longer request is not waited out: the response is returned as final, so
    * a 429 surfaces as `KSeFRateLimitError` carrying the server's value.
    * `maxDelayMs` caps only the computed backoff, not `Retry-After`.
-   * Defaults to 120 000 ms; `Infinity` waits for any value.
+   * Defaults to 120 000 ms. Values above the timer limit of 2 147 483 647 ms
+   * (~24.8 days), `Infinity` included, are clamped to it, so a longer
+   * `Retry-After` is never slept for and always counts as exceeding the cap.
    */
   maxRetryAfterMs?: number;
 }
 
 const DEFAULT_MAX_RETRY_AFTER_MS = 120_000;
+
+/**
+ * Longest delay `setTimeout` honours (2^31 - 1 ms, ~24.8 days). Node and
+ * browsers treat anything larger as ~1 ms, which would turn a multi-week wait
+ * into an immediate retry, so no retry sleep may exceed it.
+ */
+export const MAX_TIMER_DELAY_MS = 2_147_483_647;
 
 export function defaultRetryPolicy(): RetryPolicy {
   return {
@@ -30,7 +39,7 @@ export function defaultRetryPolicy(): RetryPolicy {
 export function calculateBackoff(attempt: number, policy: RetryPolicy): number {
   const exponential = policy.baseDelayMs * Math.pow(2, attempt);
   const jitter = Math.random() * policy.baseDelayMs;
-  return Math.min(exponential + jitter, policy.maxDelayMs);
+  return Math.min(exponential + jitter, policy.maxDelayMs, MAX_TIMER_DELAY_MS);
 }
 
 /**
@@ -68,9 +77,14 @@ export function getRetryAfterMs(response: Response): number | null {
   return parseRetryAfter(response.headers.get('Retry-After'));
 }
 
-/** Whether a `Retry-After` delay is too long to wait out under `policy`. */
+/**
+ * Whether a `Retry-After` delay is too long to wait out under `policy`.
+ * The cap never exceeds `MAX_TIMER_DELAY_MS`, so a delay `sleep()` cannot
+ * honour is always reported as too long rather than retried at once.
+ */
 export function exceedsMaxRetryAfter(delayMs: number, policy: RetryPolicy): boolean {
-  return delayMs > (policy.maxRetryAfterMs ?? DEFAULT_MAX_RETRY_AFTER_MS);
+  const cap = Math.min(policy.maxRetryAfterMs ?? DEFAULT_MAX_RETRY_AFTER_MS, MAX_TIMER_DELAY_MS);
+  return delayMs > cap;
 }
 
 const RETRYABLE_ERROR_CODES = new Set([
