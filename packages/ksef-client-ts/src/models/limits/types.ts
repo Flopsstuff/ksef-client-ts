@@ -1,6 +1,6 @@
 /**
  * Value KSeF reports for a rate-limit window that has no limit
- * (e.g. the `perMinute`/`perHour` windows of `anonymous`, or every window of `global`).
+ * (e.g. the `perMinute`/`perHour` windows of `anonymous`).
  */
 export const RATE_LIMIT_UNLIMITED = -1;
 
@@ -41,8 +41,9 @@ export interface EffectiveApiRateLimits {
   /**
    * Global per-IP limits across all API operations (KSeF API v2.8.0).
    *
-   * Reserved for future use: the mechanism is currently disabled and KSeF reports
-   * every window as {@link RATE_LIMIT_UNLIMITED}. Do not build logic on these values.
+   * Announced in 2.8.0 as not yet enforced, but since 2.9.0 TEST reports a finite
+   * `perSecond` (75). Treat its windows like any other group's: check each for
+   * {@link RATE_LIMIT_UNLIMITED} rather than assuming the group is unlimited.
    */
   global: EffectiveApiRateLimitValues;
 }

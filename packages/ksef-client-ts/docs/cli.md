@@ -390,7 +390,7 @@ ksef limits subject                              # Subject limits (max enrollmen
 ksef limits rate                                 # API rate limits (per-category table)
 ```
 
-`ksef limits rate` lists every group KSeF reports, including `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window KSeF reports as `-1` has no limit and is shown as `unlimited`; `--json` prints the raw `-1`. The `global` group (per-IP limits) is reserved and currently disabled, so all its windows read `unlimited`.
+`ksef limits rate` lists every group KSeF reports, including `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window KSeF reports as `-1` has no limit and is shown as `unlimited`; `--json` prints the raw `-1`. The `global` group is the per-IP limit: KSeF announced it in 2.8.0 as not yet enforced, but since 2.9.0 TEST reports a finite per-second value (75), so do not expect its windows to read `unlimited`.
 
 ## Collective Identifiers
 
