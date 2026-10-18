@@ -312,7 +312,7 @@
                     "perHour": -1
                   },
                   "global": {
-                    "perSecond": -1,
+                    "perSecond": 75,
                     "perMinute": -1,
                     "perHour": -1
                   }
