@@ -579,8 +579,10 @@ Pure functions for managing continuation points:
 ```typescript
 type ContinuationPoints = Record<string, string | undefined>;
 
-// After each export iteration, update the point for a subject type
-updateContinuationPoint(points, subjectType, exportPackage);
+// After each export iteration, update the point for a subject type.
+// Pass the package's _metadata.json invoices: a truncated package
+// without lastPermanentStorageDate throws if no records are given.
+updateContinuationPoint(points, subjectType, exportPackage, metadata.invoices);
 
 // Get effective start date: saved HWM or fallback to windowFrom
 getEffectiveStartDate(points, subjectType, windowFrom);
