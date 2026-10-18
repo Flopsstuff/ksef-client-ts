@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { consola } from 'consola';
 import { permissionCommand } from '../../../../src/cli/commands/permission.js';
 import * as clientFactory from '../../../../src/cli/client-factory.js';
 import * as output from '../../../../src/cli/output.js';
 import { createMockClient, validSession } from './_helpers.js';
 
-vi.mock('consola', () => ({ consola: { level: 0 } }));
+vi.mock('consola', () => ({ consola: { level: 0, info: vi.fn() } }));
 
 vi.mock('../../../../src/cli/error-handler.js', () => ({
   withErrorHandler: vi.fn((fn) => fn()),
@@ -466,6 +467,59 @@ describe('permission', () => {
       mockClient.permissions.queryPersonalGrants.mockResolvedValue(data);
       await runSearch({ type: 'personal', json: true });
       expect(mockOutputResult).toHaveBeenCalledWith(data, { json: true });
+    });
+
+    it('personal — owner with empty permissions lists owner permissions without a warning', async () => {
+      mockClient.permissions.queryPersonalGrants.mockResolvedValue({
+        permissions: [],
+        ownerPermissions: ['CredentialsManage', 'InvoiceRead', 'InvoiceWrite'],
+        hasMore: false,
+      });
+      await runSearch({ type: 'personal' });
+      expect(vi.mocked(consola.info)).toHaveBeenCalledWith(
+        'Owner permissions: CredentialsManage, InvoiceRead, InvoiceWrite',
+      );
+      expect(vi.mocked(output.outputWarning)).not.toHaveBeenCalled();
+      expect(vi.mocked(output.outputTable)).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['empty array', { ownerPermissions: [] }],
+      ['null', { ownerPermissions: null }],
+      ['absent', {}],
+    ])('personal — warns when both lists are empty (ownerPermissions %s)', async (_label, extra) => {
+      mockClient.permissions.queryPersonalGrants.mockResolvedValue({ permissions: [], hasMore: false, ...extra });
+      await runSearch({ type: 'personal' });
+      expect(vi.mocked(output.outputWarning)).toHaveBeenCalledWith('No permissions found.');
+      expect(vi.mocked(consola.info)).not.toHaveBeenCalled();
+      expect(vi.mocked(output.outputTable)).not.toHaveBeenCalled();
+    });
+
+    it('personal — prints owner permissions and the table when both lists are non-empty', async () => {
+      mockClient.permissions.queryPersonalGrants.mockResolvedValue({
+        permissions: [{ id: 'p-1', permissionScope: 'InvoiceRead', startDate: '2025-01-01' }],
+        ownerPermissions: ['CredentialsManage'],
+        hasMore: false,
+      });
+      await runSearch({ type: 'personal' });
+      expect(vi.mocked(consola.info)).toHaveBeenCalledWith('Owner permissions: CredentialsManage');
+      expect(vi.mocked(output.outputTable)).toHaveBeenCalledWith(
+        [expect.objectContaining({ id: 'p-1', permission: 'InvoiceRead' })],
+        expect.any(Array),
+        { json: false },
+      );
+      expect(vi.mocked(output.outputWarning)).not.toHaveBeenCalled();
+    });
+
+    it('personal — --json output includes ownerPermissions', async () => {
+      const data = { permissions: [], ownerPermissions: ['InvoiceRead'], hasMore: false };
+      mockClient.permissions.queryPersonalGrants.mockResolvedValue(data);
+      await runSearch({ type: 'personal', json: true });
+      expect(vi.mocked(output.outputResult)).toHaveBeenCalledWith(
+        expect.objectContaining({ ownerPermissions: ['InvoiceRead'] }),
+        { json: true },
+      );
+      expect(vi.mocked(consola.info)).not.toHaveBeenCalled();
     });
 
     it('personal — passes page and pageSize', async () => {

@@ -614,6 +614,7 @@ Each permission grant target has its own set of allowed permission types:
 | `SubunitPermissionScope` | `CredentialsManage` | `GrantPermissionsSubunitRequest` |
 | `InvoicePermissionType` | `SelfInvoicing`, `TaxRepresentative`, `RRInvoicing`, `PefInvoicing` | Entity authorization grants |
 | `EntityRoleType` | `CourtBailiff`, `EnforcementAuthority`, `LocalGovernmentUnit`, `LocalGovernmentSubUnit`, `VatGroupUnit`, `VatGroupSubUnit` | Entity role queries |
+| `OwnerPermissionScope` | `CredentialsManage`, `CredentialsRead`, `InvoiceWrite`, `InvoiceRead`, `Introspection`, `SubunitManage`, `EnforcementOperations`, `CollectiveIdentifierManage` | `QueryPersonalPermissionsResponse.ownerPermissions` |
 
 ### Grant Request Types (7 total)
 
@@ -671,6 +672,16 @@ interface PagedAuthorizationsResponse<T> {
   authorizationGrants: T[];
 }
 ```
+
+The personal-grants query extends the generic wrapper with the owner's rights (KSeF API v2.9.0):
+
+```typescript
+interface QueryPersonalPermissionsResponse extends PagedPermissionsResponse<PersonalPermission> {
+  ownerPermissions?: OwnerPermissionScope[] | null;
+}
+```
+
+`OwnerPermissionScope` is a separate union rather than an alias of `PersonPermissionType` because the spec defines it as its own schema; the values happen to match today. For the context owner, `permissions` is empty and the rights are listed in `ownerPermissions`; a token session gets `[]`, and servers older than 2.9.0 omit the field or send `null`.
 
 ### Permission-specific Identifier Types
 

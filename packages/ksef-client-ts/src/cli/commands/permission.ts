@@ -1,4 +1,5 @@
 import { defineCommand } from 'citty';
+import { consola } from 'consola';
 import { requireSession } from '../client-factory.js';
 import { outputResult, outputKeyValue, outputTable, outputSuccess, outputWarning } from '../output.js';
 import { withErrorHandler } from '../error-handler.js';
@@ -321,8 +322,15 @@ const search = defineCommand({
             return;
           }
 
+          // KSeF 2.9.0+ reports the context owner's rights separately; an owner's
+          // `permissions` list is empty, so it must not read as "nothing found".
+          const ownerPermissions = response.ownerPermissions ?? [];
+          if (ownerPermissions.length > 0) {
+            consola.info(`Owner permissions: ${ownerPermissions.join(', ')}`);
+          }
+
           if (response.permissions.length === 0) {
-            outputWarning('No permissions found.');
+            if (ownerPermissions.length === 0) outputWarning('No permissions found.');
             return;
           }
 

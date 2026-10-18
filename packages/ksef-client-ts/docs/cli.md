@@ -328,6 +328,8 @@ ksef permission attachment-status                              # Check if attach
 
 Search types: `personal`, `persons`, `subunits`, `entities`, `entities-grants`, `subordinate-entities`, `authorizations`, `eu-entities`.
 
+`--type personal` also prints the rights you hold as the owner of the context, on an `Owner permissions:` line above the table. The context owner has no individual grants, so for an owner this line is often the whole answer; `No permissions found.` appears only when both lists are empty. With `--json` the full response is printed, including `ownerPermissions` (KSeF API v2.9.0).
+
 For `--type personal` and `--type entities-grants`, results can be filtered by a context identifier (NIP or a VAT-group subunit `InternalId`, 10-16 characters — typically 16):
 
 ```bash

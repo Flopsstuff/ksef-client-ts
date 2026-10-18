@@ -358,10 +358,12 @@ queryPersonalGrants(
   options?: QueryPersonalGrantsRequest,
   pageOffset?: number,
   pageSize?: number,
-): Promise<PagedPermissionsResponse<PersonalPermission>>
+): Promise<QueryPersonalPermissionsResponse>
 ```
 
 Query the caller's own permissions. Supports `contextIdentifier` filtering.
+
+`QueryPersonalPermissionsResponse` extends `PagedPermissionsResponse<PersonalPermission>` with `ownerPermissions?: OwnerPermissionScope[] | null` (KSeF API v2.9.0). When the caller is the owner of the context, `permissions` is empty and the owner's rights are listed in `ownerPermissions` instead. A session opened with a KSeF token gets `ownerPermissions: []`, since a token carries no owner rights. Servers older than 2.9.0 omit the field or send `null`, so treat a missing value as an empty list.
 
 ```ts
 queryPersonsGrants(options: QueryPersonsGrantsRequest, pageOffset?: number, pageSize?: number): Promise<PagedPermissionsResponse<PersonPermission>>
