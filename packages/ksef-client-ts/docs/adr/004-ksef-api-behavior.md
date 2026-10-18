@@ -38,10 +38,11 @@ This is enforced at runtime via `validateFormCodeForSession()`. The type system 
 When processing `InvoiceExportPackage` results for HWM (High-Water Mark) tracking:
 
 1. `isTruncated && lastPermanentStorageDate` — use `lastPermanentStorageDate` (last date in truncated package = resume point)
-2. `permanentStorageHwmDate` exists — use it (stable HWM from snapshot mode)
-3. Neither — delete the continuation point entry (export complete for this subject type)
+2. `isTruncated` without `lastPermanentStorageDate` (the field is nullable) — use the latest `permanentStorageDate` among the package's `_metadata.json` records; with none, throw and keep the point
+3. `permanentStorageHwmDate` exists — use it (stable HWM from snapshot mode)
+4. Neither — delete the continuation point entry (export complete for this subject type)
 
-This priority matches both the C# and Java (smekcio) reference implementations and is consistent with KSeF API documentation.
+Steps 1, 3 and 4 match the C# and Java reference implementations and the KSeF API documentation. Step 2 follows smekcio ksef-client-python 0.19.0, see [ADR-007](007-incremental-export.md).
 
 ## Challenge TTL for External Signing
 

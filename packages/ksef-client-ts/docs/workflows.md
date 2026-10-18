@@ -518,7 +518,7 @@ Load HWM store ──────►│  iteration 0..maxIterations:        │
                       └─────────────────────────────────────┘
 ```
 
-The KSeF export API has a limit on how many invoices it returns per export. If the result is truncated (`isTruncated: true`), the response includes `lastPermanentStorageDate` — the timestamp of the last invoice in the batch. The next iteration uses this as the new start date, effectively "paging" through the full dataset.
+The KSeF export API has a limit on how many invoices it returns per export. If the result is truncated (`isTruncated: true`), the response includes `lastPermanentStorageDate` — the timestamp of the last invoice in the batch. The next iteration uses this as the new start date, effectively "paging" through the full dataset. If KSeF leaves that field out, the workflow reads the last record's date from the package's `_metadata.json` instead.
 
 ### incrementalExportAndDownload
 
@@ -591,8 +591,15 @@ deduplicateByKsefNumber(entries);
 `updateContinuationPoint` logic:
 
 - If truncated: save `lastPermanentStorageDate` (the date of the last invoice in the batch)
+- If truncated without `lastPermanentStorageDate` (KSeF may omit it): save the latest `permanentStorageDate` among the records passed as the optional fourth argument. These are the `invoices` from the package's `_metadata.json`. With no records, it throws and leaves the point unchanged, so no invoices are skipped.
 - If not truncated: save `permanentStorageHwmDate` (the server-reported high-water mark)
 - If neither date is available: delete the point (reset to window start)
+
+```typescript
+// Manual loop with exportAndDownload({ extract: true }):
+const meta = JSON.parse(result.files.get('_metadata.json')!.toString('utf-8'));
+updateContinuationPoint(points, subjectType, result, meta.invoices);
+```
 
 ### HWM Storage
 

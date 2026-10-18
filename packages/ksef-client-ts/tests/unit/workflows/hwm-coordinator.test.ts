@@ -6,6 +6,7 @@ import {
 } from '../../../src/workflows/hwm-coordinator.js';
 import type { ContinuationPoints } from '../../../src/workflows/hwm-coordinator.js';
 import type { InvoiceExportPackage } from '../../../src/models/invoices/types.js';
+import { KSeFError } from '../../../src/errors/ksef-error.js';
 
 function makePkg(overrides: Partial<InvoiceExportPackage> = {}): InvoiceExportPackage {
   return {
@@ -43,16 +44,95 @@ describe('updateContinuationPoint', () => {
     expect(points['subject']).toBe('2025-06-14T08:00:00Z');
   });
 
-  it('falls back to permanentStorageHwmDate when truncated but no lastPermanentStorageDate', () => {
-    const points: ContinuationPoints = {};
-    const pkg = makePkg({
-      isTruncated: true,
-      permanentStorageHwmDate: '2025-06-14T08:00:00Z',
+  // B2 — lastPermanentStorageDate is nullable; resuming a truncated package from
+  // the HWM skipped every invoice between the package's last record and the HWM.
+  describe('truncated package without lastPermanentStorageDate', () => {
+    it('resumes from the last record, not from permanentStorageHwmDate', () => {
+      const points: ContinuationPoints = {};
+      const pkg = makePkg({
+        isTruncated: true,
+        permanentStorageHwmDate: '2025-06-20T08:00:00Z',
+      });
+
+      updateContinuationPoint(points, 'subject', pkg, [
+        { permanentStorageDate: '2025-06-14T08:00:00Z' },
+        { permanentStorageDate: '2025-06-15T09:30:00Z' },
+      ]);
+
+      expect(points['subject']).toBe('2025-06-15T09:30:00Z');
     });
 
-    updateContinuationPoint(points, 'subject', pkg);
+    it('takes the latest instant, not the last array entry or the largest string', () => {
+      const points: ContinuationPoints = {};
 
-    expect(points['subject']).toBe('2025-06-14T08:00:00Z');
+      updateContinuationPoint(points, 'subject', makePkg({ isTruncated: true }), [
+        { permanentStorageDate: '2025-06-15T11:00:00+02:00' }, // 09:00Z — latest
+        { permanentStorageDate: '2025-06-15T08:30:00Z' },
+        { permanentStorageDate: '2025-06-15T10:00:00+05:00' }, // 05:00Z — largest string
+        { permanentStorageDate: '2025-06-14T00:00:00Z' },
+      ]);
+
+      expect(points['subject']).toBe('2025-06-15T11:00:00+02:00');
+    });
+
+    it('breaks a millisecond tie on the full 7-digit fraction and keeps the server string', () => {
+      const points: ContinuationPoints = {};
+
+      updateContinuationPoint(points, 'subject', makePkg({ isTruncated: true }), [
+        { permanentStorageDate: '2025-06-15T08:30:00.1234569+00:00' },
+        { permanentStorageDate: '2025-06-15T08:30:00.1234561+00:00' },
+      ]);
+
+      expect(points['subject']).toBe('2025-06-15T08:30:00.1234569+00:00');
+    });
+
+    it('ignores records without a usable date', () => {
+      const points: ContinuationPoints = {};
+
+      updateContinuationPoint(points, 'subject', makePkg({ isTruncated: true }), [
+        { permanentStorageDate: '2025-06-15T08:30:00Z' },
+        { permanentStorageDate: null },
+        {},
+        { permanentStorageDate: 'not-a-date' },
+      ]);
+
+      expect(points['subject']).toBe('2025-06-15T08:30:00Z');
+    });
+
+    it('prefers lastPermanentStorageDate over the records when KSeF reports it', () => {
+      const points: ContinuationPoints = {};
+      const pkg = makePkg({
+        isTruncated: true,
+        lastPermanentStorageDate: '2025-06-15T10:00:00Z',
+        permanentStorageHwmDate: '2025-06-20T08:00:00Z',
+      });
+
+      updateContinuationPoint(points, 'subject', pkg, [{ permanentStorageDate: '2025-06-16T00:00:00Z' }]);
+
+      expect(points['subject']).toBe('2025-06-15T10:00:00Z');
+    });
+
+    it('ignores the records when the package is not truncated', () => {
+      const points: ContinuationPoints = {};
+      const pkg = makePkg({ isTruncated: false, permanentStorageHwmDate: '2025-06-20T08:00:00Z' });
+
+      updateContinuationPoint(points, 'subject', pkg, [{ permanentStorageDate: '2025-06-15T00:00:00Z' }]);
+
+      expect(points['subject']).toBe('2025-06-20T08:00:00Z');
+    });
+
+    it.each([
+      ['no records argument', undefined],
+      ['an empty record list', []],
+      ['records without dates', [{}, { permanentStorageDate: null }]],
+    ])('throws and leaves the point unchanged with %s, never jumping to the HWM', (_label, records) => {
+      const points: ContinuationPoints = { subject: '2025-06-10T00:00:00Z' };
+      const pkg = makePkg({ isTruncated: true, permanentStorageHwmDate: '2025-06-20T08:00:00Z' });
+
+      expect(() => updateContinuationPoint(points, 'subject', pkg, records)).toThrow(KSeFError);
+      expect(() => updateContinuationPoint(points, 'subject', pkg, records)).toThrow(/truncated/);
+      expect(points['subject']).toBe('2025-06-10T00:00:00Z');
+    });
   });
 
   it('deletes the entry when no HWM dates are present', () => {

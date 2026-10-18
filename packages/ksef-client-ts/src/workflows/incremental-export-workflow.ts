@@ -1,8 +1,11 @@
 import type { KSeFClient } from '../client.js';
 import type { InvoiceMetadata, InvoiceQueryFilters, InvoiceSubjectType } from '../models/invoices/types.js';
 import type { ExportResult, PollOptions } from './types.js';
-import type { ContinuationPoints } from './hwm-coordinator.js';
+import type { ContinuationPackageRecord, ContinuationPoints } from './hwm-coordinator.js';
 import type { HwmStore } from './hwm-storage.js';
+import type { CompressionType } from '../models/common.js';
+import { unzip } from '../utils/zip.js';
+import { extractTarGz } from '../utils/targz.js';
 import { doExport } from './invoice-export-workflow.js';
 import { updateContinuationPoint, getEffectiveStartDate } from './hwm-coordinator.js';
 import { verifyHash } from '../utils/hash.js';
@@ -75,6 +78,7 @@ export async function incrementalExportAndDownload(
 
     referenceNumbers.push(referenceNumber);
 
+    const iterationParts: Uint8Array[] = [];
     for (const part of result.parts) {
       const encryptedData = await downloadWithRetry(part.url, { method: part.method }, {
         transport: options.transport,
@@ -85,14 +89,25 @@ export async function incrementalExportAndDownload(
         throw new Error(`Hash mismatch for export part ${part.ordinalNumber}`);
       }
       const decrypted = client.crypto.decryptAES256(encryptedData, encData.cipherKey, encData.cipherIv);
+      iterationParts.push(decrypted);
       decryptedParts.push(decrypted);
     }
+
+    // A truncated package without lastPermanentStorageDate resumes from its
+    // last record, which only the package's own _metadata.json lists. The
+    // storage dates there only make sense as a resume point when the window is
+    // filtered by storage date, so other date types get no records.
+    const records = result.isTruncated
+      && !result.lastPermanentStorageDate
+      && filters.dateRange?.dateType === 'PermanentStorage'
+      ? await readPackageRecords(iterationParts, result.compressionType)
+      : undefined;
 
     updateContinuationPoint(points, options.subjectType, {
       isTruncated: result.isTruncated,
       lastPermanentStorageDate: result.lastPermanentStorageDate,
       permanentStorageHwmDate: result.permanentStorageHwmDate,
-    });
+    }, records);
 
     if (options.store) {
       await options.store.save(points);
@@ -113,6 +128,26 @@ export async function incrementalExportAndDownload(
     continuationPoints: points,
     iterationCount: iteration,
   };
+}
+
+/**
+ * Reads the invoice records from the `_metadata.json` of one decrypted export
+ * package (its parts concatenated form a single archive). Returns an empty list
+ * when the package has no archive or no metadata file.
+ */
+async function readPackageRecords(
+  parts: Uint8Array[],
+  compressionType: CompressionType | undefined,
+): Promise<ContinuationPackageRecord[]> {
+  const archive = Buffer.concat(parts);
+  if (archive.length === 0) return [];
+  const files = compressionType === 'TarGz' ? await extractTarGz(archive) : await unzip(archive);
+  for (const [name, content] of files) {
+    if (name.split('/').pop()?.toLowerCase() !== '_metadata.json') continue;
+    const parsed = JSON.parse(content.toString('utf-8')) as { invoices?: unknown };
+    return Array.isArray(parsed.invoices) ? (parsed.invoices as ContinuationPackageRecord[]) : [];
+  }
+  return [];
 }
 
 function buildDefaultFilters(

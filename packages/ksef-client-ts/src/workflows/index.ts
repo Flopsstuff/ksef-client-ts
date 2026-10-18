@@ -9,7 +9,7 @@ export type { ExportOptions, ExportAndDownloadOptions } from './invoice-export-w
 export { incrementalExportAndDownload } from './incremental-export-workflow.js';
 export type { IncrementalExportOptions, IncrementalExportResult } from './incremental-export-workflow.js';
 export { updateContinuationPoint, getEffectiveStartDate, deduplicateByKsefNumber } from './hwm-coordinator.js';
-export type { ContinuationPoints } from './hwm-coordinator.js';
+export type { ContinuationPoints, ContinuationPackageRecord } from './hwm-coordinator.js';
 export { InMemoryHwmStore } from './hwm-storage.js';
 export type { HwmStore } from './hwm-storage.js';
 export { authenticateWithToken, authenticateWithCertificate, authenticateWithPkcs12, authenticateWithExternalSignature } from './auth-workflow.js';
