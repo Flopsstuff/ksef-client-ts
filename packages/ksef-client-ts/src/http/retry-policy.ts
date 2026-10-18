@@ -4,7 +4,26 @@ export interface RetryPolicy {
   maxDelayMs: number;
   retryableStatusCodes: number[];
   retryNetworkErrors: boolean;
+  /**
+   * Longest server-requested `Retry-After` delay the client will sleep for.
+   * A longer request is not waited out: the response is returned as final, so
+   * a 429 surfaces as `KSeFRateLimitError` carrying the server's value.
+   * `maxDelayMs` caps only the computed backoff, not `Retry-After`.
+   * Defaults to 120 000 ms. Values above the timer limit of 2 147 483 647 ms
+   * (~24.8 days), `Infinity` included, are clamped to it, so a longer
+   * `Retry-After` is never slept for and always counts as exceeding the cap.
+   */
+  maxRetryAfterMs?: number;
 }
+
+const DEFAULT_MAX_RETRY_AFTER_MS = 120_000;
+
+/**
+ * Longest delay `setTimeout` honours (2^31 - 1 ms, ~24.8 days). Node and
+ * browsers treat anything larger as ~1 ms, which would turn a multi-week wait
+ * into an immediate retry, so no retry sleep may exceed it.
+ */
+export const MAX_TIMER_DELAY_MS = 2_147_483_647;
 
 export function defaultRetryPolicy(): RetryPolicy {
   return {
@@ -13,21 +32,28 @@ export function defaultRetryPolicy(): RetryPolicy {
     maxDelayMs: 30_000,
     retryableStatusCodes: [429, 500, 502, 503, 504],
     retryNetworkErrors: true,
+    maxRetryAfterMs: DEFAULT_MAX_RETRY_AFTER_MS,
   };
 }
 
 export function calculateBackoff(attempt: number, policy: RetryPolicy): number {
   const exponential = policy.baseDelayMs * Math.pow(2, attempt);
   const jitter = Math.random() * policy.baseDelayMs;
-  return Math.min(exponential + jitter, policy.maxDelayMs);
+  return Math.min(exponential + jitter, policy.maxDelayMs, MAX_TIMER_DELAY_MS);
 }
 
+/**
+ * Parses a `Retry-After` header (seconds or HTTP-date) into milliseconds.
+ * A negative value or a date in the past means "retry now" and yields `0`.
+ * A non-finite value (`Infinity`, `1e400`) is malformed and yields `null`,
+ * so the caller falls back to backoff rather than hammering the server.
+ */
 export function parseRetryAfter(header: string | null): number | null {
-  if (!header) return null;
+  if (!header?.trim()) return null;
 
   const seconds = Number(header);
   if (!Number.isNaN(seconds)) {
-    return seconds * 1000;
+    return Number.isFinite(seconds) ? Math.max(0, seconds * 1000) : null;
   }
 
   const date = new Date(header);
@@ -36,6 +62,34 @@ export function parseRetryAfter(header: string | null): number | null {
   }
 
   return null;
+}
+
+/** Statuses whose `Retry-After` is honoured: 429 (RFC 6585) and 503 (RFC 9110). */
+const RETRY_AFTER_STATUSES = new Set([429, 503]);
+
+/**
+ * The delay a retryable response asks for via `Retry-After`, in milliseconds,
+ * or `null` when there is none to honour (other status, header absent or
+ * malformed) and backoff applies.
+ */
+export function getRetryAfterMs(response: Response): number | null {
+  if (!RETRY_AFTER_STATUSES.has(response.status)) return null;
+  return parseRetryAfter(response.headers.get('Retry-After'));
+}
+
+/**
+ * Whether a `Retry-After` delay is too long to wait out under `policy`.
+ * The cap never exceeds `MAX_TIMER_DELAY_MS`, so a delay `sleep()` cannot
+ * honour is always reported as too long rather than retried at once.
+ */
+export function exceedsMaxRetryAfter(delayMs: number, policy: RetryPolicy): boolean {
+  // NaN would make every comparison false and let any delay through.
+  const configured = policy.maxRetryAfterMs;
+  const cap = Math.min(
+    configured === undefined || Number.isNaN(configured) ? DEFAULT_MAX_RETRY_AFTER_MS : configured,
+    MAX_TIMER_DELAY_MS,
+  );
+  return delayMs > cap;
 }
 
 const RETRYABLE_ERROR_CODES = new Set([

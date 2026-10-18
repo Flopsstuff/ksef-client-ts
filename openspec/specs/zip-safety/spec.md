@@ -14,7 +14,7 @@ The `unzip(buffer, options?)` function SHALL extract a ZIP archive from a `Buffe
 - **THEN** it returns an empty `Map`
 
 ### Requirement: File count limit
-The `unzip()` function SHALL reject archives containing more files than the `maxFiles` limit (default: 10,000).
+The `unzip()` function SHALL reject archives containing more files than the `maxFiles` limit (default: 10,001 — a full KSeF export package holds 10,000 invoices plus `_metadata.json`).
 
 #### Scenario: Archive exceeds file count limit
 - **WHEN** `unzip()` is called with a ZIP containing 11,000 files and default options
@@ -84,11 +84,12 @@ The `createZip(entries)` function SHALL create a ZIP archive from an array of `Z
 - **THEN** the extracted files match the original inputs exactly
 
 ### Requirement: UnzipOptions interface
-The `UnzipOptions` interface SHALL expose four optional fields:
-- `maxFiles?: number` — max file count (default 10,000; `0` disables)
+The `UnzipOptions` interface SHALL expose five optional fields:
+- `maxFiles?: number` — max file count (default 10,001; `0` disables)
 - `maxTotalUncompressedSize?: number` — max total bytes (default 2,000,000,000; `0` disables)
 - `maxFileUncompressedSize?: number` — max per-file bytes (default 500,000,000; `0` disables)
 - `maxCompressionRatio?: number | null` — max ratio (default 200; `null` disables)
+- `filter?: (fileName: string) => boolean` — extract only matching entries; skipped entries still count toward the limits but are not buffered
 
 #### Scenario: Default options applied when none provided
 - **WHEN** `unzip()` is called without an options argument

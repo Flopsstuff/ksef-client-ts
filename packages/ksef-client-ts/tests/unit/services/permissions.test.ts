@@ -2,6 +2,7 @@ import { PermissionsService } from '../../../src/services/permissions.js';
 import { Routes } from '../../../src/http/routes.js';
 import { KSeFValidationError } from '../../../src/errors/ksef-validation-error.js';
 import { createMockRestClient, getRequest, mockResponse } from './_helpers.js';
+import type { QueryPersonalPermissionsResponse } from '../../../src/models/permissions/types.js';
 
 describe('PermissionsService', () => {
   let client: ReturnType<typeof createMockRestClient>;
@@ -271,6 +272,30 @@ describe('PermissionsService', () => {
 
       const req = getRequest(vi.mocked(client.execute));
       expect(req.getBody()).toEqual(options);
+    });
+
+    it('queryPersonalGrants passes ownerPermissions through to the caller', async () => {
+      const expected: QueryPersonalPermissionsResponse = {
+        permissions: [],
+        ownerPermissions: ['CredentialsManage', 'InvoiceRead', 'InvoiceWrite'],
+        hasMore: false,
+      };
+      vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
+
+      const result = await service.queryPersonalGrants();
+
+      expect(result.ownerPermissions).toEqual(['CredentialsManage', 'InvoiceRead', 'InvoiceWrite']);
+      expect(result).toEqual(expected);
+    });
+
+    it('queryPersonalGrants handles a response without ownerPermissions (servers before 2.9.0)', async () => {
+      const expected = { permissions: [], hasMore: false };
+      vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
+
+      const result = await service.queryPersonalGrants();
+
+      expect(result).toEqual(expected);
+      expect(result.ownerPermissions).toBeUndefined();
     });
 
     it('queryPersonalGrants throws KSeFValidationError when InternalId is shorter than 10 chars', async () => {

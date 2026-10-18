@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.15.0] - 2026-10-18
+
+### Added
+
+- **Owner permissions in permission queries** — querying your own permissions now also returns the rights you hold as the owner of the context, and the command line lists them instead of reporting that no permissions were found (KSeF API v2.9.0).
+- **Unreadable request errors** — KSeF's error for a request it cannot read is now recognised, and the command line shows the error details naming the rejected field together with a hint on how to fix it (KSeF API v2.9.0).
+
+### Changed
+
+- **Updated to KSeF API v2.9.0** — the bundled API specification now tracks the current KSeF release.
+
+### Fixed
+
+- **Long server-requested waits** — a very long wait requested by KSeF after a rate limit or a temporary unavailability no longer stalls a request, which now fails straight away with the requested delay once it exceeds an adjustable ceiling.
+- **Invalid server-requested waits** — a negative wait time sent by KSeF now means an immediate retry and a malformed one falls back to the usual retry backoff, instead of being used as given.
+- **Invoices skipped in incremental export** — when KSeF truncates an export package without reporting where it stopped, the export now resumes from the package's last invoice instead of skipping ahead, and stops with an error rather than reporting a gap as complete when it cannot tell where to resume.
+- **Full export packages** — unpacking an exported package that holds the maximum of 10 000 invoices no longer fails because of the accompanying metadata file.
+
 ## [0.14.0] - 2026-10-05
 
 ### Added

@@ -3,6 +3,10 @@ import type { ContinuationPoints } from '../../../src/workflows/hwm-coordinator.
 import type { ExportResult } from '../../../src/workflows/types.js';
 import type { HwmStore } from '../../../src/workflows/hwm-storage.js';
 import { sha256Base64 } from '../../../src/utils/hash.js';
+import { createZip, unzip } from '../../../src/utils/zip.js';
+import { createTarGz } from '../../../src/utils/targz.js';
+import { deduplicateByKsefNumber } from '../../../src/workflows/hwm-coordinator.js';
+import { KSeFError } from '../../../src/errors/ksef-error.js';
 
 /** Pre-computed SHA-256 base64 of the mock encrypted data [99, 99]. */
 const MOCK_ENC_HASH = sha256Base64(new Uint8Array([99, 99]));
@@ -180,14 +184,14 @@ describe('incrementalExportAndDownload', () => {
 
   describe('termination - stall detection', () => {
     it('stops when effectiveFrom does not advance between iterations', async () => {
-      // First call: isTruncated=true but no lastPermanentStorageDate and no permanentStorageHwmDate
-      // updateContinuationPoint will delete the entry, so getEffectiveStartDate returns windowFrom again
+      // First call: truncated, but its last record sits exactly at windowFrom,
+      // so the continuation point lands where the iteration started
       mockDoExport
         .mockResolvedValueOnce(
           mockExportResult({
             referenceNumber: 'ref-stall-1',
             isTruncated: true,
-            // No lastPermanentStorageDate, no permanentStorageHwmDate
+            lastPermanentStorageDate: '2026-01-01',
           }),
         )
         .mockResolvedValueOnce(
@@ -212,8 +216,8 @@ describe('incrementalExportAndDownload', () => {
       expect(result.referenceNumbers).toEqual(['ref-stall-1']);
     });
 
-    it('detects stall when permanentStorageHwmDate matches existing continuation point', async () => {
-      // If the export returns permanentStorageHwmDate equal to the current window,
+    it('detects stall when a truncated package resumes from the existing continuation point', async () => {
+      // If the export is truncated at the boundary it started from,
       // the continuation point won't change and the next iteration will see the same effectiveFrom
       mockDoExport
         .mockResolvedValueOnce(
@@ -227,9 +231,9 @@ describe('incrementalExportAndDownload', () => {
           mockExportResult({
             referenceNumber: 'ref-s2',
             isTruncated: true,
-            // This time truncated but no lastPermanentStorageDate
-            // permanentStorageHwmDate present keeps it at 2026-02-01
-            permanentStorageHwmDate: '2026-02-01',
+            // Truncated again at the same boundary, so the point stays at 2026-02-01
+            lastPermanentStorageDate: '2026-02-01',
+            permanentStorageHwmDate: '2026-03-01',
           }),
         )
         .mockResolvedValueOnce(
@@ -249,7 +253,7 @@ describe('incrementalExportAndDownload', () => {
       });
 
       // iteration 0: effectiveFrom=2026-01-01 -> sets points to 2026-02-01
-      // iteration 1: effectiveFrom=2026-02-01 -> updateContinuationPoint (truncated, no lastPermanent -> falls through to permanentStorageHwmDate=2026-02-01)
+      // iteration 1: effectiveFrom=2026-02-01 -> updateContinuationPoint (truncated, lastPermanentStorageDate=2026-02-01 again)
       // iteration 2: effectiveFrom=2026-02-01 === previousFrom=2026-02-01 -> stall, break
       expect(mockDoExport).toHaveBeenCalledTimes(2);
       expect(result.iterationCount).toBe(2);
@@ -1154,5 +1158,236 @@ describe('incrementalExportAndDownload', () => {
       expect(result.referenceNumbers[result.referenceNumbers.length - 1]).toBe('chunk-tail');
       expect(result.decryptedParts).toHaveLength(total + 1);
     });
+  });
+});
+
+// B2 — KSeF may omit lastPermanentStorageDate on a truncated package (the field
+// is nullable). The workflow must then resume from the package's last record,
+// read from its _metadata.json, instead of jumping to the HWM.
+describe('incrementalExportAndDownload — truncated package without lastPermanentStorageDate', () => {
+  interface StoredInvoice { ksefNumber: string; permanentStorageDate: string }
+
+  /** A package archive the way KSeF ships it: invoice XMLs plus _metadata.json. */
+  function packageEntries(invoices: StoredInvoice[], withMetadata = true) {
+    return [
+      ...invoices.map((inv) => ({ fileName: `${inv.ksefNumber}.xml`, content: Buffer.from('<Faktura/>') })),
+      ...(withMetadata
+        ? [{ fileName: '_metadata.json', content: Buffer.from(JSON.stringify({ invoices })) }]
+        : []),
+    ];
+  }
+
+  /** Makes the mocked decryption hand back `archive` for the next downloaded part. */
+  function serveArchive(archive: Buffer) {
+    client.crypto.decryptAES256.mockReturnValueOnce(new Uint8Array(archive));
+  }
+
+  function truncatedResult(referenceNumber: string, extra: Partial<ExportResult> = {}) {
+    const base = mockExportResult({
+      referenceNumber,
+      isTruncated: true,
+      permanentStorageHwmDate: '2026-03-01T00:00:00Z',
+    });
+    return { ...base, result: { ...base.result, ...extra } };
+  }
+
+  it('resumes from the latest record date in _metadata.json, not the HWM', async () => {
+    serveArchive(await createZip(packageEntries([
+      { ksefNumber: 'K-2', permanentStorageDate: '2026-01-20T12:00:00.1234567+00:00' },
+      { ksefNumber: 'K-1', permanentStorageDate: '2026-01-10T08:00:00+00:00' },
+    ])));
+    mockDoExport
+      .mockResolvedValueOnce(truncatedResult('ref-1'))
+      .mockResolvedValueOnce(mockExportResult({
+        referenceNumber: 'ref-2',
+        isTruncated: false,
+        permanentStorageHwmDate: '2026-03-01T00:00:00Z',
+      }));
+
+    const result = await incrementalExportAndDownload(client, {
+      subjectType: 'Subject1',
+      windowFrom: '2026-01-01T00:00:00Z',
+      windowTo: '2026-03-01T00:00:00Z',
+      continuationPoints: {},
+      pollOptions: { intervalMs: 1 },
+      transport: mockTransport,
+    });
+
+    expect(mockDoExport.mock.calls[1][1].dateRange.from).toBe('2026-01-20T12:00:00.1234567+00:00');
+    expect(result.continuationPoints['Subject1']).toBe('2026-03-01T00:00:00Z');
+  });
+
+  it('reads the records from a TarGz package as well', async () => {
+    serveArchive(await createTarGz(packageEntries([
+      { ksefNumber: 'K-1', permanentStorageDate: '2026-01-15T00:00:00Z' },
+    ])));
+    mockDoExport
+      .mockResolvedValueOnce(truncatedResult('ref-1', { compressionType: 'TarGz' }))
+      .mockResolvedValueOnce(mockExportResult({ referenceNumber: 'ref-2', isTruncated: false }));
+
+    await incrementalExportAndDownload(client, {
+      subjectType: 'Subject1',
+      windowFrom: '2026-01-01T00:00:00Z',
+      windowTo: '2026-03-01T00:00:00Z',
+      continuationPoints: {},
+      pollOptions: { intervalMs: 1 },
+      transport: mockTransport,
+    });
+
+    expect(mockDoExport.mock.calls[1][1].dateRange.from).toBe('2026-01-15T00:00:00Z');
+  });
+
+  it('reads the records from a package split across several parts', async () => {
+    const twoParts = [1, 2].map((n) => ({
+      ordinalNumber: n,
+      url: `https://dl.example.com/${n}`,
+      method: 'GET',
+      partSize: 100,
+      partHash: `ph${n}`,
+      encryptedPartSize: 110,
+      encryptedPartHash: MOCK_ENC_HASH,
+      expirationDate: '2026-12-31',
+    }));
+    for (const [make, compressionType] of [[createZip, 'Zip'], [createTarGz, 'TarGz']] as const) {
+      mockDoExport.mockReset();
+      const archive = await make(packageEntries([
+        { ksefNumber: 'K-1', permanentStorageDate: '2026-01-15T00:00:00Z' },
+      ]));
+      const cut = Math.floor(archive.length / 2);
+      serveArchive(archive.subarray(0, cut));
+      serveArchive(archive.subarray(cut));
+      mockDoExport
+        .mockResolvedValueOnce(truncatedResult('ref-1', { compressionType, parts: twoParts }))
+        .mockResolvedValueOnce(mockExportResult({ referenceNumber: 'ref-2', isTruncated: false }));
+
+      await incrementalExportAndDownload(client, {
+        subjectType: 'Subject1',
+        windowFrom: '2026-01-01T00:00:00Z',
+        windowTo: '2026-03-01T00:00:00Z',
+        continuationPoints: {},
+        pollOptions: { intervalMs: 1 },
+        transport: mockTransport,
+      });
+
+      expect(mockDoExport.mock.calls[1][1].dateRange.from).toBe('2026-01-15T00:00:00Z');
+    }
+  });
+
+  it('reads a package truncated at the full 10 000-invoice cap', async () => {
+    const invoices = Array.from({ length: 10_000 }, (_, i) => ({
+      ksefNumber: `K-${i}`,
+      permanentStorageDate: new Date(Date.UTC(2026, 0, 2) + i * 1000).toISOString(),
+    }));
+    serveArchive(await createZip(packageEntries(invoices)));
+    mockDoExport
+      .mockResolvedValueOnce(truncatedResult('ref-1'))
+      .mockResolvedValueOnce(mockExportResult({ referenceNumber: 'ref-2', isTruncated: false }));
+
+    await incrementalExportAndDownload(client, {
+      subjectType: 'Subject1',
+      windowFrom: '2026-01-01T00:00:00Z',
+      windowTo: '2026-03-01T00:00:00Z',
+      continuationPoints: {},
+      pollOptions: { intervalMs: 1 },
+      transport: mockTransport,
+    });
+
+    expect(mockDoExport.mock.calls[1][1].dateRange.from).toBe(invoices[9_999].permanentStorageDate);
+  }, 30_000); // packing ~10k entries takes seconds on a loaded machine
+
+  it('fails without saving the HWM when the package lists no records to resume from', async () => {
+    serveArchive(await createZip(packageEntries([
+      { ksefNumber: 'K-1', permanentStorageDate: '2026-01-15T00:00:00Z' },
+    ], false)));
+    mockDoExport.mockResolvedValueOnce(truncatedResult('ref-1'));
+    const saved: ContinuationPoints[] = [];
+    const store: HwmStore = {
+      load: async () => ({ Subject1: '2026-01-05T00:00:00Z' }),
+      save: async (p) => { saved.push({ ...p }); },
+    };
+    const points: ContinuationPoints = {};
+
+    await expect(incrementalExportAndDownload(client, {
+      subjectType: 'Subject1',
+      windowFrom: '2026-01-01T00:00:00Z',
+      windowTo: '2026-03-01T00:00:00Z',
+      continuationPoints: points,
+      store,
+      pollOptions: { intervalMs: 1 },
+      transport: mockTransport,
+    })).rejects.toThrow(KSeFError);
+
+    // The point stays where this package started, so a rerun retries it.
+    expect(points['Subject1']).toBe('2026-01-05T00:00:00Z');
+    expect(saved).toEqual([]);
+  });
+
+  it('does not use storage dates as a resume point for a window filtered by another date type', async () => {
+    serveArchive(await createZip(packageEntries([
+      { ksefNumber: 'K-1', permanentStorageDate: '2026-01-15T00:00:00Z' },
+    ])));
+    mockDoExport.mockResolvedValueOnce(truncatedResult('ref-1', { permanentStorageHwmDate: undefined }));
+
+    await expect(incrementalExportAndDownload(client, {
+      subjectType: 'Subject1',
+      windowFrom: '2026-01-01',
+      windowTo: '2026-03-01',
+      continuationPoints: {},
+      filtersFactory: (from, to) => ({ subjectType: 'Subject1', dateRange: { dateType: 'Issue', from, to } }),
+      pollOptions: { intervalMs: 1 },
+      transport: mockTransport,
+    })).rejects.toThrow(/truncated/);
+  });
+
+  it('skips no invoice across two packages and leaves only boundary duplicates for dedup', async () => {
+    // Six invoices; KSeF caps a package at 4 records. Two share the boundary
+    // instant, so the cut falls between them (K-4 in, K-5 out).
+    const stored: StoredInvoice[] = [
+      { ksefNumber: 'K-1', permanentStorageDate: '2026-01-02T10:00:00Z' },
+      { ksefNumber: 'K-2', permanentStorageDate: '2026-01-03T10:00:00Z' },
+      { ksefNumber: 'K-3', permanentStorageDate: '2026-01-04T10:00:00Z' },
+      { ksefNumber: 'K-4', permanentStorageDate: '2026-01-05T10:00:00Z' },
+      { ksefNumber: 'K-5', permanentStorageDate: '2026-01-05T10:00:00Z' },
+      { ksefNumber: 'K-6', permanentStorageDate: '2026-02-10T10:00:00Z' },
+    ];
+    const cap = 4;
+    const hwm = '2026-03-01T00:00:00Z';
+
+    mockDoExport.mockImplementation(async (_client, filters) => {
+      // `from` is inclusive, as in KSeF.
+      const from = Date.parse(filters.dateRange.from);
+      const inWindow = stored.filter((inv) => Date.parse(inv.permanentStorageDate) >= from);
+      const page = inWindow.slice(0, cap);
+      // Records listed newest first: the resume point must not depend on order.
+      serveArchive(await createZip(packageEntries([...page].reverse())));
+      return mockExportResult({
+        referenceNumber: `ref-${mockDoExport.mock.calls.length}`,
+        isTruncated: inWindow.length > cap,
+        permanentStorageHwmDate: hwm,
+        invoiceCount: page.length,
+      });
+    });
+
+    const result = await incrementalExportAndDownload(client, {
+      subjectType: 'Subject1',
+      windowFrom: '2026-01-01T00:00:00Z',
+      windowTo: hwm,
+      continuationPoints: {},
+      pollOptions: { intervalMs: 1 },
+      transport: mockTransport,
+    });
+
+    expect(result.iterationCount).toBe(2);
+    expect(mockDoExport.mock.calls[1][1].dateRange.from).toBe('2026-01-05T10:00:00Z');
+
+    const received: StoredInvoice[] = [];
+    for (const part of result.decryptedParts) {
+      const files = await unzip(Buffer.from(part));
+      received.push(...(JSON.parse(files.get('_metadata.json')!.toString('utf-8')) as { invoices: StoredInvoice[] }).invoices);
+    }
+    // K-4 comes back in the second package; dedup collapses it.
+    expect(received.filter((r) => r.ksefNumber === 'K-4')).toHaveLength(2);
+    expect(deduplicateByKsefNumber(received).map((r) => r.ksefNumber).sort())
+      .toEqual(stored.map((s) => s.ksefNumber));
   });
 });

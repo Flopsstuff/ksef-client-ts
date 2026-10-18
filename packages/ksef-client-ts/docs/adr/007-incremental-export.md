@@ -22,10 +22,18 @@ All existing workflows are functional (`exportInvoices()`, `exportAndDownload()`
 The same algorithm as smekcio and C# (proven pattern):
 
 1. `isTruncated && lastPermanentStorageDate` -> use `lastPermanentStorageDate` (last date in truncated package = resume point)
-2. `permanentStorageHwmDate` exists -> use it (stable HWM from snapshot mode)
-3. Neither -> delete the entry (export for this subject type is complete)
+2. `isTruncated` without `lastPermanentStorageDate` -> use the latest `permanentStorageDate` among the package's records (its `_metadata.json`); if there are none, throw and leave the point unchanged
+3. `permanentStorageHwmDate` exists -> use it (stable HWM from snapshot mode)
+4. Neither -> delete the entry (export for this subject type is complete)
 
 This priority is consistent with KSeF API documentation (see [ADR-004](004-ksef-api-behavior.md)).
+
+**Amended in v0.15.0.** `lastPermanentStorageDate` is nullable in the spec. The original algorithm (same as C# and Java) fell through to `permanentStorageHwmDate` for a truncated package without it, so every invoice between the package's last record and the HWM was skipped for good. Step 2 follows smekcio ksef-client-python 0.19.0:
+
+- **Latest instant, not the last array entry.** `_metadata.json` has no documented order, and the package is cut at the newest record it holds. The original string is kept, so the server's 7-digit precision is not lost.
+- **Restarting at that date is inclusive.** The boundary record comes back in the next package. Records that share its instant but were cut off come back too. `deduplicateByKsefNumber()` removes the repeats, as it already does for adjacent windows.
+- **Throw rather than guess.** A truncated package with no resume point at all is an error (`KSeFError`) and the point is not saved. A rerun then retries the same package instead of skipping data or reporting a gappy export as complete.
+- **Only for storage-date windows.** `incrementalExportAndDownload()` reads `_metadata.json` only when `lastPermanentStorageDate` is missing and the window is filtered by `PermanentStorage`. Storage dates are no resume point for an `Issue` or `Invoicing` window, so such a package throws.
 
 ### Three termination conditions
 

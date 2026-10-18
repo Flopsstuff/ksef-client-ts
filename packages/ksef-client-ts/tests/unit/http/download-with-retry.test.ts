@@ -43,6 +43,30 @@ describe('downloadWithRetry', () => {
     expect(transport).toHaveBeenCalledTimes(2);
   });
 
+  it('waits for Retry-After on 503 instead of the backoff', async () => {
+    const transport = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('', { status: 503, headers: { 'Retry-After': '0' } }))
+      .mockResolvedValueOnce(ok());
+    await expect(download(transport, { baseDelayMs: 60_000, maxDelayMs: 60_000 })).resolves.toHaveLength(3);
+    expect(transport).toHaveBeenCalledTimes(2);
+  });
+
+  it('fails at once when Retry-After is above the limit', async () => {
+    const transport = vi.fn<typeof fetch>()
+      .mockResolvedValue(new Response('', { status: 429, headers: { 'Retry-After': '3600' } }));
+    await expect(download(transport)).rejects.toThrow('Download failed for part 1: HTTP 429');
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails at once on a Retry-After beyond the timer limit even with an Infinity cap', async () => {
+    // 30 days would overflow setTimeout and fire after ~1 ms if it were slept.
+    const transport = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response('', { status: 429, headers: { 'Retry-After': '2592000' } }))
+      .mockResolvedValueOnce(ok());
+    await expect(download(transport, { maxRetryAfterMs: Infinity })).rejects.toThrow('Download failed for part 1: HTTP 429');
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
   it('releases the body of a response it does not retry', async () => {
     const notFound = new Response('missing', { status: 404 });
     const cancel = vi.spyOn(notFound.body!, 'cancel');

@@ -4,6 +4,7 @@ import { KSeFUnauthorizedError } from '../../src/errors/ksef-unauthorized-error.
 import { KSeFApiError } from '../../src/errors/ksef-api-error.js';
 import { KSeFBadRequestError } from '../../src/errors/ksef-bad-request-error.js';
 import { KSeFValidationError } from '../../src/errors/ksef-validation-error.js';
+import { KSeFErrorCode } from '../../src/errors/error-codes.js';
 import { InvoiceQueryFilterBuilder } from '../../src/builders/invoice-query-filter.js';
 import { EntityPermissionGrantBuilder } from '../../src/builders/permissions/entity-permission.js';
 
@@ -65,6 +66,23 @@ describe('25 - Error Handling E2E', { timeout: 60_000 }, () => {
         // eslint-disable-next-line no-console
         console.warn('ALLOW_LEGACY_400 set: server returned legacy 400 body; skipping Problem Details assertions');
       }
+    }
+  });
+
+  // Pins the observed format: if KSeF moves 21001 out of Problem Details or renames it, this test shows it.
+  it('should surface code 21001 for a value KSeF cannot read', async () => {
+    const { client } = await authenticateWithCert();
+
+    try {
+      await client.permissions.queryPersonalGrants({ permissionTypes: ['Nope'] as any });
+      expect.fail('Should have thrown 400');
+    } catch (e) {
+      expect(e).toBeInstanceOf(KSeFBadRequestError);
+      const err = e as KSeFBadRequestError;
+      expect(err.statusCode).toBe(400);
+      const entry = err.errors.find((x) => x.code === KSeFErrorCode.UnreadableContent);
+      expect(entry).toBeDefined();
+      expect(entry!.details?.join(' ')).toContain('permissionTypes');
     }
   });
 

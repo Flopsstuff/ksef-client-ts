@@ -264,6 +264,7 @@ describe('renderCliError — hints by KSeF error code', () => {
     { code: 71005, text: 'Remove the duplicates' },
     { code: 21470, text: 'public key' },
     { code: 21208, text: 'ksef invoice send' },
+    { code: 21001, text: 'field named in the error details' },
     { code: 21405, text: 'error details' },
   ])('gives the $code hint instead of the status hint', ({ code, text }) => {
     renderCliError(badRequest(code));
@@ -290,6 +291,47 @@ describe('renderCliError — hints by KSeF error code', () => {
     renderCliError(err);
 
     expect(infoCalls()).toEqual([expect.stringContaining('Hint [21418]')]);
+  });
+
+  it('renders the details of a legacy 21001 body with its hint', () => {
+    // Body captured from KSeF TEST for `permissionTypes: ['Nope']` sent without the Problem Details header.
+    const err = KSeFApiError.fromResponse(400, {
+      exception: {
+        exceptionDetailList: [{
+          exceptionCode: 21001,
+          exceptionDescription: 'Nieczytelna treść.',
+          details: ["Invalid value in field 'permissionTypes[0]'."],
+        }],
+      },
+    });
+
+    renderCliError(err);
+
+    expect(errorCalls()).toEqual(expect.arrayContaining([
+      expect.stringContaining('[21001] Nieczytelna treść.'),
+      expect.stringContaining("Invalid value in field 'permissionTypes[0]'."),
+    ]));
+    expect(infoCalls()).toEqual([expect.stringMatching(/^Hint \[21001\]: /)]);
+  });
+
+  it('renders the details of a Problem Details 21001 body with its hint', () => {
+    // What the client actually receives from KSeF TEST, since it asks for Problem Details by default.
+    renderCliError(new KSeFBadRequestError({
+      title: 'Bad Request',
+      status: 400,
+      detail: 'Żądanie jest nieprawidłowe.',
+      errors: [{
+        code: 21001,
+        description: 'Nieczytelna treść.',
+        details: ["Invalid value in field 'permissionTypes[0]'."],
+      }],
+    }));
+
+    expect(errorCalls()).toEqual(expect.arrayContaining([
+      expect.stringContaining('[21001] Nieczytelna treść.'),
+      expect.stringContaining("Invalid value in field 'permissionTypes[0]'."),
+    ]));
+    expect(infoCalls()).toEqual([expect.stringMatching(/^Hint \[21001\]: /)]);
   });
 
   it('reads the code of a legacy-built typed error', () => {

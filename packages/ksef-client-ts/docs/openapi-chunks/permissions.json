@@ -4176,6 +4176,19 @@
         ],
         "type": "string"
       },
+      "OwnerPermissionScope": {
+        "enum": [
+          "CredentialsManage",
+          "CredentialsRead",
+          "InvoiceWrite",
+          "InvoiceRead",
+          "Introspection",
+          "SubunitManage",
+          "EnforcementOperations",
+          "CollectiveIdentifierManage"
+        ],
+        "type": "string"
+      },
       "PermissionId": {
         "maxLength": 36,
         "minLength": 36,
@@ -5375,6 +5388,13 @@
             "items": {
               "$ref": "#/components/schemas/PersonalPermission"
             }
+          },
+          "ownerPermissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OwnerPermissionScope"
+            },
+            "nullable": true
           },
           "hasMore": {
             "type": "boolean"

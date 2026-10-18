@@ -618,10 +618,12 @@ The `unzip()` function enforces four limits, checked during extraction before re
 
 | Check | Default limit | Error message | Why |
 |-------|--------------|---------------|-----|
-| File count | 10,000 files | `zip contains too many files` | Prevents archives with millions of tiny files that exhaust file descriptors |
+| File count | 10,001 files | `zip contains too many files` | Prevents archives with millions of tiny files that exhaust file descriptors |
 | Total uncompressed size | 2 GB (2,000,000,000 bytes) | `zip exceeds max_total_uncompressed_size` | Prevents memory exhaustion from aggregate size |
 | Per-file uncompressed size | 500 MB (500,000,000 bytes) | `zip entry exceeds max_file_uncompressed_size` | Prevents a single enormous file from consuming all memory |
 | Compression ratio | 200:1 | `zip entry exceeds max_compression_ratio` | Detects suspiciously high compression (normal XML compresses ~10:1) |
+
+The file-count default fits a full KSeF export package: up to 10,000 invoices plus its `_metadata.json`.
 
 An additional check detects entries with zero compressed size but non-zero uncompressed size (`zip entry has suspicious compression metadata`), which would indicate corrupted or crafted metadata.
 
@@ -631,14 +633,25 @@ All limits are configurable through the `UnzipOptions` interface:
 
 ```typescript
 interface UnzipOptions {
-  maxFiles?: number;                   // default: 10,000
+  maxFiles?: number;                   // default: 10,001
   maxTotalUncompressedSize?: number;   // default: 2,000,000,000 (2 GB)
   maxFileUncompressedSize?: number;    // default: 500,000,000 (500 MB)
   maxCompressionRatio?: number | null; // default: 200, null to disable
+  filter?: (fileName: string) => boolean; // extract only matching entries
 }
 ```
 
 Set `maxCompressionRatio` to `null` to disable ratio checking (not recommended for untrusted data).
+
+`filter` extracts only the entries whose name it accepts. The others still count toward every limit but are skipped without being kept in memory — useful when only one file of a large package is needed:
+
+```typescript
+const files = await unzip(zipBuffer, {
+  filter: (name) => name.endsWith('_metadata.json'),
+});
+```
+
+`extractTarGz()` accepts the same options.
 
 ### Functions
 
@@ -701,7 +714,7 @@ for (const [filename, xml] of result.files) {
 }
 ```
 
-The `unzipOptions` field on `ExportAndDownloadOptions` passes directly to `unzip()`. When omitted, the defaults (10K files, 2 GB total, 500 MB per file, 200:1 ratio) apply.
+The `unzipOptions` field on `ExportAndDownloadOptions` passes directly to `unzip()`. When omitted, the defaults (10,001 files, 2 GB total, 500 MB per file, 200:1 ratio) apply.
 
 ---
 

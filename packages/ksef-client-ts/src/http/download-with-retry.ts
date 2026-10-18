@@ -2,7 +2,8 @@ import {
   type RetryPolicy,
   defaultRetryPolicy,
   calculateBackoff,
-  parseRetryAfter,
+  getRetryAfterMs,
+  exceedsMaxRetryAfter,
   isRetryableStatus,
   sleep,
 } from './retry-policy.js';
@@ -24,9 +25,10 @@ export interface DownloadWithRetryOptions {
 /**
  * Downloads an idempotent resource outside the KSeF API (such as a presigned
  * export part) and returns its body. Each attempt has its own timeout. Retries
- * follow the retry policy: retryable statuses with backoff, 429 honouring
- * `Retry-After`, and thrown errors (network failures, timeouts, a body cut off
- * mid-stream) when `retryNetworkErrors` is set. Only use it for idempotent requests.
+ * follow the retry policy: retryable statuses with backoff, 429 and 503 honouring
+ * `Retry-After` (a wait above `maxRetryAfterMs` fails at once), and thrown
+ * errors (network failures, timeouts, a body cut off mid-stream) when
+ * `retryNetworkErrors` is set. Only use it for idempotent requests.
  */
 export async function downloadWithRetry(
   url: string,
@@ -52,10 +54,11 @@ export async function downloadWithRetry(
 
     // Not ok: the body is never read, so release the connection either way.
     await response.body?.cancel().catch(() => {});
-    if (!canRetry || !isRetryableStatus(response.status, policy)) {
+    const retryAfterMs = getRetryAfterMs(response);
+    const waitTooLong = retryAfterMs !== null && exceedsMaxRetryAfter(retryAfterMs, policy);
+    if (!canRetry || !isRetryableStatus(response.status, policy) || waitTooLong) {
       throw new Error(`Download failed for ${options.label}: HTTP ${response.status}`);
     }
-    const retryAfterMs = response.status === 429 ? parseRetryAfter(response.headers.get('Retry-After')) : null;
     await sleep(retryAfterMs ?? calculateBackoff(attempt, policy));
   }
 }

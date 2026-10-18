@@ -1,6 +1,6 @@
 # Models & Type System
 
-Complete reference for the model layer that defines every request, response, enum, and identifier type used by the KSeF client. All types are derived from the KSeF OpenAPI spec (API v2.8.1, build 2.8.1-te) and organized by API domain.
+Complete reference for the model layer that defines every request, response, enum, and identifier type used by the KSeF client. All types are derived from the KSeF OpenAPI spec (API v2.9.0, build 2.9.0-te) and organized by API domain.
 
 ---
 
@@ -614,6 +614,7 @@ Each permission grant target has its own set of allowed permission types:
 | `SubunitPermissionScope` | `CredentialsManage` | `GrantPermissionsSubunitRequest` |
 | `InvoicePermissionType` | `SelfInvoicing`, `TaxRepresentative`, `RRInvoicing`, `PefInvoicing` | Entity authorization grants |
 | `EntityRoleType` | `CourtBailiff`, `EnforcementAuthority`, `LocalGovernmentUnit`, `LocalGovernmentSubUnit`, `VatGroupUnit`, `VatGroupSubUnit` | Entity role queries |
+| `OwnerPermissionScope` | `CredentialsManage`, `CredentialsRead`, `InvoiceWrite`, `InvoiceRead`, `Introspection`, `SubunitManage`, `EnforcementOperations`, `CollectiveIdentifierManage` | `QueryPersonalPermissionsResponse.ownerPermissions` |
 
 ### Grant Request Types (7 total)
 
@@ -671,6 +672,16 @@ interface PagedAuthorizationsResponse<T> {
   authorizationGrants: T[];
 }
 ```
+
+The personal-grants query extends the generic wrapper with the owner's rights (KSeF API v2.9.0):
+
+```typescript
+interface QueryPersonalPermissionsResponse extends PagedPermissionsResponse<PersonalPermission> {
+  ownerPermissions?: OwnerPermissionScope[] | null;
+}
+```
+
+`OwnerPermissionScope` is a separate union rather than an alias of `PersonPermissionType` because the spec defines it as its own schema; the values happen to match today. For the context owner, `permissions` is empty and the rights are listed in `ownerPermissions`; a token session gets `[]`, and servers older than 2.9.0 omit the field or send `null`.
 
 ### Permission-specific Identifier Types
 
@@ -756,7 +767,7 @@ Effective rate limits and session context limits, plus override types for the te
 
 Key types:
 
-- `EffectiveApiRateLimits` -- per-second/minute/hour limits for 17 groups: the 13 endpoint categories, plus `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window equal to `RATE_LIMIT_UNLIMITED` (`-1`) has no limit; `global` (per-IP) is reserved and currently disabled
+- `EffectiveApiRateLimits` -- per-second/minute/hour limits for 17 groups: the 13 endpoint categories, plus `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window equal to `RATE_LIMIT_UNLIMITED` (`-1`) has no limit; `global` is the per-IP limit, announced in 2.8.0 as not yet enforced, but TEST reports a finite `perSecond` (75) since 2.9.0, so do not assume its windows are unlimited
 - `EffectiveContextLimits` -- max invoice size and count for online/batch sessions, and max invoices per collective identifier
 - `EffectiveSubjectLimits` -- enrollment and certificate limits per subject
 - `SetRateLimitsRequest`, `SetSessionLimitsRequest`, `SetSubjectLimitsRequest` -- override requests (test environment only)
@@ -937,7 +948,7 @@ The `Permission` prefix prevents collision with the auth-domain identifier type 
 
 ## OpenAPI Alignment
 
-All types are aligned with the KSeF OpenAPI spec (API v2.8.1, build 2.8.1-te, `docs/open-api.json`). Key alignment decisions:
+All types are aligned with the KSeF OpenAPI spec (API v2.9.0, build 2.9.0-te, `docs/open-api.json`). Key alignment decisions:
 
 | OpenAPI spec | TypeScript type | Note |
 |---|---|---|

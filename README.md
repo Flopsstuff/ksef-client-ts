@@ -6,7 +6,7 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 
 ## Features
 
-- **Full API coverage** — every KSeF API v2.8.1 endpoint, types aligned with the official OpenAPI spec
+- **Full API coverage** — every KSeF API v2.9.0 endpoint, types aligned with the official OpenAPI spec
 - **Collective identifiers** — group up to 500 invoices from one seller under a single settlement reference so a buyer can pay the batch against one payment reference; invoices are checked before an identifier is generated, and identifiers and their invoices can be paged through without handling continuation tokens
 - **Offline invoice mode** — full lifecycle for all 4 KSeF offline modes with QR KOD I + KOD II signing, deadline tracking, local storage, and technical correction
 - **Full-featured CLI** — `ksef` with 17 command groups for auth, sessions, invoices, offline, batch upload, export, and more, with fix hints for common KSeF error codes

@@ -3,6 +3,8 @@ import {
   defaultRetryPolicy,
   calculateBackoff,
   parseRetryAfter,
+  getRetryAfterMs,
+  exceedsMaxRetryAfter,
   isRetryableError,
   isRetryableStatus,
   sleep,
@@ -18,6 +20,7 @@ describe('defaultRetryPolicy', () => {
     expect(policy.maxDelayMs).toBe(30_000);
     expect(policy.retryableStatusCodes).toEqual([429, 500, 502, 503, 504]);
     expect(policy.retryNetworkErrors).toBe(true);
+    expect(policy.maxRetryAfterMs).toBe(120_000);
   });
 
   it('returns a new object each call', () => {
@@ -68,6 +71,11 @@ describe('calculateBackoff', () => {
     }
   });
 
+  it('never exceeds the timer limit, whatever maxDelayMs says', () => {
+    const unbounded: RetryPolicy = { ...defaultRetryPolicy(), maxDelayMs: Infinity };
+    expect(calculateBackoff(40, unbounded)).toBe(2_147_483_647);
+  });
+
   it('jitter adds randomness (not all results identical)', () => {
     const results = new Set<number>();
     for (let i = 0; i < 50; i++) {
@@ -104,6 +112,84 @@ describe('parseRetryAfter', () => {
 
   it('invalid string returns null', () => {
     expect(parseRetryAfter('not-a-date-or-number')).toBeNull();
+  });
+
+  it('negative seconds return 0, not a negative delay', () => {
+    expect(parseRetryAfter('-5')).toBe(0);
+  });
+
+  it('HTTP-date in the past returns 0', () => {
+    const now = 1_700_000_000_000;
+    vi.spyOn(Date, 'now').mockReturnValue(now);
+
+    expect(parseRetryAfter(new Date(now - 60_000).toUTCString())).toBe(0);
+
+    vi.restoreAllMocks();
+  });
+
+  it.each(['Infinity', '-Infinity', '1e400'])('non-finite %s returns null so backoff applies', (header) => {
+    expect(parseRetryAfter(header)).toBeNull();
+  });
+
+  it('blank value returns null', () => {
+    expect(parseRetryAfter('  ')).toBeNull();
+  });
+
+  it('fractional seconds are kept', () => {
+    expect(parseRetryAfter('1.5')).toBe(1500);
+  });
+});
+
+describe('getRetryAfterMs', () => {
+  const withRetryAfter = (status: number, value?: string) =>
+    new Response(null, { status, headers: value === undefined ? {} : { 'Retry-After': value } });
+
+  it.each([429, 503])('reads Retry-After on %i', (status) => {
+    expect(getRetryAfterMs(withRetryAfter(status, '7'))).toBe(7000);
+  });
+
+  it.each([500, 502, 504])('ignores Retry-After on %i', (status) => {
+    expect(getRetryAfterMs(withRetryAfter(status, '7'))).toBeNull();
+  });
+
+  it('returns null when the header is absent', () => {
+    expect(getRetryAfterMs(withRetryAfter(503))).toBeNull();
+  });
+});
+
+describe('exceedsMaxRetryAfter', () => {
+  it('allows up to 120 s by default, inclusive', () => {
+    const policy = defaultRetryPolicy();
+    expect(exceedsMaxRetryAfter(120_000, policy)).toBe(false);
+    expect(exceedsMaxRetryAfter(120_001, policy)).toBe(true);
+  });
+
+  it('applies the default when the option is NaN', () => {
+    const policy = { ...defaultRetryPolicy(), maxRetryAfterMs: Number.NaN };
+    expect(exceedsMaxRetryAfter(120_000, policy)).toBe(false);
+    expect(exceedsMaxRetryAfter(120_001, policy)).toBe(true);
+    expect(exceedsMaxRetryAfter(30 * 24 * 3600 * 1000, policy)).toBe(true);
+  });
+
+  it('applies the default when the policy omits the option', () => {
+    const { maxRetryAfterMs: _omitted, ...policy } = defaultRetryPolicy();
+    expect(exceedsMaxRetryAfter(120_000, policy)).toBe(false);
+    expect(exceedsMaxRetryAfter(120_001, policy)).toBe(true);
+  });
+
+  it('honours an override', () => {
+    const policy: RetryPolicy = { ...defaultRetryPolicy(), maxRetryAfterMs: 5_000 };
+    expect(exceedsMaxRetryAfter(5_001, policy)).toBe(true);
+  });
+
+  it('clamps an Infinity or oversized cap to the timer limit', () => {
+    const timerMax = 2_147_483_647;
+    for (const maxRetryAfterMs of [Infinity, timerMax + 1, Number.MAX_SAFE_INTEGER]) {
+      const policy: RetryPolicy = { ...defaultRetryPolicy(), maxRetryAfterMs };
+      expect(exceedsMaxRetryAfter(timerMax, policy)).toBe(false);
+      expect(exceedsMaxRetryAfter(timerMax + 1, policy)).toBe(true);
+      expect(exceedsMaxRetryAfter(Number.MAX_SAFE_INTEGER, policy)).toBe(true);
+    }
   });
 });
 

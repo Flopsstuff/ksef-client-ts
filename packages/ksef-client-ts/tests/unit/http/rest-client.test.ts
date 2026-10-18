@@ -250,6 +250,197 @@ describe('RestClient', () => {
       expect(transport).toHaveBeenCalledTimes(2);
       expect(transport.mock.calls[0]![1].method).toBe('DELETE');
     });
+
+    describe('Retry-After', () => {
+      // A backoff this long cannot be mistaken for the Retry-After delay.
+      const slowBackoff = {
+        maxRetries: 2,
+        baseDelayMs: 60_000,
+        maxDelayMs: 60_000,
+        retryableStatusCodes: [429, 500, 502, 503, 504],
+        retryNetworkErrors: true,
+      };
+
+      beforeEach(() => {
+        vi.useFakeTimers();
+      });
+
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it.each([429, 503])('waits exactly the Retry-After delay on %i within the limit', async (status) => {
+        const transport = vi.fn<TransportFn>()
+          .mockResolvedValueOnce(mockResponse(status, {}, { 'Retry-After': '5' }))
+          .mockResolvedValueOnce(mockResponse(200, { ok: true }));
+        const client = createClient(transport, { retryPolicy: slowBackoff });
+
+        const result = client.execute<{ ok: boolean }>(RestRequest.get('/test'));
+        await vi.advanceTimersByTimeAsync(4_999);
+        expect(transport).toHaveBeenCalledTimes(1);
+        await vi.advanceTimersByTimeAsync(1);
+
+        await expect(result).resolves.toMatchObject({ body: { ok: true } });
+        expect(transport).toHaveBeenCalledTimes(2);
+      });
+
+      it('fails at once with the server value when a 429 asks for more than the limit', async () => {
+        const transport = vi.fn<TransportFn>()
+          .mockResolvedValue(mockResponse(429, {}, { 'Retry-After': '3600' }));
+        const client = createClient(transport, { retryPolicy: slowBackoff });
+
+        // Under fake timers any sleep would never end, so settling proves there was none.
+        const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+        expect(err).toBeInstanceOf(KSeFRateLimitError);
+        expect((err as KSeFRateLimitError).retryAfterSeconds).toBe(3600);
+        expect(transport).toHaveBeenCalledTimes(1);
+      });
+
+      it('does not retry a POST whose 429 asks for more than the limit', async () => {
+        const transport = vi.fn<TransportFn>()
+          .mockResolvedValue(mockResponse(429, {}, { 'Retry-After': '121' }));
+        const client = createClient(transport, { retryPolicy: slowBackoff });
+
+        await expect(
+          client.execute(RestRequest.post('/sessions/online').body({})),
+        ).rejects.toThrow(KSeFRateLimitError);
+        expect(transport).toHaveBeenCalledTimes(1);
+      });
+
+      it('does not re-acquire a rate-limit token when the wait is over the limit', async () => {
+        const acquire = vi.fn().mockResolvedValue(undefined);
+        const transport = vi.fn<TransportFn>()
+          .mockResolvedValue(mockResponse(429, {}, { 'Retry-After': '3600' }));
+        const client = createClient(transport, {
+          retryPolicy: slowBackoff,
+          rateLimitPolicy: { acquire } as unknown as RateLimitPolicy,
+        });
+
+        await expect(client.execute(RestRequest.get('/test'))).rejects.toThrow(KSeFRateLimitError);
+        expect(acquire).toHaveBeenCalledTimes(1);
+      });
+
+      it('returns a 503 that asks for more than the limit without retrying', async () => {
+        const transport = vi.fn<TransportFn>()
+          .mockResolvedValue(mockResponse(503, {}, { 'Retry-After': '3600' }));
+        const client = createClient(transport, { retryPolicy: slowBackoff });
+
+        const err = await client.execute(RestRequest.get('/test')).catch((e: unknown) => e);
+
+        expect(err).toBeInstanceOf(KSeFApiError);
+        expect((err as KSeFApiError).statusCode).toBe(503);
+        expect(transport).toHaveBeenCalledTimes(1);
+      });
+
+      it('falls back to backoff on 503 without Retry-After', async () => {
+        const transport = vi.fn<TransportFn>()
+          .mockResolvedValueOnce(mockResponse(503))
+          .mockResolvedValueOnce(mockResponse(200, { ok: true }));
+        const client = createClient(transport, {
+          retryPolicy: { ...slowBackoff, baseDelayMs: 1_000, maxDelayMs: 1_000 },
+        });
+
+        const result = client.execute(RestRequest.get('/test'));
+        await vi.advanceTimersByTimeAsync(999);
+        expect(transport).toHaveBeenCalledTimes(1);
+        await vi.advanceTimersByTimeAsync(1);
+
+        await expect(result).resolves.toMatchObject({ statusCode: 200 });
+      });
+
+      it('retries at once on a negative Retry-After', async () => {
+        const transport = vi.fn<TransportFn>()
+          .mockResolvedValueOnce(mockResponse(429, {}, { 'Retry-After': '-30' }))
+          .mockResolvedValueOnce(mockResponse(200, { ok: true }));
+        const client = createClient(transport, { retryPolicy: slowBackoff });
+
+        const result = client.execute(RestRequest.get('/test'));
+        await vi.advanceTimersByTimeAsync(0);
+
+        await expect(result).resolves.toMatchObject({ statusCode: 200 });
+        expect(transport).toHaveBeenCalledTimes(2);
+      });
+
+      it('retries at once on a Retry-After date in the past', async () => {
+        const past = new Date(Date.now() - 60_000).toUTCString();
+        const transport = vi.fn<TransportFn>()
+          .mockResolvedValueOnce(mockResponse(503, {}, { 'Retry-After': past }))
+          .mockResolvedValueOnce(mockResponse(200, { ok: true }));
+        const client = createClient(transport, { retryPolicy: slowBackoff });
+
+        const result = client.execute(RestRequest.get('/test'));
+        await vi.advanceTimersByTimeAsync(0);
+
+        await expect(result).resolves.toMatchObject({ statusCode: 200 });
+        expect(transport).toHaveBeenCalledTimes(2);
+      });
+
+      it('applies a lower maxRetryAfterMs override', async () => {
+        const transport = vi.fn<TransportFn>()
+          .mockResolvedValue(mockResponse(429, {}, { 'Retry-After': '2' }));
+        const client = createClient(transport, { retryPolicy: { ...slowBackoff, maxRetryAfterMs: 1_000 } });
+
+        await expect(client.execute(RestRequest.get('/test'))).rejects.toThrow(KSeFRateLimitError);
+        expect(transport).toHaveBeenCalledTimes(1);
+      });
+
+      it('waits for any value when maxRetryAfterMs is Infinity', async () => {
+        const transport = vi.fn<TransportFn>()
+          .mockResolvedValueOnce(mockResponse(429, {}, { 'Retry-After': '3600' }))
+          .mockResolvedValueOnce(mockResponse(200, { ok: true }));
+        const client = createClient(transport, { retryPolicy: { ...slowBackoff, maxRetryAfterMs: Infinity } });
+
+        const result = client.execute(RestRequest.get('/test'));
+        await vi.advanceTimersByTimeAsync(3_600_000);
+
+        await expect(result).resolves.toMatchObject({ statusCode: 200 });
+        expect(transport).toHaveBeenCalledTimes(2);
+      });
+
+      it.each([
+        ['Infinity', Infinity],
+        ['above the timer limit', 2_147_483_648],
+      ])('fails at once on a Retry-After beyond the timer limit when maxRetryAfterMs is %s', async (_label, maxRetryAfterMs) => {
+        // 30 days: setTimeout would fire after ~1 ms, so this must not be "waited".
+        const transport = vi.fn<TransportFn>()
+          .mockResolvedValueOnce(mockResponse(429, {}, { 'Retry-After': '2592000' }))
+          .mockResolvedValueOnce(mockResponse(200, { ok: true }));
+        const client = createClient(transport, { retryPolicy: { ...slowBackoff, maxRetryAfterMs } });
+
+        const result = client.execute(RestRequest.get('/test'));
+        const settled = expect(result).rejects.toThrow(KSeFRateLimitError);
+        await vi.advanceTimersByTimeAsync(10);
+
+        await settled;
+        expect(transport).toHaveBeenCalledTimes(1);
+      });
+
+      it('fails at once on an HTTP-date Retry-After beyond the timer limit when maxRetryAfterMs is Infinity', async () => {
+        const farFuture = new Date(Date.now() + 30 * 24 * 3_600_000).toUTCString();
+        const transport = vi.fn<TransportFn>()
+          .mockResolvedValueOnce(mockResponse(503, {}, { 'Retry-After': farFuture }))
+          .mockResolvedValueOnce(mockResponse(200, { ok: true }));
+        const client = createClient(transport, { retryPolicy: { ...slowBackoff, maxRetryAfterMs: Infinity } });
+
+        const result = client.execute(RestRequest.get('/test'));
+        const settled = expect(result).rejects.toBeInstanceOf(KSeFApiError);
+        await vi.advanceTimersByTimeAsync(10);
+
+        await settled;
+        expect(transport).toHaveBeenCalledTimes(1);
+      });
+
+      it('fails at once on a far-future HTTP-date Retry-After under the default cap', async () => {
+        const farFuture = new Date(Date.now() + 30 * 24 * 3_600_000).toUTCString();
+        const transport = vi.fn<TransportFn>()
+          .mockResolvedValue(mockResponse(429, {}, { 'Retry-After': farFuture }));
+        const client = createClient(transport, { retryPolicy: slowBackoff });
+
+        await expect(client.execute(RestRequest.get('/test'))).rejects.toThrow(KSeFRateLimitError);
+        expect(transport).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 
   describe('rate limiting integration', () => {

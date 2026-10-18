@@ -11,6 +11,11 @@ export const KSeFErrorCode = {
   UnknownPublicKeyId: 21470,
   /** Generic input validation failure; the error details name the rejected values (KSeF API v2.0.0). */
   InvalidInput: 21405,
+  /**
+   * KSeF could not read the request body: a field holds a value or type it does not accept, or the JSON is malformed;
+   * the error details name the field (documented in KSeF API v2.9.0, returned earlier as well).
+   */
+  UnreadableContent: 21001,
   /** A collective identifier request lists invoices of different sellers (KSeF API v2.8.1). */
   CollectiveIdentifierDifferentSellers: 71004,
   /** A collective identifier request repeats the same KSeF number (KSeF API v2.8.1). */

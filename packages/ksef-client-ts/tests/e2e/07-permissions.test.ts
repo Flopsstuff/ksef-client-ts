@@ -4,6 +4,7 @@ import { authenticateWithCert } from './helpers/auth.js';
 import { generateRandomPesel } from './helpers/identifiers.js';
 import { pollUntil } from './helpers/polling.js';
 import type { KSeFClient } from '../../src/client.js';
+import type { OwnerPermissionScope } from '../../src/models/permissions/types.js';
 
 describe('07 - Permissions', { timeout: 120_000 }, () => {
   let client: KSeFClient;
@@ -17,6 +18,20 @@ describe('07 - Permissions', { timeout: 120_000 }, () => {
     expect(result).toHaveProperty('permissions');
     expect(Array.isArray(result.permissions)).toBe(true);
     expect(result).toHaveProperty('hasMore');
+
+    // The seal-authenticated owner gets its rights in ownerPermissions (KSeF API
+    // v2.9.0). No exact list: EnforcementOperations is never granted to owners.
+    const known: OwnerPermissionScope[] = [
+      'CredentialsManage', 'CredentialsRead', 'InvoiceWrite', 'InvoiceRead',
+      'Introspection', 'SubunitManage', 'EnforcementOperations', 'CollectiveIdentifierManage',
+    ];
+    expect(Array.isArray(result.ownerPermissions)).toBe(true);
+    expect(result.ownerPermissions).toEqual(
+      expect.arrayContaining(['InvoiceRead', 'InvoiceWrite', 'CredentialsManage']),
+    );
+    for (const scope of result.ownerPermissions!) {
+      expect(known).toContain(scope);
+    }
   });
 
   it('should grant, query, and revoke person permissions', async () => {

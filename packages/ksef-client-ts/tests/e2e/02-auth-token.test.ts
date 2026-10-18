@@ -57,6 +57,11 @@ describe('02 - Token Authentication', { timeout: 60_000 }, () => {
     const grants = await client.permissions.queryPersonalGrants();
     expect(grants).toHaveProperty('permissions');
     expect(Array.isArray(grants.permissions)).toBe(true);
+    // A token carries no owner rights (KSeF API v2.9.0). TEST returns `[]`
+    // today, but that is observed behaviour, not a contract — so only rule out
+    // an owner-only right instead of pinning the exact list.
+    expect(Array.isArray(grants.ownerPermissions)).toBe(true);
+    expect(grants.ownerPermissions).not.toContain('CredentialsManage');
   });
 
   it('should complete manual step-by-step token auth flow', async () => {

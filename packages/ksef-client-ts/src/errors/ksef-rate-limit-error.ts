@@ -36,7 +36,8 @@ export class KSeFRateLimitError extends KSeFApiError {
     if (retryAfterHeader) {
       const seconds = Number(retryAfterHeader);
       if (!Number.isNaN(seconds)) {
-        retryAfterSeconds = seconds;
+        // Negative means "retry now"; a non-finite value is malformed and dropped.
+        if (Number.isFinite(seconds)) retryAfterSeconds = Math.max(0, seconds);
       } else {
         const date = new Date(retryAfterHeader);
         if (!Number.isNaN(date.getTime())) {

@@ -100,6 +100,73 @@ describe('unzip', () => {
     });
   });
 
+  describe('default maxFiles fits a full KSeF export package', () => {
+    // KSeF caps a package at 10 000 invoices and adds _metadata.json beside them.
+    // Packing ~10k entries takes seconds on a loaded machine, hence the timeout.
+    const timeout = 30_000;
+    function packageEntries(invoiceCount: number) {
+      return [
+        ...Array.from({ length: invoiceCount }, (_, i) => ({ fileName: `${i}.xml`, content: Buffer.from('x') })),
+        { fileName: '_metadata.json', content: Buffer.from('{}') },
+      ];
+    }
+
+    it('accepts 10 000 invoices plus _metadata.json', async () => {
+      const files = await unzip(await createZip(packageEntries(10_000)));
+      expect(files.size).toBe(10_001);
+    }, timeout);
+
+    it('rejects one entry more', async () => {
+      await expect(unzip(await createZip(packageEntries(10_001)))).rejects.toThrow('too many files');
+    }, timeout);
+  });
+
+  describe('filter', () => {
+    it('extracts only the entries the filter accepts', async () => {
+      const zip = await createZip([
+        { fileName: 'K-1.xml', content: Buffer.from('<Faktura/>') },
+        { fileName: '_metadata.json', content: Buffer.from('{"invoices":[]}') },
+        { fileName: 'K-2.xml', content: Buffer.from('<Faktura/>') },
+      ]);
+      const seen: string[] = [];
+      const files = await unzip(zip, {
+        filter: (name) => {
+          seen.push(name);
+          return name === '_metadata.json';
+        },
+      });
+      expect([...files.keys()]).toEqual(['_metadata.json']);
+      expect(files.get('_metadata.json')!.toString()).toBe('{"invoices":[]}');
+      expect(seen).toEqual(['K-1.xml', '_metadata.json', 'K-2.xml']);
+    });
+
+    it('still counts skipped entries toward maxFiles', async () => {
+      const zip = await makeZip([
+        { name: '1.xml', content: 'a' },
+        { name: '2.xml', content: 'b' },
+        { name: '_metadata.json', content: '{}' },
+      ]);
+      await expect(unzip(zip, { maxFiles: 2, filter: (n) => n === '_metadata.json' }))
+        .rejects.toThrow('too many files');
+    });
+
+    it('still checks the declared size of skipped entries', async () => {
+      const zip = await makeZip([
+        { name: 'big.xml', content: 'x'.repeat(200) },
+        { name: '_metadata.json', content: '{}' },
+      ]);
+      await expect(unzip(zip, { maxFileUncompressedSize: 100, filter: (n) => n === '_metadata.json' }))
+        .rejects.toThrow('max_file_uncompressed_size');
+      await expect(unzip(zip, { maxTotalUncompressedSize: 100, filter: (n) => n === '_metadata.json' }))
+        .rejects.toThrow('max_total_uncompressed_size');
+    });
+
+    it('rejects when the filter throws', async () => {
+      const zip = await makeZip([{ name: 'a.xml', content: 'a' }]);
+      await expect(unzip(zip, { filter: () => { throw new Error('boom'); } })).rejects.toThrow('boom');
+    });
+  });
+
   describe('maxTotalUncompressedSize', () => {
     it('rejects archive exceeding total size limit', async () => {
       const zip = await makeZip([

@@ -328,6 +328,8 @@ ksef permission attachment-status                              # Check if attach
 
 Search types: `personal`, `persons`, `subunits`, `entities`, `entities-grants`, `subordinate-entities`, `authorizations`, `eu-entities`.
 
+`--type personal` also prints the rights you hold as the owner of the context, on an `Owner permissions:` line above the table. The context owner has no individual grants, so for an owner this line is often the whole answer; `No permissions found.` appears only when both lists are empty. With `--json` the full response is printed, including `ownerPermissions` (KSeF API v2.9.0).
+
 For `--type personal` and `--type entities-grants`, results can be filtered by a context identifier (NIP or a VAT-group subunit `InternalId`, 10-16 characters — typically 16):
 
 ```bash
@@ -390,7 +392,7 @@ ksef limits subject                              # Subject limits (max enrollmen
 ksef limits rate                                 # API rate limits (per-category table)
 ```
 
-`ksef limits rate` lists every group KSeF reports, including `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window KSeF reports as `-1` has no limit and is shown as `unlimited`; `--json` prints the raw `-1`. The `global` group (per-IP limits) is reserved and currently disabled, so all its windows read `unlimited`.
+`ksef limits rate` lists every group KSeF reports, including `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window KSeF reports as `-1` has no limit and is shown as `unlimited`; `--json` prints the raw `-1`. The `global` group is the per-IP limit: KSeF announced it in 2.8.0 as not yet enforced, but since 2.9.0 TEST reports a finite per-second value (75), so do not expect its windows to read `unlimited`.
 
 ## Collective Identifiers
 
@@ -606,6 +608,7 @@ Some KSeF error codes get a dedicated hint, shown instead of the HTTP status hin
 | 21470 | KSeF no longer accepts the encryption key (likely mid key rotation) — wait a moment and run the command again. |
 | 71004 | A collective identifier groups invoices of one seller only — remove the invoices of other sellers. |
 | 71005 | The invoice list repeats a KSeF number — remove the duplicates. |
+| 21001 | KSeF could not read the request — a value has the wrong type or is not one KSeF accepts; check the field named in the error details. |
 | 21405 | Generic input validation — fix the values named in the error details. Shown only when no more specific code applies. |
 
 Hints are printed only in the human-readable output; `--json` emits the error payload alone.

@@ -474,10 +474,11 @@ When `extract: true`, the decrypted ZIP is passed to `unzip()` (`src/utils/zip.t
 
 | Limit | Default | Description |
 |-------|---------|-------------|
-| `maxFiles` | 10,000 | Maximum number of files in the ZIP |
+| `maxFiles` | 10,001 | Maximum number of files in the ZIP (a full package: 10,000 invoices + `_metadata.json`) |
 | `maxTotalUncompressedSize` | 2 GB | Total uncompressed size of all files |
 | `maxFileUncompressedSize` | 500 MB | Maximum size of a single file |
 | `maxCompressionRatio` | 200:1 | Maximum compression ratio (null to disable) |
+| `filter` | — | Extract only entries whose name it accepts; the rest still count toward the limits |
 
 Additionally, entries with `compressedSize === 0` but `uncompressedSize > 0` are rejected as suspicious metadata.
 
@@ -518,7 +519,7 @@ Load HWM store ──────►│  iteration 0..maxIterations:        │
                       └─────────────────────────────────────┘
 ```
 
-The KSeF export API has a limit on how many invoices it returns per export. If the result is truncated (`isTruncated: true`), the response includes `lastPermanentStorageDate` — the timestamp of the last invoice in the batch. The next iteration uses this as the new start date, effectively "paging" through the full dataset.
+The KSeF export API has a limit on how many invoices it returns per export. If the result is truncated (`isTruncated: true`), the response includes `lastPermanentStorageDate` — the timestamp of the last invoice in the batch. The next iteration uses this as the new start date, effectively "paging" through the full dataset. If KSeF leaves that field out, the workflow reads the last record's date from the package's `_metadata.json` instead.
 
 ### incrementalExportAndDownload
 
@@ -578,8 +579,14 @@ Pure functions for managing continuation points:
 ```typescript
 type ContinuationPoints = Record<string, string | undefined>;
 
-// After each export iteration, update the point for a subject type
-updateContinuationPoint(points, subjectType, exportPackage);
+// After each export iteration, update the point for a subject type.
+// Pass the package's _metadata.json invoices only for a
+// PermanentStorage filter: their permanentStorageDate is the
+// resume point, which would skip invoices under another date type.
+// A truncated package without lastPermanentStorageDate throws
+// if no records are given.
+const records = dateType === 'PermanentStorage' ? metadata.invoices : undefined;
+updateContinuationPoint(points, subjectType, exportPackage, records);
 
 // Get effective start date: saved HWM or fallback to windowFrom
 getEffectiveStartDate(points, subjectType, windowFrom);
@@ -591,8 +598,15 @@ deduplicateByKsefNumber(entries);
 `updateContinuationPoint` logic:
 
 - If truncated: save `lastPermanentStorageDate` (the date of the last invoice in the batch)
+- If truncated without `lastPermanentStorageDate` (KSeF may omit it): save the latest `permanentStorageDate` among the records passed as the optional fourth argument. These are the `invoices` from the package's `_metadata.json`; pass them only for a `PermanentStorage` date filter, since another date type would resume past unexported invoices. With no records, it throws and leaves the point unchanged, so no invoices are skipped.
 - If not truncated: save `permanentStorageHwmDate` (the server-reported high-water mark)
 - If neither date is available: delete the point (reset to window start)
+
+```typescript
+// Manual loop with exportAndDownload({ extract: true }):
+const meta = JSON.parse(result.files.get('_metadata.json')!.toString('utf-8'));
+updateContinuationPoint(points, subjectType, result, meta.invoices);
+```
 
 ### HWM Storage
 

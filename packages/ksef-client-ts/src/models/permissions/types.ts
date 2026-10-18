@@ -613,6 +613,27 @@ export interface PagedPermissionsResponse<T> {
   permissions: T[];
 }
 
+/** Owner permission reported by the personal-grants query (`OwnerPermissionScope`, KSeF API v2.9.0). */
+export type OwnerPermissionScope =
+  | 'CredentialsManage'
+  | 'CredentialsRead'
+  | 'InvoiceWrite'
+  | 'InvoiceRead'
+  | 'Introspection'
+  | 'SubunitManage'
+  | 'EnforcementOperations'
+  | 'CollectiveIdentifierManage';
+
+/** Response of `POST /permissions/query/personal/grants` (`QueryPersonalPermissionsResponse`). */
+export interface QueryPersonalPermissionsResponse extends PagedPermissionsResponse<PersonalPermission> {
+  /**
+   * Owner permissions of the authenticated subject (KSeF API v2.9.0).
+   * An owner gets its rights here while `permissions` stays empty; a token session gets `[]`.
+   * Absent or `null` on servers older than 2.9.0.
+   */
+  ownerPermissions?: OwnerPermissionScope[] | null;
+}
+
 export interface PagedRolesResponse<T> {
   hasMore: boolean;
   roles: T[];

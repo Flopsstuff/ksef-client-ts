@@ -136,6 +136,83 @@ describe('targz', () => {
     expect(files.get('dir/a.xml')?.toString()).toBe('<a/>');
   });
 
+  describe('default max-files limit fits a full KSeF export package', () => {
+    // KSeF caps a package at 10 000 invoices and adds _metadata.json beside them.
+    // Packing ~10k entries takes seconds on a loaded machine, hence the timeout.
+    const timeout = 30_000;
+    function packageEntries(invoiceCount: number) {
+      return [
+        ...Array.from({ length: invoiceCount }, (_, i) => ({ fileName: `${i}.xml`, content: Buffer.from('x') })),
+        { fileName: '_metadata.json', content: Buffer.from('{}') },
+      ];
+    }
+
+    it('accepts 10 000 invoices plus _metadata.json', async () => {
+      const files = await extractTarGz(await createTarGz(packageEntries(10_000)));
+      expect(files.size).toBe(10_001);
+    }, timeout);
+
+    it('rejects one entry more', async () => {
+      await expect(extractTarGz(await createTarGz(packageEntries(10_001)))).rejects.toThrow('too many files');
+    }, timeout);
+  });
+
+  describe('filter', () => {
+    const isMetadata = (name: string) => name === '_metadata.json';
+
+    it('extracts only the entries the filter accepts', async () => {
+      const archive = await createTarGz([
+        { fileName: 'K-1.xml', content: Buffer.from('<Faktura/>') },
+        { fileName: '_metadata.json', content: Buffer.from('{"invoices":[]}') },
+        { fileName: 'K-2.xml', content: Buffer.from('<Faktura/>') },
+      ]);
+      const files = await extractTarGz(archive, { filter: isMetadata });
+      expect([...files.keys()]).toEqual(['_metadata.json']);
+      expect(files.get('_metadata.json')?.toString()).toBe('{"invoices":[]}');
+    });
+
+    it('still counts skipped entries toward the max-files limit', async () => {
+      const archive = await createTarGz([
+        { fileName: '1.xml', content: Buffer.from('a') },
+        { fileName: '2.xml', content: Buffer.from('b') },
+        { fileName: '_metadata.json', content: Buffer.from('{}') },
+      ]);
+      await expect(extractTarGz(archive, { maxFiles: 2, filter: isMetadata })).rejects.toThrow('too many files');
+    });
+
+    it('still enforces size and ratio limits on skipped entries', async () => {
+      const archive = await createTarGz([
+        { fileName: 'big.xml', content: Buffer.alloc(5000, 'b') },
+        { fileName: '_metadata.json', content: Buffer.from('{}') },
+      ]);
+      await expect(extractTarGz(archive, { maxFileUncompressedSize: 100, filter: isMetadata }))
+        .rejects.toThrow('tar.gz entry exceeds max_file_uncompressed_size');
+      await expect(extractTarGz(archive, { maxTotalUncompressedSize: 1000, filter: isMetadata }))
+        .rejects.toThrow('tar.gz exceeds max_total_uncompressed_size');
+      await expect(extractTarGz(archive, { maxCompressionRatio: 2, filter: isMetadata }))
+        .rejects.toThrow('tar.gz exceeds max_compression_ratio');
+    });
+
+    it('rejects when the filter throws', async () => {
+      const archive = await createTarGz([{ fileName: 'a.xml', content: Buffer.from('a') }]);
+      await expect(extractTarGz(archive, { filter: () => { throw new Error('boom'); } })).rejects.toThrow('boom');
+    });
+  });
+
+  it('extracts an archive passed as consecutive chunks', async () => {
+    const archive = await createTarGz([
+      { fileName: 'a.xml', content: Buffer.from('<a/>') },
+      { fileName: 'b.xml', content: Buffer.alloc(2000, 'b') },
+    ]);
+    const cut = Math.floor(archive.length / 2);
+    const chunks = [new Uint8Array(archive.subarray(0, cut)), new Uint8Array(archive.subarray(cut))];
+    const files = await extractTarGz(chunks);
+    expect(files.get('a.xml')?.toString()).toBe('<a/>');
+    expect(files.get('b.xml')?.length).toBe(2000);
+    // The ratio ceiling is measured against all chunks together.
+    await expect(extractTarGz(chunks, { maxCompressionRatio: 2 })).rejects.toThrow('max_compression_ratio');
+  });
+
   it('rejects when an entry cannot be packed', async () => {
     // Buffer.from(undefined) throws synchronously inside the pack loop, so the
     // promise must reject rather than hang.

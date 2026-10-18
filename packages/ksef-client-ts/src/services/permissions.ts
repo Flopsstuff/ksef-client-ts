@@ -14,7 +14,7 @@ import type {
   PagedPermissionsResponse,
   PagedRolesResponse,
   PagedAuthorizationsResponse,
-  PersonalPermission,
+  QueryPersonalPermissionsResponse,
   PersonPermission,
   SubunitPermission,
   EntityRole,
@@ -118,13 +118,13 @@ export class PermissionsService {
     options?: QueryPersonalGrantsRequest,
     pageOffset?: number,
     pageSize?: number,
-  ): Promise<PagedPermissionsResponse<PersonalPermission>> {
+  ): Promise<QueryPersonalPermissionsResponse> {
     PermissionsService.validateContextIdentifier(options?.contextIdentifier);
     const req = RestRequest.post(Routes.Permissions.Query.personalGrants).retrySafe()
       .body(options ?? {});
     if (pageOffset !== undefined) req.query('pageOffset', String(pageOffset));
     if (pageSize !== undefined) req.query('pageSize', String(pageSize));
-    const response = await this.restClient.execute<PagedPermissionsResponse<PersonalPermission>>(req);
+    const response = await this.restClient.execute<QueryPersonalPermissionsResponse>(req);
     return response.body;
   }
 

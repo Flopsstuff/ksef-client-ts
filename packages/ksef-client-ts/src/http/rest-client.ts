@@ -27,7 +27,8 @@ import {
   type RetryPolicy,
   defaultRetryPolicy,
   calculateBackoff,
-  parseRetryAfter,
+  getRetryAfterMs,
+  exceedsMaxRetryAfter,
   isRetryableError,
   isRetryableStatus,
   sleep,
@@ -188,7 +189,17 @@ export class RestClient {
         // unless marked retry-safe.
         if (isRetryableStatus(response.status, this.retryPolicy, retryMethod) && attempt < this.retryPolicy.maxRetries) {
           const is429 = response.status === 429;
-          const retryAfterMs = is429 ? parseRetryAfter(response.headers.get('Retry-After')) : null;
+          const retryAfterMs = getRetryAfterMs(response);
+
+          // The server asks for a longer wait than the policy allows: do not
+          // park the caller. The response becomes final, so a 429 surfaces as
+          // KSeFRateLimitError with the server's Retry-After for rescheduling.
+          if (retryAfterMs !== null && exceedsMaxRetryAfter(retryAfterMs, this.retryPolicy)) {
+            consola.debug(`Retryable ${response.status}, Retry-After ${Math.round(retryAfterMs)}ms exceeds the limit, not retrying`);
+            this.recordCircuitOutcome(request.path, response.status);
+            return response;
+          }
+
           const delayMs = retryAfterMs ?? calculateBackoff(attempt, this.retryPolicy);
 
           consola.debug(`Retryable ${response.status}, attempt ${attempt + 1}/${this.retryPolicy.maxRetries}, waiting ${Math.round(delayMs)}ms`);
