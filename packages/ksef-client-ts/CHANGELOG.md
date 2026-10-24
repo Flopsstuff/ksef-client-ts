@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 ### Changed (breaking)
 
 - **Node.js 22.23.4+, 24.22.1+ or 26.12.1+ now required** — support for Node.js 18, 20 and the odd-numbered release lines is dropped, so the library is supported only on releases that fix the Brotli decoder flaw that could let a malicious compressed response execute code (CVE-2026-111497).
+- **XSD validation on Node.js 26** — the optional native XML schema validator does not install on Node.js 26 out of the box, and the documentation now gives the one-line dependency override that makes it build.
 
 ### Fixed
 
