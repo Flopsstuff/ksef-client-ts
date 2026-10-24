@@ -30,6 +30,9 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          # Without this, setup-node prefers the runner image's cached 22.x,
+          # which lags the security releases this pin exists to pick up.
+          check-latest: true
 
       - name: Enable Corepack
         run: corepack enable
@@ -55,6 +58,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
+          check-latest: true
 
       - name: Enable Corepack
         run: corepack enable
@@ -145,6 +149,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          check-latest: true
 
       - name: Enable Corepack
         run: corepack enable

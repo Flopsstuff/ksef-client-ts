@@ -75,6 +75,9 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 24
+          # Without this, setup-node prefers the runner image's cached 24.x,
+          # which lags the security releases this pin exists to pick up.
+          check-latest: true
           registry-url: https://registry.npmjs.org
 
       - name: Enable Corepack
@@ -129,6 +132,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+          check-latest: true
           registry-url: https://npm.pkg.github.com
           scope: "@flopsstuff"
 
