@@ -94,7 +94,7 @@ export class BatchSessionService {
         headers,
         body: part.dataStream,
         signal,
-        // @ts-expect-error -- Node 18+ undici supports duplex for streaming body
+        // @ts-expect-error -- Node undici supports duplex for streaming body
         duplex: 'half',
       });
       if (!resp.ok) {

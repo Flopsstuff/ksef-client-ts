@@ -24,10 +24,10 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 - **Typed errors with RFC 7807 Problem Details** — `KSeFError` hierarchy with dedicated classes for 400/401/403/410/429 carrying structured diagnostic context, plus KSeF conditions such as a temporarily unavailable session, a failed session or a rejected invoice; exhaustive dispatch via the `KSeFApiProblem` union and `assertNever`; fluent request builders
 - **Comprehensive test coverage** — unit + E2E tests across HTTP, crypto, services, workflows; CI on every change
 - **Interactive setup wizard** — `ksef setup` guides through environment selection, authentication, and token generation in one flow
-- **Zero HTTP dependencies** — native `fetch` (Node 18+); dual ESM/CJS via tsup
+- **Zero HTTP dependencies** — native `fetch` (Node 22+); dual ESM/CJS via tsup
 - **fs-free core** — the main entry point is free of filesystem access, so it runs on Node, Deno, and edge runtimes; Node-only features (filesystem storage, XSD validation) are available via the `ksef-client-ts/node` export
 
-Requires **Node.js 18+**.
+Requires **Node.js 22.23.4+, 24.22.1+ or 26.12.1+** — the releases that fix the Brotli decoder flaw CVE-2026-111497; only the 22.x, 24.x and 26.x lines are supported.
 
 ## Install
 

@@ -64,5 +64,5 @@ Each `cipher.update()` depends on the previous block's output (CBC chaining). En
 ## Risks
 
 - **Per-part buffering is not true streaming** — Accepted. Reduces peak memory from O(total) to O(max_part_size). Same approach as C# and Java references.
-- **`fetch()` streaming body support** — Requires Node.js 18.13+ (undici). Our minimum is Node 18+.
+- **`fetch()` streaming body support** — Requires Node.js 18.13+ (undici). Our minimum was Node 18+ when this was written; since 0.16.0 it is Node 22.23.4+ / 24.22.1+ / 26.12.1+.
 - **Factory function API complexity** — Slightly more complex than bare stream. CLI handles transparently; programmatic callers use `() => Readable.toWeb(createReadStream(path))`.

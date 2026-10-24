@@ -4,7 +4,7 @@ Guidance for any AI coding agent working in this repository: how the project is 
 
 ## Project
 
-Yarn 4.x workspace monorepo. The library (`ksef-client-ts`) lives in `packages/ksef-client-ts/`. TypeScript client for the Polish National e-Invoice System (KSeF) API v2. Targets Node.js 18+ with dual ESM/CJS output. Current version and release history are in `packages/ksef-client-ts/CHANGELOG.md`.
+Yarn 4.x workspace monorepo. The library (`ksef-client-ts`) lives in `packages/ksef-client-ts/`. TypeScript client for the Polish National e-Invoice System (KSeF) API v2. Targets Node.js 22.23.4+, 24.22.1+ and 26.12.1+ with dual ESM/CJS output. Current version and release history are in `packages/ksef-client-ts/CHANGELOG.md`.
 
 ## Commands
 
@@ -156,7 +156,7 @@ Invoice number (`P_2` in XML) must be unique — resubmitting gives error 440 (D
 ### CI/CD
 
 GitHub Actions workflows in `.github/workflows/` (the `.github/` dir stays at the repo root; build/test steps run root-level `yarn` scripts that delegate to the `ksef-client-ts` workspace):
-- `ci.yml` — markdown lint + unit + E2E tests on Node 18/20/22 matrix, coverage badge via gist (coverage JSON read from `packages/ksef-client-ts/coverage/`)
+- `ci.yml` — markdown lint + unit + E2E tests on Node 22/24/26 matrix, coverage badge via gist (coverage JSON read from `packages/ksef-client-ts/coverage/`)
 - `release.yml` — on tag `v*`: create GitHub Release (from `packages/ksef-client-ts/CHANGELOG.md`), then publish to npm + GitHub Packages in parallel
 - `deploy-docs.yml` — VitePress → GitHub Pages (artifact from `packages/ksef-client-ts/docs/.vitepress/dist`)
 - `deno-smoke.yml` — Deno runtime smoke test (`deno task smoke`, run in the package dir)
