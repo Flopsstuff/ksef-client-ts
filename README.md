@@ -27,7 +27,7 @@ TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 - **Zero HTTP dependencies** — native `fetch` (Node 22+); dual ESM/CJS via tsup
 - **fs-free core** — the main entry point is free of filesystem access, so it runs on Node, Deno, and edge runtimes; Node-only features (filesystem storage, XSD validation) are available via the `ksef-client-ts/node` export
 
-Requires **Node.js 22.23.4+, 24.22.1+ or 26.12.1+** — the releases that fix the Brotli decoder flaw CVE-2026-111497; Node 18, 20, 23 and 25 are not supported.
+Requires **Node.js 22.23.4+, 24.22.1+ or 26.12.1+** — the releases that fix the Brotli decoder flaw CVE-2026-111497; only the 22.x, 24.x and 26.x lines are supported.
 
 ## Install
 
