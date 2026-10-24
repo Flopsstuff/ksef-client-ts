@@ -37,7 +37,7 @@ jobs:
       # Node 25+ no longer bundles Corepack, so install it before enabling.
       - name: Enable Corepack
         run: |
-          npm install -g corepack
+          npm install -g corepack@0.36.0
           corepack enable
 
       - name: Install dependencies
@@ -66,7 +66,7 @@ jobs:
       # Node 25+ no longer bundles Corepack, so install it before enabling.
       - name: Enable Corepack
         run: |
-          npm install -g corepack
+          npm install -g corepack@0.36.0
           corepack enable
 
       - name: Install dependencies
@@ -160,7 +160,7 @@ jobs:
       # Node 25+ no longer bundles Corepack, so install it before enabling.
       - name: Enable Corepack
         run: |
-          npm install -g corepack
+          npm install -g corepack@0.36.0
           corepack enable
 
       - name: Install dependencies
