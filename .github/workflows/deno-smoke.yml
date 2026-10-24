@@ -26,8 +26,11 @@ jobs:
           # which lags the security releases this pin exists to pick up.
           check-latest: true
 
+      # Node 25+ no longer bundles Corepack, so install it before enabling.
       - name: Enable Corepack
-        run: corepack enable
+        run: |
+          npm install -g corepack
+          corepack enable
 
       - name: Install dependencies
         run: yarn install --immutable

@@ -290,7 +290,7 @@ export class CryptographyService {
    * "Invalid token encryption". Web Crypto requires the hash up-front in
    * `importKey` as part of the key's algorithm identity, so there is no room
    * for a runtime to swap it — output is identical OAEP-SHA256 on every
-   * Web Crypto implementation (Node 18+, Deno, Bun, browsers, edge runtimes).
+   * Web Crypto implementation (Node, Deno, Bun, browsers, edge runtimes).
    */
   private async rsaOaepEncrypt(certPem: string, plaintext: Uint8Array): Promise<Uint8Array> {
     const key = await crypto.webcrypto.subtle.importKey(
