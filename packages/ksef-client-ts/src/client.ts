@@ -217,5 +217,10 @@ function buildRestClientConfig(options: KSeFClientOptions | undefined, authManag
     config.onSystemWarning = options.onSystemWarning;
   }
 
+  // Deprecation / Sunset callback (KSeF API 2.10.0). Omitted → debug log.
+  if (options?.onDeprecation) {
+    config.onDeprecation = options.onDeprecation;
+  }
+
   return config;
 }
