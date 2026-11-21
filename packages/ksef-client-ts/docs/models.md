@@ -715,6 +715,30 @@ Key types:
 - `QueryKsefTokensOptions` -- filtering parameters for token listing (status, description, author)
 - `QueryKsefTokensResponse` -- cursor-paginated with `continuationToken`
 
+The types above belong to the deprecated token operations. The rev2 operations (KSeF API v2.10.0) use their own types, named after the OpenAPI schemas:
+
+- `GenerateTokenRequestRev2` -- `permissions`, `description` (5–256 characters), optional `validFrom` / `validTo`
+- `GenerateTokenResponseRev2` -- `referenceNumber` + `token`
+- `TokenStatusResponseRev2` / `QueryTokensResponseItemRev2` -- token details with `validFrom`, `validTo` and, for a `Failed` token, `failure: TokenFailureRev2`
+- `QueryTokensResponseRev2` -- cursor-paginated with `continuationToken`
+- `QueryTokensRev2Options` -- filters: `status: TokenStatusFilterRev2[]`, `description`, `authorIdentifier`, `authorIdentifierType: TokenAuthorIdentifierTypeFilterRev2`, `validFrom`, `validTo`, `pageSize`
+- `TokenStatusRev2Code` -- `'Pending' | 'Active' | 'Revoking' | 'Revoked' | 'Failed' | 'NotYetActive' | 'AwaitingApproval' | 'ApprovalExpired' | 'Expired' | 'FutureValue'`
+- `TokenFailureRev2` -- `code` (`'token.permission-grant-failed' | 'token.context-limit-exceeded' | 'token.unknown-error'`), `description`, `details`
+
+#### Dictionary objects
+
+Rev2 responses return the status, each permission and each identifier type as a dictionary object instead of a bare string:
+
+```ts
+interface TokenStatusRev2 {
+  code: TokenStatusRev2Code;   // the known value, or 'FutureValue'
+  rawCode: string;             // the value exactly as the server sent it
+  displayName: string;         // a Polish label for display
+}
+```
+
+`TokenPermissionRev2`, `TokenAuthorIdentifierTypeCodeRev2IdentifierType` and `TokenContextIdentifierTypeCodeRev2IdentifierType` have the same shape. `code` is `'FutureValue'` when the server sends a value this model version does not know; the real value is then in `rawCode`. Every `code` union is widened with `(string & {})`, so an unknown value still type-checks and the library does no mapping at runtime. Compare against `code` for known values and fall back to `rawCode` for logging or display.
+
 ### Certificates
 
 **File:** `src/models/certificates/types.ts`

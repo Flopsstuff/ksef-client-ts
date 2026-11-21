@@ -128,6 +128,104 @@ describe('TokenService', () => {
     expect(result).toBeUndefined();
   });
 
+  describe('rev2', () => {
+    it('generateTokenRev2 sends POST with body to tokens/rev2', async () => {
+      const client = createMockRestClient();
+      const service = new TokenService(client);
+      const request = {
+        description: 'rev2 token',
+        permissions: ['InvoiceRead' as const],
+        validFrom: '2026-12-01T00:00:00Z',
+        validTo: '2027-01-01T00:00:00Z',
+      };
+      const expected = { referenceNumber: 'ref-rev2', token: 'secret' };
+      vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
+
+      const result = await service.generateTokenRev2(request);
+
+      const req = getRequest(vi.mocked(client.execute));
+      expect(req.method).toBe('POST');
+      expect(req.path).toBe('tokens/rev2');
+      expect(req.path).toBe(Routes.Tokens.rev2Root);
+      expect(req.getBody()).toEqual(request);
+      expect(result).toEqual(expected);
+    });
+
+    it('queryTokensRev2 without options sends GET with empty query and no continuation header', async () => {
+      const client = createMockRestClient();
+      const service = new TokenService(client);
+      const expected = { tokens: [] };
+      vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
+
+      const result = await service.queryTokensRev2();
+
+      const req = getRequest(vi.mocked(client.execute));
+      expect(req.method).toBe('GET');
+      expect(req.path).toBe(Routes.Tokens.rev2Root);
+      expect(req.getQuery()).toEqual([]);
+      expect(req.getHeaders()).not.toHaveProperty('x-continuation-token');
+      expect(result).toEqual(expected);
+    });
+
+    it('queryTokensRev2 serialises every filter, repeats status and sends the continuation header', async () => {
+      const client = createMockRestClient();
+      const service = new TokenService(client);
+      vi.mocked(client.execute).mockResolvedValueOnce(mockResponse({ tokens: [] }));
+
+      await service.queryTokensRev2({
+        continuationToken: 'cont-1',
+        pageSize: 20,
+        status: ['AwaitingApproval', 'NotYetActive'],
+        description: 'marker',
+        authorIdentifier: '8952265388',
+        authorIdentifierType: 'Nip',
+        validFrom: '2026-11-01T00:00:00Z',
+        validTo: '2027-11-01T00:00:00Z',
+      });
+
+      const req = getRequest(vi.mocked(client.execute));
+      expect(req.getHeaders()['x-continuation-token']).toBe('cont-1');
+      expect(req.getQuery()).toEqual([
+        ['pageSize', '20'],
+        ['status', 'AwaitingApproval'],
+        ['status', 'NotYetActive'],
+        ['description', 'marker'],
+        ['authorIdentifier', '8952265388'],
+        ['authorIdentifierType', 'Nip'],
+        ['validFrom', '2026-11-01T00:00:00Z'],
+        ['validTo', '2027-11-01T00:00:00Z'],
+      ]);
+    });
+
+    it('getTokenRev2 sends GET to tokens/rev2/{ref}', async () => {
+      const client = createMockRestClient();
+      const service = new TokenService(client);
+      const expected = { referenceNumber: 'ref-1', status: { code: 'Active', rawCode: 'Active', displayName: 'Token aktywny' } };
+      vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(expected));
+
+      const result = await service.getTokenRev2('ref-1');
+
+      const req = getRequest(vi.mocked(client.execute));
+      expect(req.method).toBe('GET');
+      expect(req.path).toBe('tokens/rev2/ref-1');
+      expect(result).toEqual(expected);
+    });
+
+    it('approveToken sends POST without body to tokens/{ref}/approve and resolves on 204', async () => {
+      const client = createMockRestClient();
+      const service = new TokenService(client);
+
+      const result = await service.approveToken('ref-2');
+
+      const req = getRequest(vi.mocked(client.executeVoid));
+      expect(req.method).toBe('POST');
+      expect(req.path).toBe('tokens/ref-2/approve');
+      expect(req.getBody()).toBeUndefined();
+      expect(client.execute).not.toHaveBeenCalled();
+      expect(result).toBeUndefined();
+    });
+  });
+
   describe('findSelfReferenceNumber', () => {
     it('returns payload.trn when present in JWT', async () => {
       const client = createMockRestClient();

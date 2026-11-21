@@ -24,6 +24,8 @@ export const Routes = {
     unblockContext: 'testdata/context/unblock',
     updateCertificate: (serialNumber: string) =>
       `testdata/certificates/${serialNumber}` as const,
+    expireTokenApproval: (ref: string) =>
+      `testdata/tokens/${ref}/expire-approval` as const,
   },
 
   Limits: {
@@ -146,6 +148,9 @@ export const Routes = {
   Tokens: {
     root: 'tokens',
     byReference: (ref: string) => `tokens/${ref}` as const,
+    rev2Root: 'tokens/rev2',
+    rev2ByReference: (ref: string) => `tokens/rev2/${ref}` as const,
+    approve: (ref: string) => `tokens/${ref}/approve` as const,
   },
 
   Peppol: {
