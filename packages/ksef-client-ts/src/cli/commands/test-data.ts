@@ -359,14 +359,14 @@ const changeCertLimits = defineCommand({
 
       const { client } = await requireSession(globalOpts);
 
-      if (args['max-enrollments'] === undefined || args['max-certificates'] === undefined) {
-        throw new Error('--max-enrollments and --max-certificates are both required.');
-      }
-
       const request: SetSubjectLimitsRequest = {
         subjectIdentifierType: args['identifier-type'] as PermissionSubjectIdentifierType | undefined,
-        enrollment: { maxEnrollments: parseInt(args['max-enrollments'] as string, 10) },
-        certificate: { maxCertificates: parseInt(args['max-certificates'] as string, 10) },
+        enrollment: args['max-enrollments'] !== undefined
+          ? { maxEnrollments: parseInt(args['max-enrollments'] as string, 10) }
+          : undefined,
+        certificate: args['max-certificates'] !== undefined
+          ? { maxCertificates: parseInt(args['max-certificates'] as string, 10) }
+          : undefined,
       };
 
       await client.testData.changeCertificatesLimit(request);

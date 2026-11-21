@@ -218,6 +218,27 @@ describe('Deprecation and Sunset headers', () => {
     );
   });
 
+  it('swallows a rejected promise from an async callback', async () => {
+    const warn = vi.spyOn(consola, 'warn').mockImplementation(() => {});
+    const failure = new Error('telemetry unavailable');
+    const onDeprecation = vi.fn(async () => {
+      throw failure;
+    });
+    const transport = vi.fn<TransportFn>().mockResolvedValue(
+      mockResponse(200, { ok: true }, bothHeaders()),
+    );
+    const client = createClient(transport, { onDeprecation });
+
+    const result = await client.execute<{ ok: boolean }>(RestRequest.get('tokens'));
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(result.body).toEqual({ ok: true });
+    expect(warn).toHaveBeenCalledWith(
+      'onDeprecation callback threw an exception (ignored):',
+      failure,
+    );
+  });
+
   it('still throws the HTTP error when the callback throws', async () => {
     vi.spyOn(consola, 'warn').mockImplementation(() => {});
     const onDeprecation = vi.fn(() => {

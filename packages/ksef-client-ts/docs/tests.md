@@ -22,7 +22,7 @@ yarn vitest run tests/unit/services/auth.test.ts   # Single file
 
 ## Unit Tests
 
-171 test files, 3359 tests. Located in `tests/unit/`. All service/HTTP calls are mocked — no network access, fast execution.
+171 test files, 3361 tests. Located in `tests/unit/`. All service/HTTP calls are mocked — no network access, fast execution.
 
 ### Coverage by Area
 
@@ -112,9 +112,9 @@ This means tests can run on any machine, any CI, without configuring credentials
 | 35 | `35-invoice-pdf-cli.test.ts` | `ksef invoice pdf` through the built CLI: the whole preview set, plus the inputs it refuses | None | 120s |
 | 36 | `36-invoice-pdf-library.test.ts` | The same rendering through `ksef-client-ts/pdf`: template objects, supplied QR URLs, every render option | None | 120s |
 | 37 | `37-subject-identifier-validation.test.ts` | Session feature header: identifier validation rejects an invoice with an invalid NIP, one feature per session | Cert + Crypto | 300s |
-| 38 | `38-tokens-rev2.test.ts` | Revision 2 token validity, query, approval, and approval expiry | Cert + Token | 120s |
-| 39 | `39-auth-rev2.test.ts` | Revision 2 authentication status and active-session records | Cert | 120s |
-| 40 | `40-deprecation-headers.test.ts` | Deprecation and sunset metadata on an older operation | None | 60s |
+| 38 | `38-tokens-rev2.test.ts` | Revision 2 token validity, query, approval, and approval expiry | Cert + Token | 180s |
+| 39 | `39-auth-rev2.test.ts` | Revision 2 authentication status and active-session records | Cert | 60s |
+| 40 | `40-deprecation-headers.test.ts` | Deprecation and sunset metadata on an older operation | Cert | 120s |
 
 ### The PDF Specs (35, 36)
 

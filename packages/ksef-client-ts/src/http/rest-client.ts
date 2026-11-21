@@ -148,10 +148,13 @@ export class RestClient {
     }
 
     if (this.onDeprecation) {
-      try {
-        this.onDeprecation(notice);
-      } catch (error) {
+      const warn = (error: unknown) =>
         consola.warn('onDeprecation callback threw an exception (ignored):', error);
+      try {
+        const result: unknown = this.onDeprecation(notice);
+        if (result instanceof Promise) result.catch(warn);
+      } catch (error) {
+        warn(error);
       }
       return;
     }

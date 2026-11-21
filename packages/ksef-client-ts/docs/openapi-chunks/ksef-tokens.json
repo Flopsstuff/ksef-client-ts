@@ -29,7 +29,8 @@
                 "permissions": [
                   "InvoiceRead",
                   "InvoiceWrite"
-                ]
+                ],
+                "description": "Wystawianie i przeglądanie faktur."
               }
             }
           }
@@ -265,6 +266,7 @@
                         "type": "Nip",
                         "value": "5265877635"
                       },
+                      "description": "Wystawianie i przeglądanie faktur.",
                       "requestedPermissions": [
                         "InvoiceRead",
                         "InvoiceWrite"
@@ -411,6 +413,7 @@
                   "InvoiceRead",
                   "InvoiceWrite"
                 ],
+                "description": "Wystawianie i przeglądanie faktur.",
                 "validFrom": "2026-11-14T09:48:26.8700925+00:00",
                 "validTo": "2026-11-20T09:48:26.8700925+00:00"
               }
@@ -618,6 +621,7 @@
                         },
                         "value": "5265877635"
                       },
+                      "description": "Wystawianie i przeglądanie faktur.",
                       "requestedPermissions": [
                         {
                           "code": "InvoiceRead",
@@ -768,6 +772,7 @@
                     "type": "Nip",
                     "value": "5265877635"
                   },
+                  "description": "Wystawianie i przeglądanie faktur.",
                   "requestedPermissions": [
                     "InvoiceWrite",
                     "InvoiceRead"
@@ -1022,6 +1027,7 @@
                     },
                     "value": "5265877635"
                   },
+                  "description": "Wystawianie i przeglądanie faktur.",
                   "requestedPermissions": [
                     {
                       "code": "InvoiceRead",
@@ -1316,6 +1322,9 @@
             "type": "integer",
             "format": "int32"
           },
+          "description": {
+            "type": "string"
+          },
           "details": {
             "type": "array",
             "items": {
@@ -1382,12 +1391,14 @@
           "errors": [
             {
               "code": 21405,
+              "description": "Błąd walidacji danych wejściowych.",
               "details": [
                 "Wskazany kod formularza nie jest wspierany."
               ]
             },
             {
               "code": 21157,
+              "description": "Nieprawidłowy rozmiar części pakietu.",
               "details": [
                 "Rozmiar części 1 przekroczył dozwolony rozmiar 100MB."
               ]
@@ -1558,6 +1569,11 @@
             "items": {
               "$ref": "#/components/schemas/TokenPermissionType"
             }
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
           }
         }
       },
@@ -1573,6 +1589,11 @@
             "items": {
               "$ref": "#/components/schemas/TokenPermissionType"
             }
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
           },
           "validFrom": {
             "type": "string",
@@ -1718,6 +1739,11 @@
               }
             ]
           },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
+          },
           "requestedPermissions": {
             "type": "array",
             "items": {
@@ -1791,6 +1817,11 @@
                 "$ref": "#/components/schemas/TokenContextIdentifierTypeCodeRev2Identifier"
               }
             ]
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
           },
           "requestedPermissions": {
             "type": "array",
@@ -2050,6 +2081,10 @@
             "minLength": 1,
             "type": "string"
           },
+          "description": {
+            "minLength": 1,
+            "type": "string"
+          },
           "details": {
             "type": "array",
             "items": {
@@ -2166,6 +2201,11 @@
               }
             ]
           },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
+          },
           "requestedPermissions": {
             "type": "array",
             "items": {
@@ -2239,6 +2279,11 @@
                 "$ref": "#/components/schemas/TokenContextIdentifierTypeCodeRev2Identifier"
               }
             ]
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
           },
           "requestedPermissions": {
             "type": "array",
@@ -2378,6 +2423,9 @@
               "code": {
                 "type": "integer"
               },
+              "description": {
+                "type": "string"
+              },
               "details": {
                 "type": "array",
                 "items": {
@@ -2390,6 +2438,7 @@
         "example": {
           "status": {
             "code": 429,
+            "description": "Too Many Requests",
             "details": [
               "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
             ]
