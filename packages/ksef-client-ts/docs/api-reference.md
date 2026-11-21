@@ -115,7 +115,13 @@ Authenticate using an encrypted KSeF token.
 getAuthStatus(referenceNumber: string, authToken: string): Promise<AuthenticationOperationStatusResponse>
 ```
 
-Poll the authorization status by reference number.
+Poll the authorization status by reference number. Deprecated: this operation is switched off on 2027-06-15; use `getAuthStatusRev2()`.
+
+```ts
+getAuthStatusRev2(referenceNumber: string, authToken: string): Promise<AuthenticationOperationStatusResponseRev2>
+```
+
+Poll the revision 2 authorization status. The response exposes the dictionary-based `authenticationMethodInfo` and omits the legacy `authenticationMethod` field.
 
 ```ts
 getAccessToken(authToken: string): Promise<AuthenticationTokensResponse>
@@ -139,7 +145,13 @@ Accessed via `client.activeSessions`.
 getActiveSessions(pageSize?: number, continuationToken?: string): Promise<AuthenticationListResponse>
 ```
 
-List all active sessions for the current subject.
+List all active sessions for the current subject. Deprecated: this operation is switched off on 2027-06-15; use `getActiveSessionsRev2()`.
+
+```ts
+getActiveSessionsRev2(pageSize?: number, continuationToken?: string): Promise<AuthenticationListResponseRev2>
+```
+
+List active sessions using the revision 2 response model. Pass the response's `continuationToken` to retrieve the next page.
 
 ```ts
 revokeCurrentSession(): Promise<void>
@@ -1243,9 +1255,11 @@ Extends `KSeFError`. Thrown when an authentication operation fails or times out.
 | ------------------- | --------- | ------------------------------------ |
 | `referenceNumber`   | `string?` | Auth operation reference number      |
 | `statusDescription` | `string?` | Status description from the API      |
+| `statusCode`        | `number?` | Numeric authentication status code   |
+| `details`           | `string[]?` | Status details from the API         |
 
 ```ts
-constructor(message: string, referenceNumber?: string, statusDescription?: string)
+constructor(message: string, referenceNumber?: string, statusDescription?: string, statusCode?: number, details?: string[])
 ```
 
 ### KSeFSessionExpiredError

@@ -36,6 +36,7 @@ export const Routes = {
 
   ActiveSessions: {
     session: 'auth/sessions',
+    sessionRev2: 'auth/sessions/rev2',
     delete: (ref: string) => `auth/sessions/${ref}` as const,
     currentSession: 'auth/sessions/current',
   },
@@ -45,6 +46,7 @@ export const Routes = {
     xadesSignature: 'auth/xades-signature',
     ksefToken: 'auth/ksef-token',
     status: (ref: string) => `auth/${ref}` as const,
+    statusRev2: (ref: string) => `auth/rev2/${ref}` as const,
     Token: {
       redeem: 'auth/token/redeem',
       refresh: 'auth/token/refresh',

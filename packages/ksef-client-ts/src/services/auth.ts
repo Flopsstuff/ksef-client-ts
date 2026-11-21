@@ -2,7 +2,15 @@ import { RestClient } from '../http/rest-client.js';
 import { KSEF_FEATURE_HEADER, ENFORCE_XADES_COMPLIANCE } from '../http/ksef-feature.js';
 import { RestRequest } from '../http/rest-request.js';
 import { Routes } from '../http/routes.js';
-import type { AuthChallengeResponse, AuthenticationInitResponse, AuthKsefTokenRequest, AuthenticationOperationStatusResponse, AuthenticationTokensResponse, AuthenticationTokenRefreshResponse } from '../models/auth/types.js';
+import type {
+  AuthChallengeResponse,
+  AuthenticationInitResponse,
+  AuthKsefTokenRequest,
+  AuthenticationOperationStatusResponse,
+  AuthenticationOperationStatusResponseRev2,
+  AuthenticationTokensResponse,
+  AuthenticationTokenRefreshResponse,
+} from '../models/auth/types.js';
 
 export class AuthService {
   private readonly restClient: RestClient;
@@ -39,10 +47,21 @@ export class AuthService {
     return response.body;
   }
 
+  /** @deprecated This operation is switched off on 2027-06-15. Use getAuthStatusRev2 instead. */
   async getAuthStatus(referenceNumber: string, authToken: string): Promise<AuthenticationOperationStatusResponse> {
     const request = RestRequest.get(Routes.Authorization.status(referenceNumber))
       .accessToken(authToken);
     const response = await this.restClient.execute<AuthenticationOperationStatusResponse>(request);
+    return response.body;
+  }
+
+  async getAuthStatusRev2(
+    referenceNumber: string,
+    authToken: string,
+  ): Promise<AuthenticationOperationStatusResponseRev2> {
+    const request = RestRequest.get(Routes.Authorization.statusRev2(referenceNumber))
+      .accessToken(authToken);
+    const response = await this.restClient.execute<AuthenticationOperationStatusResponseRev2>(request);
     return response.body;
   }
 

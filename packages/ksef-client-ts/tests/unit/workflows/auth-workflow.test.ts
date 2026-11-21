@@ -113,6 +113,21 @@ describe('authenticateWithToken', () => {
     expect(client.auth.getAccessToken).not.toHaveBeenCalled();
   });
 
+  it('exposes the authentication status code and details on KSeFAuthStatusError', async () => {
+    const details = ['Token poza okresem ważności'];
+    client.auth.getAuthStatus.mockResolvedValue({
+      status: { code: 450, description: 'Nieprawidłowy token', details },
+    });
+
+    try {
+      await authenticateWithToken(client, { nip: '1234567890', token: 'tok', pollOptions: { intervalMs: 1 } });
+      expect.fail('Expected authentication to fail');
+    } catch (error) {
+      expect(error).toBeInstanceOf(KSeFAuthStatusError);
+      expect(error).toMatchObject({ statusCode: 450, details });
+    }
+  });
+
   it('throws without a details suffix when the failure status carries no details', async () => {
     client.auth.getAuthStatus.mockResolvedValue({
       status: { code: 450, description: 'Uwierzytelnianie nieudane' },

@@ -1,5 +1,9 @@
 import type { OperationStatusInfo } from '../common.js';
-import type { AuthenticationMethod, AuthenticationMethodInfo } from './types.js';
+import type {
+  AuthenticationMethod,
+  AuthenticationMethodInfo,
+  AuthenticationMethodInfoRev2,
+} from './types.js';
 
 export interface AuthSessionInfo {
   startDate: string;
@@ -17,4 +21,20 @@ export interface AuthSessionInfo {
 export interface AuthenticationListResponse {
   continuationToken?: string | null;
   items: AuthSessionInfo[];
+}
+
+export interface AuthenticationListItemRev2 {
+  startDate: string;
+  authenticationMethodInfo: AuthenticationMethodInfoRev2;
+  status: OperationStatusInfo;
+  isTokenRedeemed?: boolean | null;
+  lastTokenRefreshDate?: string | null;
+  refreshTokenValidUntil?: string | null;
+  referenceNumber: string;
+  isCurrent?: boolean;
+}
+
+export interface AuthenticationListResponseRev2 {
+  continuationToken?: string | null;
+  items: AuthenticationListItemRev2[];
 }
