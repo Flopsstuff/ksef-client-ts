@@ -64,10 +64,22 @@ export interface CollectiveIdentifierEffectiveContextLimits {
   maxInvoices: number;
 }
 
+export interface TokensEffectiveContextLimits {
+  maxTokens: number;
+}
+
 export interface EffectiveContextLimits {
   onlineSession: OnlineSessionEffectiveContextLimits;
   batchSession: BatchSessionEffectiveContextLimits;
   collectiveIdentifier: CollectiveIdentifierEffectiveContextLimits;
+  /**
+   * Token count limit for the current context (KSeF API v2.10.0).
+   *
+   * The 2.10.0 OpenAPI schema lists `tokens` as required. DEMO and PROD still
+   * serve 2.9.0 and omit the block, so it is typed optional here until PROD
+   * serves 2.10.0 — then this property becomes required.
+   */
+  tokens?: TokensEffectiveContextLimits;
 }
 
 export interface EnrollmentEffectiveSubjectLimits {
@@ -132,11 +144,11 @@ export interface SetSessionLimitsRequest {
 }
 
 export interface EnrollmentSubjectLimitsOverride {
-  maxEnrollments?: number | null;
+  maxEnrollments: number;
 }
 
 export interface CertificateSubjectLimitsOverride {
-  maxCertificates?: number | null;
+  maxCertificates: number;
 }
 
 export interface SetSubjectLimitsRequest {

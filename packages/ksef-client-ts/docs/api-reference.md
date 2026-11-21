@@ -333,7 +333,7 @@ Grant permissions to an EU entity.
 grantEuEntityRepresentativePermissions(request: GrantPermissionsEuEntityRepresentativeRequest): Promise<OperationResponse>
 ```
 
-Grant permissions to an EU entity representative.
+Grant permissions to an EU entity representative. `permissions` accepts `InvoiceRead`, `InvoiceWrite`, and `CollectiveIdentifierManage` (KSeF API v2.10.0).
 
 ### Revoke Methods
 
@@ -405,7 +405,7 @@ Query authorization-level grants.
 queryEuEntitiesGrants(options?: QueryEuEntitiesGrantsRequest): Promise<PagedPermissionsResponse<EuEntityPermission>>
 ```
 
-Query permissions granted to EU entities.
+Query permissions granted to EU entities. `permissionTypes` accepts `VatUeManage`, `InvoiceWrite`, `InvoiceRead`, `Introspection`, and `CollectiveIdentifierManage` (KSeF API v2.10.0).
 
 ### Status Methods
 
@@ -524,10 +524,10 @@ Get system status messages.
 Accessed via `client.limits`.
 
 ```ts
-getContextLimits(): Promise<SessionLimitsInCurrentContextResponse>
+getContextLimits(): Promise<EffectiveContextLimits>
 ```
 
-Get session limits for the current context.
+Get session limits for the current context: online/batch invoice size and count, collective-identifier invoice count, and (on KSeF API v2.10.0) `tokens.maxTokens`. The `tokens` block is typed optional because DEMO and PROD on 2.9.0 omit it; TEST sends it.
 
 ```ts
 getSubjectLimits(): Promise<CertificatesLimitInCurrentSubjectResponse>
@@ -665,7 +665,7 @@ Restore default session limits.
 changeCertificatesLimit(request: SetSubjectLimitsRequest): Promise<void>
 ```
 
-Override subject limits (enrollment/certificate) for the current subject.
+Override subject limits (enrollment/certificate) for the current subject. When `enrollment` or `certificate` is present, `maxEnrollments` / `maxCertificates` is required (KSeF API v2.10.0).
 
 ```ts
 restoreDefaultCertificatesLimit(): Promise<void>

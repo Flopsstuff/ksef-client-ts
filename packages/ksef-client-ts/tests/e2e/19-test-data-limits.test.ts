@@ -1,4 +1,4 @@
-import { describe, it, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { authenticateWithCert } from './helpers/auth.js';
 import { generateRandomNip } from './helpers/identifiers.js';
 import type { KSeFClient } from '../../src/client.js';
@@ -52,6 +52,9 @@ describe('19 - TestData Limits & Attachments', { timeout: 120_000 }, () => {
       enrollment: { maxEnrollments: 10 },
       certificate: { maxCertificates: 5 },
     });
+    const overridden = await client.limits.getSubjectLimits();
+    expect(overridden.enrollment?.maxEnrollments).toBe(10);
+    expect(overridden.certificate?.maxCertificates).toBe(5);
     await client.testData.restoreDefaultCertificatesLimit();
   });
 
