@@ -38,6 +38,16 @@
                 "schema": {
                   "$ref": "#/components/schemas/SystemWarning"
                 }
+              },
+              "Deprecation": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Sunset": {
+                "schema": {
+                  "type": "string"
+                }
               }
             },
             "content": {
@@ -55,6 +65,181 @@
                       "authenticationMethod": "QualifiedSeal",
                       "authenticationMethodInfo": {
                         "category": "XadesSignature",
+                        "code": "xades.qualified-seal",
+                        "displayName": "Pieczęć kwalifikowana"
+                      },
+                      "status": {
+                        "code": 200
+                      },
+                      "isTokenRedeemed": true,
+                      "refreshTokenValidUntil": "2025-11-28T09:22:13.388+00:00"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "headers": {
+              "Deprecation": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Sunset": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoneProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              },
+              "Deprecation": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Sunset": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "deprecated": true,
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 10,
+          "perMinute": 30,
+          "perHour": 120
+        },
+        "x-sort": [
+          {
+            "field": "startDate",
+            "direction": "Desc"
+          }
+        ],
+        "x-sunset": "2027-06-15",
+        "x-successor": "GET /auth/sessions/rev2"
+      }
+    },
+    "/auth/sessions/rev2": {
+      "get": {
+        "tags": [
+          "Aktywne sesje"
+        ],
+        "summary": "Pobranie listy aktywnych sesji (rev2)",
+        "parameters": [
+          {
+            "name": "x-continuation-token",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 10,
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticationListResponseRev2"
+                },
+                "example": {
+                  "continuationToken": "W3siY29tcG9zaXRlVG9rZW4iOnsidG9rZW4iOm51bGwsInJhbmdlIjp7Im1pbiI6IjA1QzFFMCIsIm1heCI6IkZGIn19LCJyZXN1bWVWYWx1ZXMiOlsiMjAyNS0xMC0wM1QxMjoxODo0OS4zNDY2ODQ3WiJdLCJyaWQiOiIzeHd0QVBJWDVRRlVoZ0FBQUFBQUJBPT0iLCJza2lwQ291bnQiOjF9XQ==",
+                  "items": [
+                    {
+                      "referenceNumber": "20251010-AU-19F5E39000-39B5B182BA-B8",
+                      "isCurrent": false,
+                      "startDate": "2025-10-11T12:23:56.0154302+00:00",
+                      "authenticationMethodInfo": {
+                        "category": {
+                          "code": "XadesSignature",
+                          "rawCode": "XadesSignature",
+                          "displayName": "Podpis XAdES"
+                        },
                         "code": "xades.qualified-seal",
                         "displayName": "Pieczęć kwalifikowana"
                       },
@@ -609,6 +794,16 @@
                 "schema": {
                   "$ref": "#/components/schemas/SystemWarning"
                 }
+              },
+              "Deprecation": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Sunset": {
+                "schema": {
+                  "type": "string"
+                }
               }
             },
             "content": {
@@ -635,60 +830,60 @@
                       }
                     }
                   },
-                  "Kod 400 | Uwierzytelnianie zakończone niepowodzeniem | Nieważny certyfikat": {
+                  "Kod 460 | Uwierzytelnianie zakończone niepowodzeniem | Nieważny certyfikat": {
                     "value": {
                       "startDate": "0001-01-01T00:00:00+00:00",
                       "authenticationMethod": "Token",
                       "status": {
-                        "code": 400,
+                        "code": 460,
                         "details": [
                           "Nieważny certyfikat."
                         ]
                       }
                     }
                   },
-                  "Kod 400 | Uwierzytelnianie zakończone niepowodzeniem | Błąd weryfikacji łańcucha certyfikatów": {
+                  "Kod 460 | Uwierzytelnianie zakończone niepowodzeniem | Błąd weryfikacji łańcucha certyfikatów": {
                     "value": {
                       "startDate": "0001-01-01T00:00:00+00:00",
                       "authenticationMethod": "Token",
                       "status": {
-                        "code": 400,
+                        "code": 460,
                         "details": [
                           "Błąd weryfikacji łańcucha certyfikatów."
                         ]
                       }
                     }
                   },
-                  "Kod 400 | Uwierzytelnianie zakończone niepowodzeniem | Niezaufany łańcuch certyfikatów": {
+                  "Kod 460 | Uwierzytelnianie zakończone niepowodzeniem | Niezaufany łańcuch certyfikatów": {
                     "value": {
                       "startDate": "0001-01-01T00:00:00+00:00",
                       "authenticationMethod": "Token",
                       "status": {
-                        "code": 400,
+                        "code": 460,
                         "details": [
                           "Niezaufany łańcuch certyfikatów."
                         ]
                       }
                     }
                   },
-                  "Kod 400 | Uwierzytelnianie zakończone niepowodzeniem | Certyfikat odwołany": {
+                  "Kod 460 | Uwierzytelnianie zakończone niepowodzeniem | Certyfikat odwołany": {
                     "value": {
                       "startDate": "0001-01-01T00:00:00+00:00",
                       "authenticationMethod": "Token",
                       "status": {
-                        "code": 400,
+                        "code": 460,
                         "details": [
                           "Certyfikat odwołany."
                         ]
                       }
                     }
                   },
-                  "Kod 400 | Uwierzytelnianie zakończone niepowodzeniem | Niepoprawny certyfikat": {
+                  "Kod 460 | Uwierzytelnianie zakończone niepowodzeniem | Niepoprawny certyfikat": {
                     "value": {
                       "startDate": "0001-01-01T00:00:00+00:00",
                       "authenticationMethod": "Token",
                       "status": {
-                        "code": 400,
+                        "code": 460,
                         "details": [
                           "Niepoprawny certyfikat."
                         ]
@@ -699,6 +894,303 @@
                     "value": {
                       "startDate": "0001-01-01T00:00:00+00:00",
                       "authenticationMethod": "Token",
+                      "status": {
+                        "code": 500
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "headers": {
+              "Deprecation": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Sunset": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExceptionResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestProblemDetails"
+                }
+              }
+            },
+            "x-summary": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "headers": {
+              "Deprecation": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Sunset": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoneProblemDetails"
+                },
+                "example": {
+                  "title": "Gone",
+                  "status": 410,
+                  "instance": "{{uri_path}}",
+                  "detail": "Operacja wygasła i nie jest już dostępna.",
+                  "timestamp": "2025-07-11T12:23:56.0154302+00:00",
+                  "traceId": "673843e023c432286660bc0501a3af44"
+                }
+              }
+            }
+          },
+          "429": {
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetryAfter"
+                }
+              },
+              "Deprecation": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Sunset": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TooManyRequestsProblemDetails"
+                }
+              }
+            },
+            "x-summary": "Too Many Requests"
+          }
+        },
+        "deprecated": true,
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "x-rate-limits": {
+          "perSecond": 60
+        },
+        "x-sunset": "2027-06-15",
+        "x-successor": "GET /auth/rev2/{referenceNumber}"
+      }
+    },
+    "/auth/rev2/{referenceNumber}": {
+      "get": {
+        "tags": [
+          "Uzyskiwanie dostępu"
+        ],
+        "summary": "Pobranie statusu uwierzytelniania (rev2)",
+        "parameters": [
+          {
+            "name": "referenceNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ReferenceNumber"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "headers": {
+              "X-System-Warning": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemWarning"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticationOperationStatusResponseRev2"
+                },
+                "examples": {
+                  "Kod 100 | Uwierzytelnianie w toku": {
+                    "value": {
+                      "startDate": "2025-10-11T12:23:56.0154302+00:00",
+                      "authenticationMethodInfo": {
+                        "category": {
+                          "code": "XadesSignature",
+                          "rawCode": "XadesSignature",
+                          "displayName": "Podpis XAdES"
+                        },
+                        "code": "xades.qualified-seal",
+                        "displayName": "Pieczęć kwalifikowana"
+                      },
+                      "status": {
+                        "code": 100
+                      }
+                    }
+                  },
+                  "Kod 200 | Uwierzytelnianie zakończone sukcesem": {
+                    "value": {
+                      "startDate": "2025-10-11T12:23:56.0154302+00:00",
+                      "authenticationMethodInfo": {
+                        "category": {
+                          "code": "XadesSignature",
+                          "rawCode": "XadesSignature",
+                          "displayName": "Podpis XAdES"
+                        },
+                        "code": "xades.qualified-seal",
+                        "displayName": "Pieczęć kwalifikowana"
+                      },
+                      "status": {
+                        "code": 200
+                      }
+                    }
+                  },
+                  "Kod 460 | Uwierzytelnianie zakończone niepowodzeniem | Nieważny certyfikat": {
+                    "value": {
+                      "startDate": "2025-10-11T12:23:56.0154302+00:00",
+                      "authenticationMethodInfo": {
+                        "category": {
+                          "code": "XadesSignature",
+                          "rawCode": "XadesSignature",
+                          "displayName": "Podpis XAdES"
+                        },
+                        "code": "xades.qualified-seal",
+                        "displayName": "Pieczęć kwalifikowana"
+                      },
+                      "status": {
+                        "code": 460,
+                        "details": [
+                          "Nieważny certyfikat."
+                        ]
+                      }
+                    }
+                  },
+                  "Kod 460 | Uwierzytelnianie zakończone niepowodzeniem | Błąd weryfikacji łańcucha certyfikatów": {
+                    "value": {
+                      "startDate": "2025-10-11T12:23:56.0154302+00:00",
+                      "authenticationMethodInfo": {
+                        "category": {
+                          "code": "XadesSignature",
+                          "rawCode": "XadesSignature",
+                          "displayName": "Podpis XAdES"
+                        },
+                        "code": "xades.qualified-seal",
+                        "displayName": "Pieczęć kwalifikowana"
+                      },
+                      "status": {
+                        "code": 460,
+                        "details": [
+                          "Błąd weryfikacji łańcucha certyfikatów."
+                        ]
+                      }
+                    }
+                  },
+                  "Kod 460 | Uwierzytelnianie zakończone niepowodzeniem | Niezaufany łańcuch certyfikatów": {
+                    "value": {
+                      "startDate": "2025-10-11T12:23:56.0154302+00:00",
+                      "authenticationMethodInfo": {
+                        "category": {
+                          "code": "XadesSignature",
+                          "rawCode": "XadesSignature",
+                          "displayName": "Podpis XAdES"
+                        },
+                        "code": "xades.qualified-seal",
+                        "displayName": "Pieczęć kwalifikowana"
+                      },
+                      "status": {
+                        "code": 460,
+                        "details": [
+                          "Niezaufany łańcuch certyfikatów."
+                        ]
+                      }
+                    }
+                  },
+                  "Kod 460 | Uwierzytelnianie zakończone niepowodzeniem | Certyfikat odwołany": {
+                    "value": {
+                      "startDate": "2025-10-11T12:23:56.0154302+00:00",
+                      "authenticationMethodInfo": {
+                        "category": {
+                          "code": "XadesSignature",
+                          "rawCode": "XadesSignature",
+                          "displayName": "Podpis XAdES"
+                        },
+                        "code": "xades.qualified-seal",
+                        "displayName": "Pieczęć kwalifikowana"
+                      },
+                      "status": {
+                        "code": 460,
+                        "details": [
+                          "Certyfikat odwołany."
+                        ]
+                      }
+                    }
+                  },
+                  "Kod 460 | Uwierzytelnianie zakończone niepowodzeniem | Niepoprawny certyfikat": {
+                    "value": {
+                      "startDate": "2025-10-11T12:23:56.0154302+00:00",
+                      "authenticationMethodInfo": {
+                        "category": {
+                          "code": "XadesSignature",
+                          "rawCode": "XadesSignature",
+                          "displayName": "Podpis XAdES"
+                        },
+                        "code": "xades.qualified-seal",
+                        "displayName": "Pieczęć kwalifikowana"
+                      },
+                      "status": {
+                        "code": 460,
+                        "details": [
+                          "Niepoprawny certyfikat."
+                        ]
+                      }
+                    }
+                  },
+                  "Kod 500 | Nieznany błąd": {
+                    "value": {
+                      "startDate": "2025-10-11T12:23:56.0154302+00:00",
                       "status": {
                         "code": 500
                       }
@@ -1191,6 +1683,65 @@
           }
         }
       },
+      "AuthenticationListItemRev2": {
+        "required": [
+          "authenticationMethodInfo",
+          "referenceNumber",
+          "startDate",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "authenticationMethodInfo": {
+            "required": [
+              "category",
+              "code",
+              "displayName"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthenticationMethodInfoRev2"
+              }
+            ]
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusInfo"
+              }
+            ]
+          },
+          "isTokenRedeemed": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "lastTokenRefreshDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "refreshTokenValidUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "referenceNumber": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceNumber"
+              }
+            ]
+          },
+          "isCurrent": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        }
+      },
       "AuthenticationListResponse": {
         "required": [
           "items"
@@ -1205,6 +1756,24 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AuthenticationListItem"
+            }
+          }
+        }
+      },
+      "AuthenticationListResponseRev2": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "continuationToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthenticationListItemRev2"
             }
           }
         }
@@ -1230,6 +1799,40 @@
         ],
         "type": "string"
       },
+      "AuthenticationMethodCategoryRev2": {
+        "required": [
+          "code",
+          "displayName",
+          "rawCode"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthenticationMethodCategoryRev2Code"
+              }
+            ]
+          },
+          "rawCode": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "displayName": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      },
+      "AuthenticationMethodCategoryRev2Code": {
+        "enum": [
+          "XadesSignature",
+          "NationalNode",
+          "Token",
+          "FutureValue"
+        ],
+        "type": "string"
+      },
       "AuthenticationMethodInfo": {
         "required": [
           "category",
@@ -1251,6 +1854,29 @@
           "displayName": {
             "type": "string",
             "readOnly": true
+          }
+        }
+      },
+      "AuthenticationMethodInfoRev2": {
+        "required": [
+          "category",
+          "code",
+          "displayName"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthenticationMethodCategoryRev2"
+              }
+            ]
+          },
+          "code": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
           }
         }
       },
@@ -1284,6 +1910,53 @@
             "allOf": [
               {
                 "$ref": "#/components/schemas/AuthenticationMethodInfo"
+              }
+            ]
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusInfo"
+              }
+            ]
+          },
+          "isTokenRedeemed": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "lastTokenRefreshDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "refreshTokenValidUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "AuthenticationOperationStatusResponseRev2": {
+        "required": [
+          "authenticationMethodInfo",
+          "startDate",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "authenticationMethodInfo": {
+            "required": [
+              "category",
+              "code",
+              "displayName"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthenticationMethodInfoRev2"
               }
             ]
           },
