@@ -310,7 +310,7 @@ ksef permission grant --type authorization \
 
 Supported grant types: `person`, `entity`, `authorization`, `indirect`, `subunit`, `eu-entity-admin`, `eu-entity-representative`. Each type requires specific flags — the CLI will report missing fields.
 
-For `entity` and `indirect` grants, `--permissions` takes `InvoiceRead`, `InvoiceWrite`, and `CollectiveIdentifierManage` (managing collective identifiers, KSeF API v2.8.1).
+For `entity` and `indirect` grants, `--permissions` takes `InvoiceRead`, `InvoiceWrite`, and `CollectiveIdentifierManage` (managing collective identifiers, KSeF API v2.8.1). `eu-entity-representative` grants take the same three values; `CollectiveIdentifierManage` there needs KSeF API v2.10.0. An `eu-entity-admin` grant carries no permission list — it makes the subject the administrator of the EU entity context.
 
 Add `--canDelegate` to allow the subject to further delegate permissions to their own employees (corresponds to "Zakres uprawnień" in the KSeF web portal).
 
@@ -342,17 +342,35 @@ ksef permission search --type personal        --context-type Nip        --contex
 ## Tokens
 
 ```bash
-ksef token generate --permissions InvoiceRead,InvoiceWrite    # Generate a new token
-ksef token generate --permissions InvoiceRead --description "Read-only" --validTo 2026-12-31
-
+ksef token generate --permissions InvoiceRead,InvoiceWrite --description "Read-write"   # Generate a new token
 ksef token list [--status Active,Pending]                     # List tokens
 ksef token get <ref>                                          # Get token details
 ksef token revoke <ref>                                       # Revoke a token
 ```
 
+Tokens generated since 2026-11-07 are valid for 90 days, whichever command created them.
+
 ::: warning
 The token value is displayed only once during generation. It cannot be retrieved later.
 :::
+
+### Validity period and approval (KSeF API 2.10.0)
+
+KSeF API 2.10.0 adds a second revision of the token operations: a token gets a validity period, more statuses, a failure reason, and — when it is generated from a session signed in with a KSeF token — an approval step. The CLI uses it only when you ask for it with `--rev2`; the same arguments create the same kind of token on every environment. Environments still on KSeF API 2.9.0 do not serve it.
+
+```bash
+ksef token generate --permissions InvoiceRead --description "CI token" --rev2       # Server defaults: valid from now, for 90 days
+ksef token generate --permissions InvoiceRead --description "CI token" \
+  --valid-from 2026-12-01 --valid-to 2027-02-28                                      # Either date implies --rev2
+ksef token list --rev2 [--status AwaitingApproval,Expired] [--valid-from 2026-11-01] [--valid-to 2026-12-31]
+ksef token get <ref> --rev2
+ksef token approve <ref>                                                             # Approve a token awaiting approval
+```
+
+- `--valid-from` / `--valid-to` take an ISO 8601 date or date-time. A bare date starts at 00:00 UTC (`--valid-from`) or ends at 23:59:59.999 UTC (`--valid-to`). The server enforces the allowed window: the start at most 60 days ahead, the end at most 365 days after the start.
+- `ksef token list --rev2` and `ksef token get --rev2` show the validity dates, the status (`Pending`, `Active`, `Revoking`, `Revoked`, `Failed`, `NotYetActive`, `AwaitingApproval`, `ApprovalExpired`, `Expired`) and the failure reason of a `Failed` token. A status or permission this CLI version does not know yet is shown as the server sent it. `--valid-from` / `--valid-to` are filters of the `--rev2` listing only.
+- A token generated with `--rev2` from a session signed in with a KSeF token waits in `AwaitingApproval` and must be approved within 24 hours with `ksef token approve <ref>`; the command prints this reminder after generation. Approval needs a session signed in with a certificate or XAdES — from a KSeF-token session KSeF rejects it with error 26005.
+- With `--json`, the `--rev2` variants print the raw API response.
 
 ## Certificates
 
@@ -387,10 +405,12 @@ ksef cert retrieve --serial <serial1>,<serial2>  # Retrieve certificates by seri
 View effective KSeF API limits for the current context. Requires an active session.
 
 ```bash
-ksef limits context                              # Context limits (invoice size, count per session type)
+ksef limits context                              # Context limits (invoice size, count per session type, token count)
 ksef limits subject                              # Subject limits (max enrollments, certificates)
 ksef limits rate                                 # API rate limits (per-category table)
 ```
+
+`ksef limits context` adds a `Tokens — Max Tokens` row — the number of tokens the context may hold — when the server reports it (KSeF API v2.10.0); environments on 2.9.0 do not, and the row is left out.
 
 `ksef limits rate` lists every group KSeF reports, including `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window KSeF reports as `-1` has no limit and is shown as `unlimited`; `--json` prints the raw `-1`. The `global` group is the per-IP limit: KSeF announced it in 2.8.0 as not yet enforced, but since 2.9.0 TEST reports a finite per-second value (75), so do not expect its windows to read `unlimited`.
 
@@ -551,6 +571,14 @@ ksef test-data block-context --context-value 1234567890 --context-type Nip
 ksef test-data unblock-context --context-value 1234567890 --context-type Nip
 ```
 
+### Token approval (requires session)
+
+```bash
+ksef test-data expire-token-approval <ref>      # End the 24-hour approval window of a token now (KSeF API v2.10.0)
+```
+
+The token must be in `AwaitingApproval`; afterwards `ksef token get <ref> --rev2` shows `ApprovalExpired`.
+
 ## Doctor (Health Check)
 
 Diagnose configuration and connectivity issues:
@@ -606,6 +634,7 @@ Some KSeF error codes get a dedicated hint, shown instead of the HTTP status hin
 | 21208 | The batch session expired before all parts were uploaded — send the batch again with `ksef invoice send`. |
 | 21418 | The continuation token is invalid — start the listing again without `--continue`. |
 | 21470 | KSeF no longer accepts the encryption key (likely mid key rotation) — wait a moment and run the command again. |
+| 26005 | A token cannot be approved from a session signed in with a KSeF token — sign in with a certificate or a XAdES signature and run `ksef token approve` again. |
 | 71004 | A collective identifier groups invoices of one seller only — remove the invoices of other sellers. |
 | 71005 | The invoice list repeats a KSeF number — remove the duplicates. |
 | 21001 | KSeF could not read the request — a value has the wrong type or is not one KSeF accepts; check the field named in the error details. |

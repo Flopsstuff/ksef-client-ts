@@ -264,6 +264,7 @@ describe('renderCliError — hints by KSeF error code', () => {
     { code: 71005, text: 'Remove the duplicates' },
     { code: 21470, text: 'public key' },
     { code: 21208, text: 'ksef invoice send' },
+    { code: 26005, text: 'certificate or a XAdES signature' },
     { code: 21001, text: 'field named in the error details' },
     { code: 21405, text: 'error details' },
   ])('gives the $code hint instead of the status hint', ({ code, text }) => {

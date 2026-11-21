@@ -557,6 +557,29 @@ const unblockContext = defineCommand({
   },
 });
 
+const expireTokenApproval = defineCommand({
+  meta: { name: 'expire-token-approval', description: 'Expire the approval window of a token awaiting approval' },
+  args: {
+    ref: { type: 'positional', description: 'Token reference number', required: true },
+    env: { type: 'string', description: 'Environment (test/demo/prod)' },
+    json: { type: 'boolean', description: 'Output as JSON' },
+    verbose: { type: 'boolean', description: 'Show HTTP request/response details' },
+    timeout: { type: 'string', description: 'Request timeout (ms)' },
+    nip: { type: 'string', description: 'NIP number' },
+  },
+  run({ args }) {
+    return withErrorHandler(async () => {
+      const globalOpts = getGlobalOpts(args);
+      requireNonProd(globalOpts);
+
+      const { client } = await requireSession(globalOpts);
+
+      await client.testData.expireTokenApproval(args.ref as string);
+      outputDone(args.json);
+    }, { json: Boolean(args.json) });
+  },
+});
+
 export const testDataCommand = defineCommand({
   meta: { name: 'test-data', description: 'Test environment data management (test/demo only)' },
   subCommands: {
@@ -578,5 +601,6 @@ export const testDataCommand = defineCommand({
     'update-certificate': updateCertificate,
     'block-context': blockContext,
     'unblock-context': unblockContext,
+    'expire-token-approval': expireTokenApproval,
   },
 });

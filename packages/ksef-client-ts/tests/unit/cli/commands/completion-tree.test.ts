@@ -50,4 +50,9 @@ describe('shell completion tree', () => {
     const actual = Object.keys(COMMANDS[group].subCommands ?? {});
     expect([...COMMAND_TREE[group]].sort()).toEqual([...actual].sort());
   });
+
+  it('completes the KSeF API 2.10.0 token subcommands', () => {
+    expect(COMMAND_TREE.token).toContain('approve');
+    expect(COMMAND_TREE['test-data']).toContain('expire-token-approval');
+  });
 });
