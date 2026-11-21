@@ -2,6 +2,8 @@
 
 Complete API reference for the `ksef-client-ts` library — a TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 
+For migration dates and environment availability, see the [deprecated operation timeline](./authentication.md#deprecated-operation-timeline).
+
 ---
 
 ## Table of Contents

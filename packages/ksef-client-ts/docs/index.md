@@ -36,6 +36,8 @@ features:
     details: Authenticate with externally-signed XAdES XML for HSM, EPUAP, and smart card integration. Callback-based API lets you plug in any signing backend without exposing private keys to the library.
   - title: Automatic Token Management
     details: AuthManager handles access/refresh token injection, automatic 401 refresh with request deduplication, and high-level loginWithToken() / loginWithCertificate() API.
+  - title: Time-Bounded and Approved KSeF Tokens
+    details: Choose a token validity period, approve tokens created from token-authenticated sessions, and inspect their expanded lifecycle states in both the library and CLI.
   - title: Opt-in Circuit Breaker
     details: Fail-fast layer above retry. Opens after consecutive network or 5xx failures, pauses outgoing requests for a cooldown window, then probes for recovery. 429 and 401 responses never count as failures.
   - title: Streaming Batch Uploads
@@ -53,7 +55,7 @@ features:
   - title: Typed Errors with RFC 7807 Problem Details
     details: KSeFError hierarchy with dedicated classes for 400, 401, 403, 410, and 429 carrying structured diagnostic context (trace IDs, required-vs-present permissions, validation error lists), plus KSeF conditions such as a temporarily unavailable session, a failed session, or a rejected invoice. Exhaustive dispatch via the KSeFApiProblem union and assertNever helper. Fluent request builders catch mistakes at compile time before they hit the network.
   - title: Comprehensive Test Coverage
-    details: 3200+ Vitest unit and E2E tests across HTTP, crypto, services, workflows, builders, and CLI. CI runs the full suite on every change so regressions are caught early.
+    details: 3500+ Vitest unit and E2E tests across HTTP, crypto, services, workflows, builders, and CLI. CI runs the full suite on every change so regressions are caught early.
   - title: Interactive Setup Wizard
     details: Get started in one command — ksef setup walks you through environment selection, NIP configuration, external signature authentication, and API token generation. Credentials are securely stored in ~/.ksef/credentials.json.
   - title: Zero HTTP Dependencies
