@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed (breaking)
 
-- **Certificate limit overrides require both limits** — hand-built test-environment requests must now provide both the enrollment and certificate limits so invalid requests fail at compile time instead of at KSeF (KSeF API v2.10.0).
+- **Certificate limit overrides must carry a value** — a hand-built test-environment request that includes an enrollment or certificate limit section must now set the limit in it, so an empty section fails at compile time instead of at KSeF (KSeF API v2.10.0).
 
 ### Changed
 

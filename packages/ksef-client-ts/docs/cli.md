@@ -531,9 +531,9 @@ ksef test-data change-session-limits \
   --collective-max-invoices 5000
 ksef test-data restore-session-limits
 
-# Certificate/enrollment limits (both --max-enrollments and --max-certificates are required)
+# Certificate/enrollment limits
 ksef test-data change-cert-limits --max-enrollments 10 --max-certificates 20
-ksef test-data change-cert-limits --identifier-type Pesel --max-enrollments 5 --max-certificates 10
+ksef test-data change-cert-limits --identifier-type Pesel --max-enrollments 5
 ksef test-data restore-cert-limits
 
 # Update certificate expiry (requires session)
