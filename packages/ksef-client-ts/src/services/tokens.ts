@@ -8,6 +8,11 @@ import type {
   QueryKsefTokensResponse,
   QueryKsefTokensOptions,
   TokenAuthorIdentifierType,
+  GenerateTokenRequestRev2,
+  GenerateTokenResponseRev2,
+  QueryTokensResponseRev2,
+  QueryTokensRev2Options,
+  TokenStatusResponseRev2,
 } from '../models/tokens/types.js';
 import { decodeJwtPayload, parseKSeFTokenContext } from '../utils/jwt.js';
 import { KSeFApiError } from '../errors/ksef-api-error.js';
@@ -44,6 +49,10 @@ export class TokenService {
     this.restClient = restClient;
   }
 
+  /**
+   * @deprecated KSeF switches this operation off on 2027-09-30; use `generateTokenRev2` instead.
+   * It remains the only option on environments that do not serve KSeF API 2.10.0 yet.
+   */
   async generateToken(request: KsefTokenRequest): Promise<KsefTokenResponse> {
     const req = RestRequest.post(Routes.Tokens.root)
       .body(request);
@@ -51,6 +60,10 @@ export class TokenService {
     return response.body;
   }
 
+  /**
+   * @deprecated KSeF switches this operation off on 2027-09-30; use `queryTokensRev2` instead.
+   * It remains the only option on environments that do not serve KSeF API 2.10.0 yet.
+   */
   async queryTokens(
     options?: QueryKsefTokensOptions,
   ): Promise<QueryKsefTokensResponse> {
@@ -69,10 +82,56 @@ export class TokenService {
     return response.body;
   }
 
+  /**
+   * @deprecated KSeF switches this operation off on 2027-09-30; use `getTokenRev2` instead.
+   * It remains the only option on environments that do not serve KSeF API 2.10.0 yet.
+   */
   async getToken(ref: string): Promise<TokenStatusResponse> {
     const req = RestRequest.get(Routes.Tokens.byReference(ref));
     const response = await this.restClient.execute<TokenStatusResponse>(req);
     return response.body;
+  }
+
+  async generateTokenRev2(request: GenerateTokenRequestRev2): Promise<GenerateTokenResponseRev2> {
+    const req = RestRequest.post(Routes.Tokens.rev2Root)
+      .body(request);
+    const response = await this.restClient.execute<GenerateTokenResponseRev2>(req);
+    return response.body;
+  }
+
+  async queryTokensRev2(
+    options?: QueryTokensRev2Options,
+  ): Promise<QueryTokensResponseRev2> {
+    const req = RestRequest.get(Routes.Tokens.rev2Root);
+    if (options?.continuationToken !== undefined) req.header('x-continuation-token', options.continuationToken);
+    if (options?.pageSize !== undefined) req.query('pageSize', String(options.pageSize));
+    if (options?.status) {
+      for (const s of options.status) {
+        req.query('status', s);
+      }
+    }
+    if (options?.description !== undefined) req.query('description', options.description);
+    if (options?.authorIdentifier !== undefined) req.query('authorIdentifier', options.authorIdentifier);
+    if (options?.authorIdentifierType !== undefined) req.query('authorIdentifierType', options.authorIdentifierType);
+    if (options?.validFrom !== undefined) req.query('validFrom', options.validFrom);
+    if (options?.validTo !== undefined) req.query('validTo', options.validTo);
+    const response = await this.restClient.execute<QueryTokensResponseRev2>(req);
+    return response.body;
+  }
+
+  async getTokenRev2(ref: string): Promise<TokenStatusResponseRev2> {
+    const req = RestRequest.get(Routes.Tokens.rev2ByReference(ref));
+    const response = await this.restClient.execute<TokenStatusResponseRev2>(req);
+    return response.body;
+  }
+
+  /**
+   * Approves a token in `AwaitingApproval`. The session must be authenticated with XAdES
+   * or the National Node; a KSeF-token session is rejected with error 26005.
+   */
+  async approveToken(ref: string): Promise<void> {
+    const req = RestRequest.post(Routes.Tokens.approve(ref));
+    await this.restClient.executeVoid(req);
   }
 
   async revokeToken(ref: string): Promise<void> {
