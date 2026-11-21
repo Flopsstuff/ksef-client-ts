@@ -772,7 +772,7 @@ The types above belong to the deprecated token operations. The rev2 operations (
 - `QueryTokensResponseRev2` -- cursor-paginated with `continuationToken`
 - `QueryTokensRev2Options` -- filters: `status: TokenStatusFilterRev2[]`, `description`, `authorIdentifier`, `authorIdentifierType: TokenAuthorIdentifierTypeFilterRev2`, `validFrom`, `validTo`, `pageSize`
 - `TokenStatusRev2Code` -- `'Pending' | 'Active' | 'Revoking' | 'Revoked' | 'Failed' | 'NotYetActive' | 'AwaitingApproval' | 'ApprovalExpired' | 'Expired' | 'FutureValue'`
-- `TokenFailureRev2` -- `code` (`'token.permission-grant-failed' | 'token.context-limit-exceeded' | 'token.unknown-error'`), `description`, `details`
+- `TokenFailureRev2` -- `code` (known values `'token.permission-grant-failed' | 'token.context-limit-exceeded' | 'token.unknown-error'`; the set is open, so handle any other string), `description`, `details`
 
 #### Dictionary objects
 
