@@ -768,7 +768,7 @@ The types above belong to the deprecated token operations. The rev2 operations (
 
 - `GenerateTokenRequestRev2` -- `permissions`, `description` (5–256 characters), optional `validFrom` / `validTo`
 - `GenerateTokenResponseRev2` -- `referenceNumber` + `token`
-- `TokenStatusResponseRev2` / `QueryTokensResponseItemRev2` -- token details with `validFrom`, `validTo` and, for a `Failed` token, `failure: TokenFailureRev2`
+- `TokenStatusResponseRev2` / `QueryTokensResponseItemRev2` -- token details with `validFrom`, `validTo` and `failure?: TokenFailureRev2 | null`, set only for a `Failed` token and possibly absent or `null` even then, so check it before reading `failure.description`
 - `QueryTokensResponseRev2` -- cursor-paginated with `continuationToken`
 - `QueryTokensRev2Options` -- filters: `status: TokenStatusFilterRev2[]`, `description`, `authorIdentifier`, `authorIdentifierType: TokenAuthorIdentifierTypeFilterRev2`, `validFrom`, `validTo`, `pageSize`
 - `TokenStatusRev2Code` -- `'Pending' | 'Active' | 'Revoking' | 'Revoked' | 'Failed' | 'NotYetActive' | 'AwaitingApproval' | 'ApprovalExpired' | 'Expired' | 'FutureValue'`
@@ -840,7 +840,7 @@ Effective rate limits and session context limits, plus override types for the te
 
 Key types:
 
-- `EffectiveApiRateLimits` -- per-second/minute/hour limits for 17 groups: the 13 endpoint categories, plus `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window equal to `RATE_LIMIT_UNLIMITED` (`-1`) has no limit; `global` is the per-IP limit, announced in 2.8.0 as not yet enforced, but TEST reports a finite `perSecond` (75) since 2.9.0, so do not assume its windows are unlimited
+- `EffectiveApiRateLimits` -- per-second/minute/hour limits for 17 groups: the 13 endpoint categories, plus `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window equal to `RATE_LIMIT_UNLIMITED` (`-1`) has no limit; `global` is the per-IP limit, announced in 2.8.0 as not yet enforced, but on v2.9.0 TEST reported a finite `perSecond` (75) while the v2.10.0 spec example shows `-1`, so do not hard-code either: read the value your environment returns
 - `EffectiveContextLimits` -- max invoice size and count for online/batch sessions, max invoices per collective identifier, and optional `tokens.maxTokens` (KSeF API v2.10.0; required in the OpenAPI schema, typed optional while DEMO/PROD still serve 2.9.0)
 - `TokensEffectiveContextLimits` -- `{ maxTokens: number }` block nested under `EffectiveContextLimits.tokens`
 - `EffectiveSubjectLimits` -- enrollment and certificate limits per subject
