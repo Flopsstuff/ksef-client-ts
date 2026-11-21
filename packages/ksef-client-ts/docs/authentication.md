@@ -425,7 +425,7 @@ client.authManager.setRefreshToken(tokens.refreshToken.token);
 
 ## Token Lifecycle
 
-KSeF authentication uses three distinct token types:
+KSeF authentication uses four distinct token types:
 
 ### Access token
 
@@ -442,6 +442,27 @@ If the refresh token itself expires, automatic refresh fails and you must re-aut
 ### Auth token (operation token)
 
 One-time token returned by the KSeF challenge flow. Used only during the login ceremony to poll `getAuthStatus()` and redeem access + refresh tokens. Discarded after redemption — never stored in `AuthManager`.
+
+### KSeF token (authorization token)
+
+The long-lived token you pass to `loginWithToken()`. It is not issued by the login ceremony; you generate it in the web portal or with `client.tokens`.
+
+- **Validity.** Tokens generated since 2026-11-07 are valid for 90 days, whichever operation generated them. The rev2 operation (KSeF API v2.10.0) lets you choose the period: `validFrom` at most 60 days ahead (default now), `validTo` at most 365 days after `validFrom` (default 90 days). A token whose period has not started is `NotYetActive`; one whose period has ended is `Expired`. Logging in with a token outside its validity period fails with authentication status `450` and the detail "Token poza okresem ważności".
+- **Approval.** The first token in a context must be generated in a session authenticated with XAdES or the National Node. A token generated with `generateTokenRev2()` in a session that was itself opened with a KSeF token starts in `AwaitingApproval` and cannot be used for login until it is approved with `approveToken()` — from a XAdES or National Node session, within 24 hours. After that it becomes `ApprovalExpired` and you must generate a new one. On TEST, `client.testData.expireTokenApproval()` ends the window at once.
+- **Statuses.** `Pending` → `Active` (or `NotYetActive`, or `AwaitingApproval`) → `Revoking` → `Revoked`; also `Failed`, `ApprovalExpired` and `Expired`.
+
+```typescript
+// In a XAdES session
+const { referenceNumber, token } = await client.tokens.generateTokenRev2({
+  description: 'Invoice sync',
+  permissions: ['InvoiceRead', 'InvoiceWrite'],
+  validTo: '2027-06-30T23:59:59Z',
+});
+const status = await client.tokens.getTokenRev2(referenceNumber);
+console.log(status.status.code, status.validFrom, status.validTo);
+```
+
+The original token operations (`generateToken`, `queryTokens`, `getToken`) are deprecated and switched off on 2027-09-30, but they remain the only option on environments that do not serve KSeF API 2.10.0 yet.
 
 ---
 

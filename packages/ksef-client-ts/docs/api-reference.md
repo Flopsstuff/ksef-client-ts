@@ -428,28 +428,56 @@ Check whether attachment permissions are enabled for the current context.
 Accessed via `client.tokens`.
 
 ```ts
-generateToken(request: KsefTokenRequest): Promise<KsefTokenResponse>
+generateTokenRev2(request: GenerateTokenRequestRev2): Promise<GenerateTokenResponseRev2>
 ```
 
-Generate a new KSeF authentication token.
+Generate a KSeF token with an optional validity period (KSeF API v2.10.0). `validFrom` defaults to now and may be at most 60 days ahead; `validTo` defaults to 90 days after `validFrom` and may be at most 365 days after it. The server enforces these limits and answers `21405` when they are broken. A token generated in a session that was itself opened with a KSeF token starts in `AwaitingApproval` and cannot be used until `approveToken` is called.
 
 ```ts
-queryTokens(options?: QueryKsefTokensOptions): Promise<QueryKsefTokensResponse>
+queryTokensRev2(options?: QueryTokensRev2Options): Promise<QueryTokensResponseRev2>
 ```
 
-List all tokens for the current subject.
+List tokens with rev2 statuses (KSeF API v2.10.0). Filters: `status` (repeatable), `description`, `authorIdentifier`, `authorIdentifierType`, `validFrom`, `validTo`, `pageSize` (10–100), and `continuationToken` for the next page.
 
 ```ts
-getToken(ref: string): Promise<AuthenticationKsefToken>
+getTokenRev2(ref: string): Promise<TokenStatusResponseRev2>
 ```
 
-Get a specific token by reference.
+Get one token with its validity dates and, for a `Failed` token, the `failure` reason (KSeF API v2.10.0).
+
+```ts
+approveToken(ref: string): Promise<void>
+```
+
+Approve a token in `AwaitingApproval` (KSeF API v2.10.0). It becomes `Active`, or `NotYetActive` when its validity has not started. The session must be authenticated with XAdES or the National Node; a session opened with a KSeF token gets `26005`, and a token in any other status gets `26004`. The approval window is 24 hours.
 
 ```ts
 revokeToken(ref: string): Promise<void>
 ```
 
-Revoke a token by reference.
+Revoke a token by reference. Revoking a token that is already revoked succeeds again on KSeF TEST (API v2.10.0); an unknown reference answers 400 with `21409`.
+
+### Deprecated token operations
+
+KSeF switches these operations off on 2027-09-30. They stay the only option on environments that do not serve KSeF API 2.10.0 yet (DEMO and PROD, as of this release).
+
+```ts
+generateToken(request: KsefTokenRequest): Promise<KsefTokenResponse>
+```
+
+Generate a new KSeF authentication token. Replaced by `generateTokenRev2`.
+
+```ts
+queryTokens(options?: QueryKsefTokensOptions): Promise<QueryKsefTokensResponse>
+```
+
+List all tokens for the current subject. Replaced by `queryTokensRev2`.
+
+```ts
+getToken(ref: string): Promise<AuthenticationKsefToken>
+```
+
+Get a specific token by reference. Replaced by `getTokenRev2`.
 
 ---
 
@@ -680,6 +708,12 @@ updateCertificate(serialNumber: string, request: TestDataUpdateCertificateReques
 ```
 
 Update an existing KSeF certificate expiry for the authenticated subject. TEST environment only; `validTo` must not be later than the current expiry.
+
+```ts
+expireTokenApproval(referenceNumber: string): Promise<void>
+```
+
+End the approval window of a token in `AwaitingApproval` at once, moving it to `ApprovalExpired` (KSeF API v2.10.0). TEST environment only.
 
 ### Rate Limits
 
