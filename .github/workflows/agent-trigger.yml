@@ -102,6 +102,7 @@ jobs:
           status=$(curl -sS -o response.txt -w '%{http_code}' --max-time 30 \
             -X POST "$PAPERCLIP_WEBHOOK_URL" \
             -H "Authorization: Bearer $PAPERCLIP_WEBHOOK_SECRET" \
+            -H "Idempotency-Key: $REPO#$ISSUE_NUMBER@$RUN_ID" \
             -H 'Content-Type: application/json' \
             --data-binary @payload.json)
           echo "Paperclip answered HTTP $status"
@@ -116,8 +117,9 @@ jobs:
 
       # The routine has already been started at this point, so a label failure
       # must not turn the run red: a red run means "not delivered" and invites
-      # a re-run. `deliveryId` stays the same across re-runs of one run, so the
-      # routine can also recognise a repeated delivery.
+      # a re-run. Paperclip de-duplicates on the `Idempotency-Key` header, not on
+      # the body: the key stays the same across re-runs of one run, so a re-run
+      # is dropped, and changes when the label is applied again.
       - name: Mark the issue as queued
         run: |
           if ! gh issue edit "$ISSUE_NUMBER" --repo "$REPO" \
