@@ -2,8 +2,8 @@ name: Agent Trigger
 
 # Manual gate between GitHub issues and the Paperclip routine (see issue #56).
 # Putting the `agent-run` label on an issue sends that issue to the routine
-# webhook. Only people with write access can apply labels that count; opening
-# or commenting on an issue never starts anything.
+# webhook. Only logins on the AGENT_TRIGGER_USERS allow-list count; opening or
+# commenting on an issue never starts anything.
 on:
   issues:
     types: [labeled]
@@ -36,19 +36,27 @@ jobs:
       ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue }}
       ACTOR: ${{ github.actor }}
       EVENT_NAME: ${{ github.event_name }}
+      RUN_ID: ${{ github.run_id }}
     steps:
-      - name: Check that the actor may trigger agents
+      # The allow-list is the authorization gate: only logins listed in the
+      # AGENT_TRIGGER_USERS repository variable (comma or space separated) may
+      # start the routine. An empty or missing variable allows nobody.
+      - name: Check that the actor is on the allow-list
+        env:
+          ALLOWED_USERS: ${{ vars.AGENT_TRIGGER_USERS }}
         run: |
-          permission=$(gh api "repos/$REPO/collaborators/$ACTOR/permission" --jq .permission)
-          case "$permission" in
-            admin|write)
-              echo "$ACTOR has $permission access."
-              ;;
-            *)
-              echo "::error::$ACTOR ($permission) is not allowed to trigger agents."
-              exit 1
-              ;;
-          esac
+          set -f # the list is split on purpose; never expand it as a glob
+          allowed=false
+          for user in ${ALLOWED_USERS//,/ }; do
+            if [ "${user,,}" = "${ACTOR,,}" ]; then
+              allowed=true
+            fi
+          done
+          if [ "$allowed" != true ]; then
+            echo "::error::$ACTOR is not on the AGENT_TRIGGER_USERS allow-list."
+            exit 1
+          fi
+          echo "$ACTOR is allowed to trigger agents."
 
       - name: Build the payload
         run: |
@@ -62,9 +70,11 @@ jobs:
             --arg repository "$REPO" \
             --arg actor "$ACTOR" \
             --arg trigger "$EVENT_NAME" \
+            --arg delivery "$REPO#$ISSUE_NUMBER@$RUN_ID" \
             '{
               source: "github",
               event: "agent-run",
+              deliveryId: $delivery,
               trigger: $trigger,
               repository: $repository,
               triggeredBy: $actor,
@@ -104,7 +114,13 @@ jobs:
               ;;
           esac
 
+      # The routine has already been started at this point, so a label failure
+      # must not turn the run red: a red run means "not delivered" and invites
+      # a re-run. `deliveryId` stays the same across re-runs of one run, so the
+      # routine can also recognise a repeated delivery.
       - name: Mark the issue as queued
         run: |
-          gh issue edit "$ISSUE_NUMBER" --repo "$REPO" \
-            --add-label agent-queued --remove-label agent-run
+          if ! gh issue edit "$ISSUE_NUMBER" --repo "$REPO" \
+            --add-label agent-queued --remove-label agent-run; then
+            echo "::warning::The routine was started, but the labels on #$ISSUE_NUMBER could not be updated. Do not re-run this job."
+          fi
