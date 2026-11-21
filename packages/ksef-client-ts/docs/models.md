@@ -285,6 +285,38 @@ type AuthenticationMethod =
 
 Deprecated but still required by the spec in `AuthenticationOperationStatusResponse`. New code should use `AuthenticationMethodInfo` instead.
 
+Revision 2 status responses omit `authenticationMethod` and use a dictionary-backed category:
+
+```typescript
+type AuthenticationMethodCategoryRev2Code =
+  | 'XadesSignature'
+  | 'NationalNode'
+  | 'Token'
+  | 'FutureValue'
+  | (string & {});
+
+interface AuthenticationMethodCategoryRev2 {
+  code: AuthenticationMethodCategoryRev2Code;
+  rawCode: string;
+  displayName: string;
+}
+
+interface AuthenticationMethodInfoRev2 {
+  category: AuthenticationMethodCategoryRev2;
+  code: string;
+  displayName: string;
+}
+
+interface AuthenticationOperationStatusResponseRev2 {
+  startDate: string;
+  authenticationMethodInfo: AuthenticationMethodInfoRev2;
+  status: OperationStatusInfo;
+  isTokenRedeemed?: boolean | null;
+  lastTokenRefreshDate?: string | null;
+  refreshTokenValidUntil?: string | null;
+}
+```
+
 ### Active Sessions
 
 **File:** `src/models/auth/active-sessions-types.ts`
@@ -306,9 +338,25 @@ interface AuthenticationListResponse {
   continuationToken?: string | null;
   items: AuthSessionInfo[];
 }
+
+interface AuthenticationListItemRev2 {
+  startDate: string;
+  authenticationMethodInfo: AuthenticationMethodInfoRev2;
+  status: OperationStatusInfo;
+  referenceNumber: string;
+  isCurrent?: boolean;
+  isTokenRedeemed?: boolean | null;
+  lastTokenRefreshDate?: string | null;
+  refreshTokenValidUntil?: string | null;
+}
+
+interface AuthenticationListResponseRev2 {
+  continuationToken?: string | null;
+  items: AuthenticationListItemRev2[];
+}
 ```
 
-Used by `ActiveSessionsService` to list all active authentication sessions.
+The legacy and revision 2 response models are used by `ActiveSessionsService` to list active authentication sessions. Revision 2 omits `authenticationMethod`.
 
 ---
 

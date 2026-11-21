@@ -47,6 +47,34 @@ export interface AuthenticationOperationStatusResponse {
   refreshTokenValidUntil?: string | null;
 }
 
+export type AuthenticationMethodCategoryRev2Code =
+  | 'XadesSignature'
+  | 'NationalNode'
+  | 'Token'
+  | 'FutureValue'
+  | (string & {});
+
+export interface AuthenticationMethodCategoryRev2 {
+  code: AuthenticationMethodCategoryRev2Code;
+  rawCode: string;
+  displayName: string;
+}
+
+export interface AuthenticationMethodInfoRev2 {
+  category: AuthenticationMethodCategoryRev2;
+  code: string;
+  displayName: string;
+}
+
+export interface AuthenticationOperationStatusResponseRev2 {
+  startDate: string;
+  authenticationMethodInfo: AuthenticationMethodInfoRev2;
+  status: OperationStatusInfo;
+  isTokenRedeemed?: boolean | null;
+  lastTokenRefreshDate?: string | null;
+  refreshTokenValidUntil?: string | null;
+}
+
 /**
  * Subject identifier type for the XAdES auth XML request.
  * This is XML-specific (not in the REST OpenAPI spec).

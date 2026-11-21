@@ -443,6 +443,8 @@ If the refresh token itself expires, automatic refresh fails and you must re-aut
 
 One-time token returned by the KSeF challenge flow. Used only during the login ceremony to poll `getAuthStatus()` and redeem access + refresh tokens. Discarded after redemption — never stored in `AuthManager`.
 
+On KSeF API 2.10.0 environments, `getAuthStatusRev2()` returns the same operation status without the legacy `authenticationMethod` property. The existing method remains available for environments that have not deployed revision 2 and is switched off on 2027-06-15.
+
 ### KSeF token (authorization token)
 
 The long-lived token you pass to `loginWithToken()`. It is not issued by the login ceremony; you generate it in the web portal or with `client.tokens`.

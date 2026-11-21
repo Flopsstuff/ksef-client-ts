@@ -43,6 +43,8 @@ async function awaitAuthentication(
       `Authentication failed with status ${final.status.code}: ${final.status.description}${details}`,
       referenceNumber,
       final.status.description,
+      final.status.code,
+      final.status.details ?? undefined,
     );
   }
 
