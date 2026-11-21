@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, "version/**"]
   workflow_dispatch:
 
 # Supersede an in-flight run when a branch is pushed again: the E2E job drives
