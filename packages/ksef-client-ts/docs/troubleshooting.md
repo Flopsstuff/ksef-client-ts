@@ -163,9 +163,9 @@ The KSeF session has expired. Sessions have a limited duration.
 
 Authentication status check returned an unexpected code during the login ceremony.
 
-Inspect `statusCode` and `details` on the error before retrying. Status 450 with `Token poza okresem ważności` means the KSeF token is outside its validity period and must be replaced; KSeF tokens now expire.
+Inspect `statusCode` and `details` on the error before retrying. Status 450 with `Token poza okresem ważności` means the KSeF token is outside its validity period: either the period has not started yet (`validFrom` is in the future) or the token has expired.
 
-**What to do:** Replace an expired KSeF token. For other failures, check the returned details and KSeF system status via `ksef lighthouse status`.
+**What to do:** Check the token's `validFrom` and `validTo`. If the period has not started, wait until `validFrom`; if it has ended, replace the token. For other failures, check the returned details and KSeF system status via `ksef lighthouse status`.
 
 ### KSeFSessionFailedError
 
