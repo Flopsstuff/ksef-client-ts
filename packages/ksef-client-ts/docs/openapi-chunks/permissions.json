@@ -3719,7 +3719,8 @@
       "EuEntityPermissionType": {
         "enum": [
           "InvoiceWrite",
-          "InvoiceRead"
+          "InvoiceRead",
+          "CollectiveIdentifierManage"
         ],
         "type": "string"
       },
@@ -3795,7 +3796,8 @@
           "VatUeManage",
           "InvoiceWrite",
           "InvoiceRead",
-          "Introspection"
+          "Introspection",
+          "CollectiveIdentifierManage"
         ],
         "type": "string"
       },
