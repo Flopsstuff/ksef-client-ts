@@ -1,9 +1,6 @@
 name: Agent Trigger
 
-# Manual gate between GitHub issues and the Paperclip routine (see issue #56).
-# Putting the `agent-run` label on an issue sends that issue to the routine
-# webhook. Only logins on the AGENT_TRIGGER_USERS allow-list count; opening or
-# commenting on an issue never starts anything.
+# The `agent-run` label on an issue sends it to the Paperclip routine (#56).
 on:
   issues:
     types: [labeled]
@@ -13,6 +10,11 @@ on:
         description: Issue number to send to the Paperclip routine
         required: true
         type: number
+      dry_run:
+        description: Build and print the payload without sending it
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: agent-trigger-${{ github.event.issue.number || inputs.issue }}
@@ -28,8 +30,6 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'agent-run'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # Event data reaches the shell only through these variables, never through
-    # inline expressions, so issue content cannot inject commands.
     env:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
@@ -37,15 +37,16 @@ jobs:
       ACTOR: ${{ github.actor }}
       EVENT_NAME: ${{ github.event_name }}
       RUN_ID: ${{ github.run_id }}
+      RUN_ATTEMPT: ${{ github.run_attempt }}
+      SERVER_URL: ${{ github.server_url }}
+      DRY_RUN: ${{ inputs.dry_run || false }}
     steps:
-      # The allow-list is the authorization gate: only logins listed in the
-      # AGENT_TRIGGER_USERS repository variable (comma or space separated) may
-      # start the routine. An empty or missing variable allows nobody.
+      # An empty or missing AGENT_TRIGGER_USERS allows nobody.
       - name: Check that the actor is on the allow-list
         env:
           ALLOWED_USERS: ${{ vars.AGENT_TRIGGER_USERS }}
         run: |
-          set -f # the list is split on purpose; never expand it as a glob
+          set -f
           allowed=false
           for user in ${ALLOWED_USERS//,/ }; do
             if [ "${user,,}" = "${ACTOR,,}" ]; then
@@ -58,6 +59,7 @@ jobs:
           fi
           echo "$ACTOR is allowed to trigger agents."
 
+      # Paperclip exposes only top-level keys to the routine, so keys stay flat.
       - name: Build the payload
         run: |
           gh api "repos/$REPO/issues/$ISSUE_NUMBER" > issue.json
@@ -65,32 +67,56 @@ jobs:
             echo "::error::#$ISSUE_NUMBER is a pull request, not an issue."
             exit 1
           fi
+          gh api "repos/$REPO" > repo.json
+          if ! gh api "repos/$REPO/issues/$ISSUE_NUMBER/parent" > parent.json 2> /dev/null; then
+            echo '{}' > parent.json
+          fi
           jq -n \
             --slurpfile issue issue.json \
+            --slurpfile repo repo.json \
+            --slurpfile parent parent.json \
             --arg repository "$REPO" \
             --arg actor "$ACTOR" \
             --arg trigger "$EVENT_NAME" \
             --arg delivery "$REPO#$ISSUE_NUMBER@$RUN_ID" \
-            '{
+            --arg run_id "$RUN_ID" \
+            --arg run_attempt "$RUN_ATTEMPT" \
+            --arg run_url "$SERVER_URL/$REPO/actions/runs/$RUN_ID" \
+            --arg triggered_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '($issue[0]) as $i | ($repo[0]) as $r | ($parent[0]) as $p | {
               source: "github",
               event: "agent-run",
               deliveryId: $delivery,
               trigger: $trigger,
               repository: $repository,
               triggeredBy: $actor,
-              issue: ($issue[0] | {
-                number,
-                title,
-                url: .html_url,
-                apiUrl: .url,
-                state,
-                author: .user.login,
-                labels: [.labels[].name],
-                body
-              })
+              triggered_at: $triggered_at,
+              repository_url: $r.html_url,
+              repository_clone_url: $r.clone_url,
+              repository_default_branch: $r.default_branch,
+              issue_number: $i.number,
+              issue_url: $i.html_url,
+              issue_api_url: $i.url,
+              issue_title: $i.title,
+              issue_state: $i.state,
+              issue_author: $i.user.login,
+              issue_labels: ([$i.labels[].name] | join(", ")),
+              issue_assignees: ([$i.assignees[].login] | join(", ")),
+              issue_milestone: ($i.milestone.title // ""),
+              issue_comments: $i.comments,
+              issue_created_at: $i.created_at,
+              issue_updated_at: $i.updated_at,
+              parent_issue_number: ($p.number // ""),
+              parent_issue_url: ($p.html_url // ""),
+              run_id: $run_id,
+              run_attempt: $run_attempt,
+              run_url: $run_url
             }' > payload.json
+          echo "Payload:"
+          jq . payload.json
 
       - name: Fire the routine
+        if: env.DRY_RUN != 'true'
         env:
           PAPERCLIP_WEBHOOK_URL: ${{ secrets.PAPERCLIP_WEBHOOK_URL }}
           PAPERCLIP_WEBHOOK_SECRET: ${{ secrets.PAPERCLIP_WEBHOOK_SECRET }}
@@ -115,12 +141,9 @@ jobs:
               ;;
           esac
 
-      # The routine has already been started at this point, so a label failure
-      # must not turn the run red: a red run means "not delivered" and invites
-      # a re-run. Paperclip de-duplicates on the `Idempotency-Key` header, not on
-      # the body: the key stays the same across re-runs of one run, so a re-run
-      # is dropped, and changes when the label is applied again.
+      # Never fails the run: the routine has started, a red run would invite a re-run.
       - name: Mark the issue as queued
+        if: env.DRY_RUN != 'true'
         run: |
           if ! gh issue edit "$ISSUE_NUMBER" --repo "$REPO" \
             --add-label agent-queued --remove-label agent-run; then
