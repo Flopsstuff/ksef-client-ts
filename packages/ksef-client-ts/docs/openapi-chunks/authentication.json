@@ -69,7 +69,8 @@
                         "displayName": "Pieczęć kwalifikowana"
                       },
                       "status": {
-                        "code": 200
+                        "code": 200,
+                        "description": "Uwierzytelnianie zakończone sukcesem"
                       },
                       "isTokenRedeemed": true,
                       "refreshTokenValidUntil": "2025-11-28T09:22:13.388+00:00"
@@ -244,7 +245,8 @@
                         "displayName": "Pieczęć kwalifikowana"
                       },
                       "status": {
-                        "code": 200
+                        "code": 200,
+                        "description": "Uwierzytelnianie zakończone sukcesem"
                       },
                       "isTokenRedeemed": true,
                       "refreshTokenValidUntil": "2025-11-28T09:22:13.388+00:00"
@@ -817,7 +819,8 @@
                       "startDate": "0001-01-01T00:00:00+00:00",
                       "authenticationMethod": "Token",
                       "status": {
-                        "code": 100
+                        "code": 100,
+                        "description": "Uwierzytelnianie w toku"
                       }
                     }
                   },
@@ -826,7 +829,8 @@
                       "startDate": "0001-01-01T00:00:00+00:00",
                       "authenticationMethod": "Token",
                       "status": {
-                        "code": 200
+                        "code": 200,
+                        "description": "Uwierzytelnianie zakończone sukcesem"
                       }
                     }
                   },
@@ -836,6 +840,7 @@
                       "authenticationMethod": "Token",
                       "status": {
                         "code": 460,
+                        "description": "Uwierzytelnianie zakończone niepowodzeniem",
                         "details": [
                           "Nieważny certyfikat."
                         ]
@@ -848,6 +853,7 @@
                       "authenticationMethod": "Token",
                       "status": {
                         "code": 460,
+                        "description": "Uwierzytelnianie zakończone niepowodzeniem",
                         "details": [
                           "Błąd weryfikacji łańcucha certyfikatów."
                         ]
@@ -860,6 +866,7 @@
                       "authenticationMethod": "Token",
                       "status": {
                         "code": 460,
+                        "description": "Uwierzytelnianie zakończone niepowodzeniem",
                         "details": [
                           "Niezaufany łańcuch certyfikatów."
                         ]
@@ -872,6 +879,7 @@
                       "authenticationMethod": "Token",
                       "status": {
                         "code": 460,
+                        "description": "Uwierzytelnianie zakończone niepowodzeniem",
                         "details": [
                           "Certyfikat odwołany."
                         ]
@@ -884,6 +892,7 @@
                       "authenticationMethod": "Token",
                       "status": {
                         "code": 460,
+                        "description": "Uwierzytelnianie zakończone niepowodzeniem",
                         "details": [
                           "Niepoprawny certyfikat."
                         ]
@@ -895,7 +904,8 @@
                       "startDate": "0001-01-01T00:00:00+00:00",
                       "authenticationMethod": "Token",
                       "status": {
-                        "code": 500
+                        "code": 500,
+                        "description": "Nieznany błąd ({statusCode})"
                       }
                     }
                   }
@@ -1067,7 +1077,8 @@
                         "displayName": "Pieczęć kwalifikowana"
                       },
                       "status": {
-                        "code": 100
+                        "code": 100,
+                        "description": "Uwierzytelnianie w toku"
                       }
                     }
                   },
@@ -1084,7 +1095,8 @@
                         "displayName": "Pieczęć kwalifikowana"
                       },
                       "status": {
-                        "code": 200
+                        "code": 200,
+                        "description": "Uwierzytelnianie zakończone sukcesem"
                       }
                     }
                   },
@@ -1102,6 +1114,7 @@
                       },
                       "status": {
                         "code": 460,
+                        "description": "Uwierzytelnianie zakończone niepowodzeniem",
                         "details": [
                           "Nieważny certyfikat."
                         ]
@@ -1122,6 +1135,7 @@
                       },
                       "status": {
                         "code": 460,
+                        "description": "Uwierzytelnianie zakończone niepowodzeniem",
                         "details": [
                           "Błąd weryfikacji łańcucha certyfikatów."
                         ]
@@ -1142,6 +1156,7 @@
                       },
                       "status": {
                         "code": 460,
+                        "description": "Uwierzytelnianie zakończone niepowodzeniem",
                         "details": [
                           "Niezaufany łańcuch certyfikatów."
                         ]
@@ -1162,6 +1177,7 @@
                       },
                       "status": {
                         "code": 460,
+                        "description": "Uwierzytelnianie zakończone niepowodzeniem",
                         "details": [
                           "Certyfikat odwołany."
                         ]
@@ -1182,6 +1198,7 @@
                       },
                       "status": {
                         "code": 460,
+                        "description": "Uwierzytelnianie zakończone niepowodzeniem",
                         "details": [
                           "Niepoprawny certyfikat."
                         ]
@@ -1192,7 +1209,8 @@
                     "value": {
                       "startDate": "2025-10-11T12:23:56.0154302+00:00",
                       "status": {
-                        "code": 500
+                        "code": 500,
+                        "description": "Nieznany błąd ({statusCode})"
                       }
                     }
                   }
@@ -1525,6 +1543,9 @@
           "code": {
             "type": "integer",
             "format": "int32"
+          },
+          "description": {
+            "type": "string"
           },
           "details": {
             "type": "array",
@@ -2093,12 +2114,14 @@
           "errors": [
             {
               "code": 21405,
+              "description": "Błąd walidacji danych wejściowych.",
               "details": [
                 "Wskazany kod formularza nie jest wspierany."
               ]
             },
             {
               "code": 21157,
+              "description": "Nieprawidłowy rozmiar części pakietu.",
               "details": [
                 "Rozmiar części 1 przekroczył dozwolony rozmiar 100MB."
               ]
@@ -2363,6 +2386,10 @@
             "type": "integer",
             "format": "int32"
           },
+          "description": {
+            "minLength": 1,
+            "type": "string"
+          },
           "details": {
             "type": "array",
             "items": {
@@ -2449,6 +2476,9 @@
               "code": {
                 "type": "integer"
               },
+              "description": {
+                "type": "string"
+              },
               "details": {
                 "type": "array",
                 "items": {
@@ -2461,6 +2491,7 @@
         "example": {
           "status": {
             "code": 429,
+            "description": "Too Many Requests",
             "details": [
               "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
             ]

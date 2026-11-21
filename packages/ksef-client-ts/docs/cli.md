@@ -348,7 +348,7 @@ ksef token get <ref>                                          # Get token detail
 ksef token revoke <ref>                                       # Revoke a token
 ```
 
-Tokens generated since 2026-11-07 are valid for 90 days, whichever command created them.
+Tokens generated since 2026-11-07 without `--rev2` are valid for 90 days. With `--rev2`, 90 days is only the default: you can set an end date up to 365 days after the start (see below).
 
 ::: warning
 The token value is displayed only once during generation. It cannot be retrieved later.

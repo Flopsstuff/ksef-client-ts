@@ -29,6 +29,7 @@
               "example": {
                 "subjectNip": "7762811692",
                 "subjectType": "EnforcementAuthority",
+                "description": "Centrala",
                 "createdDate": "2025-08-25T14:15:22+00:00"
               }
             }
@@ -191,6 +192,7 @@
                 "nip": "7762811692",
                 "pesel": "15062788702",
                 "isBailiff": true,
+                "description": "TestPerson_01",
                 "isDeceased": false,
                 "createdDate": "2025-08-25T14:15:22+00:00"
               }
@@ -360,6 +362,7 @@
                 },
                 "permissions": [
                   {
+                    "description": "Opis testowy",
                     "permissionType": "InvoiceRead"
                   }
                 ]
@@ -824,6 +827,9 @@
             "type": "integer",
             "format": "int32"
           },
+          "description": {
+            "type": "string"
+          },
           "details": {
             "type": "array",
             "items": {
@@ -907,12 +913,14 @@
           "errors": [
             {
               "code": 21405,
+              "description": "Błąd walidacji danych wejściowych.",
               "details": [
                 "Wskazany kod formularza nie jest wspierany."
               ]
             },
             {
               "code": 21157,
+              "description": "Nieprawidłowy rozmiar części pakietu.",
               "details": [
                 "Rozmiar części 1 przekroczył dozwolony rozmiar 100MB."
               ]
@@ -1051,6 +1059,11 @@
           "isBailiff": {
             "type": "boolean"
           },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
+          },
           "isDeceased": {
             "type": "boolean"
           },
@@ -1113,6 +1126,11 @@
             },
             "nullable": true
           },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
+          },
           "createdDate": {
             "type": "string",
             "format": "date-time",
@@ -1148,6 +1166,11 @@
         "properties": {
           "subjectNip": {
             "$ref": "#/components/schemas/Nip"
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
           }
         }
       },
@@ -1245,6 +1268,11 @@
         ],
         "type": "object",
         "properties": {
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
+          },
           "permissionType": {
             "allOf": [
               {
@@ -1394,6 +1422,9 @@
               "code": {
                 "type": "integer"
               },
+              "description": {
+                "type": "string"
+              },
               "details": {
                 "type": "array",
                 "items": {
@@ -1406,6 +1437,7 @@
         "example": {
           "status": {
             "code": 429,
+            "description": "Too Many Requests",
             "details": [
               "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
             ]

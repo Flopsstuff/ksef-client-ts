@@ -31,14 +31,16 @@
                     "payment": {
                       "amount": 100,
                       "currency": "PLN"
-                    }
+                    },
+                    "description": "Opis faktury 1"
                   },
                   {
                     "ksefNumber": "1111111111-20260612-62EAFD400000-B3",
                     "payment": {
                       "amount": 45,
                       "currency": "PLN"
-                    }
+                    },
+                    "description": "Opis faktury 2"
                   }
                 ]
               }
@@ -364,6 +366,7 @@
                         "amount": 100,
                         "currency": "PLN"
                       },
+                      "description": "Opis faktury 1",
                       "detailsHidden": false
                     },
                     {
@@ -372,6 +375,7 @@
                         "amount": 45,
                         "currency": "PLN"
                       },
+                      "description": "Opis faktury 2",
                       "detailsHidden": false
                     }
                   ]
@@ -616,6 +620,9 @@
             "type": "integer",
             "format": "int32"
           },
+          "description": {
+            "type": "string"
+          },
           "details": {
             "type": "array",
             "items": {
@@ -672,12 +679,14 @@
           "errors": [
             {
               "code": 21405,
+              "description": "Błąd walidacji danych wejściowych.",
               "details": [
                 "Wskazany kod formularza nie jest wspierany."
               ]
             },
             {
               "code": 21157,
+              "description": "Nieprawidłowy rozmiar części pakietu.",
               "details": [
                 "Rozmiar części 1 przekroczył dozwolony rozmiar 100MB."
               ]
@@ -710,6 +719,11 @@
                 "$ref": "#/components/schemas/CollectiveIdentifierInvoicePayment"
               }
             ],
+            "nullable": true
+          },
+          "description": {
+            "maxLength": 512,
+            "type": "string",
             "nullable": true
           }
         }
@@ -794,6 +808,11 @@
                 "$ref": "#/components/schemas/CollectiveIdentifierInvoicesQueryResponseItemPayment"
               }
             ],
+            "nullable": true
+          },
+          "description": {
+            "maxLength": 512,
+            "type": "string",
             "nullable": true
           },
           "detailsHidden": {
@@ -1387,6 +1406,9 @@
               "code": {
                 "type": "integer"
               },
+              "description": {
+                "type": "string"
+              },
               "details": {
                 "type": "array",
                 "items": {
@@ -1399,6 +1421,7 @@
         "example": {
           "status": {
             "code": 429,
+            "description": "Too Many Requests",
             "details": [
               "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
             ]

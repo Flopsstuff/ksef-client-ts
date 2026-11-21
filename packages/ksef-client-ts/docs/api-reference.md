@@ -445,7 +445,7 @@ Accessed via `client.tokens`.
 generateTokenRev2(request: GenerateTokenRequestRev2): Promise<GenerateTokenResponseRev2>
 ```
 
-Generate a KSeF token with an optional validity period (KSeF API v2.10.0). `validFrom` defaults to now and may be at most 60 days ahead; `validTo` defaults to 90 days after `validFrom` and may be at most 365 days after it. The server enforces these limits and answers `21405` when they are broken. A token generated in a session that was itself opened with a KSeF token starts in `AwaitingApproval` and cannot be used until `approveToken` is called.
+Generate a KSeF token with an optional validity period (KSeF API v2.10.0). `validFrom` defaults to now and may be at most 60 days ahead; `validTo` defaults to 90 days after `validFrom` and may be at most 365 days after it. The server enforces these limits and answers `21405` when they are broken. A token generated in a session that was itself opened with a KSeF token starts in `AwaitingApproval` and cannot be used until `approveToken` is called. Approval does not override the validity period: wait until the token is `Active` before you log in with it.
 
 ```ts
 queryTokensRev2(options?: QueryTokensRev2Options): Promise<QueryTokensResponseRev2>
@@ -463,7 +463,7 @@ Get one token with its validity dates and, for a `Failed` token, the `failure` r
 approveToken(ref: string): Promise<void>
 ```
 
-Approve a token in `AwaitingApproval` (KSeF API v2.10.0). It becomes `Active`, or `NotYetActive` when its validity has not started. The session must be authenticated with XAdES or the National Node; a session opened with a KSeF token gets `26005`, and a token in any other status gets `26004`. The approval window is 24 hours.
+Approve a token in `AwaitingApproval` (KSeF API v2.10.0). It becomes `Active`, or `NotYetActive` when its validity has not started. The session must be authenticated with XAdES or the National Node; a session opened with a KSeF token gets `26005`, and a token in any other status gets `26004`. The approval window is 24 hours. The approver must hold `Owner` or `CredentialsManage` in the context, or be the token's author (`authorIdentifier`) holding every permission the token requests.
 
 ```ts
 revokeToken(ref: string): Promise<void>
@@ -581,7 +581,7 @@ Get certificate limits for the current subject.
 getRateLimits(): Promise<EffectiveApiRateLimits>
 ```
 
-Get the effective API rate limits, per group and time window. A window equal to `RATE_LIMIT_UNLIMITED` (`-1`) has no limit — check for it before treating a value as a request count. The `global` group is the per-IP limit, announced in KSeF API v2.8.0 as not yet enforced; since v2.9.0 TEST reports a finite `perSecond` (75), so treat its windows like any other group's.
+Get the effective API rate limits, per group and time window. A window equal to `RATE_LIMIT_UNLIMITED` (`-1`) has no limit — check for it before treating a value as a request count. The `global` group is the per-IP limit, announced in KSeF API v2.8.0 as not yet enforced; on v2.9.0 TEST reported a finite `perSecond` (75), while the v2.10.0 spec example shows `-1`, so do not hard-code either: read the returned value and treat its windows like any other group's.
 
 ---
 
