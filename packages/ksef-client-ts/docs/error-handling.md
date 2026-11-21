@@ -487,7 +487,7 @@ class KSeFBatchTimeoutError extends KSeFApiError {
 }
 ```
 
-Use this class to distinguish server-side batch timeouts from other failure modes when orchestrating large batch uploads or finish operations. The numeric code registry for error detection is exposed as `KSeFErrorCode` in `src/errors/error-codes.ts` (currently `BatchTimeout = 21208`, `DuplicateInvoice = 440`, `SessionTemporarilyUnavailable = 21184`, `InvalidContinuationToken = 21418`, `UnknownPublicKeyId = 21470`, `InvalidInput = 21405`, `UnreadableContent = 21001`, `CollectiveIdentifierDifferentSellers = 71004`, `CollectiveIdentifierDuplicateKsefNumber = 71005`).
+Use this class to distinguish server-side batch timeouts from other failure modes when orchestrating large batch uploads or finish operations. The numeric code registry for error detection is exposed as `KSeFErrorCode` in `src/errors/error-codes.ts` (currently `BatchTimeout = 21208`, `DuplicateInvoice = 440`, `SessionTemporarilyUnavailable = 21184`, `InvalidContinuationToken = 21418`, `UnknownPublicKeyId = 21470`, `InvalidInput = 21405`, `UnreadableContent = 21001`, `CollectiveIdentifierDifferentSellers = 71004`, `CollectiveIdentifierDuplicateKsefNumber = 71005`, and the token codes `TokenNotFound = 21409`, `TokenPermissionsNotHeld = 26001`, `TokenInvalidContextType = 26002`, `TokenStatusDisallowsOperation = 26004`, `TokenApprovalAuthMethodNotAllowed = 26005`, `TokenLimitReached = 26006`).
 
 ::: tip
 Pair with a retry-with-smaller-batch strategy rather than a tight loop — the timeout means KSeF is under load, not that the request was malformed.
@@ -615,6 +615,34 @@ Not every 400 arrives as this class, and which class you get depends on the body
 Catch `KSeFApiError` to cover every 400 regardless of format, and route on `errors[].code` rather than on the class when you care about a specific KSeF code.
 :::
 
+#### Token error codes (KSeF API v2.10.0)
+
+The token operations answer HTTP 400 with these codes. They arrive as `KSeFBadRequestError`; read them from `errors[].code` and compare with the `KSeFErrorCode` constants.
+
+| Code | Constant | Meaning |
+|------|----------|---------|
+| `21409` | `TokenNotFound` | No token with this reference number |
+| `26001` | `TokenPermissionsNotHeld` | The token would grant permissions its author does not hold |
+| `26002` | `TokenInvalidContextType` | The operation is not allowed in this context type |
+| `26004` | `TokenStatusDisallowsOperation` | The token's status does not allow revoke, approve or expire-approval |
+| `26005` | `TokenApprovalAuthMethodNotAllowed` | Approval from a session opened with a KSeF token; use XAdES or the National Node |
+| `26006` | `TokenLimitReached` | The context has reached its token limit |
+
+```typescript
+import { KSeFBadRequestError, KSeFErrorCode } from 'ksef-client-ts';
+
+try {
+  await client.tokens.approveToken(ref);
+} catch (err) {
+  if (
+    err instanceof KSeFBadRequestError &&
+    err.errors.some((e) => e.code === KSeFErrorCode.TokenApprovalAuthMethodNotAllowed)
+  ) {
+    // re-authenticate with XAdES, then approve again
+  }
+}
+```
+
 ---
 
 ### `KSeFUnauthorizedError`
@@ -719,6 +747,12 @@ class KSeFGoneError extends KSeFApiError {
 ::: tip
 A `KSeFGoneError` means the operation likely ran to completion long ago — KSeF only forgets the *status record*, not the underlying outcome (e.g., issued certificate, exported package). If you missed the result, repeat the action rather than re-poll the same reference number.
 :::
+
+#### 410 after sunset
+
+KSeF API 2.10.0 uses the same `410 Gone` status for a second case: a deprecated operation whose `Sunset` date has passed. The old token operations switch off on 2027-09-30, and the old authentication-status and session-list operations switch off on 2027-06-15. Until that date they still succeed, and they send `Deprecation` and `Sunset` headers on `2xx`, `400`, `410` and `429`.
+
+`KSeFGoneError` is thrown either way. To tell a switched-off operation from an aged-out status record, set `onDeprecation`. The callback runs before the error is thrown and carries the sunset date when the header parses. See [Configuration](./configuration.md#deprecation-notices) and [HTTP Resilience](./http-resilience.md#deprecation-notices).
 
 ---
 

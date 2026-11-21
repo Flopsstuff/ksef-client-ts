@@ -18,7 +18,7 @@ import type {
   GoneProblemDetails,
   BadRequestProblemDetails,
 } from '../errors/types.js';
-import type { ResolvedOptions } from '../config/options.js';
+import type { DeprecationNotice, ResolvedOptions } from '../config/options.js';
 import { RouteBuilder } from './route-builder.js';
 import { type RestRequest } from './rest-request.js';
 import type { RestResponse } from './rest-response.js';
@@ -51,6 +51,12 @@ export interface RestClientConfig {
    * When omitted, warnings are logged at warn level.
    */
   onSystemWarning?: (warning: string) => void;
+  /**
+   * Invoked when a response carries a `Deprecation` or `Sunset` header.
+   * Advisory only — a throwing callback does not change the request result.
+   * When omitted, the notice is logged at debug level.
+   */
+  onDeprecation?: (notice: DeprecationNotice) => void;
 }
 
 export class RestClient {
@@ -63,6 +69,7 @@ export class RestClient {
   private readonly authManager?: AuthManager;
   private readonly presignedUrlPolicy?: PresignedUrlPolicy;
   private readonly onSystemWarning?: (warning: string) => void;
+  private readonly onDeprecation?: (notice: DeprecationNotice) => void;
 
   constructor(options: ResolvedOptions, config?: RestClientConfig) {
     this.options = options;
@@ -74,6 +81,7 @@ export class RestClient {
     this.authManager = config?.authManager;
     this.presignedUrlPolicy = config?.presignedUrlPolicy;
     this.onSystemWarning = config?.onSystemWarning;
+    this.onDeprecation = config?.onDeprecation;
   }
 
   async execute<T>(request: RestRequest): Promise<RestResponse<T>> {
@@ -113,6 +121,49 @@ export class RestClient {
     } else {
       consola.warn(`KSeF system warning: ${warning}`);
     }
+  }
+
+  /**
+   * Surface `Deprecation` / `Sunset` before the caller turns the response into
+   * a result or an error. Runs for every response that carries either header.
+   */
+  private handleDeprecation(request: RestRequest, response: Response): void {
+    const deprecation = response.headers.get('deprecation');
+    const sunsetHeader = response.headers.get('sunset');
+    if (deprecation === null && sunsetHeader === null) return;
+
+    const notice: DeprecationNotice = {
+      method: request.method,
+      path: request.path,
+    };
+    if (deprecation !== null) {
+      notice.rawDeprecation = deprecation;
+      const deprecatedSince = parseDeprecationTimestamp(deprecation);
+      if (deprecatedSince) notice.deprecatedSince = deprecatedSince;
+    }
+    if (sunsetHeader !== null) {
+      notice.rawSunset = sunsetHeader;
+      const sunset = parseSunsetDate(sunsetHeader);
+      if (sunset) notice.sunset = sunset;
+    }
+
+    if (this.onDeprecation) {
+      const warn = (error: unknown) =>
+        consola.warn('onDeprecation callback threw an exception (ignored):', error);
+      try {
+        const result: unknown = this.onDeprecation(notice);
+        if (result instanceof Promise) result.catch(warn);
+      } catch (error) {
+        warn(error);
+      }
+      return;
+    }
+
+    consola.debug(
+      `KSeF deprecation notice: ${notice.method} ${notice.path}` +
+        ` Deprecation=${notice.rawDeprecation ?? ''}` +
+        ` Sunset=${notice.rawSunset ?? ''}`,
+    );
   }
 
   private async sendRequest(request: RestRequest): Promise<Response> {
@@ -171,6 +222,7 @@ export class RestClient {
 
       try {
         let response = await this.doRequest(request, url);
+        this.handleDeprecation(request, response);
 
         // Auth refresh on 401 — one-shot, first attempt only. The refreshed
         // response then falls through into the normal outcome-recording flow
@@ -181,6 +233,7 @@ export class RestClient {
           if (newToken) {
             consola.debug('Auth token refreshed, retrying request');
             response = await this.doRequest(request, url, newToken);
+            this.handleDeprecation(request, response);
           }
         }
 
@@ -418,6 +471,22 @@ export class RestClient {
     }
     throw KSeFApiError.fromResponse(response.status, body);
   }
+}
+
+/** `Deprecation: @<unix-seconds>` (RFC 9745). Anything else stays raw. */
+function parseDeprecationTimestamp(raw: string): Date | undefined {
+  const match = /^@(-?\d+)$/.exec(raw.trim());
+  if (!match) return undefined;
+  const seconds = Number(match[1]);
+  if (!Number.isSafeInteger(seconds)) return undefined;
+  const date = new Date(seconds * 1000);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+/** `Sunset` as an HTTP-date (RFC 8594). A value the runtime cannot parse stays raw. */
+function parseSunsetDate(raw: string): Date | undefined {
+  const date = new Date(raw.trim());
+  return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
 function isBadRequestProblem(value: unknown): value is BadRequestProblemDetails {

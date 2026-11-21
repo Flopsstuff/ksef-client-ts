@@ -123,7 +123,7 @@ function scanDirectory(dir, routeMap, ops, warnings) {
     .filter(f => f.endsWith('.ts') && f !== 'index.ts')
     .sort();
 
-  const pattern = /RestRequest\.(get|post|put|delete|patch)\(Routes\.([A-Za-z.]+)/g;
+  const pattern = /RestRequest\.(get|post|put|delete|patch)\(Routes\.([A-Za-z0-9_.]+)/g;
 
   for (const file of files) {
     const src = fs.readFileSync(path.join(dir, file), 'utf8');

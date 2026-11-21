@@ -15,7 +15,8 @@ export type SubunitPermissionScope = 'CredentialsManage';
 
 export type EuEntityPermissionType =
   | 'InvoiceRead'
-  | 'InvoiceWrite';
+  | 'InvoiceWrite'
+  | 'CollectiveIdentifierManage';
 
 /**
  * Permission an entity can be granted to handle invoices (`EntityPermissionType`),
@@ -46,7 +47,8 @@ export type EuEntityPermissionsQueryPermissionType =
   | 'VatUeManage'
   | 'InvoiceWrite'
   | 'InvoiceRead'
-  | 'Introspection';
+  | 'Introspection'
+  | 'CollectiveIdentifierManage';
 
 export type InvoicePermissionType =
   | 'SelfInvoicing'

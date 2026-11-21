@@ -38,6 +38,9 @@
                   },
                   "collectiveIdentifier": {
                     "maxInvoices": 500
+                  },
+                  "tokens": {
+                    "maxTokens": 100
                   }
                 }
               }
@@ -312,7 +315,7 @@
                     "perHour": -1
                   },
                   "global": {
-                    "perSecond": 75,
+                    "perSecond": -1,
                     "perMinute": -1,
                     "perHour": -1
                   }
@@ -1031,6 +1034,9 @@
             "type": "integer",
             "format": "int32"
           },
+          "description": {
+            "type": "string"
+          },
           "details": {
             "type": "array",
             "items": {
@@ -1285,12 +1291,14 @@
           "errors": [
             {
               "code": 21405,
+              "description": "Błąd walidacji danych wejściowych.",
               "details": [
                 "Wskazany kod formularza nie jest wspierany."
               ]
             },
             {
               "code": 21157,
+              "description": "Nieprawidłowy rozmiar części pakietu.",
               "details": [
                 "Rozmiar części 1 przekroczył dozwolony rozmiar 100MB."
               ]
@@ -1363,13 +1371,15 @@
         }
       },
       "CertificateSubjectLimitsOverride": {
+        "required": [
+          "maxCertificates"
+        ],
         "type": "object",
         "properties": {
           "maxCertificates": {
             "minimum": 0,
             "type": "integer",
-            "format": "int32",
-            "nullable": true
+            "format": "int32"
           }
         }
       },
@@ -1654,7 +1664,8 @@
         "required": [
           "batchSession",
           "collectiveIdentifier",
-          "onlineSession"
+          "onlineSession",
+          "tokens"
         ],
         "type": "object",
         "properties": {
@@ -1691,6 +1702,16 @@
                 "$ref": "#/components/schemas/CollectiveIdentifierEffectiveContextLimits"
               }
             ]
+          },
+          "tokens": {
+            "required": [
+              "maxTokens"
+            ],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TokensEffectiveContextLimits"
+              }
+            ]
           }
         }
       },
@@ -1725,13 +1746,15 @@
         }
       },
       "EnrollmentSubjectLimitsOverride": {
+        "required": [
+          "maxEnrollments"
+        ],
         "type": "object",
         "properties": {
           "maxEnrollments": {
             "minimum": 0,
             "type": "integer",
-            "format": "int32",
-            "nullable": true
+            "format": "int32"
           }
         }
       },
@@ -2032,6 +2055,9 @@
             ]
           },
           "enrollment": {
+            "required": [
+              "maxEnrollments"
+            ],
             "allOf": [
               {
                 "$ref": "#/components/schemas/EnrollmentSubjectLimitsOverride"
@@ -2040,6 +2066,9 @@
             "nullable": true
           },
           "certificate": {
+            "required": [
+              "maxCertificates"
+            ],
             "allOf": [
               {
                 "$ref": "#/components/schemas/CertificateSubjectLimitsOverride"
@@ -2059,6 +2088,19 @@
       },
       "SystemWarning": {
         "type": "string"
+      },
+      "TokensEffectiveContextLimits": {
+        "required": [
+          "maxTokens"
+        ],
+        "type": "object",
+        "properties": {
+          "maxTokens": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       },
       "TooManyRequestsProblemDetails": {
         "required": [
@@ -2118,6 +2160,9 @@
               "code": {
                 "type": "integer"
               },
+              "description": {
+                "type": "string"
+              },
               "details": {
                 "type": "array",
                 "items": {
@@ -2130,6 +2175,7 @@
         "example": {
           "status": {
             "code": 429,
+            "description": "Too Many Requests",
             "details": [
               "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
             ]

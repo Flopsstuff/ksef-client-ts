@@ -2,6 +2,8 @@
 
 Complete API reference for the `ksef-client-ts` library — a TypeScript client for the Polish National e-Invoice System (KSeF) API v2.
 
+For migration dates and environment availability, see the [deprecated operation timeline](./authentication.md#deprecated-operation-timeline).
+
 ---
 
 ## Table of Contents
@@ -115,7 +117,13 @@ Authenticate using an encrypted KSeF token.
 getAuthStatus(referenceNumber: string, authToken: string): Promise<AuthenticationOperationStatusResponse>
 ```
 
-Poll the authorization status by reference number.
+Poll the authorization status by reference number. Deprecated: this operation is switched off on 2027-06-15; use `getAuthStatusRev2()`.
+
+```ts
+getAuthStatusRev2(referenceNumber: string, authToken: string): Promise<AuthenticationOperationStatusResponseRev2>
+```
+
+Poll the revision 2 authorization status. The response exposes the dictionary-based `authenticationMethodInfo` and omits the legacy `authenticationMethod` field.
 
 ```ts
 getAccessToken(authToken: string): Promise<AuthenticationTokensResponse>
@@ -139,7 +147,13 @@ Accessed via `client.activeSessions`.
 getActiveSessions(pageSize?: number, continuationToken?: string): Promise<AuthenticationListResponse>
 ```
 
-List all active sessions for the current subject.
+List all active sessions for the current subject. Deprecated: this operation is switched off on 2027-06-15; use `getActiveSessionsRev2()`.
+
+```ts
+getActiveSessionsRev2(pageSize?: number, continuationToken?: string): Promise<AuthenticationListResponseRev2>
+```
+
+List active sessions using the revision 2 response model. Pass the response's `continuationToken` to retrieve the next page.
 
 ```ts
 revokeCurrentSession(): Promise<void>
@@ -333,7 +347,7 @@ Grant permissions to an EU entity.
 grantEuEntityRepresentativePermissions(request: GrantPermissionsEuEntityRepresentativeRequest): Promise<OperationResponse>
 ```
 
-Grant permissions to an EU entity representative.
+Grant permissions to an EU entity representative. `permissions` accepts `InvoiceRead`, `InvoiceWrite`, and `CollectiveIdentifierManage` (KSeF API v2.10.0).
 
 ### Revoke Methods
 
@@ -405,7 +419,7 @@ Query authorization-level grants.
 queryEuEntitiesGrants(options?: QueryEuEntitiesGrantsRequest): Promise<PagedPermissionsResponse<EuEntityPermission>>
 ```
 
-Query permissions granted to EU entities.
+Query permissions granted to EU entities. `permissionTypes` accepts `VatUeManage`, `InvoiceWrite`, `InvoiceRead`, `Introspection`, and `CollectiveIdentifierManage` (KSeF API v2.10.0).
 
 ### Status Methods
 
@@ -428,28 +442,56 @@ Check whether attachment permissions are enabled for the current context.
 Accessed via `client.tokens`.
 
 ```ts
-generateToken(request: KsefTokenRequest): Promise<KsefTokenResponse>
+generateTokenRev2(request: GenerateTokenRequestRev2): Promise<GenerateTokenResponseRev2>
 ```
 
-Generate a new KSeF authentication token.
+Generate a KSeF token with an optional validity period (KSeF API v2.10.0). `validFrom` defaults to now and may be at most 60 days ahead; `validTo` defaults to 90 days after `validFrom` and may be at most 365 days after it. The server enforces these limits and answers `21405` when they are broken. A token generated in a session that was itself opened with a KSeF token starts in `AwaitingApproval` and cannot be used until `approveToken` is called. Approval does not override the validity period: wait until the token is `Active` before you log in with it.
 
 ```ts
-queryTokens(options?: QueryKsefTokensOptions): Promise<QueryKsefTokensResponse>
+queryTokensRev2(options?: QueryTokensRev2Options): Promise<QueryTokensResponseRev2>
 ```
 
-List all tokens for the current subject.
+List tokens with rev2 statuses (KSeF API v2.10.0). Filters: `status` (repeatable), `description`, `authorIdentifier`, `authorIdentifierType`, `validFrom`, `validTo`, `pageSize` (10–100), and `continuationToken` for the next page.
 
 ```ts
-getToken(ref: string): Promise<AuthenticationKsefToken>
+getTokenRev2(ref: string): Promise<TokenStatusResponseRev2>
 ```
 
-Get a specific token by reference.
+Get one token with its validity dates and, for a `Failed` token, the `failure` reason (KSeF API v2.10.0).
+
+```ts
+approveToken(ref: string): Promise<void>
+```
+
+Approve a token in `AwaitingApproval` (KSeF API v2.10.0). It becomes `Active`, or `NotYetActive` when its validity has not started. The session must be authenticated with XAdES or the National Node; a session opened with a KSeF token gets `26005`, and a token in any other status gets `26004`. The approval window is 24 hours. The approver must hold `Owner` or `CredentialsManage` in the context, or be the token's author (`authorIdentifier`) holding every permission the token requests.
 
 ```ts
 revokeToken(ref: string): Promise<void>
 ```
 
-Revoke a token by reference.
+Revoke a token by reference. Revoking a token that is already revoked succeeds again on KSeF TEST (API v2.10.0); an unknown reference answers 400 with `21409`.
+
+### Deprecated token operations
+
+KSeF switches these operations off on 2027-09-30. They stay the only option on environments that do not serve KSeF API 2.10.0 yet (DEMO and PROD, as of this release).
+
+```ts
+generateToken(request: KsefTokenRequest): Promise<KsefTokenResponse>
+```
+
+Generate a new KSeF authentication token. Replaced by `generateTokenRev2`.
+
+```ts
+queryTokens(options?: QueryKsefTokensOptions): Promise<QueryKsefTokensResponse>
+```
+
+List all tokens for the current subject. Replaced by `queryTokensRev2`.
+
+```ts
+getToken(ref: string): Promise<AuthenticationKsefToken>
+```
+
+Get a specific token by reference. Replaced by `getTokenRev2`.
 
 ---
 
@@ -524,10 +566,10 @@ Get system status messages.
 Accessed via `client.limits`.
 
 ```ts
-getContextLimits(): Promise<SessionLimitsInCurrentContextResponse>
+getContextLimits(): Promise<EffectiveContextLimits>
 ```
 
-Get session limits for the current context.
+Get session limits for the current context: online/batch invoice size and count, collective-identifier invoice count, and (on KSeF API v2.10.0) `tokens.maxTokens`. The `tokens` block is typed optional because DEMO and PROD on 2.9.0 omit it; TEST sends it.
 
 ```ts
 getSubjectLimits(): Promise<CertificatesLimitInCurrentSubjectResponse>
@@ -539,7 +581,7 @@ Get certificate limits for the current subject.
 getRateLimits(): Promise<EffectiveApiRateLimits>
 ```
 
-Get the effective API rate limits, per group and time window. A window equal to `RATE_LIMIT_UNLIMITED` (`-1`) has no limit — check for it before treating a value as a request count. The `global` group is the per-IP limit, announced in KSeF API v2.8.0 as not yet enforced; since v2.9.0 TEST reports a finite `perSecond` (75), so treat its windows like any other group's.
+Get the effective API rate limits, per group and time window. A window equal to `RATE_LIMIT_UNLIMITED` (`-1`) has no limit — check for it before treating a value as a request count. The `global` group is the per-IP limit, announced in KSeF API v2.8.0 as not yet enforced; on v2.9.0 TEST reported a finite `perSecond` (75), while the v2.10.0 spec example shows `-1`, so do not hard-code either: read the returned value and treat its windows like any other group's.
 
 ---
 
@@ -665,7 +707,7 @@ Restore default session limits.
 changeCertificatesLimit(request: SetSubjectLimitsRequest): Promise<void>
 ```
 
-Override subject limits (enrollment/certificate) for the current subject.
+Override subject limits (enrollment/certificate) for the current subject. When `enrollment` or `certificate` is present, `maxEnrollments` / `maxCertificates` is required (KSeF API v2.10.0).
 
 ```ts
 restoreDefaultCertificatesLimit(): Promise<void>
@@ -680,6 +722,12 @@ updateCertificate(serialNumber: string, request: TestDataUpdateCertificateReques
 ```
 
 Update an existing KSeF certificate expiry for the authenticated subject. TEST environment only; `validTo` must not be later than the current expiry.
+
+```ts
+expireTokenApproval(referenceNumber: string): Promise<void>
+```
+
+End the approval window of a token in `AwaitingApproval` at once, moving it to `ApprovalExpired` (KSeF API v2.10.0). TEST environment only.
 
 ### Rate Limits
 
@@ -1209,9 +1257,11 @@ Extends `KSeFError`. Thrown when an authentication operation fails or times out.
 | ------------------- | --------- | ------------------------------------ |
 | `referenceNumber`   | `string?` | Auth operation reference number      |
 | `statusDescription` | `string?` | Status description from the API      |
+| `statusCode`        | `number?` | Numeric authentication status code   |
+| `details`           | `string[]?` | Status details from the API         |
 
 ```ts
-constructor(message: string, referenceNumber?: string, statusDescription?: string)
+constructor(message: string, referenceNumber?: string, statusDescription?: string, statusCode?: number, details?: string[])
 ```
 
 ### KSeFSessionExpiredError

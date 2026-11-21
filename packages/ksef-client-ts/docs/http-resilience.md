@@ -609,6 +609,40 @@ The raw value is passed through unparsed (format `[code]: message | [code]: mess
 
 ---
 
+## Deprecation notices
+
+**Config:** `onDeprecation?: (notice: DeprecationNotice) => void` on `KSeFClientOptions`
+
+KSeF API 2.10.0 sends two headers on operations it has scheduled to switch off. They appear on `2xx`, `400`, `410` and `429` responses:
+
+| Header | Example | Meaning |
+| --- | --- | --- |
+| `Deprecation` | `@1735689600` | When the operation was deprecated, as `@` plus Unix seconds (RFC 9745) |
+| `Sunset` | `Thu, 30 Sep 2027 00:00:00 GMT` | When the operation will answer `410 Gone` (RFC 8594) |
+
+`RestClient` reads the headers on every response that carries either of them, including a response it will retry and including a response that is about to be thrown as an error. The read happens before `ensureSuccess()`, so the callback sees a `400`, `410` or `429` and the error is still thrown afterwards.
+
+- With `onDeprecation`, the callback receives a `DeprecationNotice`: HTTP method, route path (the value passed to `RestRequest`, such as `tokens`), `deprecatedSince` and `sunset` when the values parse, and `rawDeprecation` / `rawSunset` always when that header was present.
+- A value that does not parse (`Deprecation` other than `@<seconds>`, or a `Sunset` value the runtime cannot read as an HTTP-date) leaves the `Date` undefined and keeps the raw string.
+- A callback that throws is logged at warn level and ignored. It cannot change the result of the request.
+- With no callback, the same notice is logged at **debug** level. Login still calls a deprecated authentication-status operation, so warn would fire on every sign-in.
+
+There is no de-duplication. One logical call can notify more than once (a retried `429`, then the final response), and every later call notifies again. The application decides which notices to keep.
+
+On TEST, the deprecated authentication-status call also sends `X-System-Warning` (code `dep-001`, naming the `rev2` replacement and the switch-off date). That header is unchanged: it still goes through `onSystemWarning` and is logged at warn level when that callback is omitted. `Deprecation` and `Sunset` are a separate channel.
+
+```ts
+const client = new KSeFClient({
+  onDeprecation(notice) {
+    console.warn(notice.method, notice.path, notice.sunset ?? notice.rawSunset);
+  },
+});
+```
+
+After the `Sunset` instant the operation answers `410 Gone`. That error is still `KSeFGoneError`; the notice is how you tell a switched-off operation from a status record that aged out of retention. See [Error Handling](./error-handling.md#410-after-sunset).
+
+---
+
 ## RestRequest Builder
 
 **File:** `src/http/rest-request.ts`

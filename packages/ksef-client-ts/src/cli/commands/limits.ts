@@ -46,6 +46,7 @@ const context = defineCommand({
           'Batch — Max Invoice+Attachment Size (MB)': result.batchSession.maxInvoiceWithAttachmentSizeInMB,
           'Batch — Max Invoices': result.batchSession.maxInvoices,
           'Collective Identifier — Max Invoices': result.collectiveIdentifier.maxInvoices,
+          ...(result.tokens ? { 'Tokens — Max Tokens': result.tokens.maxTokens } : {}),
         }, { json: false });
       }
     }, { json: Boolean(args.json) });

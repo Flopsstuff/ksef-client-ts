@@ -1,6 +1,6 @@
 # Models & Type System
 
-Complete reference for the model layer that defines every request, response, enum, and identifier type used by the KSeF client. All types are derived from the KSeF OpenAPI spec (API v2.9.0, build 2.9.0-te) and organized by API domain.
+Complete reference for the model layer that defines every request, response, enum, and identifier type used by the KSeF client. All types are derived from the KSeF OpenAPI spec (API v2.10.0, build 2.10.0-te-20261117.2) and organized by API domain.
 
 ---
 
@@ -285,6 +285,38 @@ type AuthenticationMethod =
 
 Deprecated but still required by the spec in `AuthenticationOperationStatusResponse`. New code should use `AuthenticationMethodInfo` instead.
 
+Revision 2 status responses omit `authenticationMethod` and use a dictionary-backed category:
+
+```typescript
+type AuthenticationMethodCategoryRev2Code =
+  | 'XadesSignature'
+  | 'NationalNode'
+  | 'Token'
+  | 'FutureValue'
+  | (string & {});
+
+interface AuthenticationMethodCategoryRev2 {
+  code: AuthenticationMethodCategoryRev2Code;
+  rawCode: string;
+  displayName: string;
+}
+
+interface AuthenticationMethodInfoRev2 {
+  category: AuthenticationMethodCategoryRev2;
+  code: string;
+  displayName: string;
+}
+
+interface AuthenticationOperationStatusResponseRev2 {
+  startDate: string;
+  authenticationMethodInfo: AuthenticationMethodInfoRev2;
+  status: OperationStatusInfo;
+  isTokenRedeemed?: boolean | null;
+  lastTokenRefreshDate?: string | null;
+  refreshTokenValidUntil?: string | null;
+}
+```
+
 ### Active Sessions
 
 **File:** `src/models/auth/active-sessions-types.ts`
@@ -306,9 +338,25 @@ interface AuthenticationListResponse {
   continuationToken?: string | null;
   items: AuthSessionInfo[];
 }
+
+interface AuthenticationListItemRev2 {
+  startDate: string;
+  authenticationMethodInfo: AuthenticationMethodInfoRev2;
+  status: OperationStatusInfo;
+  referenceNumber: string;
+  isCurrent?: boolean;
+  isTokenRedeemed?: boolean | null;
+  lastTokenRefreshDate?: string | null;
+  refreshTokenValidUntil?: string | null;
+}
+
+interface AuthenticationListResponseRev2 {
+  continuationToken?: string | null;
+  items: AuthenticationListItemRev2[];
+}
 ```
 
-Used by `ActiveSessionsService` to list all active authentication sessions.
+The legacy and revision 2 response models are used by `ActiveSessionsService` to list active authentication sessions. Revision 2 omits `authenticationMethod`.
 
 ---
 
@@ -609,7 +657,8 @@ Each permission grant target has its own set of allowed permission types:
 |---|---|---|
 | `PersonPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CredentialsRead`, `CredentialsManage`, `EnforcementOperations`, `SubunitManage`, `Introspection`, `CollectiveIdentifierManage` | `GrantPermissionsPersonRequest` |
 | `EntityPermissionItemType` | `InvoiceRead`, `InvoiceWrite`, `CollectiveIdentifierManage` | `GrantPermissionsEntityRequest`, `EntityPermissionItem` (entity-grants query) |
-| `EuEntityPermissionType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsEuEntityRepresentativeRequest` |
+| `EuEntityPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CollectiveIdentifierManage` | `GrantPermissionsEuEntityRepresentativeRequest` |
+| `EuEntityPermissionsQueryPermissionType` | `VatUeManage`, `InvoiceWrite`, `InvoiceRead`, `Introspection`, `CollectiveIdentifierManage` | `QueryEuEntitiesGrantsRequest`, `EuEntityPermission.permissionScope` |
 | `IndirectPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CollectiveIdentifierManage` | `GrantPermissionsIndirectRequest` |
 | `SubunitPermissionScope` | `CredentialsManage` | `GrantPermissionsSubunitRequest` |
 | `InvoicePermissionType` | `SelfInvoicing`, `TaxRepresentative`, `RRInvoicing`, `PefInvoicing` | Entity authorization grants |
@@ -715,6 +764,30 @@ Key types:
 - `QueryKsefTokensOptions` -- filtering parameters for token listing (status, description, author)
 - `QueryKsefTokensResponse` -- cursor-paginated with `continuationToken`
 
+The types above belong to the deprecated token operations. The rev2 operations (KSeF API v2.10.0) use their own types, named after the OpenAPI schemas:
+
+- `GenerateTokenRequestRev2` -- `permissions`, `description` (5–256 characters), optional `validFrom` / `validTo`
+- `GenerateTokenResponseRev2` -- `referenceNumber` + `token`
+- `TokenStatusResponseRev2` / `QueryTokensResponseItemRev2` -- token details with `validFrom`, `validTo` and `failure?: TokenFailureRev2 | null`, set only for a `Failed` token and possibly absent or `null` even then, so check it before reading `failure.description`
+- `QueryTokensResponseRev2` -- cursor-paginated with `continuationToken`
+- `QueryTokensRev2Options` -- filters: `status: TokenStatusFilterRev2[]`, `description`, `authorIdentifier`, `authorIdentifierType: TokenAuthorIdentifierTypeFilterRev2`, `validFrom`, `validTo`, `pageSize`
+- `TokenStatusRev2Code` -- `'Pending' | 'Active' | 'Revoking' | 'Revoked' | 'Failed' | 'NotYetActive' | 'AwaitingApproval' | 'ApprovalExpired' | 'Expired' | 'FutureValue'`
+- `TokenFailureRev2` -- `code` (known values `'token.permission-grant-failed' | 'token.context-limit-exceeded' | 'token.unknown-error'`; the set is open, so handle any other string), `description`, `details`
+
+#### Dictionary objects
+
+Rev2 responses return the status, each permission and each identifier type as a dictionary object instead of a bare string:
+
+```ts
+interface TokenStatusRev2 {
+  code: TokenStatusRev2Code;   // the known value, or 'FutureValue'
+  rawCode: string;             // the value exactly as the server sent it
+  displayName: string;         // a Polish label for display
+}
+```
+
+`TokenPermissionRev2`, `TokenAuthorIdentifierTypeCodeRev2IdentifierType` and `TokenContextIdentifierTypeCodeRev2IdentifierType` have the same shape. `code` is `'FutureValue'` when the server sends a value this model version does not know; the real value is then in `rawCode`. Every `code` union is widened with `(string & {})`, so an unknown value still type-checks and the library does no mapping at runtime. Compare against `code` for known values and fall back to `rawCode` for logging or display.
+
 ### Certificates
 
 **File:** `src/models/certificates/types.ts`
@@ -767,10 +840,11 @@ Effective rate limits and session context limits, plus override types for the te
 
 Key types:
 
-- `EffectiveApiRateLimits` -- per-second/minute/hour limits for 17 groups: the 13 endpoint categories, plus `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window equal to `RATE_LIMIT_UNLIMITED` (`-1`) has no limit; `global` is the per-IP limit, announced in 2.8.0 as not yet enforced, but TEST reports a finite `perSecond` (75) since 2.9.0, so do not assume its windows are unlimited
-- `EffectiveContextLimits` -- max invoice size and count for online/batch sessions, and max invoices per collective identifier
+- `EffectiveApiRateLimits` -- per-second/minute/hour limits for 17 groups: the 13 endpoint categories, plus `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window equal to `RATE_LIMIT_UNLIMITED` (`-1`) has no limit; `global` is the per-IP limit, announced in 2.8.0 as not yet enforced, but on v2.9.0 TEST reported a finite `perSecond` (75) while the v2.10.0 spec example shows `-1`, so do not hard-code either: read the value your environment returns
+- `EffectiveContextLimits` -- max invoice size and count for online/batch sessions, max invoices per collective identifier, and optional `tokens.maxTokens` (KSeF API v2.10.0; required in the OpenAPI schema, typed optional while DEMO/PROD still serve 2.9.0)
+- `TokensEffectiveContextLimits` -- `{ maxTokens: number }` block nested under `EffectiveContextLimits.tokens`
 - `EffectiveSubjectLimits` -- enrollment and certificate limits per subject
-- `SetRateLimitsRequest`, `SetSessionLimitsRequest`, `SetSubjectLimitsRequest` -- override requests (test environment only)
+- `SetRateLimitsRequest`, `SetSessionLimitsRequest`, `SetSubjectLimitsRequest` -- override requests (test environment only). On `SetSubjectLimitsRequest`, `enrollment.maxEnrollments` and `certificate.maxCertificates` are required when those objects are present (KSeF API v2.10.0)
 
 ### Collective Identifiers
 
@@ -948,7 +1022,7 @@ The `Permission` prefix prevents collision with the auth-domain identifier type 
 
 ## OpenAPI Alignment
 
-All types are aligned with the KSeF OpenAPI spec (API v2.9.0, build 2.9.0-te, `docs/open-api.json`). Key alignment decisions:
+All types are aligned with the KSeF OpenAPI spec (API v2.10.0, build 2.10.0-te-20261117.2, `docs/open-api.json`). Key alignment decisions:
 
 | OpenAPI spec | TypeScript type | Note |
 |---|---|---|

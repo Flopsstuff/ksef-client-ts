@@ -283,15 +283,27 @@ describe('test-data', () => {
       });
     });
 
-    it('omits enrollment and certificate when not provided', async () => {
+    it('sends only the enrollment section when only --max-enrollments is set', async () => {
       mockClient.testData.changeCertificatesLimit.mockResolvedValue(undefined);
       await (testDataCommand.subCommands!['change-cert-limits'] as any).run!({
-        args: {},
+        args: { 'max-enrollments': '10' },
+      });
+      expect(mockClient.testData.changeCertificatesLimit).toHaveBeenCalledWith({
+        subjectIdentifierType: undefined,
+        enrollment: { maxEnrollments: 10 },
+        certificate: undefined,
+      });
+    });
+
+    it('sends only the certificate section when only --max-certificates is set', async () => {
+      mockClient.testData.changeCertificatesLimit.mockResolvedValue(undefined);
+      await (testDataCommand.subCommands!['change-cert-limits'] as any).run!({
+        args: { 'max-certificates': '20' },
       });
       expect(mockClient.testData.changeCertificatesLimit).toHaveBeenCalledWith({
         subjectIdentifierType: undefined,
         enrollment: undefined,
-        certificate: undefined,
+        certificate: { maxCertificates: 20 },
       });
     });
   });
@@ -380,6 +392,35 @@ describe('test-data', () => {
           args: { 'context-value': '9876543210' },
         }),
       ).rejects.toThrow('only available in test/demo');
+    });
+  });
+
+  describe('expire-token-approval', () => {
+    it('calls testData.expireTokenApproval with the reference', async () => {
+      mockClient.testData.expireTokenApproval.mockResolvedValue(undefined);
+      await (testDataCommand.subCommands!['expire-token-approval'] as any).run!({
+        args: { ref: 'tok-ref-1' },
+      });
+      expect(mockClient.testData.expireTokenApproval).toHaveBeenCalledWith('tok-ref-1');
+    });
+
+    it('outputs JSON when --json flag is set', async () => {
+      mockClient.testData.expireTokenApproval.mockResolvedValue(undefined);
+      await (testDataCommand.subCommands!['expire-token-approval'] as any).run!({
+        args: { ref: 'tok-ref-1', json: true },
+      });
+      const { outputResult } = await import('../../../../src/cli/output.js');
+      expect(outputResult).toHaveBeenCalledWith({ status: 'ok' }, { json: true });
+    });
+
+    it('rejects in prod environment', async () => {
+      mockLoadConfig.mockReturnValue({ ...defaultConfig, environment: 'prod' });
+      await expect(
+        (testDataCommand.subCommands!['expire-token-approval'] as any).run!({
+          args: { ref: 'tok-ref-1' },
+        }),
+      ).rejects.toThrow('only available in test/demo');
+      expect(mockClient.testData.expireTokenApproval).not.toHaveBeenCalled();
     });
   });
 });

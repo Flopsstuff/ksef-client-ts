@@ -141,7 +141,7 @@ Invoice number (`P_2` in XML) must be unique — resubmitting gives error 440 (D
 
 ### OpenAPI spec
 
-`packages/ksef-client-ts/docs/open-api.json` is the KSeF API OpenAPI specification (source of truth, KSeF API v2.9.0, build `2.9.0-te`; synced from the live TEST endpoint `https://api-test.ksef.mf.gov.pl/docs/v2/openapi.json`). Note: TEST/DEMO lead while PROD trails, so the vendored spec can be ahead of what PROD serves. Update it with `yarn sync-openapi` (`--env demo|prod` to pull from another environment, `--dry-run` to preview the delta), which writes the served document verbatim. Per-domain chunks in `packages/ksef-client-ts/docs/openapi-chunks/` (10 chunks + manifest; descriptions stripped to save tokens). Regenerate with `yarn split-openapi` after every sync. Validate coverage with `yarn check-api`.
+`packages/ksef-client-ts/docs/open-api.json` is the KSeF API OpenAPI specification (source of truth, KSeF API v2.10.0, build `2.10.0-te-20261117.2`; synced from the live TEST endpoint `https://api-test.ksef.mf.gov.pl/docs/v2/openapi.json`). Note: TEST gets new API versions first and DEMO and PROD can trail it (at the time of writing TEST serves 2.10.0 while DEMO and PROD still serve 2.9.0), so the vendored spec can be ahead of what DEMO and PROD serve. Update it with `yarn sync-openapi` (`--env demo|prod` to pull from another environment, `--dry-run` to preview the delta), which writes the served document verbatim. Per-domain chunks in `packages/ksef-client-ts/docs/openapi-chunks/` (10 chunks + manifest; descriptions stripped to save tokens). Regenerate with `yarn split-openapi` after every sync. Validate coverage with `yarn check-api`.
 
 ### XSD schemas
 

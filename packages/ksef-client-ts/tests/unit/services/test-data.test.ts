@@ -75,12 +75,22 @@ describe('TestDataService', () => {
     expect(req.getBody()).toEqual(body);
   });
 
+  it('expireTokenApproval sends POST without body to the token expire-approval path', async () => {
+    await service.expireTokenApproval('20261121-EC-0000000000-0000000000-00');
+
+    const req = getRequest(restClient.executeVoid as any);
+    expect(req.method).toBe('POST');
+    expect(req.path).toBe('testdata/tokens/20261121-EC-0000000000-0000000000-00/expire-approval');
+    expect(req.getBody()).toBeUndefined();
+  });
+
   describe('environment guard', () => {
     const allMethods = [
       ...postMethods.map(([name]) => name),
       'setProductionRateLimits',
       ...deleteMethods.map(([name]) => name),
       'updateCertificate',
+      'expireTokenApproval',
     ];
 
     it.each(['PROD', 'DEMO'] as const)('throws KSeFError on %s environment', async (env) => {
@@ -89,7 +99,9 @@ describe('TestDataService', () => {
       for (const method of allMethods) {
         const args = method === 'updateCertificate'
           ? ['0123456789ABCDEF', { validTo: '2026-12-31T23:59:59Z' }]
-          : [{ nip: '1234567890' }];
+          : method === 'expireTokenApproval'
+            ? ['20261121-EC-0000000000-0000000000-00']
+            : [{ nip: '1234567890' }];
         await expect((svc as any)[method](...args)).rejects.toThrow(KSeFError);
         await expect((svc as any)[method](...args)).rejects.toThrow(
           `Test data APIs are only available on the TEST environment (current: ${env})`,

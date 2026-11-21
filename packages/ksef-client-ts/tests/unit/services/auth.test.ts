@@ -95,6 +95,19 @@ describe('AuthService', () => {
     expect(result).toEqual(body);
   });
 
+  it('getAuthStatusRev2 sends GET to the rev2 path with the authentication token', async () => {
+    const body = { status: { code: 200, description: 'ok' } };
+    vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(body));
+
+    const result = await service.getAuthStatusRev2('ref-number-42', 'my-auth-token');
+
+    const req = getRequest(vi.mocked(client.execute));
+    expect(req.method).toBe('GET');
+    expect(req.path).toBe('auth/rev2/ref-number-42');
+    expect(req.getHeaders()).toHaveProperty('Authorization', 'Bearer my-auth-token');
+    expect(result).toEqual(body);
+  });
+
   it('getAccessToken sends POST to auth/token/redeem with Authorization header', async () => {
     const body = { accessToken: 'new-access', refreshToken: 'new-refresh' };
     vi.mocked(client.execute).mockResolvedValueOnce(mockResponse(body));

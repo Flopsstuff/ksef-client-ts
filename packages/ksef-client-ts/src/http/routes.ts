@@ -24,6 +24,8 @@ export const Routes = {
     unblockContext: 'testdata/context/unblock',
     updateCertificate: (serialNumber: string) =>
       `testdata/certificates/${serialNumber}` as const,
+    expireTokenApproval: (ref: string) =>
+      `testdata/tokens/${ref}/expire-approval` as const,
   },
 
   Limits: {
@@ -34,6 +36,7 @@ export const Routes = {
 
   ActiveSessions: {
     session: 'auth/sessions',
+    sessionRev2: 'auth/sessions/rev2',
     delete: (ref: string) => `auth/sessions/${ref}` as const,
     currentSession: 'auth/sessions/current',
   },
@@ -43,6 +46,7 @@ export const Routes = {
     xadesSignature: 'auth/xades-signature',
     ksefToken: 'auth/ksef-token',
     status: (ref: string) => `auth/${ref}` as const,
+    statusRev2: (ref: string) => `auth/rev2/${ref}` as const,
     Token: {
       redeem: 'auth/token/redeem',
       refresh: 'auth/token/refresh',
@@ -146,6 +150,9 @@ export const Routes = {
   Tokens: {
     root: 'tokens',
     byReference: (ref: string) => `tokens/${ref}` as const,
+    rev2Root: 'tokens/rev2',
+    rev2ByReference: (ref: string) => `tokens/rev2/${ref}` as const,
+    approve: (ref: string) => `tokens/${ref}/approve` as const,
   },
 
   Peppol: {

@@ -347,7 +347,8 @@
                 "example": {
                   "requestDate": "2025-10-11T12:23:56.0154302+00:00",
                   "status": {
-                    "code": 100
+                    "code": 100,
+                    "description": "Wniosek przyjęty do realizacji"
                   }
                 }
               }
@@ -955,6 +956,9 @@
             "type": "integer",
             "format": "int32"
           },
+          "description": {
+            "type": "string"
+          },
           "details": {
             "type": "array",
             "items": {
@@ -1011,12 +1015,14 @@
           "errors": [
             {
               "code": 21405,
+              "description": "Błąd walidacji danych wejściowych.",
               "details": [
                 "Wskazany kod formularza nie jest wspierany."
               ]
             },
             {
               "code": 21157,
+              "description": "Nieprawidłowy rozmiar części pakietu.",
               "details": [
                 "Rozmiar części 1 przekroczył dozwolony rozmiar 100MB."
               ]
@@ -1656,6 +1662,10 @@
             "type": "integer",
             "format": "int32"
           },
+          "description": {
+            "minLength": 1,
+            "type": "string"
+          },
           "details": {
             "type": "array",
             "items": {
@@ -1738,6 +1748,9 @@
               "code": {
                 "type": "integer"
               },
+              "description": {
+                "type": "string"
+              },
               "details": {
                 "type": "array",
                 "items": {
@@ -1750,6 +1763,7 @@
         "example": {
           "status": {
             "code": 429,
+            "description": "Too Many Requests",
             "details": [
               "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
             ]

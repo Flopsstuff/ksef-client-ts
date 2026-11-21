@@ -16,6 +16,18 @@ export const KSeFErrorCode = {
    * the error details name the field (documented in KSeF API v2.9.0, returned earlier as well).
    */
   UnreadableContent: 21001,
+  /** The token with the given reference number does not exist in the current context (documented in KSeF API v2.10.0). */
+  TokenNotFound: 21409,
+  /** A token cannot grant permissions its author does not hold (KSeF API v2.10.0). */
+  TokenPermissionsNotHeld: 26001,
+  /** The token operation is not allowed in the current context type (KSeF API v2.10.0). */
+  TokenInvalidContextType: 26002,
+  /** The token's status does not allow the operation: revoke, approve or expire-approval (KSeF API v2.10.0). */
+  TokenStatusDisallowsOperation: 26004,
+  /** The token cannot be approved in a session authenticated with a KSeF token; use XAdES or the National Node (KSeF API v2.10.0). */
+  TokenApprovalAuthMethodNotAllowed: 26005,
+  /** The context has reached its token limit (KSeF API v2.10.0). */
+  TokenLimitReached: 26006,
   /** A collective identifier request lists invoices of different sellers (KSeF API v2.8.1). */
   CollectiveIdentifierDifferentSellers: 71004,
   /** A collective identifier request repeats the same KSeF number (KSeF API v2.8.1). */

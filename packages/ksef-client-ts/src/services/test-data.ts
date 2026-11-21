@@ -171,4 +171,10 @@ export class TestDataService {
       .body(request);
     await this.restClient.executeVoid(req);
   }
+
+  async expireTokenApproval(referenceNumber: string): Promise<void> {
+    this.ensureTestEnvironment();
+    const req = RestRequest.post(Routes.TestData.expireTokenApproval(referenceNumber));
+    await this.restClient.executeVoid(req);
+  }
 }

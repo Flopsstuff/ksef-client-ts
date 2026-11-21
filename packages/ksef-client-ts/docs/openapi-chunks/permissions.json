@@ -38,6 +38,7 @@
                   "Introspection",
                   "CredentialsRead"
                 ],
+                "description": "Opis uprawnienia",
                 "subjectDetails": {
                   "subjectDetailsType": "PersonByIdentifier",
                   "personById": {
@@ -177,6 +178,7 @@
                     "canDelegate": true
                   }
                 ],
+                "description": "Opis uprawnienia",
                 "subjectDetails": {
                   "fullName": "Firma sp. z o.o."
                 }
@@ -303,6 +305,7 @@
                   "value": "7762811692"
                 },
                 "permission": "SelfInvoicing",
+                "description": "działanie w imieniu 3393244202 w kontekście 7762811692, Firma sp. z o.o.",
                 "subjectDetails": {
                   "fullName": "Firma sp. z o.o."
                 }
@@ -436,6 +439,7 @@
                   "InvoiceWrite",
                   "InvoiceRead"
                 ],
+                "description": "praca dla klienta 5687926712; uprawniony PESEL: 22271569167, Adam Abacki; pośrednik 3936518395",
                 "subjectDetails": {
                   "subjectDetailsType": "PersonByIdentifier",
                   "personById": {
@@ -569,6 +573,7 @@
                   "type": "InternalId",
                   "value": "7762811692-12345"
                 },
+                "description": "Opis uprawnienia",
                 "subunitName": "Jednostka 014",
                 "subjectDetails": {
                   "subjectDetailsType": "PersonByIdentifier",
@@ -705,6 +710,7 @@
                   "type": "NipVatUe",
                   "value": "7762811692-DE123456789012"
                 },
+                "description": "Opis uprawnienia",
                 "euEntityName": "Firma G.m.b.H.",
                 "subjectDetails": {
                   "subjectDetailsType": "PersonByFingerprintWithIdentifier",
@@ -847,6 +853,7 @@
                   "InvoiceRead",
                   "InvoiceWrite"
                 ],
+                "description": "Opis uprawnienia",
                 "subjectDetails": {
                   "subjectDetailsType": "PersonByFingerprintWithIdentifier",
                   "personByFpWithId": {
@@ -1201,7 +1208,8 @@
                 },
                 "example": {
                   "status": {
-                    "code": 200
+                    "code": 200,
+                    "description": "Operacja zakończona sukcesem"
                   }
                 }
               }
@@ -1466,6 +1474,7 @@
                         "value": "5247677742"
                       },
                       "permissionScope": "InvoiceWrite",
+                      "description": "Opis uprawnienia",
                       "permissionState": "Active",
                       "startDate": "2025-06-22T10:41:11+00:00",
                       "canDelegate": false
@@ -1643,6 +1652,7 @@
                         "value": "15062788702"
                       },
                       "permissionScope": "InvoiceWrite",
+                      "description": "praca dla klienta 9786214922; uprawniony NIP: 7762811692, Adam Abacki; pośrednik 3936518395",
                       "permissionState": "Active",
                       "startDate": "2025-06-22T10:41:11+00:00",
                       "canDelegate": false
@@ -1815,6 +1825,7 @@
                         "value": "15062788702"
                       },
                       "permissionScope": "CredentialsManage",
+                      "description": "Opis uprawnienia",
                       "startDate": "2025-06-22T10:41:11+00:00"
                     }
                   ],
@@ -1977,6 +1988,7 @@
                         "value": "3568707925"
                       },
                       "permissionScope": "InvoiceWrite",
+                      "description": "Opis uprawnienia",
                       "startDate": "2025-06-22T10:41:11+00:00",
                       "canDelegate": false
                     }
@@ -2115,6 +2127,7 @@
                   "roles": [
                     {
                       "role": "EnforcementAuthority",
+                      "description": "Organ egzekucyjny",
                       "startDate": "2025-06-22T10:41:11+00:00"
                     }
                   ],
@@ -2275,6 +2288,7 @@
                         "value": "7762811692"
                       },
                       "role": "VatGroupSubUnit",
+                      "description": "Członek grupy VAT 8373740478",
                       "startDate": "2025-06-22T10:41:11+00:00"
                     }
                   ],
@@ -2454,6 +2468,7 @@
                         "value": "1134256681"
                       },
                       "authorizationScope": "SelfInvoicing",
+                      "description": "Uprawnienie podmiotowe do samofakturowania",
                       "startDate": "2025-06-22T10:41:11+00:00"
                     }
                   ],
@@ -2620,6 +2635,7 @@
                       "euEntityName": "Podmiot unijny",
                       "authorizedFingerprintIdentifier": "CEB3643BAC2C111ADDE971BDA5A80163441867D65389FC0BC0DFF8B4C1CD4E59",
                       "permissionScope": "VatUeManage",
+                      "description": "Opis uprawnienia",
                       "startDate": "2025-06-22T10:41:11+00:00"
                     }
                   ],
@@ -2725,6 +2741,9 @@
             "type": "integer",
             "format": "int32"
           },
+          "description": {
+            "type": "string"
+          },
           "details": {
             "type": "array",
             "items": {
@@ -2781,12 +2800,14 @@
           "errors": [
             {
               "code": 21405,
+              "description": "Błąd walidacji danych wejściowych.",
               "details": [
                 "Wskazany kod formularza nie jest wspierany."
               ]
             },
             {
               "code": 21157,
+              "description": "Nieprawidłowy rozmiar części pakietu.",
               "details": [
                 "Rozmiar części 1 przekroczył dozwolony rozmiar 100MB."
               ]
@@ -2868,6 +2889,11 @@
               }
             ]
           },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
+          },
           "subjectEntityDetails": {
             "required": [
               "subjectDetailsType",
@@ -2921,6 +2947,11 @@
                 "$ref": "#/components/schemas/EntityAuthorizationPermissionType"
               }
             ]
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
           },
           "subjectDetails": {
             "required": [
@@ -3176,6 +3207,11 @@
               }
             ]
           },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
+          },
           "startDate": {
             "type": "string",
             "format": "date-time"
@@ -3254,6 +3290,11 @@
             "items": {
               "$ref": "#/components/schemas/EntityPermission"
             }
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
           },
           "subjectDetails": {
             "required": [
@@ -3364,6 +3405,11 @@
                 "$ref": "#/components/schemas/EntityRoleType"
               }
             ]
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
           },
           "startDate": {
             "type": "string",
@@ -3488,6 +3534,11 @@
               }
             ]
           },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
+          },
           "euEntityName": {
             "maxLength": 256,
             "minLength": 5,
@@ -3611,6 +3662,11 @@
               }
             ]
           },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
+          },
           "subjectPersonDetails": {
             "required": [
               "subjectDetailsType",
@@ -3719,7 +3775,8 @@
       "EuEntityPermissionType": {
         "enum": [
           "InvoiceWrite",
-          "InvoiceRead"
+          "InvoiceRead",
+          "CollectiveIdentifierManage"
         ],
         "type": "string"
       },
@@ -3778,6 +3835,11 @@
               "$ref": "#/components/schemas/EuEntityPermissionType"
             }
           },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
+          },
           "subjectDetails": {
             "required": [
               "subjectDetailsType"
@@ -3795,7 +3857,8 @@
           "VatUeManage",
           "InvoiceWrite",
           "InvoiceRead",
-          "Introspection"
+          "Introspection",
+          "CollectiveIdentifierManage"
         ],
         "type": "string"
       },
@@ -4096,6 +4159,11 @@
             "items": {
               "$ref": "#/components/schemas/IndirectPermissionType"
             }
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
           },
           "subjectDetails": {
             "required": [
@@ -4618,6 +4686,11 @@
               }
             ]
           },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
+          },
           "subjectPersonDetails": {
             "required": [
               "subjectDetailsType",
@@ -4860,6 +4933,11 @@
               "$ref": "#/components/schemas/PersonPermissionType"
             }
           },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
+          },
           "subjectDetails": {
             "required": [
               "subjectDetailsType"
@@ -5087,6 +5165,11 @@
                 "$ref": "#/components/schemas/PersonalPermissionScope"
               }
             ]
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
           },
           "subjectPersonDetails": {
             "required": [
@@ -5465,6 +5548,10 @@
             "type": "integer",
             "format": "int32"
           },
+          "description": {
+            "minLength": 1,
+            "type": "string"
+          },
           "details": {
             "type": "array",
             "items": {
@@ -5500,6 +5587,11 @@
                 "$ref": "#/components/schemas/SubordinateEntityRoleType"
               }
             ]
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
           },
           "startDate": {
             "type": "string",
@@ -5616,6 +5708,11 @@
                 "$ref": "#/components/schemas/SubunitPermissionScope"
               }
             ]
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
           },
           "subjectPersonDetails": {
             "required": [
@@ -5756,6 +5853,11 @@
                 "$ref": "#/components/schemas/SubunitPermissionsContextIdentifier"
               }
             ]
+          },
+          "description": {
+            "maxLength": 256,
+            "minLength": 5,
+            "type": "string"
           },
           "subunitName": {
             "maxLength": 256,
@@ -5910,6 +6012,9 @@
               "code": {
                 "type": "integer"
               },
+              "description": {
+                "type": "string"
+              },
               "details": {
                 "type": "array",
                 "items": {
@@ -5922,6 +6027,7 @@
         "example": {
           "status": {
             "code": 429,
+            "description": "Too Many Requests",
             "details": [
               "Przekroczono limit 20 żądań na minutę. Spróbuj ponownie po 30 sekundach."
             ]

@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.17.0] - 2026-11-21
+
+### Added
+
+- **Time-bounded and approved KSeF tokens** — tokens can carry a chosen validity period, and tokens created from a token-authenticated session can be approved from a stronger authentication session before use (KSeF API v2.10.0).
+- **Revised authentication status and active-session data** — opt-in operations expose the expanded sign-in method details and revised session records while older environments remain supported (KSeF API v2.10.0).
+- **Expanded context administration** — EU entities can receive collective-identifier management permission, and effective context limits can report the token allowance (KSeF API v2.10.0).
+- **Deprecation notices** — applications can receive or log advance notice when KSeF marks an operation for retirement and states its switch-off date (KSeF API v2.10.0).
+- **Command-line support for KSeF API 2.10.0** — token validity, token approval, revised token queries, token limits and test-environment approval expiry are available from the command line (KSeF API v2.10.0).
+
+### Changed (breaking)
+
+- **Certificate limit overrides must carry a value** — a hand-built test-environment request that includes an enrollment or certificate limit section must now set the limit in it, so an empty section fails at compile time instead of at KSeF (KSeF API v2.10.0).
+
+### Changed
+
+- **Older token and sign-in status operations are deprecated** — they continue to work for environments on earlier API versions until KSeF switches off sign-in status and session listing on 15 June 2027 and token management on 30 September 2027 (KSeF API v2.10.0).
+- **Updated to KSeF API v2.10.0** — the bundled API specification now tracks the current TEST release.
+
 ## [0.16.0] - 2026-10-24
 
 ### Changed (breaking)

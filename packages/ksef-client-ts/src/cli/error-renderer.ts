@@ -238,6 +238,10 @@ const CODE_HINTS: ReadonlyMap<number, string> = new Map([
     'KSeF could not read the request: a value has the wrong type or is not one KSeF accepts. Check the field named in the error details.',
   ],
   [
+    KSeFErrorCode.TokenApprovalAuthMethodNotAllowed,
+    'A token cannot be approved from a session signed in with a KSeF token. Sign in with a certificate or a XAdES signature (`ksef auth login --cert/--key` or `--p12`, or `ksef auth login-external`), then run `ksef token approve` again.',
+  ],
+  [
     KSeFErrorCode.BatchTimeout,
     'The batch session expired before all parts were uploaded and closed. Send the batch again with `ksef invoice send`.',
   ],

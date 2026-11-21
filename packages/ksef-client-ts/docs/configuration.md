@@ -41,6 +41,39 @@ const client = new KSeFClient({
 | `presignedUrlHosts` | `string[]` | — | Additional allowed hosts for presigned URLs |
 | `authManager` | `AuthManager` | `DefaultAuthManager` | Custom auth/token manager |
 | `errorFormat` | `'problem-details' \| 'legacy'` | `'problem-details'` | Request format for server error bodies. `'legacy'` suppresses the `X-Error-Format` header for older servers/proxies (KSeF API v2.4.0+) |
+| `onDeprecation` | `(notice: DeprecationNotice) => void` | — | Opt-in callback for `Deprecation` and `Sunset` response headers (KSeF API 2.10.0). See below |
+
+### Deprecation notices
+
+KSeF API 2.10.0 marks operations it will switch off with two response headers, on success and on `400`, `410` and `429`:
+
+- `Deprecation: @<unix-seconds>` — when the operation was deprecated (RFC 9745)
+- `Sunset: <HTTP-date>` — when it will answer `410 Gone` instead (RFC 8594)
+
+Pass `onDeprecation` to read them at runtime. The callback receives the HTTP method, the route path (for example `tokens`), the parsed dates when the header values parse, and the raw header strings when they do not. It runs before an error is thrown, so a `410` still reaches your `catch` after the notice. A callback that throws is logged and ignored. It does not change the result of the request.
+
+The library does not de-duplicate notices. The same operation can fire the callback on every call, and a retried `429` fires it once per response. Aggregate in the application if you want one log line per operation.
+
+With no callback, the client logs the notice at debug level. Login still polls the deprecated authentication-status operation, so a warn-level log would fire on every sign-in.
+
+```ts
+import { KSeFClient, type DeprecationNotice } from 'ksef-client-ts';
+
+const reported = new Set<string>();
+
+const client = new KSeFClient({
+  environment: 'TEST',
+  onDeprecation(notice: DeprecationNotice) {
+    const key = `${notice.method} ${notice.path}`;
+    if (reported.has(key)) return;
+    reported.add(key);
+    const sunset = notice.sunset?.toISOString() ?? notice.rawSunset ?? 'unknown';
+    console.warn(`${key} is deprecated and switches off at ${sunset}`);
+  },
+});
+```
+
+See [HTTP Resilience — Deprecation notices](./http-resilience.md#deprecation-notices) for the header rules, and [Error Handling — 410 after sunset](./error-handling.md#410-after-sunset) for the `410 Gone` that follows the sunset date.
 
 ---
 

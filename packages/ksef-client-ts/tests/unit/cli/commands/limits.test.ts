@@ -50,6 +50,31 @@ describe('limits', () => {
     );
   });
 
+  it('context — adds a token-limit row when the server reports one', async () => {
+    mockClient.limits.getContextLimits.mockResolvedValue({
+      onlineSession: { maxInvoiceSizeInMB: 10, maxInvoiceWithAttachmentSizeInMB: 50, maxInvoices: 100 },
+      batchSession: { maxInvoiceSizeInMB: 10, maxInvoiceWithAttachmentSizeInMB: 50, maxInvoices: 1000 },
+      collectiveIdentifier: { maxInvoices: 500 },
+      tokens: { maxTokens: 25 },
+    });
+    await (limitsCommand.subCommands!.context as any).run!({ args: {} });
+    expect(output.outputKeyValue).toHaveBeenCalledWith(
+      expect.objectContaining({ 'Tokens — Max Tokens': 25 }),
+      { json: false },
+    );
+  });
+
+  it('context — omits the token-limit row when the block is missing (KSeF API 2.9.0)', async () => {
+    mockClient.limits.getContextLimits.mockResolvedValue({
+      onlineSession: { maxInvoiceSizeInMB: 10, maxInvoiceWithAttachmentSizeInMB: 50, maxInvoices: 100 },
+      batchSession: { maxInvoiceSizeInMB: 10, maxInvoiceWithAttachmentSizeInMB: 50, maxInvoices: 1000 },
+      collectiveIdentifier: { maxInvoices: 500 },
+    });
+    await (limitsCommand.subCommands!.context as any).run!({ args: {} });
+    const rows = vi.mocked(output.outputKeyValue).mock.calls[0][0];
+    expect(rows).not.toHaveProperty('Tokens — Max Tokens');
+  });
+
   it('subject — calls getSubjectLimits', async () => {
     mockClient.limits.getSubjectLimits.mockResolvedValue({
       enrollment: { maxEnrollments: 5 },

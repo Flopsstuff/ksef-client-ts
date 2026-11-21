@@ -2,7 +2,7 @@
 
 /**
  * Splits docs/open-api.json into per-tag chunks under docs/openapi-chunks/.
- * Removes all "description" fields to reduce token count.
+ * Removes documentation "description" fields to reduce token count.
  *
  * Usage: node scripts/split-openapi.mjs
  */
@@ -17,13 +17,16 @@ const OUT_DIR = join(ROOT, "docs", "openapi-chunks");
 
 // --- helpers ---
 
-function stripDescriptions(obj) {
-  if (Array.isArray(obj)) return obj.map(stripDescriptions);
+// Schema property names and example payloads are data, not documentation:
+// a payload field called "description" must survive.
+function stripDescriptions(obj, parentKey) {
+  if (parentKey === "example" || parentKey === "examples") return obj;
+  if (Array.isArray(obj)) return obj.map((v) => stripDescriptions(v));
   if (obj && typeof obj === "object") {
     const out = {};
     for (const [k, v] of Object.entries(obj)) {
-      if (k === "description") continue;
-      out[k] = stripDescriptions(v);
+      if (k === "description" && parentKey !== "properties") continue;
+      out[k] = stripDescriptions(v, k);
     }
     return out;
   }
