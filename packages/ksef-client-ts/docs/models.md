@@ -609,7 +609,8 @@ Each permission grant target has its own set of allowed permission types:
 |---|---|---|
 | `PersonPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CredentialsRead`, `CredentialsManage`, `EnforcementOperations`, `SubunitManage`, `Introspection`, `CollectiveIdentifierManage` | `GrantPermissionsPersonRequest` |
 | `EntityPermissionItemType` | `InvoiceRead`, `InvoiceWrite`, `CollectiveIdentifierManage` | `GrantPermissionsEntityRequest`, `EntityPermissionItem` (entity-grants query) |
-| `EuEntityPermissionType` | `InvoiceRead`, `InvoiceWrite` | `GrantPermissionsEuEntityRepresentativeRequest` |
+| `EuEntityPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CollectiveIdentifierManage` | `GrantPermissionsEuEntityRepresentativeRequest` |
+| `EuEntityPermissionsQueryPermissionType` | `VatUeManage`, `InvoiceWrite`, `InvoiceRead`, `Introspection`, `CollectiveIdentifierManage` | `QueryEuEntitiesGrantsRequest`, `EuEntityPermission.permissionScope` |
 | `IndirectPermissionType` | `InvoiceRead`, `InvoiceWrite`, `CollectiveIdentifierManage` | `GrantPermissionsIndirectRequest` |
 | `SubunitPermissionScope` | `CredentialsManage` | `GrantPermissionsSubunitRequest` |
 | `InvoicePermissionType` | `SelfInvoicing`, `TaxRepresentative`, `RRInvoicing`, `PefInvoicing` | Entity authorization grants |
@@ -792,9 +793,10 @@ Effective rate limits and session context limits, plus override types for the te
 Key types:
 
 - `EffectiveApiRateLimits` -- per-second/minute/hour limits for 17 groups: the 13 endpoint categories, plus `onlineSessionClose`, `batchSessionClose`, `anonymous`, and `global` (KSeF API v2.8.0). A window equal to `RATE_LIMIT_UNLIMITED` (`-1`) has no limit; `global` is the per-IP limit, announced in 2.8.0 as not yet enforced, but TEST reports a finite `perSecond` (75) since 2.9.0, so do not assume its windows are unlimited
-- `EffectiveContextLimits` -- max invoice size and count for online/batch sessions, and max invoices per collective identifier
+- `EffectiveContextLimits` -- max invoice size and count for online/batch sessions, max invoices per collective identifier, and optional `tokens.maxTokens` (KSeF API v2.10.0; required in the OpenAPI schema, typed optional while DEMO/PROD still serve 2.9.0)
+- `TokensEffectiveContextLimits` -- `{ maxTokens: number }` block nested under `EffectiveContextLimits.tokens`
 - `EffectiveSubjectLimits` -- enrollment and certificate limits per subject
-- `SetRateLimitsRequest`, `SetSessionLimitsRequest`, `SetSubjectLimitsRequest` -- override requests (test environment only)
+- `SetRateLimitsRequest`, `SetSessionLimitsRequest`, `SetSubjectLimitsRequest` -- override requests (test environment only). On `SetSubjectLimitsRequest`, `enrollment.maxEnrollments` and `certificate.maxCertificates` are required when those objects are present (KSeF API v2.10.0)
 
 ### Collective Identifiers
 

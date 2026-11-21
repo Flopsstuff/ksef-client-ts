@@ -32,3 +32,7 @@ This is not a one-off. Upstream will add required fields to existing schemas aga
 - Refreshing the vendored spec is part of the same change, not a follow-up: `docs/open-api.json`, the generated chunks, and the spec-version references in the docs move together, so the vendored spec never disagrees with the types.
 - New paths and schemas that arrive in the same upstream release are *not* covered by this ADR. They are new surface, tracked and implemented separately, and `yarn check-api` is expected to report them as uncovered until then.
 - 0.x versioning permits this in a minor release. After 1.0 the same change belongs in a major release, with the CHANGELOG calling it out as breaking.
+
+## Response fields under environment skew
+
+When TEST leads DEMO/PROD by an API minor, a response field that the new spec marks `required` may still be absent on older environments. Mirroring it as required in TypeScript would turn a missing block into a runtime crash for callers who assume the property is always present. In that narrow case the library may keep the response property optional until PROD serves the new minor, with a JSDoc note that names the temporary deviation and the condition that lifts it. Request bodies stay under the main rule above: a newly required request field is mirrored as required immediately, because omitting it fails against TEST either way.
