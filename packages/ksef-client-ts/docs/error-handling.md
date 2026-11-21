@@ -720,6 +720,12 @@ class KSeFGoneError extends KSeFApiError {
 A `KSeFGoneError` means the operation likely ran to completion long ago — KSeF only forgets the *status record*, not the underlying outcome (e.g., issued certificate, exported package). If you missed the result, repeat the action rather than re-poll the same reference number.
 :::
 
+#### 410 after sunset
+
+KSeF API 2.10.0 uses the same `410 Gone` status for a second case: a deprecated operation whose `Sunset` date has passed. The old token operations switch off on 2027-09-30, and the old authentication-status and session-list operations switch off on 2027-06-15. Until that date they still succeed, and they send `Deprecation` and `Sunset` headers on `2xx`, `400`, `410` and `429`.
+
+`KSeFGoneError` is thrown either way. To tell a switched-off operation from an aged-out status record, set `onDeprecation`. The callback runs before the error is thrown and carries the sunset date when the header parses. See [Configuration](./configuration.md#deprecation-notices) and [HTTP Resilience](./http-resilience.md#deprecation-notices).
+
 ---
 
 ### `KSeFAuthStatusError`

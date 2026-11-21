@@ -5,6 +5,41 @@ import type { RateLimitConfig } from '../http/rate-limit-policy.js';
 import type { CircuitBreakerConfig } from '../http/circuit-breaker-policy.js';
 import type { AuthManager } from '../http/auth-manager.js';
 
+/**
+ * Notice that a response carried a `Deprecation` header (RFC 9745), a `Sunset`
+ * header (RFC 8594), or both. KSeF sends these on operations it has scheduled
+ * to switch off (KSeF API 2.10.0).
+ *
+ * The library does not de-duplicate notices. The callback runs once per
+ * response that carries either header — including a response the client will
+ * retry, and including an error response — and the application decides how to
+ * aggregate them.
+ */
+export interface DeprecationNotice {
+  /** HTTP method of the request, for example `GET`. */
+  method: string;
+  /**
+   * Route path of the request, without the API version prefix or query string.
+   * This is the value passed to `RestRequest`, for example `tokens`.
+   */
+  path: string;
+  /**
+   * When the operation was deprecated, from `Deprecation: @<unix-seconds>`.
+   * Undefined when the header is absent or the value is not that form.
+   */
+  deprecatedSince?: Date;
+  /**
+   * When the operation will be switched off, from a `Sunset` HTTP-date
+   * (RFC 8594). Undefined when the header is absent or the value does not
+   * parse. After this instant the operation answers `410 Gone`.
+   */
+  sunset?: Date;
+  /** Raw `Deprecation` header value, when the response included one. */
+  rawDeprecation?: string;
+  /** Raw `Sunset` header value, when the response included one. */
+  rawSunset?: string;
+}
+
 export interface KSeFClientOptions {
   /**
    * Target KSeF environment. Defaults to `'TEST'` when neither `environment`
@@ -42,6 +77,15 @@ export interface KSeFClientOptions {
    * When omitted, warnings are logged at warn level.
    */
   onSystemWarning?: (warning: string) => void;
+  /**
+   * Invoked when a response carries a `Deprecation` header (RFC 9745), a
+   * `Sunset` header (RFC 8594), or both (KSeF API 2.10.0). Runs for success
+   * and error responses, before an error is thrown. A throwing callback is
+   * logged and ignored. When omitted, the notice is logged at debug level.
+   * May run many times for the same operation; the library does not
+   * de-duplicate it.
+   */
+  onDeprecation?: (notice: DeprecationNotice) => void;
   /**
    * Request format for server-returned error bodies. Defaults to
    * `'problem-details'` (RFC 7807, KSeF API v2.4.0+). Set to `'legacy'`
