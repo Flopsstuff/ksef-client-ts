@@ -1,0 +1,126 @@
+name: Agent Trigger
+
+# Manual gate between GitHub issues and the Paperclip routine (see issue #56).
+# Putting the `agent-run` label on an issue sends that issue to the routine
+# webhook. Only logins on the AGENT_TRIGGER_USERS allow-list count; opening or
+# commenting on an issue never starts anything.
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Issue number to send to the Paperclip routine
+        required: true
+        type: number
+
+concurrency:
+  group: agent-trigger-${{ github.event.issue.number || inputs.issue }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  fire:
+    name: Fire Paperclip routine
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'agent-run'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Event data reaches the shell only through these variables, never through
+    # inline expressions, so issue content cannot inject commands.
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue }}
+      ACTOR: ${{ github.actor }}
+      EVENT_NAME: ${{ github.event_name }}
+      RUN_ID: ${{ github.run_id }}
+    steps:
+      # The allow-list is the authorization gate: only logins listed in the
+      # AGENT_TRIGGER_USERS repository variable (comma or space separated) may
+      # start the routine. An empty or missing variable allows nobody.
+      - name: Check that the actor is on the allow-list
+        env:
+          ALLOWED_USERS: ${{ vars.AGENT_TRIGGER_USERS }}
+        run: |
+          set -f # the list is split on purpose; never expand it as a glob
+          allowed=false
+          for user in ${ALLOWED_USERS//,/ }; do
+            if [ "${user,,}" = "${ACTOR,,}" ]; then
+              allowed=true
+            fi
+          done
+          if [ "$allowed" != true ]; then
+            echo "::error::$ACTOR is not on the AGENT_TRIGGER_USERS allow-list."
+            exit 1
+          fi
+          echo "$ACTOR is allowed to trigger agents."
+
+      - name: Build the payload
+        run: |
+          gh api "repos/$REPO/issues/$ISSUE_NUMBER" > issue.json
+          if jq -e 'has("pull_request")' issue.json > /dev/null; then
+            echo "::error::#$ISSUE_NUMBER is a pull request, not an issue."
+            exit 1
+          fi
+          jq -n \
+            --slurpfile issue issue.json \
+            --arg repository "$REPO" \
+            --arg actor "$ACTOR" \
+            --arg trigger "$EVENT_NAME" \
+            --arg delivery "$REPO#$ISSUE_NUMBER@$RUN_ID" \
+            '{
+              source: "github",
+              event: "agent-run",
+              deliveryId: $delivery,
+              trigger: $trigger,
+              repository: $repository,
+              triggeredBy: $actor,
+              issue: ($issue[0] | {
+                number,
+                title,
+                url: .html_url,
+                apiUrl: .url,
+                state,
+                author: .user.login,
+                labels: [.labels[].name],
+                body
+              })
+            }' > payload.json
+
+      - name: Fire the routine
+        env:
+          PAPERCLIP_WEBHOOK_URL: ${{ secrets.PAPERCLIP_WEBHOOK_URL }}
+          PAPERCLIP_WEBHOOK_SECRET: ${{ secrets.PAPERCLIP_WEBHOOK_SECRET }}
+        run: |
+          if [ -z "$PAPERCLIP_WEBHOOK_URL" ] || [ -z "$PAPERCLIP_WEBHOOK_SECRET" ]; then
+            echo "::error::PAPERCLIP_WEBHOOK_URL or PAPERCLIP_WEBHOOK_SECRET is not set."
+            exit 1
+          fi
+          status=$(curl -sS -o response.txt -w '%{http_code}' --max-time 30 \
+            -X POST "$PAPERCLIP_WEBHOOK_URL" \
+            -H "Authorization: Bearer $PAPERCLIP_WEBHOOK_SECRET" \
+            -H 'Content-Type: application/json' \
+            --data-binary @payload.json)
+          echo "Paperclip answered HTTP $status"
+          case "$status" in
+            2*)
+              ;;
+            *)
+              echo "::error::The routine webhook rejected the event (HTTP $status)."
+              exit 1
+              ;;
+          esac
+
+      # The routine has already been started at this point, so a label failure
+      # must not turn the run red: a red run means "not delivered" and invites
+      # a re-run. `deliveryId` stays the same across re-runs of one run, so the
+      # routine can also recognise a repeated delivery.
+      - name: Mark the issue as queued
+        run: |
+          if ! gh issue edit "$ISSUE_NUMBER" --repo "$REPO" \
+            --add-label agent-queued --remove-label agent-run; then
+            echo "::warning::The routine was started, but the labels on #$ISSUE_NUMBER could not be updated. Do not re-run this job."
+          fi
