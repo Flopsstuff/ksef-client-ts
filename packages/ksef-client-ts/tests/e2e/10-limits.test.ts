@@ -14,6 +14,9 @@ describe('10 - Limits', { timeout: 60_000 }, () => {
     expect(limits).toBeDefined();
     expect(limits.onlineSession).toBeDefined();
     expect(limits.batchSession).toBeDefined();
+    // KSeF API v2.10.0 — TEST sends tokens.maxTokens; DEMO/PROD on 2.9.0 omit it.
+    expect(limits.tokens).toBeDefined();
+    expect(limits.tokens!.maxTokens).toBeGreaterThan(0);
   });
 
   it('should get subject limits', async () => {

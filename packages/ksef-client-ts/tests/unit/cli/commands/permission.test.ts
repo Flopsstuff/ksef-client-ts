@@ -276,6 +276,19 @@ describe('permission', () => {
       );
     });
 
+    it('eu-entity-representative — passes CollectiveIdentifierManage through', async () => {
+      mockClient.permissions.grantEuEntityRepresentativePermissions.mockResolvedValue({ referenceNumber: 'ref-eu-cim' });
+      await runGrant({
+        type: 'eu-entity-representative', identifier: 'fp-cim',
+        permissions: 'CollectiveIdentifierManage', fullName: 'Rep Corp', address: 'Paris, FR',
+      });
+      expect(mockClient.permissions.grantEuEntityRepresentativePermissions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          permissions: ['CollectiveIdentifierManage'],
+        }),
+      );
+    });
+
     it('outputs JSON when --json is set', async () => {
       const mockOutputResult = vi.mocked(output.outputResult);
       const grantResult = { referenceNumber: 'ref-json-1' };

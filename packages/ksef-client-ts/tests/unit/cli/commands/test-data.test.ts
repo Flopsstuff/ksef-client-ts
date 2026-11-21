@@ -283,16 +283,13 @@ describe('test-data', () => {
       });
     });
 
-    it('omits enrollment and certificate when not provided', async () => {
-      mockClient.testData.changeCertificatesLimit.mockResolvedValue(undefined);
-      await (testDataCommand.subCommands!['change-cert-limits'] as any).run!({
-        args: {},
-      });
-      expect(mockClient.testData.changeCertificatesLimit).toHaveBeenCalledWith({
-        subjectIdentifierType: undefined,
-        enrollment: undefined,
-        certificate: undefined,
-      });
+    it('requires both --max-enrollments and --max-certificates', async () => {
+      await expect(
+        (testDataCommand.subCommands!['change-cert-limits'] as any).run!({
+          args: { 'max-enrollments': '10' },
+        }),
+      ).rejects.toThrow('--max-enrollments and --max-certificates are both required');
+      expect(mockClient.testData.changeCertificatesLimit).not.toHaveBeenCalled();
     });
   });
 
