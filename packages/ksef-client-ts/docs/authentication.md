@@ -15,9 +15,10 @@ Overview of authentication methods supported by the Polish National e-Invoice Sy
 7. [CLI Usage](#cli-usage)
 8. [Library Usage](#library-usage)
 9. [Token Lifecycle](#token-lifecycle)
-10. [Automatic Token Refresh](#automatic-token-refresh)
-11. [Custom AuthManager](#custom-authmanager)
-12. [Session Hydration (CLI)](#session-hydration-cli)
+10. [Deprecated Operation Timeline](#deprecated-operation-timeline)
+11. [Automatic Token Refresh](#automatic-token-refresh)
+12. [Custom AuthManager](#custom-authmanager)
+13. [Session Hydration (CLI)](#session-hydration-cli)
 
 ---
 
@@ -465,6 +466,20 @@ console.log(status.status.code, status.validFrom, status.validTo);
 ```
 
 The original token operations (`generateToken`, `queryTokens`, `getToken`) are deprecated and switched off on 2027-09-30, but they remain the only option on environments that do not serve KSeF API 2.10.0 yet.
+
+---
+
+## Deprecated Operation Timeline
+
+The replacements are available only in environments that serve KSeF API 2.10.0. At the time of writing, that means TEST; use the deprecated operations on DEMO and PROD until those environments are upgraded.
+
+| Deprecated method | Replacement | Switch-off date |
+|---|---|---|
+| `getAuthStatus()` | `getAuthStatusRev2()` | 15 June 2027 |
+| `getActiveSessions()` | `getActiveSessionsRev2()` | 15 June 2027 |
+| `generateToken()` | `generateTokenRev2()` | 30 September 2027 |
+| `queryTokens()` | `queryTokensRev2()` | 30 September 2027 |
+| `getToken()` | `getTokenRev2()` | 30 September 2027 |
 
 ---
 
